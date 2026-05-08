@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background:
+    radial-gradient(circle at 50% -10%, rgba(157, 92, 255, .20), transparent 36%),
+    radial-gradient(circle at 90% 12%, rgba(243, 199, 122, .08), transparent 28%),
+    #08070D;
+  color: #fff;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+#root {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 2px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 1px; }
+
+/* Accent glow dot */
+.dot-glow {
+  width: 5px; height: 5px;
+  background: #B987FF;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #9D5CFF, 0 0 20px rgba(199, 166, 255, .35);
+  flex-shrink: 0;
+}
+
+.premium-surface {
+  background:
+    linear-gradient(145deg, rgba(255,255,255,.07), rgba(255,255,255,.025)),
+    linear-gradient(180deg, rgba(157,92,255,.08), rgba(8,7,13,0));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 20px 60px rgba(0,0,0,.28);
+}
+
+.premium-glow {
+  box-shadow:
+    0 0 0 1px rgba(199,166,255,.20),
+    0 0 28px rgba(157,92,255,.26),
+    0 18px 50px rgba(0,0,0,.38);
+}
+
+/* Tap highlight */
+* { -webkit-tap-highlight-color: transparent; }

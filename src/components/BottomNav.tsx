@@ -1,0 +1,35 @@
+import { House, SquaresFour, BookmarkSimple, ClockCounterClockwise, User } from '@phosphor-icons/react'
+
+export type Tab = 'home' | 'cats' | 'favs' | 'recent' | 'prof'
+
+const TABS: { id: Tab; icon: typeof House; label: string }[] = [
+  { id: 'home',   icon: House,                 label: 'Главная'   },
+  { id: 'cats',   icon: SquaresFour,           label: 'Разделы'   },
+  { id: 'favs',   icon: BookmarkSimple,         label: 'Избранное' },
+  { id: 'recent', icon: ClockCounterClockwise, label: 'История'   },
+  { id: 'prof',   icon: User,                  label: 'Профиль'   },
+]
+
+interface Props { active: Tab; onChange: (t: Tab) => void }
+
+export default function BottomNav({ active, onChange }: Props) {
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 h-[60px] bg-s1/95 backdrop-blur border-t border-bd flex z-50">
+      {TABS.map(({ id, icon: Icon, label }) => {
+        const on = active === id
+        return (
+          <button
+            key={id}
+            onClick={() => onChange(id)}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] font-semibold
+              tracking-wide border-t-2 transition-colors duration-150
+              ${on ? 'text-green border-green drop-shadow-[0_0_10px_rgba(157,92,255,.55)]' : 'text-gray2 border-transparent'}`}
+          >
+            <Icon size={20} weight={on ? 'fill' : 'regular'} />
+            {label}
+          </button>
+        )
+      })}
+    </nav>
+  )
+}

@@ -1,0 +1,154 @@
+import { useState, useEffect } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import SplashPage from './pages/SplashPage'
+import HomePage from './pages/HomePage'
+import CatsPage from './pages/CatsPage'
+import SectionPage from './pages/SectionPage'
+import MaterialPage from './pages/MaterialPage'
+import FavsPage from './pages/FavsPage'
+import RecentPage from './pages/RecentPage'
+import ProfilePage from './pages/ProfilePage'
+import BottomNav from './components/BottomNav'
+import type { Tab } from './components/BottomNav'
+import Header from './components/Header'
+import Logo from './components/Logo'
+import type { Section } from './api/client'
+import { isBookmarked, removeBookmarkRemote, saveBookmarkRemote, syncBookmarks } from './store/bookmarks'
+
+const tg = (window as any).Telegram?.WebApp
+
+type View =
+  | { type: 'tab'; tab: Tab }
+  | { type: 'section'; section: Section }
+  | { type: 'material'; id: number; sectionId: number }
+
+export default function App() {
+  const [started, setStarted] = useState(() => !!localStorage.getItem('started'))
+  const [tab, setTab] = useState<Tab>('home')
+  const [stack, setStack] = useState<View[]>([])
+  const [bmTick, setBmTick] = useState(0)
+
+  useEffect(() => {
+    tg?.expand?.()
+    tg?.ready?.()
+  }, [])
+
+  useEffect(() => {
+    if (!started) return
+    syncBookmarks().finally(() => setBmTick(t => t + 1))
+  }, [started])
+
+  // Show/hide Telegram back button
+  useEffect(() => {
+    if (!started) return
+    if (stack.length > 0) {
+      tg?.BackButton?.show?.()
+      tg?.BackButton?.onClick?.(goBack)
+    } else {
+      tg?.BackButton?.hide?.()
+    }
+    return () => tg?.BackButton?.offClick?.(goBack)
+  }, [stack, started])
+
+  const startApp = () => {
+    localStorage.setItem('started', '1')
+    setStarted(true)
+  }
+
+  const goBack = () => setStack(s => s.slice(0, -1))
+
+  const openSection = (section: Section) => setStack(s => [...s, { type: 'section', section }])
+  const openMaterial = (id: number, sectionId: number) => setStack(s => [...s, { type: 'material', id, sectionId }])
+
+  const switchTab = (t: Tab) => {
+    setTab(t)
+    setStack([])
+  }
+
+  if (!started) {
+    return <SplashPage onStart={startApp} />
+  }
+
+  const top = stack[stack.length - 1]
+  const isMat = top?.type === 'material'
+
+  const renderContent = () => {
+    if (!top) {
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} />
+      if (tab === 'cats')   return <CatsPage onSection={openSection} />
+      if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
+      if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
+      if (tab === 'prof')   return <ProfilePage />
+    }
+    if (top?.type === 'section') {
+      return <SectionPage section={top.section} onMaterial={openMaterial} onSubsection={openSection} />
+    }
+    if (top?.type === 'material') {
+      return (
+        <MaterialPage
+          materialId={top.id}
+          sectionId={top.sectionId}
+          onNavId={(id) => setStack(s => {
+            const prev = s.slice(0, -1)
+            return [...prev, { type: 'material', id, sectionId: top.sectionId }]
+          })}
+        />
+      )
+    }
+    return null
+  }
+
+  const renderHeader = () => {
+    if (!top) {
+      if (tab === 'home') return (
+        <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur border-b border-bd px-4 flex items-center gap-3 h-[56px] shrink-0">
+          <Logo size={30} />
+          <span className="flex-1 text-[15px] font-semibold tracking-wide">
+            <span className="text-violet">S010</span>lvloon
+          </span>
+          <button className="text-gray2 p-1">🔔</button>
+        </header>
+      )
+      const titles: Record<Tab, string> = { home: '', cats: 'Категории', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
+      return <Header showLogo={tab === 'cats'} title={titles[tab]} />
+    }
+    if (top.type === 'section') {
+      return <Header showBack onBack={goBack} title={top.section.title} />
+    }
+    if (top.type === 'material') {
+      const bm = isBookmarked(top.id)
+      return (
+        <Header
+          showBack onBack={goBack}
+          bookmarked={bm}
+          onBookmark={() => {
+            if (isBookmarked(top.id)) removeBookmarkRemote(top.id)
+            else saveBookmarkRemote(top.id)
+            setBmTick(t => t + 1)
+          }}
+        />
+      )
+    }
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-bg">
+      {renderHeader()}
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${tab}-${stack.length}-${top?.type === 'material' ? top.id : ''}`}
+          initial={{ opacity: 0, x: 12 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -8 }}
+          transition={{ duration: 0.18 }}
+          className="flex flex-col flex-1 overflow-hidden"
+        >
+          {renderContent()}
+        </motion.div>
+      </AnimatePresence>
+
+      {!isMat && <BottomNav active={tab} onChange={switchTab} />}
+    </div>
+  )
+}
