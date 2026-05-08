@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
-import type { Profile, Config } from '../api/client'
+import type { Profile, Config, Plan } from '../api/client'
 
 const tg = (window as any).Telegram?.WebApp
 
@@ -10,20 +10,22 @@ interface Props {
 }
 
 export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
-  const [prof, setProf]     = useState<Profile | null>(null)
-  const [cfg, setCfg]       = useState<Config>({ plans: [], currency: 'USDT' })
+  const [prof, setProf]   = useState<Profile | null>(null)
+  const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
-  const [buying, setBuying]   = useState<number | null>(null)
-  const [buyingCrypto, setBuyingCrypto] = useState<number | null>(null)
-  const [buyingRub, setBuyingRub] = useState<number | null>(null)
-  const [starsMsg, setStarsMsg] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Plan | null>(null)
+  const [paying, setPaying] = useState<'crypto' | 'stars' | 'rub' | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
   const plansRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     Promise.all([api.profile().catch(() => null), api.config().catch(() => null)])
       .then(([p, c]) => {
         if (p) setProf(p)
-        if (c) setCfg(c)
+        if (c) {
+          setCfg(c)
+          if (c.plans.length) setSelected(c.plans[0])
+        }
       })
       .finally(() => setLoading(false))
   }, [])
@@ -36,74 +38,63 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
     }, 100)
   }, [scrollToPlans, loading])
 
-  const buyWithCrypto = async (days: number) => {
-    if (buyingCrypto === days) return
-    setBuyingCrypto(days)
-    setStarsMsg(null)
+  const buyWithCrypto = async () => {
+    if (!selected || paying) return
+    setPaying('crypto')
+    setMsg(null)
     try {
-      const { pay_url } = await api.cryptoInvoice(days)
-      if (tg?.openLink) {
-        tg.openLink(pay_url)
-      } else {
-        window.open(pay_url, '_blank')
-      }
-      setStarsMsg(`Счёт создан. После оплаты напишите /start боту для проверки.`)
+      const { pay_url } = await api.cryptoInvoice(selected.days)
+      tg?.openLink ? tg.openLink(pay_url) : window.open(pay_url, '_blank')
+      setMsg('Счёт создан. После оплаты напишите /start боту.')
     } catch {
-      setStarsMsg('Ошибка создания счёта. Попробуйте позже.')
+      setMsg('Ошибка создания счёта. Попробуйте позже.')
     } finally {
-      setBuyingCrypto(null)
+      setPaying(null)
     }
   }
 
-  const buyWithRub = async (days: number) => {
-    if (buyingRub === days) return
-    setBuyingRub(days)
-    setStarsMsg(null)
+  const buyWithStars = async () => {
+    if (!selected || paying) return
+    setPaying('stars')
+    setMsg(null)
     try {
-      const { checkout_url } = await api.tegroInvoice(days)
-      if (tg?.openLink) {
-        tg.openLink(checkout_url)
-      } else {
-        window.open(checkout_url, '_blank')
-      }
-      setStarsMsg('Перейдите на страницу оплаты. После оплаты напишите /start боту для проверки.')
-    } catch {
-      setStarsMsg('Ошибка создания счёта. Попробуйте позже.')
-    } finally {
-      setBuyingRub(null)
-    }
-  }
-
-  // Telegram Stars payment via openInvoice
-  const buyWithStars = async (days: number) => {
-    if (buying === days) return
-    setBuying(days)
-    setStarsMsg(null)
-    try {
-      const { invoice_link } = await api.starsInvoice(days)
+      const { invoice_link } = await api.starsInvoice(selected.days)
       if (tg?.openInvoice) {
         tg.openInvoice(invoice_link, (status: string) => {
-          setBuying(null)
+          setPaying(null)
           if (status === 'paid') {
-            setStarsMsg('✅ Оплата прошла! Premium активируется в течение нескольких секунд.')
-            // Refresh profile after a short delay so the bot can process the payment
+            setMsg('✅ Оплата прошла! Premium активируется в течение нескольких секунд.')
             setTimeout(() => {
               api.profile().then(p => { if (p) setProf(p) }).catch(() => {})
             }, 3000)
-          } else if (status === 'cancelled') {
-            setStarsMsg(null)
+          } else if (status !== 'cancelled') {
+            setMsg('Платёж не завершён. Попробуйте ещё раз.')
           } else {
-            setStarsMsg('Платёж не завершён. Попробуйте ещё раз.')
+            setMsg(null)
           }
         })
       } else {
-        // Fallback for older Telegram versions
         tg?.openLink?.(invoice_link)
-        setBuying(null)
+        setPaying(null)
       }
     } catch {
-      setStarsMsg('Ошибка создания счёта. Попробуйте позже.')
-      setBuying(null)
+      setMsg('Ошибка создания счёта. Попробуйте позже.')
+      setPaying(null)
+    }
+  }
+
+  const buyWithRub = async () => {
+    if (!selected || paying) return
+    setPaying('rub')
+    setMsg(null)
+    try {
+      const { checkout_url } = await api.tegroInvoice(selected.days)
+      tg?.openLink ? tg.openLink(checkout_url) : window.open(checkout_url, '_blank')
+      setMsg('Перейдите на страницу оплаты. После оплаты напишите /start боту.')
+    } catch {
+      setMsg('Ошибка создания счёта. Попробуйте позже.')
+    } finally {
+      setPaying(null)
     }
   }
 
@@ -139,65 +130,110 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
           )}
         </div>
 
-        {/* Stars message */}
-        {starsMsg && (
-          <div className="px-4 py-3 rounded border border-green bg-[rgba(157,92,255,.08)] text-[13px] text-white/80">
-            {starsMsg}
-          </div>
-        )}
-
         {/* Plans */}
         {!prof?.is_premium && cfg.plans.length > 0 && (
           <>
-            <div ref={plansRef} className="text-[11px] font-bold tracking-[2px] uppercase text-gray pt-1">Тарифные планы</div>
-            {cfg.plans.map(p => (
-              <div key={p.days} className="premium-surface border border-bd rounded p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <div className="text-[14px] font-semibold mb-0.5">{p.label}</div>
-                    <div className="text-[12px] text-gray">{p.price} {cfg.currency}</div>
-                  </div>
-                  <button
-                    disabled={buyingCrypto === p.days}
-                    onClick={() => buyWithCrypto(p.days)}
-                    className="px-4 py-2 border border-green text-violet text-[12px] font-semibold uppercase tracking-wide rounded-sm active:bg-[rgba(157,92,255,.12)] disabled:opacity-50">
-                    {buyingCrypto === p.days ? '...' : 'Купить'}
-                  </button>
-                </div>
+            <div ref={plansRef} className="text-[11px] font-bold tracking-[2px] uppercase text-gray pt-1">
+              Оформить Premium
+            </div>
 
-                {/* Stars payment row */}
-                {p.stars != null && (
+            {/* Period selector */}
+            <div className="flex gap-2">
+              {cfg.plans.map(p => {
+                const active = selected?.days === p.days
+                return (
                   <button
-                    disabled={buying === p.days}
-                    onClick={() => buyWithStars(p.days)}
-                    className="w-full h-10 flex items-center justify-center gap-2 border border-[rgba(255,210,80,.4)] text-[rgba(255,210,80,1)] text-[12px] font-semibold uppercase tracking-wide rounded-sm active:bg-[rgba(255,210,80,.08)] disabled:opacity-50">
-                    {buying === p.days ? (
-                      <span className="animate-pulse">Открываю...</span>
-                    ) : (
-                      <>⭐ {p.stars} звёзд</>
-                    )}
+                    key={p.days}
+                    onClick={() => { setSelected(p); setMsg(null) }}
+                    className={`flex-1 flex flex-col items-center py-3 px-1 rounded border transition-colors
+                      ${active
+                        ? 'border-green bg-[rgba(157,92,255,.12)] text-white'
+                        : 'border-bd bg-s1 text-gray active:bg-s2'}`}
+                  >
+                    <span className="text-[13px] font-bold leading-tight">{p.label}</span>
+                    <span className={`text-[10px] mt-0.5 ${active ? 'text-green' : 'text-gray2'}`}>
+                      {p.price} {cfg.currency}
+                    </span>
                   </button>
+                )
+              })}
+            </div>
+
+            {/* Payment methods for selected plan */}
+            {selected && (
+              <div className="premium-surface border border-bd rounded overflow-hidden flex flex-col gap-px">
+
+                {/* USDT */}
+                <button
+                  disabled={!!paying}
+                  onClick={buyWithCrypto}
+                  className="flex items-center gap-3 px-4 py-3.5 active:bg-s2 disabled:opacity-50 transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-full bg-[rgba(157,92,255,.12)] border border-[rgba(157,92,255,.3)] flex items-center justify-center text-[16px] shrink-0">
+                    💵
+                  </div>
+                  <div className="flex-1 text-left">
+                    <div className="text-[13px] font-semibold text-white">Криптовалюта</div>
+                    <div className="text-[11px] text-gray">CryptoBot · {selected.price} {cfg.currency}</div>
+                  </div>
+                  {paying === 'crypto'
+                    ? <span className="text-[11px] text-gray animate-pulse">Открываю…</span>
+                    : <span className="text-[11px] text-violet font-semibold">Оплатить</span>}
+                </button>
+
+                <div className="h-px bg-bd mx-4" />
+
+                {/* Stars */}
+                {selected.stars != null && (
+                  <>
+                    <button
+                      disabled={!!paying}
+                      onClick={buyWithStars}
+                      className="flex items-center gap-3 px-4 py-3.5 active:bg-s2 disabled:opacity-50 transition-colors"
+                    >
+                      <div className="w-9 h-9 rounded-full bg-[rgba(255,210,80,.10)] border border-[rgba(255,210,80,.3)] flex items-center justify-center text-[16px] shrink-0">
+                        ⭐
+                      </div>
+                      <div className="flex-1 text-left">
+                        <div className="text-[13px] font-semibold text-white">Telegram Stars</div>
+                        <div className="text-[11px] text-gray">{selected.stars} звёзд · мгновенно</div>
+                      </div>
+                      {paying === 'stars'
+                        ? <span className="text-[11px] text-gray animate-pulse">Открываю…</span>
+                        : <span className="text-[11px] text-[rgba(255,210,80,1)] font-semibold">Оплатить</span>}
+                    </button>
+                    <div className="h-px bg-bd mx-4" />
+                  </>
                 )}
 
-                {/* RUB payment row (Tegro.money) */}
-                {p.rub != null && (
+                {/* RUB */}
+                {selected.rub != null && (
                   <button
-                    disabled={buyingRub === p.days}
-                    onClick={() => buyWithRub(p.days)}
-                    className="w-full h-10 flex items-center justify-center gap-2 border border-[rgba(76,175,80,.4)] text-[rgba(100,220,100,1)] text-[12px] font-semibold uppercase tracking-wide rounded-sm active:bg-[rgba(76,175,80,.08)] disabled:opacity-50 mt-1">
-                    {buyingRub === p.days ? (
-                      <span className="animate-pulse">Открываю...</span>
-                    ) : (
-                      <>💳 {p.rub} ₽</>
-                    )}
+                    disabled={!!paying}
+                    onClick={buyWithRub}
+                    className="flex items-center gap-3 px-4 py-3.5 active:bg-s2 disabled:opacity-50 transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-[rgba(76,175,80,.10)] border border-[rgba(76,175,80,.35)] flex items-center justify-center text-[16px] shrink-0">
+                      💳
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="text-[13px] font-semibold text-white">Банковская карта</div>
+                      <div className="text-[11px] text-gray">Tegro.money · {selected.rub} ₽</div>
+                    </div>
+                    {paying === 'rub'
+                      ? <span className="text-[11px] text-gray animate-pulse">Открываю…</span>
+                      : <span className="text-[11px] text-[rgba(100,220,100,1)] font-semibold">Оплатить</span>}
                   </button>
                 )}
               </div>
-            ))}
+            )}
 
-            <p className="text-[11px] text-gray leading-relaxed">
-              Оплата звёздами проходит мгновенно прямо в Telegram. Оплата рублями через Tegro.money — доступ активируется автоматически.
-            </p>
+            {/* Status message */}
+            {msg && (
+              <div className="px-4 py-3 rounded border border-green bg-[rgba(157,92,255,.08)] text-[13px] text-white/80">
+                {msg}
+              </div>
+            )}
           </>
         )}
       </div>
