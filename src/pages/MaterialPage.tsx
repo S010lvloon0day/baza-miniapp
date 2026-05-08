@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CaretLeft, CaretRight, ArrowSquareOut, DownloadSimple } from '@phosphor-icons/react'
 import { api, API_BASE } from '../api/client'
+import { PaperPlaneTilt } from '@phosphor-icons/react'
 import type { Material } from '../api/client'
 
 const tg = (window as any).Telegram?.WebApp
@@ -10,15 +11,18 @@ const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', docu
 interface Props {
   materialId: number
   sectionId: number
+  botUsername?: string
   onNavId?: (id: number) => void
 }
 
-export default function MaterialPage({ materialId, sectionId, onNavId }: Props) {
+export default function MaterialPage({ materialId, sectionId, botUsername, onNavId }: Props) {
   const [mat, setMat] = useState<Material | null>(null)
   const [docText, setDocText] = useState<string | null>(null)
   const [docPreview, setDocPreview] = useState<'loading' | 'text' | 'pdf' | 'error'>('loading')
   const [pdfFailed, setPdfFailed] = useState(false)
   const [videoError, setVideoError] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
   const [sectionMats, setSectionMats] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const curId = useRef(materialId)
@@ -39,6 +43,8 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
     setDocPreview('loading')
     setPdfFailed(false)
     setVideoError(false)
+    setSending(false)
+    setSent(false)
 
     api.material(materialId).then(d => {
       if (curId.current !== materialId) return
@@ -76,6 +82,37 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
     if (tg?.openLink) tg.openLink(furl)
     else window.open(furl, '_blank')
   }
+
+  const openInTelegram = async () => {
+    if (sending || sent) return
+    setSending(true)
+    try {
+      await api.sendFile(materialId)
+      setSent(true)
+      if (botUsername) {
+        setTimeout(() => {
+          if (tg?.openTelegramLink) tg.openTelegramLink(`https://t.me/${botUsername}`)
+        }, 800)
+      }
+    } catch {
+      setSending(false)
+    }
+  }
+
+  const TgButton = ({ prominent = false }: { prominent?: boolean }) => (
+    <button
+      onClick={openInTelegram}
+      disabled={sending}
+      className={`w-full flex items-center justify-center gap-2 text-[12px] font-semibold tracking-[2px] uppercase rounded-sm active:opacity-70 disabled:opacity-50 ${
+        prominent
+          ? 'h-12 bg-gradient-to-r from-[#2D7BF0] to-[#54A0FF] text-white'
+          : 'h-10 border border-bd2 text-gray'
+      }`}
+    >
+      <PaperPlaneTilt size={prominent ? 18 : 16} />
+      {sent ? 'Отправлено ✓' : sending ? 'Отправка...' : 'Получить в Telegram'}
+    </button>
+  )
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
@@ -119,14 +156,16 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
 
               {/* ── PHOTO ── */}
               {mat.media_type === 'photo' && furl && (
-                <img src={furl} alt={mat.title} loading="lazy"
-                  className="w-[calc(100%-32px)] mx-4 mb-4 rounded border border-bd block"
-                  onError={e => (e.currentTarget.style.display = 'none')} />
+                <div className="mx-4 mb-4">
+                  <img src={furl} alt={mat.title} loading="lazy"
+                    className="w-full rounded border border-bd block"
+                    onError={e => (e.currentTarget.style.display = 'none')} />
+                </div>
               )}
 
               {/* ── VIDEO ── */}
               {mat.media_type === 'video' && furl && (
-                <div className="mx-4 mb-4">
+                <div className="mx-4 mb-4 flex flex-col gap-2">
                   {!videoError ? (
                     <video
                       src={furl}
@@ -137,17 +176,19 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
                       onError={() => setVideoError(true)}
                     />
                   ) : (
-                    <div className="h-32 border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-2 mb-3">
+                    <div className="h-28 border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-1">
                       <div className="text-3xl">🎬</div>
-                      <div className="text-[11px] text-gray tracking-[2px] uppercase">Видео недоступно в приложении</div>
-                      <div className="text-[10px] text-gray2">Файл может быть слишком большим</div>
+                      <div className="text-[11px] text-gray tracking-[2px] uppercase">Файл слишком большой для стриминга</div>
                     </div>
                   )}
-                  <button onClick={openExternal}
-                    className="mt-2 w-full h-10 border border-bd2 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-sm active:opacity-70">
-                    <ArrowSquareOut size={16} />
-                    Открыть в браузере
-                  </button>
+                  <TgButton prominent={videoError} />
+                  {!videoError && (
+                    <button onClick={openExternal}
+                      className="w-full h-9 border border-bd2 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-sm active:opacity-70">
+                      <ArrowSquareOut size={15} />
+                      Открыть в браузере
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -189,21 +230,27 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
                     </div>
                   )}
 
-                  {/* Open / download button */}
+                  {/* Open / download + Telegram buttons */}
                   {docPreview !== 'loading' && (
-                    <button onClick={openExternal}
-                      className="w-full h-12 border border-green flex items-center justify-center gap-2 text-violet text-[12px] font-semibold tracking-[2px] uppercase rounded-sm active:bg-[rgba(157,92,255,.10)]">
-                      <DownloadSimple size={18} />
-                      Открыть / скачать
-                    </button>
+                    <div className="flex flex-col gap-2">
+                      <button onClick={openExternal}
+                        className="w-full h-11 border border-green flex items-center justify-center gap-2 text-violet text-[12px] font-semibold tracking-[2px] uppercase rounded-sm active:bg-[rgba(157,92,255,.10)]">
+                        <DownloadSimple size={18} />
+                        Открыть / скачать
+                      </button>
+                      <TgButton />
+                    </div>
                   )}
                 </div>
               )}
 
-              {/* No media attached */}
+              {/* No media attached — offer Telegram delivery */}
               {!furl && mat.can_send && mat.media_type !== 'text' && (
-                <div className="mx-4 mb-4 p-4 border border-bd rounded text-[13px] leading-relaxed text-gray">
-                  Файл не привязан к мини-приложению. Откройте материал в боте.
+                <div className="mx-4 mb-4 flex flex-col gap-2">
+                  <div className="p-3 border border-bd rounded text-[12px] text-gray2 text-center">
+                    Файл хранится в Telegram — получите его прямо в чат с ботом
+                  </div>
+                  <TgButton prominent />
                 </div>
               )}
 

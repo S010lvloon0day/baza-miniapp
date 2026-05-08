@@ -69,6 +69,7 @@ export interface Plan {
 export interface Config {
   plans: Plan[]
   currency: string
+  bot_username?: string
 }
 
 export const api = {

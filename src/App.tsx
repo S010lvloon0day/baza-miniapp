@@ -12,6 +12,7 @@ import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
 import Logo from './components/Logo'
+import { api } from './api/client'
 import type { Section } from './api/client'
 import { isBookmarked, removeBookmarkRemote, saveBookmarkRemote, syncBookmarks } from './store/bookmarks'
 
@@ -27,10 +28,12 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [stack, setStack] = useState<View[]>([])
   const [bmTick, setBmTick] = useState(0)
+  const [botUsername, setBotUsername] = useState('')
 
   useEffect(() => {
     tg?.expand?.()
     tg?.ready?.()
+    api.config().then(c => { if (c.bot_username) setBotUsername(c.bot_username) }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -88,6 +91,7 @@ export default function App() {
         <MaterialPage
           materialId={top.id}
           sectionId={top.sectionId}
+          botUsername={botUsername}
           onNavId={(id) => setStack(s => {
             const prev = s.slice(0, -1)
             return [...prev, { type: 'material', id, sectionId: top.sectionId }]
