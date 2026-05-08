@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getRecentlyViewed, clearRecentlyViewed } from '../store/recently_viewed'
-import type { RecentItem } from '../store/recently_viewed'
+import { api } from '../api/client'
+import type { Material } from '../api/client'
 
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
 const typeIcon  = (t: string) => ({ photo: '🖼', video: '🎬', document: '📄', text: '📝' }[t] ?? '📄')
@@ -8,11 +8,26 @@ const typeIcon  = (t: string) => ({ photo: '🖼', video: '🎬', document: '�
 interface Props { onMaterial: (id: number, sectionId: number) => void }
 
 export default function RecentPage({ onMaterial }: Props) {
-  const [items, setItems] = useState<RecentItem[]>([])
+  const [items, setItems] = useState<Material[]>([])
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => { setItems(getRecentlyViewed()) }, [])
+  useEffect(() => {
+    api.history()
+      .then(d => setItems(d.materials))
+      .catch(() => setItems([]))
+      .finally(() => setLoading(false))
+  }, [])
 
-  const clear = () => { clearRecentlyViewed(); setItems([]) }
+  const clear = async () => {
+    await api.clearHistory().catch(() => {})
+    setItems([])
+  }
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center">
+      <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+    </div>
+  )
 
   if (!items.length) return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray">

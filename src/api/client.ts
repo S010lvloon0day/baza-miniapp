@@ -86,4 +86,6 @@ export const api = {
   removeFavorite: (id: number)   => del<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
   sendFile:       (id: number)   => post<{ ok: boolean; error?: string }>(`/api/send_file/${id}`),
   starsInvoice:   (days: number) => post<{ invoice_link: string; stars: number }>(`/api/stars_invoice/${days}`),
+  history:        ()             => get<{ materials: Material[] }>('/api/history'),
+  clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),
 }

@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CaretLeft, CaretRight, ArrowSquareOut, DownloadSimple } from '@phosphor-icons/react'
 import { api, API_BASE } from '../api/client'
 import type { Material } from '../api/client'
-import { addRecentlyViewed } from '../store/recently_viewed'
 
 const tg = (window as any).Telegram?.WebApp
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
@@ -42,9 +41,7 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
     api.material(materialId).then(d => {
       if (curId.current !== materialId) return
       setMat(d)
-      if (!d.premium_required) {
-        addRecentlyViewed({ id: d.id, title: d.title, media_type: d.media_type, section_id: d.section_id })
-      }
+      // История записывается автоматически на сервере при GET /api/material/{id}
     }).catch(() => {}).finally(() => setLoading(false))
   }, [materialId])
 
