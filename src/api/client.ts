@@ -77,6 +77,7 @@ export interface Banner {
   title: string
   text: string
   link: string
+  file_id?: string
 }
 
 export const api = {
