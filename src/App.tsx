@@ -92,6 +92,7 @@ export default function App() {
           materialId={top.id}
           sectionId={top.sectionId}
           botUsername={botUsername}
+          onUpgrade={() => { setStack([]); setTab('prof') }}
           onNavId={(id) => setStack(s => {
             const prev = s.slice(0, -1)
             return [...prev, { type: 'material', id, sectionId: top.sectionId }]

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Image, Video, File, Article, Lock } from '@phosphor-icons/react'
+import { Image, Video, File, Article, Star } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import type { Section, Material } from '../api/client'
 
@@ -101,22 +101,37 @@ export default function SectionPage({ section, onMaterial, onSubsection }: Props
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
                 onClick={() => onMaterial(m.id, section.id)}
-                className="flex items-center gap-2.5 py-3.5 cursor-pointer active:bg-s2 -mx-4 px-4"
+                className={`flex items-center gap-2.5 py-3.5 cursor-pointer -mx-4 px-4 ${m.locked ? 'active:bg-[rgba(157,92,255,.06)]' : 'active:bg-s2'}`}
               >
-                <div className="dot-glow ml-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1">
-                    {m.locked && <Lock size={12} weight="fill" className="inline mr-1 text-gray" />}
-                    {m.title}
-                  </div>
-                  <div className="text-[11px] text-gray flex items-center gap-1.5">
-                    {typeLabel(m.media_type)}
-                    {!!m.is_premium && <span className="text-green">· PREMIUM</span>}
-                  </div>
-                </div>
-                <div className="w-14 h-14 bg-s2 rounded border border-bd2 flex items-center justify-center shrink-0">
-                  <TypeIcon t={m.media_type} />
-                </div>
+                {m.locked ? (
+                  <>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] font-semibold text-white/50 leading-snug line-clamp-2 mb-1.5">
+                        {m.title}
+                      </div>
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[rgba(157,92,255,.15)] border border-[rgba(157,92,255,.3)]">
+                        <Star size={10} weight="fill" className="text-violet" />
+                        <span className="text-[10px] font-bold tracking-[1.5px] text-violet uppercase">Только Premium</span>
+                      </div>
+                    </div>
+                    <div className="w-14 h-14 rounded border border-[rgba(157,92,255,.2)] bg-[rgba(157,92,255,.06)] flex items-center justify-center shrink-0 opacity-40">
+                      <TypeIcon t={m.media_type} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="dot-glow ml-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1">
+                        {m.title}
+                      </div>
+                      <div className="text-[11px] text-gray">{typeLabel(m.media_type)}</div>
+                    </div>
+                    <div className="w-14 h-14 bg-s2 rounded border border-bd2 flex items-center justify-center shrink-0">
+                      <TypeIcon t={m.media_type} />
+                    </div>
+                  </>
+                )}
               </motion.div>
             ))}
           </div>

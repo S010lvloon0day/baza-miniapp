@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CaretLeft, CaretRight, ArrowSquareOut, DownloadSimple } from '@phosphor-icons/react'
 import { api, API_BASE } from '../api/client'
-import { PaperPlaneTilt } from '@phosphor-icons/react'
+import { PaperPlaneTilt, Star, Crown } from '@phosphor-icons/react'
 import type { Material } from '../api/client'
 
 const tg = (window as any).Telegram?.WebApp
@@ -12,10 +12,11 @@ interface Props {
   materialId: number
   sectionId: number
   botUsername?: string
+  onUpgrade?: () => void
   onNavId?: (id: number) => void
 }
 
-export default function MaterialPage({ materialId, sectionId, botUsername, onNavId }: Props) {
+export default function MaterialPage({ materialId, sectionId, botUsername, onUpgrade, onNavId }: Props) {
   const [mat, setMat] = useState<Material | null>(null)
   const [docText, setDocText] = useState<string | null>(null)
   const [docTruncated, setDocTruncated] = useState(false)
@@ -128,15 +129,38 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onNav
             </motion.div>
           ) : mat?.premium_required ? (
             <motion.div key="lock" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="mx-4 mt-4 p-6 premium-surface border border-[rgba(199,166,255,.25)] rounded text-center overflow-hidden">
-              <div className="text-4xl mb-3">🔒</div>
-              <div className="font-display text-[22px] tracking-[2px] mb-2">ДОСТУП ЗАКРЫТ</div>
-              <p className="text-[12px] text-gray leading-relaxed mb-5">
-                Этот материал доступен только Premium пользователям.
-              </p>
-              <button className="w-full py-3 bg-gradient-to-r from-[#7B3DFF] to-[#E7D4FF] text-bg font-bold text-[12px] tracking-[2px] uppercase rounded-sm">
-                Получить Premium
-              </button>
+              className="mx-4 mt-4 rounded overflow-hidden border border-[rgba(157,92,255,.3)]">
+              {/* Header strip */}
+              <div className="bg-gradient-to-r from-[#7B3DFF] to-[#9D5CFF] px-5 py-4 flex items-center gap-3">
+                <Crown size={24} weight="fill" className="text-white/90 shrink-0" />
+                <div>
+                  <div className="font-bold text-[14px] text-white tracking-wide">Premium-контент</div>
+                  <div className="text-[11px] text-white/70">Доступно только по подписке</div>
+                </div>
+              </div>
+              {/* Body */}
+              <div className="bg-[rgba(157,92,255,.07)] px-5 py-5">
+                <p className="text-[13px] text-white/70 leading-relaxed mb-4">
+                  Этот материал входит в Premium-библиотеку. Оформите подписку, чтобы получить доступ ко всем закрытым материалам.
+                </p>
+                <div className="flex flex-col gap-2 mb-5">
+                  {[
+                    { label: 'Доступ ко всем Premium-материалам' },
+                    { label: 'Оплата криптовалютой или звёздами Telegram' },
+                    { label: 'Мгновенная активация после оплаты' },
+                  ].map(b => (
+                    <div key={b.label} className="flex items-center gap-2">
+                      <Star size={12} weight="fill" className="text-violet shrink-0" />
+                      <span className="text-[12px] text-white/60">{b.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={onUpgrade}
+                  className="w-full py-3 bg-gradient-to-r from-[#7B3DFF] to-[#C7A6FF] text-white font-bold text-[12px] tracking-[2px] uppercase rounded-sm active:opacity-80">
+                  Оформить подписку →
+                </button>
+              </div>
             </motion.div>
           ) : mat ? (
             <motion.div key={`mat-${materialId}`} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
