@@ -18,7 +18,7 @@ export default {
       },
       fontFamily: {
         display: ['"Bebas Neue"', 'sans-serif'],
-        sans:    ['"Inter"', 'system-ui', 'sans-serif'],
+        sans:    ['"Manrope"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         glow:  '0 0 24px rgba(157,92,255,.42)',
