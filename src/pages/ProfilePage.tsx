@@ -15,6 +15,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [loading, setLoading] = useState(true)
   const [buying, setBuying]   = useState<number | null>(null)
   const [buyingCrypto, setBuyingCrypto] = useState<number | null>(null)
+  const [buyingRub, setBuyingRub] = useState<number | null>(null)
   const [starsMsg, setStarsMsg] = useState<string | null>(null)
   const plansRef = useRef<HTMLDivElement>(null)
 
@@ -51,6 +52,25 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
       setStarsMsg('Ошибка создания счёта. Попробуйте позже.')
     } finally {
       setBuyingCrypto(null)
+    }
+  }
+
+  const buyWithRub = async (days: number) => {
+    if (buyingRub === days) return
+    setBuyingRub(days)
+    setStarsMsg(null)
+    try {
+      const { checkout_url } = await api.tegroInvoice(days)
+      if (tg?.openLink) {
+        tg.openLink(checkout_url)
+      } else {
+        window.open(checkout_url, '_blank')
+      }
+      setStarsMsg('Перейдите на страницу оплаты. После оплаты напишите /start боту для проверки.')
+    } catch {
+      setStarsMsg('Ошибка создания счёта. Попробуйте позже.')
+    } finally {
+      setBuyingRub(null)
     }
   }
 
@@ -158,11 +178,25 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                     )}
                   </button>
                 )}
+
+                {/* RUB payment row (Tegro.money) */}
+                {p.rub != null && (
+                  <button
+                    disabled={buyingRub === p.days}
+                    onClick={() => buyWithRub(p.days)}
+                    className="w-full h-10 flex items-center justify-center gap-2 border border-[rgba(76,175,80,.4)] text-[rgba(100,220,100,1)] text-[12px] font-semibold uppercase tracking-wide rounded-sm active:bg-[rgba(76,175,80,.08)] disabled:opacity-50 mt-1">
+                    {buyingRub === p.days ? (
+                      <span className="animate-pulse">Открываю...</span>
+                    ) : (
+                      <>💳 {p.rub} ₽</>
+                    )}
+                  </button>
+                )}
               </div>
             ))}
 
             <p className="text-[11px] text-gray leading-relaxed">
-              Оплата звёздами проходит мгновенно прямо в Telegram. Доступ активируется автоматически.
+              Оплата звёздами проходит мгновенно прямо в Telegram. Оплата рублями через Tegro.money — доступ активируется автоматически.
             </p>
           </>
         )}

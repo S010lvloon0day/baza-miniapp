@@ -64,6 +64,7 @@ export interface Plan {
   label: string
   price: number
   stars?: number
+  rub?: number
 }
 
 export interface Config {
@@ -97,6 +98,7 @@ export const api = {
   sendFile:       (id: number)   => post<{ ok: boolean; error?: string }>(`/api/send_file/${id}`),
   starsInvoice:   (days: number) => post<{ invoice_link: string; stars: number }>(`/api/stars_invoice/${days}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),
+  tegroInvoice:   (days: number) => post<{ checkout_url: string; order_id: string }>(`/api/tegro_invoice/${days}`),
   history:        ()             => get<{ materials: Material[] }>('/api/history'),
   clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),
   banner:         ()             => get<{ banner: Banner | null }>('/api/banner'),
