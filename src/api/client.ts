@@ -78,6 +78,7 @@ export interface Banner {
   text: string
   link: string
   file_id?: string
+  media_type?: 'photo' | 'animation'
 }
 
 export const api = {

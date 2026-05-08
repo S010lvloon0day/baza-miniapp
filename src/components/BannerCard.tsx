@@ -20,6 +20,7 @@ export default function BannerCard({ banner }: Props) {
   }
 
   const hasImage = !!banner.file_id
+  const isAnimation = banner.media_type === 'animation'
   const imageUrl = `${API_BASE}/api/banner/image`
 
   return (
@@ -30,17 +31,25 @@ export default function BannerCard({ banner }: Props) {
       className="mx-4 mt-3"
     >
       {hasImage ? (
-        /* ── Баннер с фото ── */
+        /* ── Баннер с медиа ── */
         <div
           onClick={handleClick}
           className={`relative rounded overflow-hidden ${banner.link ? 'cursor-pointer active:opacity-80' : ''}`}
         >
-          <img
-            src={imageUrl}
-            alt={banner.title}
-            className="w-full object-cover max-h-[180px]"
-            draggable={false}
-          />
+          {isAnimation ? (
+            <video
+              src={imageUrl}
+              autoPlay loop muted playsInline
+              className="w-full object-cover max-h-[180px]"
+            />
+          ) : (
+            <img
+              src={imageUrl}
+              alt={banner.title}
+              className="w-full object-cover max-h-[180px]"
+              draggable={false}
+            />
+          )}
           {/* Overlay градиент снизу для текста */}
           {(banner.title || banner.text) && (
             <div className="absolute inset-x-0 bottom-0"
