@@ -18,6 +18,7 @@ interface Props {
 export default function MaterialPage({ materialId, sectionId, botUsername, onNavId }: Props) {
   const [mat, setMat] = useState<Material | null>(null)
   const [docText, setDocText] = useState<string | null>(null)
+  const [docTruncated, setDocTruncated] = useState(false)
   const [docPreview, setDocPreview] = useState<'loading' | 'text' | 'pdf' | 'error'>('loading')
   const [pdfFailed, setPdfFailed] = useState(false)
   const [videoError, setVideoError] = useState(false)
@@ -40,6 +41,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onNav
     setLoading(true)
     setMat(null)
     setDocText(null)
+    setDocTruncated(false)
     setDocPreview('loading')
     setPdfFailed(false)
     setVideoError(false)
@@ -59,6 +61,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onNav
     api.documentText(materialId)
       .then(data => {
         setDocText(data.text)
+        setDocTruncated(data.truncated ?? false)
         setDocPreview('text')
       })
       .catch(err => {
@@ -166,7 +169,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onNav
               {/* ── VIDEO ── */}
               {mat.media_type === 'video' && furl && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
-                  {!videoError ? (
+                  {!videoError && (
                     <video
                       src={furl}
                       controls
@@ -175,11 +178,6 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onNav
                       className="w-full rounded border border-bd block bg-black"
                       onError={() => setVideoError(true)}
                     />
-                  ) : (
-                    <div className="h-28 border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-1">
-                      <div className="text-3xl">🎬</div>
-                      <div className="text-[11px] text-gray tracking-[2px] uppercase">Файл слишком большой для стриминга</div>
-                    </div>
                   )}
                   <TgButton prominent={videoError} />
                   {!videoError && (
@@ -204,10 +202,15 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onNav
 
                   {/* Plain-text / markdown / csv */}
                   {docPreview === 'text' && docText !== null && (
-                    <div className="max-h-[65vh] overflow-y-auto rounded border border-bd2 bg-bg/70 p-4 mb-3">
+                    <div className="rounded border border-bd2 bg-bg/70 p-4 mb-3">
                       <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-[1.7] text-white/85">
                         {docText}
                       </pre>
+                      {docTruncated && (
+                        <div className="mt-3 pt-3 border-t border-bd2 text-[11px] text-gray2 text-center tracking-wide">
+                          Показаны первые 300 КБ · скачайте файл для просмотра полностью
+                        </div>
+                      )}
                     </div>
                   )}
 
