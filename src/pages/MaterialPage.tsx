@@ -18,6 +18,7 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
   const [docText, setDocText] = useState<string | null>(null)
   const [docPreview, setDocPreview] = useState<'loading' | 'text' | 'pdf' | 'error'>('loading')
   const [pdfFailed, setPdfFailed] = useState(false)
+  const [videoError, setVideoError] = useState(false)
   const [sectionMats, setSectionMats] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const curId = useRef(materialId)
@@ -37,6 +38,7 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
     setDocText(null)
     setDocPreview('loading')
     setPdfFailed(false)
+    setVideoError(false)
 
     api.material(materialId).then(d => {
       if (curId.current !== materialId) return
@@ -125,13 +127,22 @@ export default function MaterialPage({ materialId, sectionId, onNavId }: Props) 
               {/* ── VIDEO ── */}
               {mat.media_type === 'video' && furl && (
                 <div className="mx-4 mb-4">
-                  <video
-                    src={furl}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    className="w-full rounded border border-bd block bg-black"
-                  />
+                  {!videoError ? (
+                    <video
+                      src={furl}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-full rounded border border-bd block bg-black"
+                      onError={() => setVideoError(true)}
+                    />
+                  ) : (
+                    <div className="h-32 border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-2 mb-3">
+                      <div className="text-3xl">🎬</div>
+                      <div className="text-[11px] text-gray tracking-[2px] uppercase">Видео недоступно в приложении</div>
+                      <div className="text-[10px] text-gray2">Файл может быть слишком большим</div>
+                    </div>
+                  )}
                   <button onClick={openExternal}
                     className="mt-2 w-full h-10 border border-bd2 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-sm active:opacity-70">
                     <ArrowSquareOut size={16} />
