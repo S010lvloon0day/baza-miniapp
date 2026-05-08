@@ -29,6 +29,7 @@ export default function App() {
   const [stack, setStack] = useState<View[]>([])
   const [bmTick, setBmTick] = useState(0)
   const [botUsername, setBotUsername] = useState('')
+  const [upgradePending, setUpgradePending] = useState(false)
 
   useEffect(() => {
     tg?.expand?.()
@@ -81,7 +82,7 @@ export default function App() {
       if (tab === 'cats')   return <CatsPage onSection={openSection} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
       if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
-      if (tab === 'prof')   return <ProfilePage />
+      if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
     }
     if (top?.type === 'section') {
       return <SectionPage section={top.section} onMaterial={openMaterial} onSubsection={openSection} />
@@ -92,7 +93,7 @@ export default function App() {
           materialId={top.id}
           sectionId={top.sectionId}
           botUsername={botUsername}
-          onUpgrade={() => { setStack([]); setTab('prof') }}
+          onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }}
           onNavId={(id) => setStack(s => {
             const prev = s.slice(0, -1)
             return [...prev, { type: 'material', id, sectionId: top.sectionId }]

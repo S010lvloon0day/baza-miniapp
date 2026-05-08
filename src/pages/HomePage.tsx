@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { BookmarkSimple, CaretRight, Image, Video, File, Article, Lock } from '@phosphor-icons/react'
 import { api } from '../api/client'
-import type { Section, Material } from '../api/client'
+import type { Section, Material, Banner } from '../api/client'
 import { isBookmarked, saveBookmark, removeBookmark } from '../store/bookmarks'
+import BannerCard from '../components/BannerCard'
 
 interface Props {
   onSection: (s: Section) => void
@@ -14,15 +15,20 @@ interface Props {
 export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
+  const [banner, setBanner] = useState<Banner | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const d = await api.sections().catch(() => ({ sections: [] as Section[] }))
+      const [d, b] = await Promise.all([
+        api.sections().catch(() => ({ sections: [] as Section[] })),
+        api.banner().catch(() => ({ banner: null })),
+      ])
       if (!alive) return
       const roots = d.sections.filter(s => !s.parent_id)
       setSections(roots)
+      setBanner(b.banner)
       if (roots.length) {
         const md = await api.materials(roots[0].id, 0).catch(() => ({ materials: [] as Material[], total: 0 }))
         if (alive) setRecent(md.materials.slice(0, 3))
@@ -69,6 +75,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Banner */}
+      {banner && <BannerCard banner={banner} />}
 
       {/* Recent */}
       {recent.length > 0 && (

@@ -1,15 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { Profile, Config } from '../api/client'
 
 const tg = (window as any).Telegram?.WebApp
 
-export default function ProfilePage() {
+interface Props {
+  scrollToPlans?: boolean
+  onScrolled?: () => void
+}
+
+export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [prof, setProf]     = useState<Profile | null>(null)
   const [cfg, setCfg]       = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
-  const [buying, setBuying]   = useState<number | null>(null)  // days of plan being purchased
+  const [buying, setBuying]   = useState<number | null>(null)
+  const [buyingCrypto, setBuyingCrypto] = useState<number | null>(null)
   const [starsMsg, setStarsMsg] = useState<string | null>(null)
+  const plansRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     Promise.all([api.profile().catch(() => null), api.config().catch(() => null)])
@@ -20,9 +27,31 @@ export default function ProfilePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  // CryptoBot payment (opens sendData → handled by bot)
-  const buyWithCrypto = (days: number, price: number) => {
-    tg?.sendData(JSON.stringify({ action: 'buy_premium', days, price }))
+  useEffect(() => {
+    if (!scrollToPlans || loading) return
+    setTimeout(() => {
+      plansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      onScrolled?.()
+    }, 100)
+  }, [scrollToPlans, loading])
+
+  const buyWithCrypto = async (days: number) => {
+    if (buyingCrypto === days) return
+    setBuyingCrypto(days)
+    setStarsMsg(null)
+    try {
+      const { pay_url } = await api.cryptoInvoice(days)
+      if (tg?.openLink) {
+        tg.openLink(pay_url)
+      } else {
+        window.open(pay_url, '_blank')
+      }
+      setStarsMsg(`Счёт создан. После оплаты напишите /start боту для проверки.`)
+    } catch {
+      setStarsMsg('Ошибка создания счёта. Попробуйте позже.')
+    } finally {
+      setBuyingCrypto(null)
+    }
   }
 
   // Telegram Stars payment via openInvoice
@@ -100,7 +129,7 @@ export default function ProfilePage() {
         {/* Plans */}
         {!prof?.is_premium && cfg.plans.length > 0 && (
           <>
-            <div className="text-[11px] font-bold tracking-[2px] uppercase text-gray pt-1">Тарифные планы</div>
+            <div ref={plansRef} className="text-[11px] font-bold tracking-[2px] uppercase text-gray pt-1">Тарифные планы</div>
             {cfg.plans.map(p => (
               <div key={p.days} className="premium-surface border border-bd rounded p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -109,9 +138,10 @@ export default function ProfilePage() {
                     <div className="text-[12px] text-gray">{p.price} {cfg.currency}</div>
                   </div>
                   <button
-                    onClick={() => buyWithCrypto(p.days, p.price)}
-                    className="px-4 py-2 border border-green text-violet text-[12px] font-semibold uppercase tracking-wide rounded-sm active:bg-[rgba(157,92,255,.12)]">
-                    Купить
+                    disabled={buyingCrypto === p.days}
+                    onClick={() => buyWithCrypto(p.days)}
+                    className="px-4 py-2 border border-green text-violet text-[12px] font-semibold uppercase tracking-wide rounded-sm active:bg-[rgba(157,92,255,.12)] disabled:opacity-50">
+                    {buyingCrypto === p.days ? '...' : 'Купить'}
                   </button>
                 </div>
 

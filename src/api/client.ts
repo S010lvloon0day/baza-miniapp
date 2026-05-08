@@ -72,6 +72,13 @@ export interface Config {
   bot_username?: string
 }
 
+export interface Banner {
+  emoji: string
+  title: string
+  text: string
+  link: string
+}
+
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
@@ -87,6 +94,8 @@ export const api = {
   removeFavorite: (id: number)   => del<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
   sendFile:       (id: number)   => post<{ ok: boolean; error?: string }>(`/api/send_file/${id}`),
   starsInvoice:   (days: number) => post<{ invoice_link: string; stars: number }>(`/api/stars_invoice/${days}`),
+  cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),
   history:        ()             => get<{ materials: Material[] }>('/api/history'),
   clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),
+  banner:         ()             => get<{ banner: Banner | null }>('/api/banner'),
 }
