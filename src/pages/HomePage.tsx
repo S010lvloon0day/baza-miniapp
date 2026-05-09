@@ -123,10 +123,10 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
               </div>
               <div className="text-right">
                 <div className="text-[10px] font-bold tracking-[2px] uppercase text-gray mb-1">
-                  За 24 часа
+                  Последние 30
                 </div>
                 <div className="flex items-baseline gap-1 justify-end">
-                  <span className="text-[28px] font-bold text-green leading-none">+{todayCount}</span>
+                  <span className="text-[28px] font-bold text-green leading-none">{todayCount}</span>
                 </div>
               </div>
             </div>
@@ -137,17 +137,20 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
                 onClick={() => onMaterial(recent[0].id, recent[0].section_id)}
                 className="px-4 pt-3 pb-3 border-b border-bd cursor-pointer active:bg-s1"
               >
-                <div className="text-[10px] font-bold tracking-[2px] uppercase text-green mb-1">
-                  Последнее
+                <div className="flex items-center justify-between gap-2 mb-1">
+                  <div className="text-[10px] font-bold tracking-[2px] uppercase text-green">
+                    Последнее
+                  </div>
+                  {recent[0].section_title && (
+                    <div className="text-[10px] text-gray flex items-center gap-0.5 shrink-0">
+                      <span>{recent[0].section_emoji}</span>
+                      <span>{recent[0].section_title}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="text-[13px] font-semibold text-white leading-snug line-clamp-1">
                   {recent[0].title}
                 </div>
-                {recent[0].section_title && (
-                  <div className="text-[11px] text-gray mt-0.5">
-                    {recent[0].section_emoji} {recent[0].section_title}
-                  </div>
-                )}
               </div>
             )}
 
