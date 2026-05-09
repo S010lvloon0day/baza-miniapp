@@ -17,6 +17,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [banner, setBanner] = useState<Banner | null>(null)
   const [todayCount, setTodayCount] = useState(0)
   const [todaySections, setTodaySections] = useState<TodaySection[]>([])
+  const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [newOpen, setNewOpen] = useState(true)
   const [newExpanded, setNewExpanded] = useState(false)
@@ -27,7 +28,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       const [d, b, rd] = await Promise.all([
         api.sections().catch(() => ({ sections: [] as Section[] })),
         api.banner().catch(() => ({ banner: null })),
-        api.recent().catch(() => ({ materials: [] as Material[], today_count: 0, today_sections: [] as TodaySection[] })),
+        api.recent().catch(() => ({ materials: [] as Material[], today_count: 0, today_sections: [] as TodaySection[], total_count: 0 })),
       ])
       if (!alive) return
       setSections(d.sections.filter(s => !s.parent_id))
@@ -35,6 +36,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       setRecent((rd.materials ?? []).slice(0, 5))
       setTodayCount(rd.today_count ?? 0)
       setTodaySections(rd.today_sections ?? [])
+      setTotalCount(rd.total_count ?? 0)
       setLoading(false)
     })()
     return () => { alive = false }
@@ -71,7 +73,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       {banner && <BannerCard banner={banner} />}
 
       {/* Recent */}
-      {(recent.length > 0 || todayCount > 0) && (
+      {(totalCount > 0 || recent.length > 0) && (
         <section>
           <div
             className="flex items-center justify-between px-4 pt-5 pb-3 cursor-pointer select-none"
@@ -107,42 +109,53 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           >
           <div
             className="mx-4 mb-3 rounded border border-bd2 bg-s2 relative"
-            style={{ maxHeight: newExpanded ? 'none' : 108, overflow: 'hidden' }}
+            style={{ maxHeight: newExpanded ? 'none' : 110, overflow: 'hidden' }}
           >
+            {/* Общий счётчик + за сутки */}
+            <div className="px-4 pt-4 pb-3 border-b border-bd flex items-center justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-bold tracking-[2px] uppercase text-gray mb-1">
+                  Всего материалов
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-[28px] font-bold text-white leading-none">{totalCount}</span>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-bold tracking-[2px] uppercase text-gray mb-1">
+                  За 24 часа
+                </div>
+                <div className="flex items-baseline gap-1 justify-end">
+                  <span className="text-[28px] font-bold text-green leading-none">+{todayCount}</span>
+                </div>
+              </div>
+            </div>
+
             {/* Последний добавленный материал */}
             {recent[0] && (
               <div
                 onClick={() => onMaterial(recent[0].id, recent[0].section_id)}
-                className="px-4 pt-4 pb-3 border-b border-bd cursor-pointer active:bg-s1"
+                className="px-4 pt-3 pb-3 border-b border-bd cursor-pointer active:bg-s1"
               >
-                <div className="text-[10px] font-bold tracking-[2px] uppercase text-green mb-1.5">
-                  Последнее добавление
+                <div className="text-[10px] font-bold tracking-[2px] uppercase text-green mb-1">
+                  Последнее
                 </div>
-                <div className="text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1">
+                <div className="text-[13px] font-semibold text-white leading-snug line-clamp-1">
                   {recent[0].title}
                 </div>
                 {recent[0].section_title && (
-                  <div className="text-[11px] text-gray">
+                  <div className="text-[11px] text-gray mt-0.5">
                     {recent[0].section_emoji} {recent[0].section_title}
                   </div>
                 )}
               </div>
             )}
 
-            {/* Статистика за сутки */}
-            <div className="px-4 py-3">
-              <div className="text-[10px] font-bold tracking-[2px] uppercase text-gray mb-2">
-                За последние 24 часа
-              </div>
-              <div className="flex items-baseline gap-1.5 mb-2.5">
-                <span className="text-[28px] font-bold text-white leading-none">{todayCount}</span>
-                <span className="text-[12px] text-gray">
-                  {todayCount === 1 ? 'материал' : todayCount < 5 ? 'материала' : 'материалов'}
-                </span>
-              </div>
-              {todaySections.length > 0 && (
+            {/* Разделы за сутки */}
+            {todaySections.length > 0 && (
+              <div className="px-4 py-3">
                 <div className="flex flex-wrap gap-1.5">
-                  {todaySections.map(s => (
+                  {todaySections.slice(0, 6).map(s => (
                     <button
                       key={s.id}
                       onClick={() => openSection(s)}
@@ -153,8 +166,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Градиент-подсказка «раскрыть» */}
             {!newExpanded && (
