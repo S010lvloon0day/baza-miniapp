@@ -21,7 +21,6 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
   const [docText, setDocText] = useState<string | null>(null)
   const [docTruncated, setDocTruncated] = useState(false)
   const [docPreview, setDocPreview] = useState<'loading' | 'text' | 'pdf' | 'error'>('loading')
-  const [pdfFailed, setPdfFailed] = useState(false)
   const [videoError, setVideoError] = useState(false)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
@@ -44,7 +43,6 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
     setDocText(null)
     setDocTruncated(false)
     setDocPreview('loading')
-    setPdfFailed(false)
     setVideoError(false)
     setSending(false)
     setSent(false)
@@ -241,19 +239,8 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     </div>
                   )}
 
-                  {/* PDF / binary — inline iframe */}
-                  {docPreview === 'pdf' && !pdfFailed && (
-                    <iframe
-                      src={furl}
-                      title={mat.title}
-                      className="w-full rounded border border-bd block mb-3"
-                      style={{ height: '72vh' }}
-                      onError={() => setPdfFailed(true)}
-                    />
-                  )}
-
-                  {/* Fallback: iframe failed or generic error */}
-                  {((docPreview === 'pdf' && pdfFailed) || docPreview === 'error') && (
+                  {/* Fallback: PDF/binary or generic error */}
+                  {(docPreview === 'pdf' || docPreview === 'error') && (
                     <div className="border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
                       <div className="text-4xl">📄</div>
                       <div className="text-[13px] text-white/70 leading-snug">
