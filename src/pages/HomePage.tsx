@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BookmarkSimple, CaretRight, Image, Video, File, Article, Lock } from '@phosphor-icons/react'
+import { BookmarkSimple, CaretRight, Image, Video, File, Article, Lock, Sparkle } from '@phosphor-icons/react'
 import { api } from '../api/client'
-import type { Section, Material, Banner } from '../api/client'
+import type { Section, Material, Banner, TodaySection } from '../api/client'
 import { isBookmarked, saveBookmark, removeBookmark } from '../store/bookmarks'
 import BannerCard from '../components/BannerCard'
 
@@ -16,6 +16,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banner, setBanner] = useState<Banner | null>(null)
+  const [todayCount, setTodayCount] = useState(0)
+  const [todaySections, setTodaySections] = useState<TodaySection[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -24,13 +26,14 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       const [d, b, rd] = await Promise.all([
         api.sections().catch(() => ({ sections: [] as Section[] })),
         api.banner().catch(() => ({ banner: null })),
-        api.recent().catch(() => ({ materials: [] as Material[] })),
+        api.recent().catch(() => ({ materials: [] as Material[], today_count: 0, today_sections: [] as TodaySection[] })),
       ])
       if (!alive) return
-      const roots = d.sections.filter(s => !s.parent_id)
-      setSections(roots)
+      setSections(d.sections.filter(s => !s.parent_id))
       setBanner(b.banner)
       setRecent(rd.materials.slice(0, 5))
+      setTodayCount(rd.today_count)
+      setTodaySections(rd.today_sections)
       setLoading(false)
     })()
     return () => { alive = false }
@@ -50,6 +53,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
     return <File {...props} />
   }
   const typeLabel = (t: string) => ({ photo:'ФОТО', video:'ВИДЕО', document:'ДОКУМЕНТ', text:'ТЕКСТ' }[t] ?? t.toUpperCase())
+
+  const openSection = (s: TodaySection) =>
+    onSection({ id: s.id, title: s.title, emoji: s.emoji, parent_id: null, description: '', is_premium: 0 })
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -80,12 +86,40 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       {/* Recent */}
       {recent.length > 0 && (
         <section>
+          {/* Header */}
           <div className="flex items-center justify-between px-4 pt-5 pb-2.5">
-            <span className="text-[12px] font-bold tracking-[2px] uppercase">Новое</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[12px] font-bold tracking-[2px] uppercase">Новое</span>
+              {todayCount > 0 && (
+                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-green/10 border border-green/25 rounded text-[10px] font-bold text-green tracking-wide">
+                  <Sparkle size={10} weight="fill" />
+                  +{todayCount} за сутки
+                </span>
+              )}
+            </div>
             <button onClick={onTabCats} className="flex items-center gap-0.5 text-green text-[11px] tracking-wide">
               Смотреть все <CaretRight size={13} weight="bold" />
             </button>
           </div>
+
+          {/* Section chips — разделы где появился контент за сутки */}
+          {todaySections.length > 0 && (
+            <div className="flex gap-2 px-4 pb-3 overflow-x-auto"
+              style={{ scrollbarWidth: 'none' }}>
+              {todaySections.map(s => (
+                <button
+                  key={s.id}
+                  onClick={() => openSection(s)}
+                  className="flex items-center gap-1.5 px-2.5 py-1 bg-s2 border border-bd2 rounded-full text-[11px] text-gray whitespace-nowrap shrink-0 active:border-green active:text-green transition-colors"
+                >
+                  <span className="text-[13px] leading-none">{s.emoji}</span>
+                  <span>{s.title}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Materials list */}
           <div className="mx-4 rounded overflow-hidden flex flex-col gap-px bg-bd">
             {recent.map((m, i) => (
               <motion.div
@@ -104,7 +138,15 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
                     {m.locked && <Lock size={12} weight="fill" className="inline mr-1 text-gray" />}
                     {m.title}
                   </div>
-                  <div className="text-[11px] text-gray">{typeLabel(m.media_type)}</div>
+                  <div className="flex items-center gap-1.5 text-[11px] text-gray">
+                    <span>{typeLabel(m.media_type)}</span>
+                    {m.section_title && (
+                      <>
+                        <span className="text-gray2">·</span>
+                        <span className="text-gray2 truncate">{m.section_emoji} {m.section_title}</span>
+                      </>
+                    )}
+                  </div>
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); toggleBm(m.id) }}
