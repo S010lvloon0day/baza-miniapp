@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { BookmarkSimple, CaretRight, Image, Video, File, Article, Lock, Sparkle } from '@phosphor-icons/react'
+import { CaretRight } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import type { Section, Material, Banner, TodaySection } from '../api/client'
-import { isBookmarked, saveBookmark, removeBookmark } from '../store/bookmarks'
 import BannerCard from '../components/BannerCard'
 
 interface Props {
@@ -39,20 +38,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
     return () => { alive = false }
   }, [])
 
-  const [bms, setBms] = useState<Set<number>>(new Set())
-  const toggleBm = (id: number) => {
-    if (isBookmarked(id)) { removeBookmark(id); setBms(p => { const n = new Set(p); n.delete(id); return n }) }
-    else                  { saveBookmark(id);   setBms(p => new Set(p).add(id)) }
-  }
-
-  const TypeIcon = ({ t }: { t: string }) => {
-    const props = { size: 22, weight: 'duotone' as const, className: 'text-green' }
-    if (t === 'photo')    return <Image    {...props} />
-    if (t === 'video')    return <Video    {...props} />
-    if (t === 'text')     return <Article  {...props} />
-    return <File {...props} />
-  }
-  const typeLabel = (t: string) => ({ photo:'ФОТО', video:'ВИДЕО', document:'ДОКУМЕНТ', text:'ТЕКСТ' }[t] ?? t.toUpperCase())
 
   const openSection = (s: TodaySection) =>
     onSection({ id: s.id, title: s.title, emoji: s.emoji, parent_id: null, description: '', is_premium: 0 })
@@ -84,75 +69,68 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       {banner && <BannerCard banner={banner} />}
 
       {/* Recent */}
-      {recent.length > 0 && (
+      {(recent.length > 0 || todayCount > 0) && (
         <section>
-          {/* Header */}
-          <div className="flex items-center justify-between px-4 pt-5 pb-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-[12px] font-bold tracking-[2px] uppercase">Новое</span>
-              {todayCount > 0 && (
-                <span className="flex items-center gap-1 px-1.5 py-0.5 bg-green/10 border border-green/25 rounded text-[10px] font-bold text-green tracking-wide">
-                  <Sparkle size={10} weight="fill" />
-                  +{todayCount} за сутки
-                </span>
-              )}
-            </div>
+          <div className="flex items-center justify-between px-4 pt-5 pb-3">
+            <span className="text-[12px] font-bold tracking-[2px] uppercase">Новое</span>
             <button onClick={onTabCats} className="flex items-center gap-0.5 text-green text-[11px] tracking-wide">
               Смотреть все <CaretRight size={13} weight="bold" />
             </button>
           </div>
 
-          {/* Сводка за сутки */}
-          {todayCount > 0 && (
-            <div className="mx-4 mb-3 p-3 bg-s2 border border-bd2 rounded">
-              <div className="text-[11px] text-gray mb-2">
-                Добавлено <span className="text-white font-bold">{todayCount}</span> {todayCount === 1 ? 'материал' : todayCount < 5 ? 'материала' : 'материалов'} в разделы:
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {todaySections.map(s => (
-                  <button
-                    key={s.id}
-                    onClick={() => openSection(s)}
-                    className="flex items-center gap-1 px-2 py-0.5 bg-s1 border border-bd2 rounded-full text-[11px] text-gray whitespace-nowrap active:border-green active:text-green transition-colors"
-                  >
-                    <span>{s.emoji}</span>
-                    <span>{s.title}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Materials list */}
-          <div className="mx-4 rounded overflow-hidden flex flex-col gap-px bg-bd">
-            {recent.map((m, i) => (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06 }}
-                onClick={() => onMaterial(m.id, m.section_id)}
-                className="bg-s1 flex items-center gap-3 px-3.5 py-3 cursor-pointer active:bg-s2"
+          {/* Сводная карточка */}
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-4 mb-3 rounded border border-bd2 bg-s2 overflow-hidden"
+          >
+            {/* Последний добавленный материал */}
+            {recent[0] && (
+              <div
+                onClick={() => onMaterial(recent[0].id, recent[0].section_id)}
+                className="px-4 pt-4 pb-3 border-b border-bd cursor-pointer active:bg-s1"
               >
-                <div className="w-11 h-11 bg-s2 rounded flex items-center justify-center border border-bd2 shrink-0">
-                  <TypeIcon t={m.media_type} />
+                <div className="text-[10px] font-bold tracking-[2px] uppercase text-green mb-1.5">
+                  Последнее добавление
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-semibold text-white leading-snug line-clamp-2 mb-1">
-                    {m.locked && <Lock size={12} weight="fill" className="inline mr-1 text-gray" />}
-                    {m.title}
+                <div className="text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1">
+                  {recent[0].title}
+                </div>
+                {recent[0].section_title && (
+                  <div className="text-[11px] text-gray">
+                    {recent[0].section_emoji} {recent[0].section_title}
                   </div>
-                  <div className="text-[11px] text-gray">{typeLabel(m.media_type)}</div>
+                )}
+              </div>
+            )}
+
+            {/* Статистика за сутки */}
+            <div className="px-4 py-3">
+              <div className="text-[10px] font-bold tracking-[2px] uppercase text-gray mb-2">
+                За последние 24 часа
+              </div>
+              <div className="flex items-baseline gap-1.5 mb-2.5">
+                <span className="text-[28px] font-bold text-white leading-none">{todayCount}</span>
+                <span className="text-[12px] text-gray">
+                  {todayCount === 1 ? 'материал' : todayCount < 5 ? 'материала' : 'материалов'}
+                </span>
+              </div>
+              {todaySections.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {todaySections.map(s => (
+                    <button
+                      key={s.id}
+                      onClick={() => openSection(s)}
+                      className="flex items-center gap-1 px-2 py-0.5 bg-s1 border border-bd2 rounded-full text-[11px] text-gray whitespace-nowrap active:border-green active:text-green transition-colors"
+                    >
+                      <span>{s.emoji}</span>
+                      <span>{s.title}</span>
+                    </button>
+                  ))}
                 </div>
-                <button
-                  onClick={e => { e.stopPropagation(); toggleBm(m.id) }}
-                  className={`p-1 shrink-0 transition-colors ${(bms.has(m.id) || isBookmarked(m.id)) ? 'text-green' : 'text-gray2'}`}
-                >
-                  <BookmarkSimple size={19} weight={(bms.has(m.id) || isBookmarked(m.id)) ? 'fill' : 'regular'} />
-                </button>
-              </motion.div>
-            ))}
-          </div>
+              )}
+            </div>
+          </motion.div>
         </section>
       )}
 
