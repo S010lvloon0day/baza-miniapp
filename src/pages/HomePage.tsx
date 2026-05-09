@@ -155,7 +155,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
             {todaySections.length > 0 && (
               <div className="px-4 py-3">
                 <div className="flex flex-wrap gap-1.5">
-                  {todaySections.slice(0, 6).map(s => (
+                  {todaySections.map(s => (
                     <button
                       key={s.id}
                       onClick={() => openSection(s)}
