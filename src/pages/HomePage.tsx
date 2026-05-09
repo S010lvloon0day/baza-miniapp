@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { CaretRight } from '@phosphor-icons/react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { CaretRight, CaretDown } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import type { Section, Material, Banner, TodaySection } from '../api/client'
 import BannerCard from '../components/BannerCard'
@@ -18,6 +18,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [todayCount, setTodayCount] = useState(0)
   const [todaySections, setTodaySections] = useState<TodaySection[]>([])
   const [loading, setLoading] = useState(true)
+  const [newOpen, setNewOpen] = useState(true)
 
   useEffect(() => {
     let alive = true
@@ -71,14 +72,38 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       {/* Recent */}
       {(recent.length > 0 || todayCount > 0) && (
         <section>
-          <div className="flex items-center justify-between px-4 pt-5 pb-3">
-            <span className="text-[12px] font-bold tracking-[2px] uppercase">Новое</span>
-            <button onClick={onTabCats} className="flex items-center gap-0.5 text-green text-[11px] tracking-wide">
+          <div
+            className="flex items-center justify-between px-4 pt-5 pb-3 cursor-pointer select-none"
+            onClick={() => setNewOpen(o => !o)}
+          >
+            <div className="flex items-center gap-1.5">
+              <motion.span
+                animate={{ rotate: newOpen ? 0 : -90 }}
+                transition={{ duration: 0.2 }}
+                className="text-gray"
+              >
+                <CaretDown size={13} weight="bold" />
+              </motion.span>
+              <span className="text-[12px] font-bold tracking-[2px] uppercase">Новое</span>
+            </div>
+            <button
+              onClick={e => { e.stopPropagation(); onTabCats() }}
+              className="flex items-center gap-0.5 text-green text-[11px] tracking-wide"
+            >
               Смотреть все <CaretRight size={13} weight="bold" />
             </button>
           </div>
 
           {/* Сводная карточка */}
+          <AnimatePresence initial={false}>
+          {newOpen && <motion.div
+            key="new-card"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: 'easeInOut' }}
+            style={{ overflow: 'hidden' }}
+          >
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -131,6 +156,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
               )}
             </div>
           </motion.div>
+          </motion.div>}
+          </AnimatePresence>
         </section>
       )}
 
