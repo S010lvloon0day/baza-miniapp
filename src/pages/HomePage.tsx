@@ -19,6 +19,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [todaySections, setTodaySections] = useState<TodaySection[]>([])
   const [loading, setLoading] = useState(true)
   const [newOpen, setNewOpen] = useState(true)
+  const [newExpanded, setNewExpanded] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -104,10 +105,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
             transition={{ duration: 0.22, ease: 'easeInOut' }}
             style={{ overflow: 'hidden' }}
           >
-          <motion.div
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mx-4 mb-3 rounded border border-bd2 bg-s2 overflow-hidden"
+          <div
+            className="mx-4 mb-3 rounded border border-bd2 bg-s2 relative"
+            style={{ maxHeight: newExpanded ? 'none' : 108, overflow: 'hidden' }}
           >
             {/* Последний добавленный материал */}
             {recent[0] && (
@@ -155,7 +155,18 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
                 </div>
               )}
             </div>
-          </motion.div>
+
+            {/* Градиент-подсказка «раскрыть» */}
+            {!newExpanded && (
+              <div
+                onClick={() => setNewExpanded(true)}
+                className="absolute bottom-0 inset-x-0 h-10 flex items-end justify-center pb-1.5 cursor-pointer"
+                style={{ background: 'linear-gradient(to top, #1B1728 30%, transparent)' }}
+              >
+                <CaretDown size={14} weight="bold" className="text-gray opacity-70" />
+              </div>
+            )}
+          </div>
           </motion.div>}
           </AnimatePresence>
         </section>
