@@ -15,7 +15,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banner, setBanner] = useState<Banner | null>(null)
-  const [todayCount, setTodayCount] = useState(0)
   const [todaySections, setTodaySections] = useState<TodaySection[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -34,7 +33,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       setSections(d.sections.filter(s => !s.parent_id))
       setBanner(b.banner)
       setRecent((rd.materials ?? []).slice(0, 5))
-      setTodayCount(rd.today_count ?? 0)
       setTodaySections(rd.today_sections ?? [])
       setTotalCount(rd.total_count ?? 0)
       setLoading(false)
@@ -109,7 +107,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           >
           <div
             className="mx-4 mb-3 rounded border border-bd2 bg-s2 relative"
-            style={{ maxHeight: newExpanded ? 'none' : 110, overflow: 'hidden' }}
+            style={{ maxHeight: newExpanded ? 'none' : 165, overflow: 'hidden' }}
           >
             {/* Общий счётчик + за сутки */}
             <div className="px-4 pt-4 pb-3 border-b border-bd flex items-center justify-between gap-4">
