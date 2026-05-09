@@ -4,6 +4,12 @@ import { Image, Video, File, Article, Star, Lock, Check } from '@phosphor-icons/
 import { api } from '../api/client'
 import type { Section, Material } from '../api/client'
 
+interface MaterialsResponse {
+  materials: Material[]
+  total: number
+  total_with_premium?: number
+}
+
 const ITEMS_PER_PAGE = 10
 
 interface Props {
@@ -94,18 +100,18 @@ export default function SectionPage({ section, onMaterial, onSubsection, onUpgra
     setPage(0); setLoading(true)
     Promise.all([
       api.subsections(section.id).catch(() => ({ sections: [] as Section[] })),
-      api.materials(section.id, 0).catch(() => ({ materials: [] as Material[], total: 0, total_with_premium: 0 })),
+      api.materials(section.id, 0).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 })),
     ]).then(([sd, md]) => {
       setSubs(sd.sections)
       setMats(md.materials)
       setTotal(md.total)
-      setTotalWithPremium((md as any).total_with_premium ?? md.total)
+      setTotalWithPremium((md as MaterialsResponse).total_with_premium ?? md.total)
     }).finally(() => setLoading(false))
   }, [section.id])
 
   const loadPage = async (p: number) => {
     setLoading(true)
-    const md = await api.materials(section.id, p).catch(() => ({ materials: [] as Material[], total: 0, total_with_premium: 0 }))
+    const md: MaterialsResponse = await api.materials(section.id, p).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 }))
     setMats(md.materials); setPage(p); setLoading(false)
   }
 

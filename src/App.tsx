@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import SplashPage from './pages/SplashPage'
 import HomePage from './pages/HomePage'
@@ -59,7 +59,7 @@ export default function App() {
     setStarted(true)
   }
 
-  const goBack = () => setStack(s => s.slice(0, -1))
+  const goBack = useCallback(() => setStack(s => s.slice(0, -1)), [])
 
   const openSection = (section: Section) => setStack(s => [...s, { type: 'section', section }])
   const openMaterial = (id: number, sectionId: number) => setStack(s => [...s, { type: 'material', id, sectionId }])

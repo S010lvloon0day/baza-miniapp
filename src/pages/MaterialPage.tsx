@@ -37,6 +37,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
   }, [sectionId])
 
   useEffect(() => {
+    let alive = true
     curId.current = materialId
     setLoading(true)
     setMat(null)
@@ -48,10 +49,11 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
     setSent(false)
 
     api.material(materialId).then(d => {
-      if (curId.current !== materialId) return
+      if (!alive || curId.current !== materialId) return
       setMat(d)
-      // История записывается автоматически на сервере при GET /api/material/{id}
-    }).catch(() => {}).finally(() => setLoading(false))
+    }).catch(() => {}).finally(() => { if (alive) setLoading(false) })
+
+    return () => { alive = false }
   }, [materialId])
 
   useEffect(() => {

@@ -32,10 +32,10 @@ export async function syncBookmarks(): Promise<number[]> {
 
 export async function saveBookmarkRemote(id: number) {
   saveBookmark(id)
-  try { await api.addFavorite(id) } catch {}
+  try { await api.addFavorite(id) } catch { removeBookmark(id) }
 }
 
 export async function removeBookmarkRemote(id: number) {
   removeBookmark(id)
-  try { await api.removeFavorite(id) } catch {}
+  try { await api.removeFavorite(id) } catch { saveBookmark(id) }
 }
