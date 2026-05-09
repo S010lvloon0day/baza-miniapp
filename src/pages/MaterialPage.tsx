@@ -191,23 +191,31 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {/* ── VIDEO ── */}
               {mat.media_type === 'video' && furl && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
-                  {!videoError && (
-                    <video
-                      src={furl}
-                      controls
-                      playsInline
-                      preload="metadata"
-                      className="w-full rounded border border-bd block bg-black"
-                      onError={() => setVideoError(true)}
-                    />
-                  )}
-                  <TgButton prominent={videoError} />
-                  {!videoError && (
-                    <button onClick={openExternal}
-                      className="w-full h-9 border border-bd2 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-sm active:opacity-70">
-                      <ArrowSquareOut size={15} />
-                      Открыть в браузере
-                    </button>
+                  {videoError ? (
+                    <div className="border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 text-center">
+                      <div className="text-4xl">🎬</div>
+                      <div className="text-[13px] text-white/70 leading-snug">
+                        Файл слишком большой — открыть в мини-аппе невозможно
+                      </div>
+                      <TgButton prominent />
+                    </div>
+                  ) : (
+                    <>
+                      <video
+                        src={furl}
+                        controls
+                        playsInline
+                        preload="metadata"
+                        className="w-full rounded border border-bd block bg-black"
+                        onError={() => setVideoError(true)}
+                      />
+                      <TgButton />
+                      <button onClick={openExternal}
+                        className="w-full h-9 border border-bd2 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-sm active:opacity-70">
+                        <ArrowSquareOut size={15} />
+                        Открыть в браузере
+                      </button>
+                    </>
                   )}
                 </div>
               )}
