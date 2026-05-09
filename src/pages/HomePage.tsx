@@ -121,14 +121,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
                   <span className="text-[28px] font-bold text-white leading-none">{totalCount}</span>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-[10px] font-bold tracking-[2px] uppercase text-gray mb-1">
-                  Последние 30
-                </div>
-                <div className="flex items-baseline gap-1 justify-end">
-                  <span className="text-[28px] font-bold text-green leading-none">{todayCount}</span>
-                </div>
-              </div>
             </div>
 
             {/* Последний добавленный материал */}
