@@ -31,9 +31,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       if (!alive) return
       setSections(d.sections.filter(s => !s.parent_id))
       setBanner(b.banner)
-      setRecent(rd.materials.slice(0, 5))
-      setTodayCount(rd.today_count)
-      setTodaySections(rd.today_sections)
+      setRecent((rd.materials ?? []).slice(0, 5))
+      setTodayCount(rd.today_count ?? 0)
+      setTodaySections(rd.today_sections ?? [])
       setLoading(false)
     })()
     return () => { alive = false }
