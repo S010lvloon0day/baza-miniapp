@@ -102,20 +102,24 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
             </button>
           </div>
 
-          {/* Section chips — разделы где появился контент за сутки */}
-          {todaySections.length > 0 && (
-            <div className="flex gap-2 px-4 pb-3 overflow-x-auto"
-              style={{ scrollbarWidth: 'none' }}>
-              {todaySections.map(s => (
-                <button
-                  key={s.id}
-                  onClick={() => openSection(s)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 bg-s2 border border-bd2 rounded-full text-[11px] text-gray whitespace-nowrap shrink-0 active:border-green active:text-green transition-colors"
-                >
-                  <span className="text-[13px] leading-none">{s.emoji}</span>
-                  <span>{s.title}</span>
-                </button>
-              ))}
+          {/* Сводка за сутки */}
+          {todayCount > 0 && (
+            <div className="mx-4 mb-3 p-3 bg-s2 border border-bd2 rounded">
+              <div className="text-[11px] text-gray mb-2">
+                Администратор добавил <span className="text-white font-bold">{todayCount}</span> {todayCount === 1 ? 'материал' : todayCount < 5 ? 'материала' : 'материалов'} в разделы:
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {todaySections.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => openSection(s)}
+                    className="flex items-center gap-1 px-2 py-0.5 bg-s1 border border-bd2 rounded-full text-[11px] text-gray whitespace-nowrap active:border-green active:text-green transition-colors"
+                  >
+                    <span>{s.emoji}</span>
+                    <span>{s.title}</span>
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -138,15 +142,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
                     {m.locked && <Lock size={12} weight="fill" className="inline mr-1 text-gray" />}
                     {m.title}
                   </div>
-                  <div className="flex items-center gap-1.5 text-[11px] text-gray">
-                    <span>{typeLabel(m.media_type)}</span>
-                    {m.section_title && (
-                      <>
-                        <span className="text-gray2">·</span>
-                        <span className="text-gray2 truncate">{m.section_emoji} {m.section_title}</span>
-                      </>
-                    )}
-                  </div>
+                  <div className="text-[11px] text-gray">{typeLabel(m.media_type)}</div>
                 </div>
                 <button
                   onClick={e => { e.stopPropagation(); toggleBm(m.id) }}
