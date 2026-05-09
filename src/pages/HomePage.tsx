@@ -32,7 +32,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       if (!alive) return
       setSections(d.sections.filter(s => !s.parent_id))
       setBanner(b.banner)
-      setRecent((rd.materials ?? []).slice(0, 5))
+      setRecent((rd.materials ?? []).slice(0, 10))
       setTodaySections(rd.today_sections ?? [])
       setTotalCount(rd.total_count ?? 0)
       setLoading(false)
@@ -121,26 +121,27 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
               </div>
             </div>
 
-            {/* Последний добавленный материал */}
-            {recent[0] && (
-              <div
-                onClick={() => onMaterial(recent[0].id, recent[0].section_id)}
-                className="px-4 pt-3 pb-3 border-b border-bd cursor-pointer active:bg-s1"
-              >
-                <div className="flex items-center justify-between gap-2 mb-1">
+            {/* Последние 10 материалов */}
+            {recent.length > 0 && (
+              <div className="border-b border-bd">
+                <div className="px-4 pt-3 pb-1.5">
                   <div className="text-[10px] font-bold tracking-[2px] uppercase text-green">
-                    Последнее
+                    Последние добавленные
                   </div>
-                  {recent[0].section_title && (
-                    <div className="text-[10px] text-gray flex items-center gap-0.5 shrink-0">
-                      <span>{recent[0].section_emoji}</span>
-                      <span>{recent[0].section_title}</span>
+                </div>
+                {recent.map((m, i) => (
+                  <div
+                    key={m.id}
+                    onClick={() => onMaterial(m.id, m.section_id)}
+                    className={`px-4 py-2 flex items-center gap-2 cursor-pointer active:bg-s1 ${i < recent.length - 1 ? 'border-b border-bd/50' : ''}`}
+                  >
+                    <span className="text-base shrink-0">{m.section_emoji || '📁'}</span>
+                    <div className="min-w-0">
+                      <div className="text-[11px] text-gray2 leading-none mb-0.5 truncate">{m.section_title}</div>
+                      <div className="text-[13px] font-medium text-white leading-snug truncate">{m.title}</div>
                     </div>
-                  )}
-                </div>
-                <div className="text-[13px] font-semibold text-white leading-snug line-clamp-1">
-                  {recent[0].title}
-                </div>
+                  </div>
+                ))}
               </div>
             )}
 
