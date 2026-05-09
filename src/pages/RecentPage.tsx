@@ -12,16 +12,11 @@ export default function RecentPage({ onMaterial }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.history()
+    api.recent()
       .then(d => setItems(d.materials))
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
   }, [])
-
-  const clear = async () => {
-    await api.clearHistory().catch(() => {})
-    setItems([])
-  }
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -31,16 +26,15 @@ export default function RecentPage({ onMaterial }: Props) {
 
   if (!items.length) return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray">
-      <span className="text-4xl opacity-30">🕐</span>
-      <span className="text-[12px] tracking-[2px] uppercase">Нет просмотренных материалов</span>
+      <span className="text-4xl opacity-30">🆕</span>
+      <span className="text-[12px] tracking-[2px] uppercase">Нет материалов</span>
     </div>
   )
 
   return (
     <div className="flex-1 overflow-y-auto pb-14">
-      <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">{items.length} материалов</span>
-        <button onClick={clear} className="text-[11px] text-gray2 tracking-wide uppercase active:opacity-60">Очистить</button>
+      <div className="px-4 pt-3 pb-1">
+        <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">Последние добавленные</span>
       </div>
       <div className="mx-4 flex flex-col divide-y divide-bd">
         {items.map(m => (
