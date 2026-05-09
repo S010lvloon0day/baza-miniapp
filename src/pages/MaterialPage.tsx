@@ -231,8 +231,11 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                         {docText}
                       </pre>
                       {docTruncated && (
-                        <div className="mt-3 pt-3 border-t border-bd2 text-[11px] text-gray2 text-center tracking-wide">
-                          Показаны первые 300 КБ · скачайте файл для просмотра полностью
+                        <div className="mt-4 pt-4 border-t border-bd2 flex flex-col items-center gap-3">
+                          <div className="text-[13px] text-white/70 text-center leading-snug">
+                            Файл слишком большой — открыть в мини-аппе невозможно
+                          </div>
+                          <TgButton prominent />
                         </div>
                       )}
                     </div>
@@ -251,9 +254,12 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
                   {/* Fallback: iframe failed or generic error */}
                   {((docPreview === 'pdf' && pdfFailed) || docPreview === 'error') && (
-                    <div className="h-32 border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-2 mb-3">
+                    <div className="border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
                       <div className="text-4xl">📄</div>
-                      <div className="text-[11px] text-gray tracking-[2px] uppercase">Предпросмотр недоступен</div>
+                      <div className="text-[13px] text-white/70 leading-snug">
+                        Файл слишком большой — открыть в мини-аппе невозможно
+                      </div>
+                      <TgButton prominent />
                     </div>
                   )}
 
