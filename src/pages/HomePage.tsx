@@ -106,7 +106,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           {todayCount > 0 && (
             <div className="mx-4 mb-3 p-3 bg-s2 border border-bd2 rounded">
               <div className="text-[11px] text-gray mb-2">
-                Администратор добавил <span className="text-white font-bold">{todayCount}</span> {todayCount === 1 ? 'материал' : todayCount < 5 ? 'материала' : 'материалов'} в разделы:
+                Добавлено <span className="text-white font-bold">{todayCount}</span> {todayCount === 1 ? 'материал' : todayCount < 5 ? 'материала' : 'материалов'} в разделы:
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {todaySections.map(s => (
