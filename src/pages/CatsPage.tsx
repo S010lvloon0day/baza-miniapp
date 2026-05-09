@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { Lock } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import type { Section } from '../api/client'
 
@@ -35,12 +36,17 @@ export default function CatsPage({ onSection }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
             onClick={() => onSection(s)}
-            className="premium-surface border border-bd rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 active:border-green"
+            className={`premium-surface border rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 ${s.locked ? 'border-[rgba(157,92,255,.3)]' : 'border-bd active:border-green'}`}
           >
-            <div className="w-10 h-10 bg-s2 rounded-full border border-bd2 flex items-center justify-center text-lg">
+            <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg relative ${s.locked ? 'bg-[rgba(157,92,255,.08)] border-[rgba(157,92,255,.25)]' : 'bg-s2 border-bd2'}`}>
               {s.emoji || '📁'}
+              {s.locked && (
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center">
+                  <Lock size={8} weight="fill" className="text-white" />
+                </div>
+              )}
             </div>
-            <span className="text-[9px] font-semibold uppercase tracking-[0.5px] text-gray text-center leading-tight">
+            <span className={`text-[9px] font-semibold uppercase tracking-[0.5px] text-center leading-tight ${s.locked ? 'text-violet/70' : 'text-gray'}`}>
               {s.title}
             </span>
           </motion.div>

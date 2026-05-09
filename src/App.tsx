@@ -85,7 +85,7 @@ export default function App() {
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
     }
     if (top?.type === 'section') {
-      return <SectionPage section={top.section} onMaterial={openMaterial} onSubsection={openSection} />
+      return <SectionPage section={top.section} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
     }
     if (top?.type === 'material') {
       return (

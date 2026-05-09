@@ -12,7 +12,7 @@ export default function RecentPage({ onMaterial }: Props) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    api.recent()
+    api.history()
       .then(d => setItems(d.materials))
       .catch(() => setItems([]))
       .finally(() => setLoading(false))
@@ -34,7 +34,7 @@ export default function RecentPage({ onMaterial }: Props) {
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       <div className="px-4 pt-3 pb-1">
-        <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">Последние добавленные</span>
+        <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">Последнее просмотренное</span>
       </div>
       <div className="mx-4 flex flex-col divide-y divide-bd">
         {items.map(m => (

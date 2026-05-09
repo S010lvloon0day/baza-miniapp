@@ -21,18 +21,16 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const [d, b] = await Promise.all([
+      const [d, b, rd] = await Promise.all([
         api.sections().catch(() => ({ sections: [] as Section[] })),
         api.banner().catch(() => ({ banner: null })),
+        api.recent().catch(() => ({ materials: [] as Material[] })),
       ])
       if (!alive) return
       const roots = d.sections.filter(s => !s.parent_id)
       setSections(roots)
       setBanner(b.banner)
-      if (roots.length) {
-        const md = await api.materials(roots[0].id, 0).catch(() => ({ materials: [] as Material[], total: 0 }))
-        if (alive) setRecent(md.materials.slice(0, 3))
-      }
+      setRecent(rd.materials.slice(0, 5))
       setLoading(false)
     })()
     return () => { alive = false }
