@@ -16,8 +16,12 @@ async function get<T>(path: string): Promise<T> {
   return res.json()
 }
 
-async function post<T>(path: string): Promise<T> {
-  const res = await fetch(API_BASE + path, { method: 'POST', headers: headers() })
+async function post<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(API_BASE + path, {
+    method: 'POST',
+    headers: body !== undefined ? { ...headers(), 'Content-Type': 'application/json' } : headers(),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   return res.json()
 }
@@ -111,4 +115,6 @@ export const api = {
   history:        ()             => get<{ materials: Material[] }>('/api/history'),
   clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),
   banner:         ()             => get<{ banner: Banner | null }>('/api/banner'),
+  notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
+  notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
 }

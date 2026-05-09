@@ -12,6 +12,7 @@ import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
 import Logo from './components/Logo'
+import NotifySheet from './components/NotifySheet'
 import { api } from './api/client'
 import type { Section } from './api/client'
 import { isBookmarked, removeBookmarkRemote, saveBookmarkRemote, syncBookmarks } from './store/bookmarks'
@@ -28,6 +29,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('home')
   const [stack, setStack] = useState<View[]>([])
   const [bmTick, setBmTick] = useState(0)
+  const [notifyOpen, setNotifyOpen] = useState(false)
   const [botUsername, setBotUsername] = useState('')
   const [upgradePending, setUpgradePending] = useState(false)
 
@@ -112,7 +114,7 @@ export default function App() {
           <span className="flex-1 text-[15px] font-semibold tracking-wide">
             <span className="text-violet">S010</span>lvloon
           </span>
-          <button className="text-gray2 p-1">🔔</button>
+          <button className="text-gray2 p-1 active:opacity-60" onClick={() => setNotifyOpen(true)}>🔔</button>
         </header>
       )
       const titles: Record<Tab, string> = { home: '', cats: 'Категории', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
@@ -155,6 +157,8 @@ export default function App() {
       </AnimatePresence>
 
       {!isMat && <BottomNav active={tab} onChange={switchTab} />}
+
+      <NotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} />
     </div>
   )
 }
