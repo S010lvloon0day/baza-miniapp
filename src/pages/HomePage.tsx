@@ -207,6 +207,24 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           ))}
         </div>
       </section>
+
+      {/* Ad contact */}
+      <div className="px-4 pb-6 pt-1">
+        <button
+          onClick={() => {
+            const tg = (window as any).Telegram?.WebApp
+            if (tg?.openTelegramLink) tg.openTelegramLink('https://t.me/S010lvloon_bot')
+            else window.open('https://t.me/S010lvloon_bot', '_blank')
+          }}
+          className="w-full flex items-center justify-center gap-2 h-10 rounded border border-bd2 bg-s1 active:border-green active:bg-s2 transition-colors"
+        >
+          <span className="text-[13px]">📣</span>
+          <span className="text-[11px] font-semibold tracking-[1px] uppercase text-gray2">
+            По вопросам рекламы
+          </span>
+          <span className="text-[11px] text-green font-bold">@S010lvloon_bot</span>
+        </button>
+      </div>
     </div>
   )
 }
