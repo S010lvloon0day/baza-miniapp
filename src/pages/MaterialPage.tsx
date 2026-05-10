@@ -8,6 +8,32 @@ import type { Material } from '../api/client'
 const tg = (window as any).Telegram?.WebApp
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
 
+const URL_RE = /(https?:\/\/[^\s<>"]+)/g
+
+function renderWithLinks(text: string) {
+  const parts = text.split(URL_RE)
+  return parts.map((part, i) => {
+    if (URL_RE.test(part)) {
+      URL_RE.lastIndex = 0
+      return (
+        <span
+          key={i}
+          className="text-green underline break-all cursor-pointer"
+          onClick={e => {
+            e.stopPropagation()
+            if (tg?.openLink) tg.openLink(part)
+            else window.open(part, '_blank')
+          }}
+        >
+          {part}
+        </span>
+      )
+    }
+    URL_RE.lastIndex = 0
+    return <span key={i}>{part}</span>
+  })
+}
+
 interface Props {
   materialId: number
   sectionId: number
@@ -236,7 +262,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   {docPreview === 'text' && docText !== null && (
                     <div className="rounded border border-bd2 bg-bg/70 p-4 mb-3">
                       <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-[1.7] text-white/85">
-                        {docText}
+                        {renderWithLinks(docText)}
                       </pre>
                       {docTruncated && (
                         <div className="mt-4 pt-4 border-t border-bd2 flex flex-col items-center gap-3">
@@ -291,7 +317,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     {mat.media_type === 'text' ? 'Содержание' : 'Описание'}
                   </div>
                   <div className="px-4 text-[14px] leading-[1.85] text-white/80 whitespace-pre-wrap break-words">
-                    {mat.content}
+                    {renderWithLinks(mat.content)}
                   </div>
                 </>
               )}

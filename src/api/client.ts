@@ -114,7 +114,7 @@ export const api = {
   recent:         ()             => get<{ materials: Material[]; today_count: number; today_sections: TodaySection[]; total_count: number }>('/api/recent'),
   history:        ()             => get<{ materials: Material[] }>('/api/history'),
   clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),
-  banner:         ()             => get<{ banner: Banner | null }>('/api/banner'),
+  banner:         ()             => get<{ banners: Banner[] }>('/api/banner'),
   notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
   notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
 }

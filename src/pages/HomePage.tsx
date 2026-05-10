@@ -14,7 +14,7 @@ interface Props {
 export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
-  const [banner, setBanner] = useState<Banner | null>(null)
+  const [banners, setBanners] = useState<Banner[]>([])
   const [todaySections, setTodaySections] = useState<TodaySection[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -26,12 +26,12 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
     ;(async () => {
       const [d, b, rd] = await Promise.all([
         api.sections().catch(() => ({ sections: [] as Section[] })),
-        api.banner().catch(() => ({ banner: null })),
+        api.banner().catch(() => ({ banners: [] as Banner[] })),
         api.recent().catch(() => ({ materials: [] as Material[], today_count: 0, today_sections: [] as TodaySection[], total_count: 0 })),
       ])
       if (!alive) return
       setSections(d.sections.filter(s => !s.parent_id))
-      setBanner(b.banner)
+      setBanners(b.banners ?? [])
       setRecent((rd.materials ?? []).slice(0, 10))
       setTodaySections(rd.today_sections ?? [])
       setTotalCount(rd.total_count ?? 0)
@@ -67,8 +67,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
         </div>
       </div>
 
-      {/* Banner */}
-      {banner && <BannerCard banner={banner} />}
+      {/* Banner carousel */}
+      {banners.length > 0 && <BannerCard banners={banners} />}
 
       {/* Recent */}
       {(totalCount > 0 || recent.length > 0) && (
