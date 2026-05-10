@@ -102,7 +102,7 @@ export default function BannerCard({ banners }: Props) {
   // Auto-advance with randomized 3-4s interval; resets whenever current changes
   useEffect(() => {
     if (banners.length <= 1) return
-    const delay = 3000 + Math.random() * 1000
+    const delay = 5000 + Math.random() * 1000
     const id = setTimeout(() => {
       setDir(1)
       setCurrent(i => (i + 1) % banners.length)
