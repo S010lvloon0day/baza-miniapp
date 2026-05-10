@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CaretRight, CaretDown } from '@phosphor-icons/react'
+import { CaretRight, CaretDown, Crown } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import type { Section, Material, Banner, TodaySection } from '../api/client'
 import BannerCard from '../components/BannerCard'
@@ -136,10 +136,13 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
                     className={`px-4 py-2 flex items-center gap-2 cursor-pointer active:bg-s1 ${i < recent.length - 1 ? 'border-b border-bd/50' : ''}`}
                   >
                     <span className="text-base shrink-0">{m.section_emoji || '📁'}</span>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-[11px] text-gray2 leading-none mb-0.5 truncate">{m.section_title}</div>
                       <div className="text-[13px] font-medium text-white leading-snug truncate">{m.title}</div>
                     </div>
+                    {m.locked && (
+                      <Crown size={14} weight="fill" className="shrink-0 text-violet opacity-80" />
+                    )}
                   </div>
                 ))}
               </div>
