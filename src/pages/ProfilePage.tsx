@@ -202,10 +202,9 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                       💳
                     </div>
                     <div className="flex-1 text-left">
-                      <div className="text-[13px] font-semibold text-white">Банковская карта</div>
+                      <div className="text-[13px] font-semibold text-white">Банковская карта <span className="text-gray font-normal">(временно недоступно)</span></div>
                       <div className="text-[11px] text-gray">Tegro.money · {selected.rub} ₽</div>
                     </div>
-                    <span className="text-[11px] text-gray">Временно недоступно</span>
                   </button>
                 )}
               </div>
