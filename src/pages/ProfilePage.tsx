@@ -83,20 +83,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
     }
   }
 
-  const buyWithRub = async () => {
-    if (!selected || paying) return
-    setPaying('rub')
-    setMsg(null)
-    try {
-      const { checkout_url } = await api.tegroInvoice(selected.days)
-      tg?.openLink ? tg.openLink(checkout_url) : window.open(checkout_url, '_blank')
-      setMsg('Перейдите на страницу оплаты. После оплаты напишите /start боту.')
-    } catch {
-      setMsg('Ошибка создания счёта. Попробуйте позже.')
-    } finally {
-      setPaying(null)
-    }
-  }
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -209,9 +195,8 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                 {/* RUB */}
                 {selected.rub != null && (
                   <button
-                    disabled={!!paying}
-                    onClick={buyWithRub}
-                    className="flex items-center gap-3 px-4 py-3.5 active:bg-s2 disabled:opacity-50 transition-colors"
+                    disabled
+                    className="flex items-center gap-3 px-4 py-3.5 opacity-50 cursor-not-allowed transition-colors"
                   >
                     <div className="w-9 h-9 rounded-full bg-[rgba(76,175,80,.10)] border border-[rgba(76,175,80,.35)] flex items-center justify-center text-[16px] shrink-0">
                       💳
@@ -220,9 +205,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                       <div className="text-[13px] font-semibold text-white">Банковская карта</div>
                       <div className="text-[11px] text-gray">Tegro.money · {selected.rub} ₽</div>
                     </div>
-                    {paying === 'rub'
-                      ? <span className="text-[11px] text-gray animate-pulse">Открываю…</span>
-                      : <span className="text-[11px] text-[rgba(100,220,100,1)] font-semibold">Оплатить</span>}
+                    <span className="text-[11px] text-gray">Временно недоступно</span>
                   </button>
                 )}
               </div>
