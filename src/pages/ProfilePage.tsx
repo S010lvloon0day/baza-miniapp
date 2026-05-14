@@ -117,11 +117,16 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
         </div>
 
         {/* Plans */}
-        {!prof?.is_premium && cfg.plans.length > 0 && (
+        {cfg.plans.length > 0 && (
           <>
             <div ref={plansRef} className="text-[11px] font-bold tracking-[2px] uppercase text-gray pt-1">
-              Оформить Premium
+              {prof?.is_premium ? 'Продлить Premium' : 'Оформить Premium'}
             </div>
+            {prof?.is_premium && (
+              <div className="text-[11px] text-gray px-0.5 -mt-1">
+                Дни добавятся к текущей подписке
+              </div>
+            )}
 
             {/* Period selector */}
             <div className="flex gap-2">
