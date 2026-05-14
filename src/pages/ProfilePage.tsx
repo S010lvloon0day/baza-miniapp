@@ -169,7 +169,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                   </div>
                   {paying === 'crypto'
                     ? <span className="text-[11px] text-gray animate-pulse">Открываю…</span>
-                    : <span className="text-[11px] text-violet font-semibold">Оплатить</span>}
+                    : <span className="text-[11px] text-violet font-semibold">{prof?.is_premium ? 'Продлить' : 'Оплатить'}</span>}
                 </button>
 
                 <div className="h-px bg-bd mx-4" />
@@ -191,7 +191,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                       </div>
                       {paying === 'stars'
                         ? <span className="text-[11px] text-gray animate-pulse">Открываю…</span>
-                        : <span className="text-[11px] text-[rgba(255,210,80,1)] font-semibold">Оплатить</span>}
+                        : <span className="text-[11px] text-[rgba(255,210,80,1)] font-semibold">{prof?.is_premium ? 'Продлить' : 'Оплатить'}</span>}
                     </button>
                     <div className="h-px bg-bd mx-4" />
                   </>
