@@ -1,11 +1,12 @@
-import { House, SquaresFour, BookmarkSimple, ClockCounterClockwise, User } from '@phosphor-icons/react'
+import { House, SquaresFour, BookmarkSimple, ClockCounterClockwise, User, MagnifyingGlass } from '@phosphor-icons/react'
 
-export type Tab = 'home' | 'cats' | 'favs' | 'recent' | 'prof'
+export type Tab = 'home' | 'cats' | 'search' | 'favs' | 'recent' | 'prof'
 
 const TABS: { id: Tab; icon: typeof House; label: string }[] = [
   { id: 'home',   icon: House,                 label: 'Главная'   },
   { id: 'cats',   icon: SquaresFour,           label: 'Разделы'   },
-  { id: 'favs',   icon: BookmarkSimple,         label: 'Избранное' },
+  { id: 'search', icon: MagnifyingGlass,       label: 'Поиск'     },
+  { id: 'favs',   icon: BookmarkSimple,        label: 'Избранное' },
   { id: 'recent', icon: ClockCounterClockwise, label: 'История'   },
   { id: 'prof',   icon: User,                  label: 'Профиль'   },
 ]

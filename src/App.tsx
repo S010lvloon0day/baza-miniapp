@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import SplashPage from './pages/SplashPage'
 import HomePage from './pages/HomePage'
 import CatsPage from './pages/CatsPage'
+import SearchPage from './pages/SearchPage'
 import SectionPage from './pages/SectionPage'
 import MaterialPage from './pages/MaterialPage'
 import FavsPage from './pages/FavsPage'
@@ -82,6 +83,7 @@ export default function App() {
     if (!top) {
       if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} />
+      if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
       if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
@@ -117,7 +119,7 @@ export default function App() {
           <button className="text-gray2 p-1 active:opacity-60" onClick={() => setNotifyOpen(true)}>🔔</button>
         </header>
       )
-      const titles: Record<Tab, string> = { home: '', cats: 'Категории', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
+      const titles: Record<Tab, string> = { home: '', cats: 'Категории', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
       return <Header showLogo={tab === 'cats'} title={titles[tab]} />
     }
     if (top.type === 'section') {

@@ -1,0 +1,118 @@
+import { useState, useEffect, useRef } from 'react'
+import { MagnifyingGlass } from '@phosphor-icons/react'
+import { api } from '../api/client'
+import type { Material } from '../api/client'
+
+interface Props {
+  onMaterial: (id: number, sectionId: number) => void
+}
+
+const MEDIA_ICON: Record<string, string> = {
+  photo: '🖼', video: '🎬', document: '📄', text: '📝',
+}
+
+export default function SearchPage({ onMaterial }: Props) {
+  const [query, setQuery]     = useState('')
+  const [results, setResults] = useState<Material[]>([])
+  const [loading, setLoading] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    const q = query.trim()
+    if (q.length < 2) {
+      setResults([])
+      setSearched(false)
+      return
+    }
+    timerRef.current = setTimeout(async () => {
+      setLoading(true)
+      try {
+        const data = await api.search(q)
+        setResults(data.materials)
+        setSearched(true)
+      } catch {
+        setResults([])
+        setSearched(true)
+      } finally {
+        setLoading(false)
+      }
+    }, 400)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [query])
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Input */}
+      <div className="px-4 py-3 border-b border-bd shrink-0">
+        <div className="flex items-center gap-2 bg-s1 border border-bd rounded px-3 h-10">
+          <MagnifyingGlass size={16} className="text-gray2 shrink-0" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Поиск по материалам…"
+            className="flex-1 bg-transparent text-[14px] text-white placeholder-gray2 outline-none"
+          />
+          {query && (
+            <button onClick={() => setQuery('')} className="text-gray2 text-[20px] leading-none active:opacity-60">×</button>
+          )}
+        </div>
+      </div>
+
+      {/* Results */}
+      <div className="flex-1 overflow-y-auto pb-16">
+        {loading && (
+          <div className="flex justify-center pt-10">
+            <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+          </div>
+        )}
+
+        {!loading && searched && results.length === 0 && (
+          <div className="text-center text-gray text-[13px] pt-10 px-6">
+            Ничего не найдено по запросу «{query.trim()}»
+          </div>
+        )}
+
+        {!loading && results.length > 0 && (
+          <div className="flex flex-col divide-y divide-bd">
+            {results.map(m => (
+              <button
+                key={m.id}
+                disabled={!!m.locked}
+                onClick={() => onMaterial(m.id, m.section_id)}
+                className="flex items-start gap-3 px-4 py-3.5 text-left active:bg-s1 disabled:opacity-60 transition-colors"
+              >
+                <span className="text-[18px] shrink-0 mt-0.5">{MEDIA_ICON[m.media_type] ?? '📄'}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {m.locked && <span className="text-[10px] text-violet shrink-0">💎</span>}
+                    <span className="text-[13px] font-semibold text-white leading-snug">{m.title}</span>
+                  </div>
+                  <div className="text-[11px] text-gray2 mt-0.5">
+                    {m.section_emoji} {m.section_title}
+                  </div>
+                  {m.content && !m.locked && (
+                    <div className="text-[11px] text-gray mt-1 line-clamp-2 leading-relaxed">{m.content}</div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!loading && !searched && (
+          <div className="text-center text-gray text-[13px] pt-10 px-6">
+            Введите минимум 2 символа для поиска
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

@@ -117,4 +117,5 @@ export const api = {
   banner:         ()             => get<{ banners: Banner[] }>('/api/banner'),
   notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
   notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
+  search:         (q: string)    => get<{ materials: Material[] }>(`/api/search?q=${encodeURIComponent(q)}`),
 }
