@@ -97,21 +97,23 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
       <div className="p-4 flex flex-col gap-3">
 
         {/* Profile card */}
-        <div className="relative premium-surface premium-glow border border-bd rounded p-6 text-center overflow-hidden">
+        <div className="relative premium-surface premium-glow border border-bd rounded-sm p-6 text-center overflow-hidden">
           <div className="absolute bottom-0 left-0 right-0 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, #C7A6FF, #F3C77A, transparent)' }} />
-          <div className="w-[72px] h-[72px] bg-[rgba(157,92,255,.12)] border-2 border-green rounded-full flex items-center justify-center mx-auto mb-4 text-[28px] font-bold text-violet shadow-glow">
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.6), rgba(0,255,65,.3), transparent)' }} />
+          <div className="absolute top-0 left-0 right-0 h-px"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.3), transparent)' }} />
+          <div className="w-[72px] h-[72px] bg-[rgba(0,255,65,.06)] border-2 border-green rounded-sm flex items-center justify-center mx-auto mb-4 text-[28px] font-bold text-green shadow-glow">
             {name[0].toUpperCase()}
           </div>
-          <div className="text-[18px] font-bold mb-1">{name}</div>
-          <div className="text-[12px] text-gray2 tracking-wider mb-3">ID: {prof?.user_id || '—'}</div>
+          <div className="text-[18px] font-bold mb-0.5">{name}</div>
+          <div className="text-[11px] font-mono text-gray2 tracking-wider mb-3">uid:{prof?.user_id || '0000'}</div>
           {prof?.is_premium ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[rgba(157,92,255,.12)] border border-green rounded-sm text-[11px] font-bold text-violet tracking-wider uppercase">
-              💎 Premium · до {prof.premium_until || '—'}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[rgba(157,92,255,.12)] border border-[rgba(157,92,255,.4)] rounded-sm text-[11px] font-mono text-violet tracking-wider uppercase">
+              💎 premium · {prof.premium_until || '—'}
             </span>
           ) : (
-            <span className="inline-flex px-3 py-1 border border-bd2 rounded-sm text-[11px] text-gray tracking-wide">
-              Бесплатный доступ
+            <span className="inline-flex px-3 py-1 border border-bd2 rounded-sm text-[11px] font-mono text-gray2 tracking-wide">
+              // free access
             </span>
           )}
         </div>
@@ -119,8 +121,8 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
         {/* Plans */}
         {cfg.plans.length > 0 && (
           <>
-            <div ref={plansRef} className="text-[11px] font-bold tracking-[2px] uppercase text-gray pt-1">
-              {prof?.is_premium ? 'Продлить Premium' : 'Оформить Premium'}
+            <div ref={plansRef} className="text-[11px] font-mono tracking-[1px] text-green/70 pt-1">
+              // {prof?.is_premium ? 'продлить_premium' : 'оформить_premium'}
             </div>
             {prof?.is_premium && (
               <div className="text-[11px] text-gray px-0.5 -mt-1">

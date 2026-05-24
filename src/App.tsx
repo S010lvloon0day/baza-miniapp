@@ -120,7 +120,7 @@ export default function App() {
         <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur border-b border-bd px-4 flex items-center gap-3 h-[56px] shrink-0">
           <Logo size={30} />
           <span className="flex-1 text-[15px] font-semibold tracking-wide">
-            <span className="text-violet">S010</span>lvloon
+            <span className="text-green">S010</span>lvloon
           </span>
           <button className="text-gray2 p-1 active:opacity-60" onClick={() => setNotifyOpen(true)}>🔔</button>
         </header>

@@ -21,16 +21,16 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         transition={{ delay: 0.25, duration: 0.4 }}
         className="relative text-[30px] font-bold tracking-widest mb-1.5"
       >
-        <span className="text-violet">S010</span>lvloon
+        <span className="text-green">S010</span>lvloon
       </motion.h1>
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.35 }}
-        className="relative text-[10px] font-semibold tracking-[3px] uppercase text-gold mb-6"
+        className="relative text-[10px] font-mono tracking-[2px] text-green/60 mb-6"
       >
-        Канал об информационной безопасности
+        // информационная безопасность
       </motion.p>
 
       <motion.p
@@ -48,9 +48,10 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         transition={{ delay: 0.55 }}
         whileTap={{ scale: 0.97 }}
         onClick={onStart}
-        className="relative w-full max-w-[280px] py-4 bg-gradient-to-r from-[#7B3DFF] via-[#B987FF] to-[#E7D4FF] text-bg font-bold text-[13px] tracking-[3px] uppercase rounded flex items-center justify-center gap-3 shadow-glow"
+        className="relative w-full max-w-[280px] py-4 bg-green text-bg font-bold text-[13px] font-mono tracking-[3px] uppercase rounded-sm flex items-center justify-center gap-3"
+        style={{ boxShadow: '0 0 24px rgba(0,255,65,.4), 0 0 60px rgba(0,255,65,.12)' }}
       >
-        НАЧАТЬ <span className="text-[18px] leading-none">›</span>
+        ./НАЧАТЬ <span className="blink">_</span>
       </motion.button>
     </div>
   )

@@ -143,7 +143,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
       {/* Subsections */}
       {subs.length > 0 && (
         <section>
-          <div className="px-4 pt-4 pb-2 text-[11px] font-bold tracking-[2px] uppercase text-white">Подразделы</div>
+          <div className="px-4 pt-4 pb-2 text-[11px] font-mono tracking-[1px] text-green/70">// ПОДРАЗДЕЛЫ</div>
           <div className="grid grid-cols-4 gap-2 px-4 pb-2">
             {subs.map(s => (
               <div key={s.id} onClick={() => onSubsection(s)}
@@ -176,7 +176,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
       ) : mats.length > 0 ? (
         <section>
           <div className="flex items-center justify-between px-4 pt-4 pb-2.5">
-            <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">{total} материалов</span>
+            <span className="text-[11px] font-mono text-gray2">[{total}] файлов</span>
           </div>
           <div className="mx-4 flex flex-col divide-y divide-bd">
             {mats.map((m, i) => (

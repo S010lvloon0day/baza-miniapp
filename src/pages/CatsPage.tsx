@@ -25,8 +25,8 @@ export default function CatsPage({ onSection }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto pb-14">
-      <div className="px-4 pt-4 pb-2 text-[11px] font-semibold tracking-[2px] text-gray uppercase">
-        {cats.length} категорий
+      <div className="px-4 pt-4 pb-2 text-[11px] font-mono tracking-[1px] text-gray2">
+        // {cats.length} разделов доступно
       </div>
       <div className="grid grid-cols-4 gap-2 px-4 pb-4">
         {cats.map((s, i) => (

@@ -53,14 +53,14 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       {/* Hero */}
-      <div className="mx-4 mt-3 rounded bg-s1 overflow-hidden relative min-h-[130px] flex items-end">
+      <div className="mx-4 mt-3 rounded-sm bg-s1 overflow-hidden relative min-h-[130px] flex items-end border border-bd">
         <div className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at 78% 42%, rgba(157,92,255,.28) 0%, transparent 58%), linear-gradient(135deg, rgba(243,199,122,.10), transparent 42%)' }} />
+          style={{ background: 'radial-gradient(ellipse at 80% 40%, rgba(0,255,65,.12) 0%, transparent 55%), linear-gradient(135deg, rgba(0,255,65,.04), transparent 40%)' }} />
         <div className="absolute inset-0"
-          style={{ backgroundImage: 'linear-gradient(rgba(199,166,255,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(199,166,255,.06) 1px,transparent 1px)', backgroundSize: '22px 22px' }} />
-        <div className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-gold/50 to-transparent" />
+          style={{ backgroundImage: 'linear-gradient(rgba(0,255,65,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.05) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
+        <div className="absolute inset-x-5 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.7), transparent)' }} />
         <div className="relative z-10 p-5">
-          <div className="text-[10px] font-bold tracking-[2px] text-gold uppercase mb-1.5">Premium база знаний</div>
+          <div className="text-[10px] font-mono tracking-[1px] text-green/70 mb-2">root@s010:~$ ./knowledge_base.sh</div>
           <div className="font-display text-[22px] tracking-widest text-white leading-tight">
             ЗАЩИЩАЙ ЗНАНИЯ.<br />ЗАЩИЩАЙ СИСТЕМЫ.
           </div>
@@ -85,7 +85,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
               >
                 <CaretDown size={13} weight="bold" />
               </motion.span>
-              <span className="text-[12px] font-bold tracking-[2px] uppercase">Новое</span>
+              <span className="text-[11px] font-mono tracking-[1px] text-green/80">// НОВОЕ</span>
             </div>
             <button
               onClick={e => { e.stopPropagation(); onTabCats() }}
@@ -185,7 +185,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
       {/* Categories */}
       <section>
         <div className="flex items-center justify-between px-4 pt-5 pb-2.5">
-          <span className="text-[12px] font-bold tracking-[2px] uppercase">Категории</span>
+          <span className="text-[11px] font-mono tracking-[1px] text-green/80">// КАТЕГОРИИ</span>
         </div>
         <div className="grid grid-cols-4 gap-2 px-4 pb-4">
           {sections.slice(0, 8).map((s, i) => (

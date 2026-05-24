@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -11,9 +11,16 @@ html, body, #root {
   margin: 0;
   padding: 0;
   background:
-    radial-gradient(circle at 50% -10%, rgba(157, 92, 255, .20), transparent 36%),
-    radial-gradient(circle at 90% 12%, rgba(243, 199, 122, .08), transparent 28%),
-    #08070D;
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0,0,0,.06) 2px,
+      rgba(0,0,0,.06) 3px
+    ),
+    radial-gradient(ellipse at 50% -5%, rgba(0,255,65,.09) 0%, transparent 45%),
+    radial-gradient(ellipse at 95% 10%, rgba(0,255,65,.04) 0%, transparent 30%),
+    #010108;
   color: #fff;
   font-family: 'Manrope', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -28,30 +35,37 @@ html, body, #root {
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 2px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #2A2A2A; border-radius: 1px; }
+::-webkit-scrollbar-thumb { background: #1a1828; border-radius: 1px; }
 
-/* Accent glow dot */
+/* Accent glow dot — neon green */
 .dot-glow {
   width: 5px; height: 5px;
-  background: #B987FF;
+  background: #00FF41;
   border-radius: 50%;
-  box-shadow: 0 0 10px #9D5CFF, 0 0 20px rgba(199, 166, 255, .35);
+  box-shadow: 0 0 8px #00FF41, 0 0 18px rgba(0,255,65,.5);
   flex-shrink: 0;
 }
 
 .premium-surface {
   background:
-    linear-gradient(145deg, rgba(255,255,255,.08), rgba(255,255,255,.025)),
-    linear-gradient(180deg, rgba(157,92,255,.07), rgba(8,7,13,0));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 8px 32px rgba(0,0,0,.32);
+    linear-gradient(145deg, rgba(255,255,255,.06), rgba(255,255,255,.015)),
+    linear-gradient(180deg, rgba(0,255,65,.03), rgba(1,1,8,0));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 8px 32px rgba(0,0,0,.5);
 }
 
 .premium-glow {
   box-shadow:
-    0 0 0 1px rgba(199,166,255,.20),
-    0 0 28px rgba(157,92,255,.26),
-    0 18px 50px rgba(0,0,0,.38);
+    0 0 0 1px rgba(0,255,65,.12),
+    0 0 28px rgba(0,255,65,.10),
+    0 18px 50px rgba(0,0,0,.6);
 }
 
 /* Tap highlight */
 * { -webkit-tap-highlight-color: transparent; }
+
+/* Monospace font utility */
+.font-mono { font-family: 'JetBrains Mono', 'Courier New', monospace; }
+
+/* Terminal blink */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.blink { animation: blink 1.2s step-end infinite; }

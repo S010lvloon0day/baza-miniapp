@@ -22,7 +22,7 @@ export default function BottomNav({ active, onChange }: Props) {
           <button
             key={id}
             onClick={() => onChange(id)}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] font-semibold tracking-wide transition-colors duration-150 relative
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] font-mono tracking-wide transition-colors duration-150 relative
               ${on ? 'text-green' : 'text-gray2'}`}
           >
             {on && (
