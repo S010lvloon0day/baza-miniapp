@@ -14,7 +14,8 @@ const ITEMS_PER_PAGE = 10
 
 interface Props {
   section: Section
-  onMaterial: (id: number, sectionId: number) => void
+  initialPage?: number
+  onMaterial: (id: number, sectionId: number, page: number) => void
   onSubsection: (s: Section) => void
   onUpgrade: () => void
 }
@@ -86,21 +87,21 @@ function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: ()
   )
 }
 
-export default function SectionPage({ section, onMaterial, onSubsection, onUpgrade }: Props) {
+export default function SectionPage({ section, initialPage = 0, onMaterial, onSubsection, onUpgrade }: Props) {
   const [subs, setSubs] = useState<Section[]>([])
   const [mats, setMats] = useState<Material[]>([])
   const [total, setTotal] = useState(0)
   const [totalWithPremium, setTotalWithPremium] = useState(0)
-  const [page, setPage] = useState(0)
+  const [page, setPage] = useState(initialPage)
   const [loading, setLoading] = useState(true)
 
   // Все хуки — до любого conditional return
   useEffect(() => {
     if (section.locked) { setLoading(false); return }
-    setPage(0); setLoading(true)
+    setPage(initialPage); setLoading(true)
     Promise.all([
       api.subsections(section.id).catch(() => ({ sections: [] as Section[] })),
-      api.materials(section.id, 0).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 })),
+      api.materials(section.id, initialPage).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 })),
     ]).then(([sd, md]) => {
       setSubs(sd.sections)
       setMats(md.materials)
@@ -178,7 +179,7 @@ export default function SectionPage({ section, onMaterial, onSubsection, onUpgra
                 initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
-                onClick={() => onMaterial(m.id, section.id)}
+                onClick={() => onMaterial(m.id, section.id, page)}
                 className={`flex items-center gap-2.5 py-3.5 cursor-pointer -mx-4 px-4 ${m.locked ? 'active:bg-[rgba(157,92,255,.06)]' : 'active:bg-s2'}`}
               >
                 {m.locked ? (

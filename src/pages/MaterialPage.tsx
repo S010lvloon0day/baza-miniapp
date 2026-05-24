@@ -55,11 +55,18 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
   const curId = useRef(materialId)
 
   useEffect(() => {
-    if (sectionId) {
-      api.materials(sectionId, 0).then(d => {
-        setSectionMats(d.materials.map(m => m.id))
-      }).catch(() => {})
-    }
+    if (!sectionId) return
+    api.materials(sectionId, 0).then(async d => {
+      let allIds = d.materials.map(m => m.id)
+      const totalPages = Math.ceil(d.total / 10)
+      if (totalPages > 1) {
+        const rest = await Promise.all(
+          Array.from({ length: totalPages - 1 }, (_, i) => api.materials(sectionId, i + 1))
+        )
+        rest.forEach(pd => { allIds = [...allIds, ...pd.materials.map(m => m.id)] })
+      }
+      setSectionMats(allIds)
+    }).catch(() => {})
   }, [sectionId])
 
   useEffect(() => {

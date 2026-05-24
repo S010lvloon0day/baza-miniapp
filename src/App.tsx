@@ -22,7 +22,7 @@ const tg = (window as any).Telegram?.WebApp
 
 type View =
   | { type: 'tab'; tab: Tab }
-  | { type: 'section'; section: Section }
+  | { type: 'section'; section: Section; page: number }
   | { type: 'material'; id: number; sectionId: number }
 
 export default function App() {
@@ -64,8 +64,14 @@ export default function App() {
 
   const goBack = useCallback(() => setStack(s => s.slice(0, -1)), [])
 
-  const openSection = (section: Section) => setStack(s => [...s, { type: 'section', section }])
-  const openMaterial = (id: number, sectionId: number) => setStack(s => [...s, { type: 'material', id, sectionId }])
+  const openSection = (section: Section) => setStack(s => [...s, { type: 'section', section, page: 0 }])
+  const openMaterial = (id: number, sectionId: number, page: number = 0) =>
+    setStack(s => {
+      const updated = s.map(v =>
+        v.type === 'section' && v.section.id === sectionId ? { ...v, page } : v
+      )
+      return [...updated, { type: 'material', id, sectionId }]
+    })
 
   const switchTab = (t: Tab) => {
     setTab(t)
@@ -89,7 +95,7 @@ export default function App() {
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
     }
     if (top?.type === 'section') {
-      return <SectionPage section={top.section} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
+      return <SectionPage section={top.section} initialPage={top.page} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
     }
     if (top?.type === 'material') {
       return (
