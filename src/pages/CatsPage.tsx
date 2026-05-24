@@ -36,9 +36,9 @@ export default function CatsPage({ onSection }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
             onClick={() => onSection(s)}
-            className={`premium-surface border rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 ${s.locked ? 'border-[rgba(157,92,255,.3)]' : 'border-bd active:border-green'}`}
+            className={}
           >
-            <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg relative ${s.locked ? 'bg-[rgba(157,92,255,.08)] border-[rgba(157,92,255,.25)]' : 'bg-s2 border-bd2'}`}>
+            <div className={}>
               {s.emoji || '📁'}
               {s.locked && (
                 <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center">
@@ -46,7 +46,7 @@ export default function CatsPage({ onSection }: Props) {
                 </div>
               )}
             </div>
-            <span className={`text-[9px] font-semibold uppercase tracking-[0.5px] text-center leading-tight ${s.locked ? 'text-violet/70' : 'text-gray'}`}>
+            <span className={}>
               {s.title}
             </span>
           </motion.div>
