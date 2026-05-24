@@ -74,7 +74,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           </div>
 
           {/* Slogan */}
-          <div className="font-display text-[24px] tracking-widest text-white leading-[1.15] mb-3">
+          <div className="font-display text-[19px] tracking-widest text-white leading-[1.2] mb-3">
             ЗАЩИЩАЙ ЗНАНИЯ.<br />ЗАЩИЩАЙ СИСТЕМЫ.
           </div>
 
