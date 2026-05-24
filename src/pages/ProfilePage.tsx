@@ -96,28 +96,56 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
     <div className="flex-1 overflow-y-auto pb-14">
       <div className="p-4 flex flex-col gap-3">
 
-        {/* Profile card */}
-        <div className="relative premium-surface premium-glow border border-bd rounded-sm p-6 text-center overflow-hidden">
-          <div className="absolute bottom-0 left-0 right-0 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.6), rgba(0,255,65,.3), transparent)' }} />
-          <div className="absolute top-0 left-0 right-0 h-px"
-            style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.3), transparent)' }} />
-          <div className="w-[72px] h-[72px] border border-bd2 flex items-center justify-center mx-auto mb-4 text-[30px] font-bold text-white relative"
-            style={{ background: 'rgba(255,255,255,.04)', boxShadow: '0 0 20px rgba(255,255,255,.08)' }}>
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent)' }} />
-            {name[0].toUpperCase()}
+        {/* Profile card — terminal config file */}
+        <div className="terminal-glow overflow-hidden" style={{ background: '#04040C', border: '1px solid rgba(255,255,255,.09)' }}>
+          {/* Title bar */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.06)' }}>
+            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: '0 0 5px rgba(255,95,87,.6)' }} />
+            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FEBC2E', boxShadow: '0 0 5px rgba(254,188,46,.6)' }} />
+            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#28C840', boxShadow: '0 0 5px rgba(40,200,64,.6)' }} />
+            <span className="font-mono text-[10px] text-gray2 flex-1 text-center">cat ~/.config/user.conf</span>
           </div>
-          <div className="text-[18px] font-bold mb-0.5">{name}</div>
-          <div className="text-[11px] font-mono text-gray2 tracking-wider mb-3">uid:{prof?.user_id || '0000'}</div>
-          {prof?.is_premium ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[rgba(157,92,255,.12)] border border-[rgba(157,92,255,.4)] rounded-sm text-[11px] font-mono text-violet tracking-wider uppercase">
-              💎 premium · {prof.premium_until || '—'}
-            </span>
-          ) : (
-            <span className="inline-flex px-3 py-1 border border-bd2 rounded-sm text-[11px] font-mono text-gray2 tracking-wide">
-              // free access
-            </span>
-          )}
+          {/* Config content */}
+          <div className="px-4 py-4 font-mono text-[11px] leading-[1.7]">
+            <div className="text-gray2/60 mb-2"># USER CONFIGURATION — READ ONLY</div>
+            <div className="mb-3">
+              <div style={{ color: '#C7A6FF' }}>[identity]</div>
+              <div className="pl-4">
+                <span className="text-gray">name</span>
+                <span className="text-gray2">     = </span>
+                <span className="text-white">{name}</span>
+              </div>
+              <div className="pl-4">
+                <span className="text-gray">uid</span>
+                <span className="text-gray2">      = </span>
+                <span className="text-white/50">{prof?.user_id || '0000'}</span>
+              </div>
+            </div>
+            <div>
+              <div style={{ color: '#C7A6FF' }}>[access]</div>
+              <div className="pl-4">
+                <span className="text-gray">tier</span>
+                <span className="text-gray2">     = </span>
+                {prof?.is_premium
+                  ? <span style={{ color: '#28C840' }}>premium</span>
+                  : <span className="text-gray2">free</span>}
+              </div>
+              {prof?.is_premium && prof.premium_until && (
+                <div className="pl-4">
+                  <span className="text-gray">expires</span>
+                  <span className="text-gray2">  = </span>
+                  <span className="text-white/50">{prof.premium_until}</span>
+                </div>
+              )}
+              <div className="pl-4">
+                <span className="text-gray">status</span>
+                <span className="text-gray2">   = </span>
+                {prof?.is_premium
+                  ? <span style={{ color: '#28C840' }}>● active</span>
+                  : <span className="text-gray2">○ free_tier</span>}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Plans */}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { MagnifyingGlass, ClockCounterClockwise, X } from '@phosphor-icons/react'
+import { X } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import type { Material } from '../api/client'
 
@@ -17,7 +17,6 @@ const MAX_HISTORY = 8
 function loadHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]') } catch { return [] }
 }
-
 function saveHistory(items: string[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(items))
 }
@@ -83,19 +82,25 @@ export default function SearchPage({ onMaterial }: Props) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Input */}
+      {/* Grep-style input */}
       <div className="px-4 py-3 border-b border-bd shrink-0">
-        <div className="flex items-center gap-2 bg-s1 border border-bd rounded px-3 h-10">
-          <MagnifyingGlass size={16} className="text-gray2 shrink-0" />
+        <div className="flex items-center bg-s1 border border-bd px-3 h-10 font-mono text-[12px] gap-0"
+          style={{ borderColor: query.trim().length >= 2 ? 'rgba(255,255,255,.18)' : undefined }}>
+          <span style={{ color: '#28C840' }} className="shrink-0">$&nbsp;</span>
+          <span className="text-gray2 shrink-0">grep&nbsp;-ri&nbsp;&quot;</span>
           <input
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
-            placeholder="Поиск по материалам…"
-            className="flex-1 bg-transparent text-[14px] text-white placeholder-gray2 outline-none"
+            placeholder="запрос"
+            className="flex-1 bg-transparent text-white placeholder-gray2/40 outline-none min-w-0"
+            style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
           />
+          <span className="text-gray2 shrink-0">&quot;&nbsp;./база/</span>
           {query && (
-            <button onClick={() => setQuery('')} className="text-gray2 text-[20px] leading-none active:opacity-60">×</button>
+            <button onClick={() => setQuery('')} className="ml-2 text-gray2 shrink-0 active:opacity-60">
+              <X size={13} />
+            </button>
           )}
         </div>
       </div>
@@ -106,19 +111,19 @@ export default function SearchPage({ onMaterial }: Props) {
         {showHistory && (
           <div className="flex flex-col">
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
-              <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">Недавние</span>
+              <span className="text-[10px] font-mono tracking-[1.5px] text-gray2">// recent_queries</span>
               <button
                 onClick={clearHistory}
-                className="text-[11px] text-gray2 active:opacity-60"
+                className="text-[10px] font-mono text-gray2/60 active:text-gray2 transition-opacity"
               >
-                Очистить
+                rm -rf ./
               </button>
             </div>
             {history.map(item => (
-              <div key={item} className="flex items-center gap-3 px-4 py-2.5 active:bg-s1">
-                <ClockCounterClockwise size={15} className="text-gray2 shrink-0" />
+              <div key={item} className="flex items-center gap-2 px-4 py-2.5 active:bg-s1 group">
+                <span className="text-gray2 font-mono text-[11px] shrink-0">▶</span>
                 <button
-                  className="flex-1 text-left text-[13px] text-white/80"
+                  className="flex-1 text-left font-mono text-[12px] text-white/70"
                   onClick={() => setQuery(item)}
                 >
                   {item}
@@ -127,7 +132,7 @@ export default function SearchPage({ onMaterial }: Props) {
                   onClick={() => removeFromHistory(item)}
                   className="text-gray2 p-1 active:opacity-60"
                 >
-                  <X size={13} />
+                  <X size={11} />
                 </button>
               </div>
             ))}
@@ -136,60 +141,63 @@ export default function SearchPage({ onMaterial }: Props) {
 
         {/* Empty state */}
         {!showHistory && !loading && !searched && (
-          <div className="flex flex-col items-center justify-center pt-14 px-8 text-center gap-3">
-            <MagnifyingGlass size={36} className="text-gray2 opacity-30" />
-            <div className="text-[13px] text-white/40 leading-relaxed">
-              Введите минимум 2 символа<br />для поиска по базе
-            </div>
+          <div className="flex flex-col items-start justify-center pt-10 px-4 gap-2 font-mono text-[11px]">
+            <div className="text-gray2">$ grep: waiting for pattern...</div>
+            <div className="text-gray2/50">// введите минимум 2 символа</div>
+            <div className="text-gray2/50">// для поиска по базе знаний</div>
           </div>
         )}
 
         {/* Loading */}
         {loading && (
-          <div className="flex justify-center pt-10">
-            <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+          <div className="flex flex-col items-start pt-10 px-4 gap-1.5 font-mono text-[11px]">
+            <div className="text-gray2">$ grep -ri &quot;{query.trim()}&quot; ./база/ <span className="blink">█</span></div>
+            <div className="text-gray2/50">// searching...</div>
           </div>
         )}
 
         {/* No results */}
         {!loading && searched && results.length === 0 && (
-          <div className="flex flex-col items-center justify-center pt-14 px-8 text-center gap-3">
-            <span className="text-4xl opacity-20">🔍</span>
-            <div>
-              <div className="text-[13px] font-semibold text-white/40 mb-1">Ничего не найдено</div>
-              <div className="text-[11px] text-gray leading-relaxed">по запросу «{query.trim()}»</div>
-            </div>
+          <div className="flex flex-col items-start pt-10 px-4 gap-1.5 font-mono text-[11px]">
+            <div className="text-gray2">$ grep -ri &quot;{query.trim()}&quot; ./база/</div>
+            <div className="text-white/30">// grep: no matches found</div>
+            <div className="text-white/20">// pattern: &quot;{query.trim()}&quot;</div>
+            <div className="text-white/20">// 0 results</div>
           </div>
         )}
 
         {/* Results */}
         {!loading && results.length > 0 && (
-          <div className="flex flex-col divide-y divide-bd">
-            {results.map(m => (
-              <button
-                key={m.id}
-                disabled={!!m.locked}
-                onClick={() => onMaterial(m.id, m.section_id)}
-                className="flex items-start gap-3 px-4 py-3.5 text-left active:bg-s1 disabled:opacity-60 transition-colors"
-              >
-                <span className="text-[18px] shrink-0 mt-0.5">{MEDIA_ICON[m.media_type] ?? '📄'}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    {m.locked && <span className="text-[10px] text-violet shrink-0">💎</span>}
-                    <span className="text-[13px] font-semibold text-white leading-snug">{m.title}</span>
+          <>
+            <div className="px-4 pt-3 pb-1 font-mono text-[10px] text-gray2">
+              // {results.length} совпадений в ./база/
+            </div>
+            <div className="flex flex-col divide-y divide-bd">
+              {results.map(m => (
+                <button
+                  key={m.id}
+                  disabled={!!m.locked}
+                  onClick={() => onMaterial(m.id, m.section_id)}
+                  className="flex items-start gap-3 px-4 py-3.5 text-left active:bg-s1 disabled:opacity-60 transition-colors"
+                >
+                  <span className="text-[18px] shrink-0 mt-0.5">{MEDIA_ICON[m.media_type] ?? '📄'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {m.locked && <span className="text-[10px] text-violet shrink-0">💎</span>}
+                      <span className="text-[13px] font-semibold text-white leading-snug">{m.title}</span>
+                    </div>
+                    <div className="text-[11px] text-gray2 mt-0.5">
+                      {m.section_emoji} {m.section_title}
+                    </div>
+                    {m.content && !m.locked && (
+                      <div className="text-[11px] text-gray mt-1 line-clamp-2 leading-relaxed">{m.content}</div>
+                    )}
                   </div>
-                  <div className="text-[11px] text-gray2 mt-0.5">
-                    {m.section_emoji} {m.section_title}
-                  </div>
-                  {m.content && !m.locked && (
-                    <div className="text-[11px] text-gray mt-1 line-clamp-2 leading-relaxed">{m.content}</div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
+                </button>
+              ))}
+            </div>
+          </>
         )}
-
       </div>
     </div>
   )

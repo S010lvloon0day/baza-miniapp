@@ -47,6 +47,9 @@ export default function CatsPage({ onSection }: Props) {
                 ? 'linear-gradient(90deg, transparent, rgba(157,92,255,.4), transparent)'
                 : 'linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent)'
             }} />
+            <span className="absolute top-1.5 left-1.5 font-mono text-[8px] text-gray2/60 leading-none tabular-nums">
+              {String(i + 1).padStart(2, '0')}
+            </span>
             <div className="relative w-10 h-10 flex items-center justify-center text-xl">
               <span className={s.locked ? 'opacity-50' : ''}>{s.emoji || '📁'}</span>
               {s.locked && (

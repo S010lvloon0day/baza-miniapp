@@ -230,6 +230,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
             style={{ background: 'rgba(255,255,255,.02)' }}
             >
               <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent)' }} />
+              <span className="absolute top-1.5 left-1.5 font-mono text-[8px] text-gray2/60 leading-none tabular-nums">
+                {String(i + 1).padStart(2, '0')}
+              </span>
               <div className="w-10 h-10 flex items-center justify-center text-xl">
                 {s.emoji || '📁'}
               </div>
