@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { Material } from '../api/client'
+import { ClockCounterClockwise } from '@phosphor-icons/react'
 
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
 const typeIcon  = (t: string) => ({ photo: '🖼', video: '🎬', document: '📄', text: '📝' }[t] ?? '📄')
@@ -25,29 +26,41 @@ export default function RecentPage({ onMaterial }: Props) {
   )
 
   if (!items.length) return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-gray">
-      <span className="text-4xl opacity-30">🆕</span>
-      <span className="text-[12px] tracking-[2px] uppercase">Нет материалов</span>
+    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-gray px-8 text-center">
+      <div className="w-16 h-16 rounded-full bg-s2 border border-bd2 flex items-center justify-center">
+        <ClockCounterClockwise size={28} className="opacity-30" />
+      </div>
+      <div>
+        <div className="text-[13px] font-semibold text-white/50 mb-1">История пуста</div>
+        <div className="text-[11px] text-gray leading-relaxed">
+          Здесь будут материалы, которые ты открывал
+        </div>
+      </div>
     </div>
   )
 
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       <div className="px-4 pt-3 pb-1">
-        <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">Последнее просмотренное</span>
+        <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">{items.length} материалов</span>
       </div>
       <div className="mx-4 flex flex-col divide-y divide-bd">
         {items.map(m => (
           <div key={m.id} onClick={() => onMaterial(m.id, m.section_id)}
-            className="flex items-center gap-2.5 py-3.5 cursor-pointer active:opacity-70">
-            <div className="dot-glow" />
-            <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-semibold text-white line-clamp-2 mb-1">{m.title}</div>
-              <div className="text-[11px] text-gray">{typeLabel(m.media_type)}</div>
-            </div>
-            <div className="w-12 h-12 bg-s2 rounded border border-bd2 flex items-center justify-center text-xl shrink-0">
+            className="flex items-center gap-3 py-3.5 cursor-pointer active:bg-s1 -mx-4 px-4 transition-colors">
+            <div className="w-11 h-11 bg-s2 rounded border border-bd2 flex items-center justify-center text-xl shrink-0">
               {typeIcon(m.media_type)}
             </div>
+            <div className="flex-1 min-w-0">
+              {(m.section_title || m.section_emoji) && (
+                <div className="text-[10px] text-gray2 leading-none mb-0.5 truncate">
+                  {m.section_emoji} {m.section_title}
+                </div>
+              )}
+              <div className="text-[13px] font-semibold text-white line-clamp-2 leading-snug">{m.title}</div>
+              <div className="text-[10px] text-gray uppercase tracking-[1px] mt-0.5">{typeLabel(m.media_type)}</div>
+            </div>
+            <div className="dot-glow shrink-0" />
           </div>
         ))}
       </div>

@@ -22,10 +22,15 @@ export default function BottomNav({ active, onChange }: Props) {
           <button
             key={id}
             onClick={() => onChange(id)}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] font-semibold
-              tracking-wide border-t-2 transition-colors duration-150
-              ${on ? 'text-green border-green drop-shadow-[0_0_10px_rgba(157,92,255,.55)]' : 'text-gray2 border-transparent'}`}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 text-[9px] font-semibold tracking-wide transition-colors duration-150 relative
+              ${on ? 'text-green' : 'text-gray2'}`}
           >
+            {on && (
+              <span
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-green"
+                style={{ boxShadow: '0 0 8px rgba(157,92,255,.9), 0 0 18px rgba(157,92,255,.45)' }}
+              />
+            )}
             <Icon size={20} weight={on ? 'fill' : 'regular'} />
             {label}
           </button>

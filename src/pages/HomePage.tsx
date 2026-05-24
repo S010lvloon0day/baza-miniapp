@@ -195,12 +195,12 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => onSection(s)}
-              className="premium-surface border border-bd rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 active:border-green"
+              className="premium-surface border border-bd rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 active:border-green overflow-hidden"
             >
               <div className="w-10 h-10 bg-s2 rounded-full border border-bd2 flex items-center justify-center text-lg">
                 {s.emoji || '📁'}
               </div>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.5px] text-gray text-center leading-tight">
+              <span className="text-[9px] font-semibold uppercase tracking-[0.5px] text-gray text-center leading-tight w-full line-clamp-2">
                 {s.title}
               </span>
             </motion.div>

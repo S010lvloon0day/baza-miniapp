@@ -136,8 +136,11 @@ export default function SearchPage({ onMaterial }: Props) {
 
         {/* Empty state */}
         {!showHistory && !loading && !searched && (
-          <div className="text-center text-gray text-[13px] pt-10 px-6">
-            Введите минимум 2 символа для поиска
+          <div className="flex flex-col items-center justify-center pt-14 px-8 text-center gap-3">
+            <MagnifyingGlass size={36} className="text-gray2 opacity-30" />
+            <div className="text-[13px] text-white/40 leading-relaxed">
+              Введите минимум 2 символа<br />для поиска по базе
+            </div>
           </div>
         )}
 
@@ -150,8 +153,12 @@ export default function SearchPage({ onMaterial }: Props) {
 
         {/* No results */}
         {!loading && searched && results.length === 0 && (
-          <div className="text-center text-gray text-[13px] pt-10 px-6">
-            Ничего не найдено по запросу «{query.trim()}»
+          <div className="flex flex-col items-center justify-center pt-14 px-8 text-center gap-3">
+            <span className="text-4xl opacity-20">🔍</span>
+            <div>
+              <div className="text-[13px] font-semibold text-white/40 mb-1">Ничего не найдено</div>
+              <div className="text-[11px] text-gray leading-relaxed">по запросу «{query.trim()}»</div>
+            </div>
           </div>
         )}
 
