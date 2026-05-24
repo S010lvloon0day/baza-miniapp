@@ -27,8 +27,8 @@ export default function BottomNav({ active, onChange }: Props) {
           >
             {on && (
               <span
-                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] rounded-full bg-green"
-                style={{ boxShadow: '0 0 8px rgba(157,92,255,.9), 0 0 18px rgba(157,92,255,.45)' }}
+                className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[2px] bg-white"
+                style={{ boxShadow: '0 0 8px rgba(255,255,255,.8), 0 0 16px rgba(255,255,255,.3)' }}
               />
             )}
             <Icon size={20} weight={on ? 'fill' : 'regular'} />

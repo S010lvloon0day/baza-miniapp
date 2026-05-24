@@ -102,7 +102,9 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
             style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.6), rgba(0,255,65,.3), transparent)' }} />
           <div className="absolute top-0 left-0 right-0 h-px"
             style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.3), transparent)' }} />
-          <div className="w-[72px] h-[72px] bg-[rgba(0,255,65,.06)] border-2 border-green rounded-sm flex items-center justify-center mx-auto mb-4 text-[28px] font-bold text-green shadow-glow">
+          <div className="w-[72px] h-[72px] border border-bd2 flex items-center justify-center mx-auto mb-4 text-[30px] font-bold text-white relative"
+            style={{ background: 'rgba(255,255,255,.04)', boxShadow: '0 0 20px rgba(255,255,255,.08)' }}>
+            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent)' }} />
             {name[0].toUpperCase()}
           </div>
           <div className="text-[18px] font-bold mb-0.5">{name}</div>

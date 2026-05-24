@@ -147,21 +147,26 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           <div className="grid grid-cols-4 gap-2 px-4 pb-2">
             {subs.map(s => (
               <div key={s.id} onClick={() => onSubsection(s)}
-                className={`rounded-xl p-2.5 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors
+                className={`relative p-2.5 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors
                   ${s.locked
-                    ? 'bg-[rgba(157,92,255,.08)] border border-[rgba(157,92,255,.22)] active:bg-[rgba(157,92,255,.13)]'
-                    : 'bg-gradient-to-b from-s2 to-s1 border border-bd active:border-green/50'}`}>
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl relative
-                  ${s.locked ? 'bg-[rgba(157,92,255,.15)]' : 'bg-bg/60'}`}>
-                  {s.emoji || '📁'}
+                    ? 'border border-[rgba(157,92,255,.2)] active:bg-[rgba(157,92,255,.07)]'
+                    : 'border border-bd active:border-white/30 active:bg-white/[.03]'}`}
+                style={{ background: s.locked ? 'rgba(157,92,255,.04)' : 'rgba(255,255,255,.02)' }}>
+                <div className="absolute top-0 left-0 right-0 h-px" style={{
+                  background: s.locked
+                    ? 'linear-gradient(90deg, transparent, rgba(157,92,255,.4), transparent)'
+                    : 'linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent)'
+                }} />
+                <div className="relative w-10 h-10 flex items-center justify-center text-xl">
+                  <span className={s.locked ? 'opacity-50' : ''}>{s.emoji || '📁'}</span>
                   {s.locked && (
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center shadow-sm">
-                      <Lock size={8} weight="fill" className="text-bg" />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#9D5CFF] rounded-full flex items-center justify-center">
+                      <Lock size={8} weight="fill" className="text-white" />
                     </div>
                   )}
                 </div>
-                <span className={`text-[9px] font-semibold uppercase tracking-[.5px] text-center leading-tight w-full line-clamp-2
-                  ${s.locked ? 'text-violet/60' : 'text-gray'}`}>{s.title}</span>
+                <span className={`text-[9px] font-mono uppercase tracking-[.5px] text-center leading-tight w-full line-clamp-2
+                  ${s.locked ? 'text-violet/50' : 'text-gray'}`}>{s.title}</span>
               </div>
             ))}
           </div>
@@ -186,29 +191,25 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
                 onClick={() => onMaterial(m.id, section.id, page)}
-                className={`flex items-center gap-3 py-3 cursor-pointer -mx-4 px-4 transition-colors
-                  ${m.locked ? 'active:bg-[rgba(157,92,255,.05)]' : 'active:bg-s2/60'}`}
+                className={`flex items-center gap-3 py-3 cursor-pointer -mx-4 px-4 transition-colors border-l-2
+                  ${m.locked ? 'active:bg-[rgba(157,92,255,.04)] border-[rgba(157,92,255,.25)]' : 'active:bg-white/[.03]'}`}
+                style={m.locked ? {} : { borderLeftColor: { photo:'#60A5FA', video:'#F87171', document:'#FBBF24', text:'rgba(255,255,255,.3)' }[m.media_type] ?? 'rgba(255,255,255,.2)' }}
               >
-                <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0
-                  ${m.locked
-                    ? 'border-[rgba(157,92,255,.18)] bg-[rgba(157,92,255,.06)] opacity-40'
-                    : 'border-bd2 bg-gradient-to-br from-s2 to-bg'}`}>
-                  <TypeIcon t={m.media_type} />
-                </div>
                 <div className="flex-1 min-w-0">
-                  <div className={`text-[14px] font-semibold leading-snug line-clamp-2 mb-1
-                    ${m.locked ? 'text-white/40' : 'text-white'}`}>
+                  <div className={`text-[13px] font-semibold leading-snug line-clamp-2 mb-1
+                    ${m.locked ? 'text-white/35' : 'text-white'}`}>
                     {m.title}
                   </div>
                   {m.locked ? (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(157,92,255,.12)] border border-[rgba(157,92,255,.25)]">
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 border border-[rgba(157,92,255,.3)]" style={{ background: 'rgba(157,92,255,.08)' }}>
                       <Star size={9} weight="fill" className="text-violet" />
-                      <span className="text-[9px] font-bold tracking-[1px] text-violet uppercase">Premium</span>
+                      <span className="text-[9px] font-mono tracking-[1px] text-violet uppercase">premium</span>
                     </div>
                   ) : (
-                    <span className="text-[10px] text-gray2 uppercase tracking-[1px]">{typeLabel(m.media_type)}</span>
+                    <span className="text-[10px] font-mono text-gray2 tracking-[1px]">{typeLabel(m.media_type)}</span>
                   )}
                 </div>
+                <TypeIcon t={m.media_type} />
               </motion.div>
             ))}
           </div>

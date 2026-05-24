@@ -52,18 +52,22 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto pb-14">
-      {/* Hero */}
-      <div className="mx-4 mt-3 rounded-sm bg-s1 overflow-hidden relative min-h-[130px] flex items-end border border-bd">
-        <div className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at 80% 40%, rgba(0,255,65,.12) 0%, transparent 55%), linear-gradient(135deg, rgba(0,255,65,.04), transparent 40%)' }} />
-        <div className="absolute inset-0"
-          style={{ backgroundImage: 'linear-gradient(rgba(0,255,65,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,65,.05) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
-        <div className="absolute inset-x-5 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,255,65,.7), transparent)' }} />
-        <div className="relative z-10 p-5">
-          <div className="text-[10px] font-mono tracking-[1px] text-green/70 mb-2">root@s010:~$ ./knowledge_base.sh</div>
-          <div className="font-display text-[22px] tracking-widest text-white leading-tight">
+      {/* Hero — terminal window */}
+      <div className="mx-4 mt-3 border border-bd overflow-hidden" style={{ background: '#08080F' }}>
+        {/* Terminal title bar */}
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-bd" style={{ background: 'rgba(255,255,255,.03)' }}>
+          <div className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ background: 'rgba(255,255,255,.06)' }} />
+          <div className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ background: 'rgba(255,255,255,.06)' }} />
+          <div className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ background: 'rgba(255,255,255,.06)' }} />
+          <span className="text-[10px] font-mono text-gray2 ml-2 flex-1 text-center">knowledge_base.sh — bash</span>
+        </div>
+        {/* Terminal content */}
+        <div className="p-4">
+          <div className="text-[11px] font-mono text-gray2 mb-1">$ ./start --mode=secure --user=you</div>
+          <div className="font-display text-[24px] tracking-widest text-white leading-tight mb-3">
             ЗАЩИЩАЙ ЗНАНИЯ.<br />ЗАЩИЩАЙ СИСТЕМЫ.
           </div>
+          <div className="text-[10px] font-mono text-gray2">[OK] База знаний инициализирована <span className="blink text-white">█</span></div>
         </div>
       </div>
 
@@ -195,12 +199,14 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => onSection(s)}
-              className="premium-surface border border-bd rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 active:border-green overflow-hidden"
+              className="relative border border-bd p-3 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors active:border-white/40 active:bg-white/[.03]"
+            style={{ background: 'rgba(255,255,255,.02)' }}
             >
-              <div className="w-10 h-10 bg-s2 rounded-full border border-bd2 flex items-center justify-center text-lg">
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent)' }} />
+              <div className="w-10 h-10 flex items-center justify-center text-xl">
                 {s.emoji || '📁'}
               </div>
-              <span className="text-[9px] font-semibold uppercase tracking-[0.5px] text-gray text-center leading-tight w-full line-clamp-2">
+              <span className="text-[9px] font-mono uppercase tracking-[0.5px] text-gray text-center leading-tight w-full line-clamp-2">
                 {s.title}
               </span>
             </motion.div>

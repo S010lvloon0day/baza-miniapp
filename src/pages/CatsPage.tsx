@@ -36,22 +36,27 @@ export default function CatsPage({ onSection }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
             onClick={() => onSection(s)}
-            className={`rounded-xl p-2.5 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors
+            className={`relative p-2.5 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors
               ${s.locked
-                ? 'bg-[rgba(157,92,255,.08)] border border-[rgba(157,92,255,.22)] active:bg-[rgba(157,92,255,.13)]'
-                : 'bg-gradient-to-b from-s2 to-s1 border border-bd active:border-green/50'}`}
+                ? 'border border-[rgba(157,92,255,.2)] active:bg-[rgba(157,92,255,.07)]'
+                : 'border border-bd active:border-white/30 active:bg-white/[.03]'}`}
+            style={{ background: s.locked ? 'rgba(157,92,255,.04)' : 'rgba(255,255,255,.02)' }}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl relative
-              ${s.locked ? 'bg-[rgba(157,92,255,.15)]' : 'bg-bg/60'}`}>
-              {s.emoji || '📁'}
+            <div className="absolute top-0 left-0 right-0 h-px" style={{
+              background: s.locked
+                ? 'linear-gradient(90deg, transparent, rgba(157,92,255,.4), transparent)'
+                : 'linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent)'
+            }} />
+            <div className="relative w-10 h-10 flex items-center justify-center text-xl">
+              <span className={s.locked ? 'opacity-50' : ''}>{s.emoji || '📁'}</span>
               {s.locked && (
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center shadow-sm">
-                  <Lock size={8} weight="fill" className="text-bg" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#9D5CFF] rounded-full flex items-center justify-center">
+                  <Lock size={8} weight="fill" className="text-white" />
                 </div>
               )}
             </div>
-            <span className={`text-[9px] font-semibold uppercase tracking-[0.5px] text-center leading-tight w-full line-clamp-2
-              ${s.locked ? 'text-violet/60' : 'text-gray'}`}>
+            <span className={`text-[9px] font-mono uppercase tracking-[0.5px] text-center leading-tight w-full line-clamp-2
+              ${s.locked ? 'text-violet/50' : 'text-gray'}`}>
               {s.title}
             </span>
           </motion.div>

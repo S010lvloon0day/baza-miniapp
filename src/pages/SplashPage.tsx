@@ -4,8 +4,9 @@ import Logo from '../components/Logo'
 export default function SplashPage({ onStart }: { onStart: () => void }) {
   return (
     <div className="relative flex flex-col items-center justify-center flex-1 px-8 text-center gap-0 bg-bg overflow-hidden">
-      <div className="absolute inset-x-[-90px] top-[-150px] h-[360px] rounded-full bg-[radial-gradient(circle,rgba(157,92,255,.24),transparent_62%)] blur-2xl" />
-      <div className="absolute inset-x-8 bottom-16 h-px bg-gradient-to-r from-transparent via-violet/50 to-transparent" />
+      <div className="absolute inset-x-8 bottom-16 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent)' }} />
+      <div className="absolute inset-x-[-60px] top-[-100px] h-[280px] rounded-full blur-3xl" style={{ background: 'radial-gradient(circle, rgba(255,255,255,.04), transparent 65%)' }} />
+
       <motion.div
         initial={{ scale: 0.7, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -19,18 +20,18 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.4 }}
-        className="relative text-[30px] font-bold tracking-widest mb-1.5"
+        className="relative text-[32px] font-bold tracking-widest mb-1"
       >
-        <span className="text-green">S010</span>lvloon
+        <span className="text-white">S010</span><span className="text-gold">lvloon</span>
       </motion.h1>
 
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.35 }}
-        className="relative text-[10px] font-mono tracking-[2px] text-green/60 mb-6"
+        className="relative text-[10px] font-mono tracking-[2px] text-gray2 mb-8"
       >
-        // информационная безопасность
+        // ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
       </motion.p>
 
       <motion.p
@@ -48,10 +49,10 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         transition={{ delay: 0.55 }}
         whileTap={{ scale: 0.97 }}
         onClick={onStart}
-        className="relative w-full max-w-[280px] py-4 bg-green text-bg font-bold text-[13px] font-mono tracking-[3px] uppercase rounded-sm flex items-center justify-center gap-3"
-        style={{ boxShadow: '0 0 24px rgba(0,255,65,.4), 0 0 60px rgba(0,255,65,.12)' }}
+        className="relative w-full max-w-[280px] py-4 bg-white text-bg font-bold text-[13px] font-mono tracking-[3px] uppercase rounded-sm flex items-center justify-center gap-2 active:bg-gold"
+        style={{ boxShadow: '0 0 24px rgba(255,255,255,.2), 0 0 60px rgba(255,255,255,.06)' }}
       >
-        ./НАЧАТЬ <span className="blink">_</span>
+        ВОЙТИ В СИСТЕМУ <span className="blink text-[16px] font-light">_</span>
       </motion.button>
     </div>
   )
