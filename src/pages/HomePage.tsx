@@ -74,9 +74,10 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           </div>
 
           {/* Slogan */}
-          <div className="font-display text-[19px] tracking-widest text-white leading-[1.2] mb-3">
+          <div className="font-display text-[19px] tracking-widest text-white leading-[1.2] mb-1">
             ЗНАНИЯ — СИЛА.
           </div>
+          <div className="font-mono text-[10px] text-gray2 mb-3">S010lvloon mode</div>
 
           {/* Output */}
           <div className="space-y-1 font-mono text-[10px]">
