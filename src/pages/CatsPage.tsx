@@ -36,17 +36,22 @@ export default function CatsPage({ onSection }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
             onClick={() => onSection(s)}
-            className={`premium-surface border rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 overflow-hidden ${s.locked ? 'border-[rgba(157,92,255,.3)]' : 'border-bd active:border-green'}`}
+            className={`rounded-xl p-2.5 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors
+              ${s.locked
+                ? 'bg-[rgba(157,92,255,.08)] border border-[rgba(157,92,255,.22)] active:bg-[rgba(157,92,255,.13)]'
+                : 'bg-gradient-to-b from-s2 to-s1 border border-bd active:border-green/50'}`}
           >
-            <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg relative ${s.locked ? 'bg-[rgba(157,92,255,.08)] border-[rgba(157,92,255,.25)]' : 'bg-s2 border-bd2'}`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl relative
+              ${s.locked ? 'bg-[rgba(157,92,255,.15)]' : 'bg-bg/60'}`}>
               {s.emoji || '📁'}
               {s.locked && (
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center">
-                  <Lock size={8} weight="fill" className="text-white" />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center shadow-sm">
+                  <Lock size={8} weight="fill" className="text-bg" />
                 </div>
               )}
             </div>
-            <span className={`text-[9px] font-semibold uppercase tracking-[0.5px] text-center leading-tight w-full line-clamp-2 ${s.locked ? 'text-violet/70' : 'text-gray'}`}>
+            <span className={`text-[9px] font-semibold uppercase tracking-[0.5px] text-center leading-tight w-full line-clamp-2
+              ${s.locked ? 'text-violet/60' : 'text-gray'}`}>
               {s.title}
             </span>
           </motion.div>

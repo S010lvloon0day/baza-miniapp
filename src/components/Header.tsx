@@ -13,10 +13,12 @@ interface Props {
 
 export default function Header({ title, showBack, onBack, showLogo, showBell, bookmarked, onBookmark }: Props) {
   return (
-    <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur border-b border-bd px-4 flex items-center gap-3 h-[56px] shrink-0">
+    <header className="sticky top-0 z-40 bg-bg/96 backdrop-blur-md border-b border-bd/60 px-4 flex items-center gap-3 h-[56px] shrink-0 relative">
+      <div className="absolute bottom-0 inset-x-0 h-px pointer-events-none"
+        style={{ background: 'linear-gradient(90deg, transparent, rgba(157,92,255,.45) 30%, rgba(199,166,255,.25) 50%, rgba(157,92,255,.45) 70%, transparent)' }} />
       {showBack && (
-        <button onClick={onBack} className="text-white p-1 -ml-1 active:opacity-60">
-          <ArrowLeft size={22} weight="bold" />
+        <button onClick={onBack} className="w-8 h-8 -ml-1 flex items-center justify-center rounded-lg bg-s2 border border-bd2 active:bg-bd2 transition-colors shrink-0">
+          <ArrowLeft size={17} weight="bold" />
         </button>
       )}
       {showLogo && <Logo size={28} />}

@@ -48,7 +48,7 @@ export default function FavsPage({ onMaterial }: Props) {
         {items.map(m => (
           <div key={m.id} onClick={() => onMaterial(m.id, m.section_id)}
             className="flex items-center gap-3 py-3.5 cursor-pointer active:bg-s1 -mx-4 px-4 transition-colors">
-            <div className="w-11 h-11 bg-s2 rounded border border-bd2 flex items-center justify-center text-xl shrink-0">
+            <div className="w-11 h-11 bg-gradient-to-br from-s2 to-bg rounded-xl border border-bd2 flex items-center justify-center text-xl shrink-0">
               {typeIcon(m.media_type)}
             </div>
             <div className="flex-1 min-w-0">

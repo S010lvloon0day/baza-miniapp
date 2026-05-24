@@ -334,17 +334,19 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
       </div>
 
       {sectionMats.length > 1 && (
-        <div className="fixed bottom-0 left-0 right-0 h-14 bg-s1 border-t border-bd flex items-center justify-between px-4 z-50">
+        <div className="fixed bottom-0 left-0 right-0 h-14 bg-s1/95 backdrop-blur-md border-t border-bd/60 flex items-center justify-between px-4 z-50"
+          style={{ boxShadow: '0 -8px 24px rgba(0,0,0,.4)' }}>
           <button disabled={!prevId} onClick={() => prevId && navigate(prevId)}
-            className="w-11 h-11 bg-s2 border border-bd2 rounded flex items-center justify-center text-white disabled:opacity-30 active:bg-bd2">
-            <CaretLeft size={22} weight="bold" />
+            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-bd2 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
+            <CaretLeft size={20} weight="bold" />
           </button>
-          <span className="text-[13px] text-gray tracking-widest">
-            {idx + 1} / {sectionMats.length}
+          <span className="text-[13px] tracking-widest">
+            <span className="font-semibold text-white">{idx >= 0 ? idx + 1 : '—'}</span>
+            <span className="text-gray2"> / {sectionMats.length}</span>
           </span>
           <button disabled={!nextId} onClick={() => nextId && navigate(nextId)}
-            className="w-11 h-11 bg-s2 border border-bd2 rounded flex items-center justify-center text-white disabled:opacity-30 active:bg-bd2">
-            <CaretRight size={22} weight="bold" />
+            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-bd2 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
+            <CaretRight size={20} weight="bold" />
           </button>
         </div>
       )}

@@ -125,8 +125,9 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       {/* Section header */}
-      <div className="mx-4 mt-3 mb-1 p-4 premium-surface border border-bd rounded flex gap-3.5 items-start">
-        <div className="w-14 h-14 bg-[rgba(157,92,255,.10)] border border-[rgba(199,166,255,.25)] rounded flex items-center justify-center text-[26px] shrink-0">
+      <div className="mx-4 mt-3 mb-1 p-4 rounded-xl border border-bd/60 flex gap-3.5 items-start"
+        style={{ background: 'linear-gradient(135deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.02) 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08), 0 8px 32px rgba(0,0,0,.28)' }}>
+        <div className="w-14 h-14 bg-[rgba(157,92,255,.12)] border border-[rgba(199,166,255,.2)] rounded-xl flex items-center justify-center text-[26px] shrink-0">
           {section.emoji || '📁'}
         </div>
         <div>
@@ -146,16 +147,21 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           <div className="grid grid-cols-4 gap-2 px-4 pb-2">
             {subs.map(s => (
               <div key={s.id} onClick={() => onSubsection(s)}
-                className={`premium-surface border rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 overflow-hidden ${s.locked ? 'border-[rgba(157,92,255,.3)]' : 'border-bd active:border-green'}`}>
-                <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg relative ${s.locked ? 'bg-[rgba(157,92,255,.08)] border-[rgba(157,92,255,.25)]' : 'bg-s2 border-bd2'}`}>
+                className={`rounded-xl p-2.5 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors
+                  ${s.locked
+                    ? 'bg-[rgba(157,92,255,.08)] border border-[rgba(157,92,255,.22)] active:bg-[rgba(157,92,255,.13)]'
+                    : 'bg-gradient-to-b from-s2 to-s1 border border-bd active:border-green/50'}`}>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl relative
+                  ${s.locked ? 'bg-[rgba(157,92,255,.15)]' : 'bg-bg/60'}`}>
                   {s.emoji || '📁'}
                   {s.locked && (
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center">
-                      <Lock size={8} weight="fill" className="text-white" />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-violet rounded-full flex items-center justify-center shadow-sm">
+                      <Lock size={8} weight="fill" className="text-bg" />
                     </div>
                   )}
                 </div>
-                <span className={`text-[9px] font-semibold uppercase tracking-[.5px] text-center leading-tight w-full line-clamp-2 ${s.locked ? 'text-violet/70' : 'text-gray'}`}>{s.title}</span>
+                <span className={`text-[9px] font-semibold uppercase tracking-[.5px] text-center leading-tight w-full line-clamp-2
+                  ${s.locked ? 'text-violet/60' : 'text-gray'}`}>{s.title}</span>
               </div>
             ))}
           </div>
@@ -180,33 +186,29 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.04 }}
                 onClick={() => onMaterial(m.id, section.id, page)}
-                className={`flex items-center gap-2.5 py-3.5 cursor-pointer -mx-4 px-4 ${m.locked ? 'active:bg-[rgba(157,92,255,.06)]' : 'active:bg-s2'}`}
+                className={`flex items-center gap-3 py-3 cursor-pointer -mx-4 px-4 transition-colors
+                  ${m.locked ? 'active:bg-[rgba(157,92,255,.05)]' : 'active:bg-s2/60'}`}
               >
-                {m.locked ? (
-                  <>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-semibold text-white/50 leading-snug line-clamp-2 mb-1.5">{m.title}</div>
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-[rgba(157,92,255,.15)] border border-[rgba(157,92,255,.3)]">
-                        <Star size={10} weight="fill" className="text-violet" />
-                        <span className="text-[10px] font-bold tracking-[1.5px] text-violet uppercase">Только Premium</span>
-                      </div>
+                <div className={`w-12 h-12 rounded-xl border flex items-center justify-center shrink-0
+                  ${m.locked
+                    ? 'border-[rgba(157,92,255,.18)] bg-[rgba(157,92,255,.06)] opacity-40'
+                    : 'border-bd2 bg-gradient-to-br from-s2 to-bg'}`}>
+                  <TypeIcon t={m.media_type} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className={`text-[14px] font-semibold leading-snug line-clamp-2 mb-1
+                    ${m.locked ? 'text-white/40' : 'text-white'}`}>
+                    {m.title}
+                  </div>
+                  {m.locked ? (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[rgba(157,92,255,.12)] border border-[rgba(157,92,255,.25)]">
+                      <Star size={9} weight="fill" className="text-violet" />
+                      <span className="text-[9px] font-bold tracking-[1px] text-violet uppercase">Premium</span>
                     </div>
-                    <div className="w-14 h-14 rounded border border-[rgba(157,92,255,.2)] bg-[rgba(157,92,255,.06)] flex items-center justify-center shrink-0 opacity-40">
-                      <TypeIcon t={m.media_type} />
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="dot-glow ml-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[14px] font-semibold text-white leading-snug line-clamp-2 mb-1">{m.title}</div>
-                      <div className="text-[11px] text-gray">{typeLabel(m.media_type)}</div>
-                    </div>
-                    <div className="w-14 h-14 bg-s2 rounded border border-bd2 flex items-center justify-center shrink-0">
-                      <TypeIcon t={m.media_type} />
-                    </div>
-                  </>
-                )}
+                  ) : (
+                    <span className="text-[10px] text-gray2 uppercase tracking-[1px]">{typeLabel(m.media_type)}</span>
+                  )}
+                </div>
               </motion.div>
             ))}
           </div>
