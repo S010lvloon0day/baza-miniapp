@@ -4,9 +4,9 @@ import { Lock } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import type { Section } from '../api/client'
 
-interface Props { onSection: (s: Section) => void }
+interface Props { onSection: (s: Section) => void; onGiveaway?: () => void }
 
-export default function CatsPage({ onSection }: Props) {
+export default function CatsPage({ onSection, onGiveaway }: Props) {
   const [cats, setCats] = useState<Section[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -28,6 +28,26 @@ export default function CatsPage({ onSection }: Props) {
       <div className="px-4 pt-4 pb-2 text-[11px] font-mono tracking-[1px] text-gray2">
         // {cats.length} разделов доступно
       </div>
+
+      {/* Secret giveaway card */}
+      {onGiveaway && (
+        <div
+          onClick={onGiveaway}
+          className="relative mx-4 mb-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
+          style={{ background: 'rgba(157,92,255,.06)', border: '1px solid rgba(157,92,255,.3)' }}
+        >
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(157,92,255,.6), transparent)' }} />
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="text-2xl shrink-0">🔐</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-white">Секретный розыгрыш</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.6)' }}>// особое задание · участвуй и выиграй</div>
+            </div>
+            <span className="font-bold text-[18px] shrink-0" style={{ color: '#C7A6FF' }}>›</span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-4 gap-2 px-4 pb-4">
         {cats.map((s, i) => (
           <motion.div

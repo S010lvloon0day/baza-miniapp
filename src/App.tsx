@@ -9,6 +9,7 @@ import MaterialPage from './pages/MaterialPage'
 import FavsPage from './pages/FavsPage'
 import RecentPage from './pages/RecentPage'
 import ProfilePage from './pages/ProfilePage'
+import GiveawayPage from './pages/GiveawayPage'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
@@ -24,6 +25,7 @@ type View =
   | { type: 'tab'; tab: Tab }
   | { type: 'section'; section: Section; page: number }
   | { type: 'material'; id: number; sectionId: number }
+  | { type: 'giveaway' }
 
 export default function App() {
   const [started, setStarted] = useState(() => !!localStorage.getItem('started'))
@@ -64,6 +66,7 @@ export default function App() {
 
   const goBack = useCallback(() => setStack(s => s.slice(0, -1)), [])
 
+  const openGiveaway = () => setStack(s => [...s, { type: 'giveaway' }])
   const openSection = (section: Section) => setStack(s => [...s, { type: 'section', section, page: 0 }])
   const openMaterial = (id: number, sectionId: number, page: number = 0) =>
     setStack(s => {
@@ -88,7 +91,7 @@ export default function App() {
   const renderContent = () => {
     if (!top) {
       if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} />
-      if (tab === 'cats')   return <CatsPage onSection={openSection} />
+      if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={openGiveaway} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
       if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
@@ -96,6 +99,9 @@ export default function App() {
     }
     if (top?.type === 'section') {
       return <SectionPage section={top.section} initialPage={top.page} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
+    }
+    if (top?.type === 'giveaway') {
+      return <GiveawayPage />
     }
     if (top?.type === 'material') {
       return (
@@ -127,6 +133,9 @@ export default function App() {
       )
       const titles: Record<Tab, string> = { home: '', cats: 'Категории', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
       return <Header showLogo={tab === 'cats'} title={titles[tab]} />
+    }
+    if (top.type === 'giveaway') {
+      return <Header showBack onBack={goBack} title="Секретный розыгрыш" />
     }
     if (top.type === 'section') {
       return <Header showBack onBack={goBack} title={top.section.title} />
