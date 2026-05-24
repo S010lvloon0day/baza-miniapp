@@ -90,7 +90,7 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onGiveaway={openGiveaway} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={openGiveaway} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />

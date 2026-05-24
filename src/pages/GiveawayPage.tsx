@@ -1,13 +1,13 @@
 import { useState, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { api } from '../api/client'
 
 // ================================================================
 //  НАСТРОЙКИ РОЗЫГРЫША — МЕНЯЙ ТОЛЬКО ЗДЕСЬ
+//  Пароли задаются в .env на сервере (GIVEAWAY_CODE_1 / GIVEAWAY_CODE_2)
 // ================================================================
 const VIDEO_URL    = 'https://youtu.be/ПОМЕНЯЙ_ССЫЛКУ'           // Ссылка на видео с заданием
 const RIDDLE_TEXT  = 'ПОМЕНЯЙ: текст загадки для второго уровня' // Загадка уровня 2
-const PASSWORD_1   = 'поменяй это'                               // Пароль уровня 1 (2 слова)
-const PASSWORD_2   = 'поменяй это тоже'                          // Пароль уровня 2 (3 слова)
 const SECRET_OFFER = 'ПОМЕНЯЙ: текст секретного предложения'     // Приз победителю
 const ADMIN_TG     = 'S010lvloon'                                // Telegram username
 // ================================================================
@@ -15,9 +15,8 @@ const ADMIN_TG     = 'S010lvloon'                                // Telegram use
 const LS_KEY = 'gw_lvl'
 const tgApp  = (window as any).Telegram?.WebApp
 
-function getLevel()     { return parseInt(localStorage.getItem(LS_KEY) || '0', 10) }
+function getLevel()           { return parseInt(localStorage.getItem(LS_KEY) || '0', 10) }
 function saveLevel(n: number) { localStorage.setItem(LS_KEY, String(n)) }
-function norm(s: string)      { return s.trim().toLowerCase().replace(/\s+/g, ' ') }
 
 // ---------- shared UI ----------
 
@@ -88,22 +87,22 @@ function CodeInput({ value, onChange, onEnter, error, shake, placeholder }: {
   )
 }
 
-function SubmitBtn({ onClick, disabled }: { onClick: () => void; disabled?: boolean }) {
+function SubmitBtn({ onClick, disabled, checking }: { onClick: () => void; disabled?: boolean; checking?: boolean }) {
   return (
     <button
-      onClick={onClick} disabled={disabled}
+      onClick={onClick} disabled={disabled || checking}
       className="w-full py-3.5 bg-white text-bg font-mono font-bold text-[12px] tracking-[2px] uppercase disabled:opacity-30 active:bg-white/80 transition-opacity"
     >
-      ПОДТВЕРДИТЬ →
+      {checking ? <span className="blink">ПРОВЕРКА...</span> : 'ПОДТВЕРДИТЬ →'}
     </button>
   )
 }
 
 // ---------- levels ----------
 
-function Level0({ input, setInput, error, shake, onVideo, onSubmit }: {
+function Level0({ input, setInput, error, shake, checking, onVideo, onSubmit }: {
   input: string; setInput: (v: string) => void
-  error: boolean; shake: boolean; onVideo: () => void; onSubmit: () => void
+  error: boolean; shake: boolean; checking: boolean; onVideo: () => void; onSubmit: () => void
 }) {
   return (
     <motion.div
@@ -143,14 +142,14 @@ function Level0({ input, setInput, error, shake, onVideo, onSubmit }: {
         value={input} onChange={setInput} onEnter={onSubmit}
         error={error} shake={shake} placeholder="два слова через пробел"
       />
-      <SubmitBtn onClick={onSubmit} disabled={!input.trim()} />
+      <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
   )
 }
 
-function Level1({ input, setInput, error, shake, onSubmit }: {
+function Level1({ input, setInput, error, shake, checking, onSubmit }: {
   input: string; setInput: (v: string) => void
-  error: boolean; shake: boolean; onSubmit: () => void
+  error: boolean; shake: boolean; checking: boolean; onSubmit: () => void
 }) {
   return (
     <motion.div
@@ -183,7 +182,7 @@ function Level1({ input, setInput, error, shake, onSubmit }: {
         value={input} onChange={setInput} onEnter={onSubmit}
         error={error} shake={shake} placeholder="три слова через пробел"
       />
-      <SubmitBtn onClick={onSubmit} disabled={!input.trim()} />
+      <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
   )
 }
@@ -257,6 +256,7 @@ export default function GiveawayPage() {
   const [input, setInput]      = useState('')
   const [error, setError]      = useState(false)
   const [shake, setShake]      = useState(false)
+  const [checking, setChecking] = useState(false)
 
   const advance = () => {
     const next = level + 1
@@ -266,14 +266,24 @@ export default function GiveawayPage() {
     setError(false)
   }
 
-  const tryCode = (expected: string) => {
-    if (norm(input) === norm(expected)) {
-      advance()
-    } else {
-      setError(true)
-      setShake(true)
-      setTimeout(() => setShake(false), 450)
-      setTimeout(() => setError(false), 2500)
+  const showError = () => {
+    setError(true)
+    setShake(true)
+    setTimeout(() => setShake(false), 450)
+    setTimeout(() => setError(false), 2500)
+  }
+
+  const tryCode = async (lvl: number) => {
+    if (checking || !input.trim()) return
+    setChecking(true)
+    try {
+      const res = await api.giveawayCheck(lvl, input)
+      if (res.ok) advance()
+      else showError()
+    } catch {
+      showError()
+    } finally {
+      setChecking(false)
     }
   }
 
@@ -294,15 +304,15 @@ export default function GiveawayPage() {
         {level === 0 && (
           <Level0
             key="l0"
-            input={input} setInput={setInput} error={error} shake={shake}
-            onVideo={openVideo} onSubmit={() => tryCode(PASSWORD_1)}
+            input={input} setInput={setInput} error={error} shake={shake} checking={checking}
+            onVideo={openVideo} onSubmit={() => tryCode(1)}
           />
         )}
         {level === 1 && (
           <Level1
             key="l1"
-            input={input} setInput={setInput} error={error} shake={shake}
-            onSubmit={() => tryCode(PASSWORD_2)}
+            input={input} setInput={setInput} error={error} shake={shake} checking={checking}
+            onSubmit={() => tryCode(2)}
           />
         )}
         {level >= 2 && (

@@ -118,4 +118,5 @@ export const api = {
   notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
   notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
   search:         (q: string)    => get<{ materials: Material[] }>(`/api/search?q=${encodeURIComponent(q)}`),
+  giveawayCheck:  (level: number, code: string) => post<{ ok: boolean; error?: string }>('/api/giveaway/check', { level, code }),
 }
