@@ -63,9 +63,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
         </div>
 
         {/* Body */}
-        <div className="p-4 pb-5">
+        <div className="px-4 py-3">
           {/* Prompt */}
-          <div className="flex items-center gap-1 font-mono text-[12px] mb-4 flex-wrap">
+          <div className="flex items-center gap-1 font-mono text-[11px] mb-2 flex-wrap">
             <span style={{ color: '#28C840' }}>root@s010</span>
             <span className="text-gray2">:</span>
             <span style={{ color: '#60A5FA' }}>~/knowledge</span>
@@ -74,21 +74,21 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
           </div>
 
           {/* Slogan */}
-          <div className="font-display text-[30px] tracking-widest text-white leading-[1.12] mb-5">
+          <div className="font-display text-[24px] tracking-widest text-white leading-[1.15] mb-3">
             ЗАЩИЩАЙ ЗНАНИЯ.<br />ЗАЩИЩАЙ СИСТЕМЫ.
           </div>
 
           {/* Output */}
-          <div className="space-y-1.5 font-mono text-[11px]">
-            <div className="flex gap-2.5">
+          <div className="space-y-1 font-mono text-[10px]">
+            <div className="flex gap-2">
               <span style={{ color: '#60A5FA' }}>[INIT]</span>
               <span className="text-gray2">Подключение к базе знаний...</span>
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex gap-2">
               <span style={{ color: '#FBBF24' }}>[AUTH]</span>
               <span className="text-gray2">Авторизация пользователя</span>
             </div>
-            <div className="flex gap-2.5">
+            <div className="flex gap-2">
               <span style={{ color: '#28C840' }}>[&nbsp;OK&nbsp;]</span>
               <span className="text-white/50">Система готова</span>
               <span className="blink text-white ml-0.5">█</span>
