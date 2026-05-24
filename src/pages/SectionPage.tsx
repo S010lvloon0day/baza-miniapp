@@ -125,18 +125,24 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       {/* Section header */}
-      <div className="mx-4 mt-3 mb-1 p-4 rounded-xl border border-bd/60 flex gap-3.5 items-start"
-        style={{ background: 'linear-gradient(135deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.02) 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08), 0 8px 32px rgba(0,0,0,.28)' }}>
-        <div className="w-14 h-14 bg-[rgba(157,92,255,.12)] border border-[rgba(199,166,255,.2)] rounded-xl flex items-center justify-center text-[26px] shrink-0">
-          {section.emoji || '📁'}
-        </div>
-        <div>
-          <div className="font-display text-[22px] tracking-[2px] uppercase leading-tight mb-1.5">
-            {section.title}
+      <div className="mx-4 mt-3 mb-2 overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)' }}>
+        <div className="flex items-stretch">
+          {/* Emoji block */}
+          <div className="w-16 shrink-0 flex items-center justify-center text-[28px]" style={{ background: 'rgba(255,255,255,.04)', borderRight: '1px solid rgba(255,255,255,.07)' }}>
+            {section.emoji || '📁'}
           </div>
-          {section.description && (
-            <div className="text-[12px] text-gray leading-relaxed">{section.description}</div>
-          )}
+          {/* Info */}
+          <div className="flex-1 p-3 min-w-0" style={{ background: 'rgba(255,255,255,.02)' }}>
+            <div className="text-[9px] font-mono text-gray2 mb-1 truncate">
+              $ ls -la ~/{section.title.toLowerCase().replace(/\s+/g, '_')}/
+            </div>
+            <div className="font-display text-[20px] tracking-[2px] uppercase leading-tight truncate">
+              {section.title}
+            </div>
+            {section.description && (
+              <div className="text-[11px] text-gray leading-snug mt-1 line-clamp-2">{section.description}</div>
+            )}
+          </div>
         </div>
       </div>
 

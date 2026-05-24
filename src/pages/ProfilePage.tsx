@@ -133,20 +133,24 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
             )}
 
             {/* Period selector */}
-            <div className="flex gap-2">
+            <div className="flex gap-1.5">
               {cfg.plans.map(p => {
                 const active = selected?.days === p.days
                 return (
                   <button
                     key={p.days}
                     onClick={() => { setSelected(p); setMsg(null) }}
-                    className={`flex-1 flex flex-col items-center py-3 px-1 rounded border transition-colors
-                      ${active
-                        ? 'border-green bg-[rgba(157,92,255,.12)] text-white'
-                        : 'border-bd bg-s1 text-gray active:bg-s2'}`}
+                    className="flex-1 flex flex-col py-3 px-2.5 text-left transition-colors"
+                    style={{
+                      border: active ? '1px solid rgba(255,255,255,.25)' : '1px solid rgba(255,255,255,.07)',
+                      background: active ? 'rgba(255,255,255,.06)' : 'rgba(255,255,255,.02)',
+                    }}
                   >
-                    <span className="text-[13px] font-bold leading-tight">{p.label}</span>
-                    <span className={`text-[10px] mt-0.5 ${active ? 'text-green' : 'text-gray2'}`}>
+                    <span className="font-mono text-[9px] text-gray2 mb-1">
+                      {active ? '▶' : '·'} --days={p.days}
+                    </span>
+                    <span className="text-[15px] font-bold text-white leading-tight">{p.label}</span>
+                    <span className={`font-mono text-[11px] mt-0.5 ${active ? 'text-white/60' : 'text-gray2'}`}>
                       {p.price} {cfg.currency}
                     </span>
                   </button>

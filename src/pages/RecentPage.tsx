@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { Material } from '../api/client'
-import { ClockCounterClockwise } from '@phosphor-icons/react'
+
 
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
 const typeIcon  = (t: string) => ({ photo: '🖼', video: '🎬', document: '📄', text: '📝' }[t] ?? '📄')
@@ -26,15 +26,13 @@ export default function RecentPage({ onMaterial }: Props) {
   )
 
   if (!items.length) return (
-    <div className="flex-1 flex flex-col items-center justify-center gap-4 text-gray px-8 text-center">
-      <div className="w-16 h-16 rounded-full bg-s2 border border-bd2 flex items-center justify-center">
-        <ClockCounterClockwise size={28} className="opacity-30" />
+    <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">
+      <div className="font-mono text-[12px] text-center space-y-1">
+        <div><span className="text-white/20">$</span><span className="text-gray2"> cat ~/.history</span></div>
+        <div className="text-gray2">// no entries found</div>
       </div>
-      <div>
-        <div className="text-[13px] font-semibold text-white/50 mb-1">История пуста</div>
-        <div className="text-[11px] text-gray leading-relaxed">
-          Здесь будут материалы, которые ты открывал
-        </div>
+      <div className="text-[11px] text-gray text-center leading-relaxed max-w-[220px] mt-1">
+        Здесь появятся материалы, которые ты открывал
       </div>
     </div>
   )

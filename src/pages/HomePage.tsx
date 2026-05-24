@@ -53,21 +53,47 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       {/* Hero — terminal window */}
-      <div className="mx-4 mt-3 border border-bd overflow-hidden" style={{ background: '#08080F' }}>
-        {/* Terminal title bar */}
-        <div className="flex items-center gap-2 px-3 py-2 border-b border-bd" style={{ background: 'rgba(255,255,255,.03)' }}>
-          <div className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ background: 'rgba(255,255,255,.06)' }} />
-          <div className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ background: 'rgba(255,255,255,.06)' }} />
-          <div className="w-2.5 h-2.5 rounded-full border border-white/10" style={{ background: 'rgba(255,255,255,.06)' }} />
-          <span className="text-[10px] font-mono text-gray2 ml-2 flex-1 text-center">knowledge_base.sh — bash</span>
+      <div className="mx-4 mt-3 overflow-hidden terminal-glow" style={{ background: '#04040C', border: '1px solid rgba(255,255,255,.09)' }}>
+        {/* Title bar */}
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.06)' }}>
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: '0 0 6px rgba(255,95,87,.7)' }} />
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: '#FEBC2E', boxShadow: '0 0 6px rgba(254,188,46,.7)' }} />
+          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: '#28C840', boxShadow: '0 0 6px rgba(40,200,64,.7)' }} />
+          <span className="font-mono text-[10px] text-gray2 flex-1 text-center">knowledge_base.sh — bash — 80×24</span>
         </div>
-        {/* Terminal content */}
-        <div className="p-4">
-          <div className="text-[11px] font-mono text-gray2 mb-1">$ ./start --mode=secure --user=you</div>
-          <div className="font-display text-[24px] tracking-widest text-white leading-tight mb-3">
+
+        {/* Body */}
+        <div className="p-4 pb-5">
+          {/* Prompt */}
+          <div className="flex items-center gap-1 font-mono text-[12px] mb-4 flex-wrap">
+            <span style={{ color: '#28C840' }}>root@s010</span>
+            <span className="text-gray2">:</span>
+            <span style={{ color: '#60A5FA' }}>~/knowledge</span>
+            <span className="text-white/30 mx-0.5">$</span>
+            <span className="text-white">./start --secure</span>
+          </div>
+
+          {/* Slogan */}
+          <div className="font-display text-[30px] tracking-widest text-white leading-[1.12] mb-5">
             ЗАЩИЩАЙ ЗНАНИЯ.<br />ЗАЩИЩАЙ СИСТЕМЫ.
           </div>
-          <div className="text-[10px] font-mono text-gray2">[OK] База знаний инициализирована <span className="blink text-white">█</span></div>
+
+          {/* Output */}
+          <div className="space-y-1.5 font-mono text-[11px]">
+            <div className="flex gap-2.5">
+              <span style={{ color: '#60A5FA' }}>[INIT]</span>
+              <span className="text-gray2">Подключение к базе знаний...</span>
+            </div>
+            <div className="flex gap-2.5">
+              <span style={{ color: '#FBBF24' }}>[AUTH]</span>
+              <span className="text-gray2">Авторизация пользователя</span>
+            </div>
+            <div className="flex gap-2.5">
+              <span style={{ color: '#28C840' }}>[&nbsp;OK&nbsp;]</span>
+              <span className="text-white/50">Система готова</span>
+              <span className="blink text-white ml-0.5">█</span>
+            </div>
+          </div>
         </div>
       </div>
 
