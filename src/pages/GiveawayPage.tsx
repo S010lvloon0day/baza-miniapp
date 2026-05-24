@@ -257,6 +257,7 @@ export default function GiveawayPage() {
   const [error, setError]      = useState(false)
   const [shake, setShake]      = useState(false)
   const [checking, setChecking] = useState(false)
+  const [blocked, setBlocked]  = useState(false)
 
   const advance = () => {
     const next = level + 1
@@ -279,6 +280,7 @@ export default function GiveawayPage() {
     try {
       const res = await api.giveawayCheck(lvl, input)
       if (res.ok) advance()
+      else if (res.error === 'too_many_attempts') setBlocked(true)
       else showError()
     } catch {
       showError()
@@ -297,6 +299,16 @@ export default function GiveawayPage() {
     if (tgApp?.openTelegramLink) tgApp.openTelegramLink(url)
     else window.open(url, '_blank')
   }
+
+  if (blocked) return (
+    <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
+      <div className="text-4xl">🚫</div>
+      <div className="font-display text-[20px] tracking-[2px] uppercase text-white">ДОСТУП ЗАКРЫТ</div>
+      <div className="font-mono text-[11px] text-gray2 leading-relaxed">
+        // превышен лимит попыток<br />// попробуй снова через 1 час
+      </div>
+    </div>
+  )
 
   return (
     <div className="flex-1 overflow-y-auto pb-14">
