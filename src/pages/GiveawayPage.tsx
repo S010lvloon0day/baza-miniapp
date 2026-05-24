@@ -119,7 +119,7 @@ function Level0({ input, setInput, error, shake, checking, onVideo, onSubmit }: 
         <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-0.5">
           <div><span style={{ color: '#60A5FA' }}>[INFO]</span><span className="text-gray2 ml-2">Секретный раздел активирован</span></div>
           <div><span style={{ color: '#FBBF24' }}>[TASK]</span><span className="text-gray2 ml-2">Посмотри видео — там задание</span></div>
-          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи кодовую фразу из 2 слов</span></div>
+          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи кодовое слово</span></div>
           <div className="text-white/20">...<span className="blink">█</span></div>
         </div>
       </TermCard>
@@ -140,7 +140,7 @@ function Level0({ input, setInput, error, shake, checking, onVideo, onSubmit }: 
 
       <CodeInput
         value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder="два слова через пробел"
+        error={error} shake={shake} placeholder="одно слово"
       />
       <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
@@ -173,14 +173,14 @@ function Level1({ input, setInput, error, shake, checking, onSubmit }: {
         <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-0.5">
           <div><span style={{ color: '#60A5FA' }}>[INFO]</span><span className="text-gray2 ml-2">Финальный уровень</span></div>
           <div><span style={{ color: '#FBBF24' }}>[RIDDLE]</span><span className="text-gray2 ml-2">{RIDDLE_TEXT}</span></div>
-          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи ответ из 3 слов</span></div>
+          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи ответ из 2 слов</span></div>
           <div className="text-white/20">...<span className="blink">█</span></div>
         </div>
       </TermCard>
 
       <CodeInput
         value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder="три слова через пробел"
+        error={error} shake={shake} placeholder="два слова через пробел"
       />
       <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
