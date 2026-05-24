@@ -145,7 +145,7 @@ export default function SectionPage({ section, onMaterial, onSubsection, onUpgra
           <div className="grid grid-cols-4 gap-2 px-4 pb-2">
             {subs.map(s => (
               <div key={s.id} onClick={() => onSubsection(s)}
-                className={`premium-surface border rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 ${s.locked ? 'border-[rgba(157,92,255,.3)]' : 'border-bd active:border-green'}`}>
+                className={`premium-surface border rounded p-3 flex flex-col items-center gap-1.5 cursor-pointer active:bg-s2 overflow-hidden ${s.locked ? 'border-[rgba(157,92,255,.3)]' : 'border-bd active:border-green'}`}>
                 <div className={`w-10 h-10 rounded-full border flex items-center justify-center text-lg relative ${s.locked ? 'bg-[rgba(157,92,255,.08)] border-[rgba(157,92,255,.25)]' : 'bg-s2 border-bd2'}`}>
                   {s.emoji || '📁'}
                   {s.locked && (
@@ -154,7 +154,7 @@ export default function SectionPage({ section, onMaterial, onSubsection, onUpgra
                     </div>
                   )}
                 </div>
-                <span className={`text-[9px] font-semibold uppercase tracking-[.5px] text-center leading-tight ${s.locked ? 'text-violet/70' : 'text-gray'}`}>{s.title}</span>
+                <span className={`text-[9px] font-semibold uppercase tracking-[.5px] text-center leading-tight w-full line-clamp-2 ${s.locked ? 'text-violet/70' : 'text-gray'}`}>{s.title}</span>
               </div>
             ))}
           </div>
