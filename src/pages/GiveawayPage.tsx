@@ -7,7 +7,7 @@ import { api } from '../api/client'
 //  Пароли задаются в .env на сервере (GIVEAWAY_CODE_1 / GIVEAWAY_CODE_2)
 // ================================================================
 const VIDEO_URL    = 'https://youtu.be/ПОМЕНЯЙ_ССЫЛКУ'           // Ссылка на видео с заданием
-const RIDDLE_TEXT  = 'Один и тот же бренд живёт в двух невозможных местах. Ты уже знаешь первое. Найди второе. Когда найдёшь — загляни в канал. Там написано что вводить.' // Загадка уровня 2
+const RIDDLE_TEXT  = 'Найди второй адрес того же магазина. Он существует. Зайди внутрь — посмотри фотографии. На одной из них лежит чертёж. Что за модель?' // Загадка уровня 2
 const SECRET_OFFER = 'ПОМЕНЯЙ: текст секретного предложения'     // Приз победителю
 const ADMIN_TG     = 'S010lvloon'                                // Telegram username
 // ================================================================
@@ -173,14 +173,14 @@ function Level1({ input, setInput, error, shake, checking, onSubmit }: {
         <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-0.5">
           <div><span style={{ color: '#60A5FA' }}>[INFO]</span><span className="text-gray2 ml-2">Финальный уровень</span></div>
           <div><span style={{ color: '#FBBF24' }}>[RIDDLE]</span><span className="text-gray2 ml-2">{RIDDLE_TEXT}</span></div>
-          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи ответ из 2 слов</span></div>
+          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи модель из чертежа</span></div>
           <div className="text-white/20">...<span className="blink">█</span></div>
         </div>
       </TermCard>
 
       <CodeInput
         value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder="два слова через пробел"
+        error={error} shake={shake} placeholder="модель телефона"
       />
       <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
