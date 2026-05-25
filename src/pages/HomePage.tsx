@@ -21,14 +21,16 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
   const [loading, setLoading] = useState(true)
   const [newOpen, setNewOpen] = useState(true)
   const [newExpanded, setNewExpanded] = useState(false)
+  const [giveawayWinner, setGiveawayWinner] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const [d, b, rd] = await Promise.all([
+      const [d, b, rd, gw] = await Promise.all([
         api.sections().catch(() => ({ sections: [] as Section[] })),
         api.banner().catch(() => ({ banners: [] as Banner[] })),
         api.recent().catch(() => ({ materials: [] as Material[], today_count: 0, today_sections: [] as TodaySection[], total_count: 0 })),
+        api.giveawayWinner().catch(() => ({ winner: null })),
       ])
       if (!alive) return
       setSections(d.sections.filter(s => !s.parent_id))
@@ -36,6 +38,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
       setRecent((rd.materials ?? []).slice(0, 10))
       setTodaySections(rd.today_sections ?? [])
       setTotalCount(rd.total_count ?? 0)
+      if (gw.winner) setGiveawayWinner(gw.winner.username)
       setLoading(false)
     })()
     return () => { alive = false }
@@ -103,21 +106,37 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
       {banners.length > 0 && <BannerCard banners={banners} />}
 
       {/* Giveaway card */}
-      <div
-        onClick={onGiveaway}
-        className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
-        style={{ background: 'rgba(157,92,255,.06)', border: '1px solid rgba(157,92,255,.3)' }}
-      >
-        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(157,92,255,.7), transparent)' }} />
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <div className="text-2xl shrink-0">🔐</div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold text-white">Секретный розыгрыш</div>
-            <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// особое задание · участвуй и выиграй приз</div>
+      {giveawayWinner ? (
+        <div
+          className="relative mx-4 mt-3 overflow-hidden"
+          style={{ background: 'rgba(255,188,46,.04)', border: '1px solid rgba(255,188,46,.25)' }}
+        >
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.6), transparent)' }} />
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="text-2xl shrink-0">🏆</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-white">Розыгрыш завершён</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(255,188,46,.75)' }}>// победитель: @{giveawayWinner}</div>
+            </div>
           </div>
-          <span className="font-bold text-[18px] shrink-0" style={{ color: '#C7A6FF' }}>›</span>
         </div>
-      </div>
+      ) : (
+        <div
+          onClick={onGiveaway}
+          className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
+          style={{ background: 'rgba(157,92,255,.06)', border: '1px solid rgba(157,92,255,.3)' }}
+        >
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(157,92,255,.7), transparent)' }} />
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="text-2xl shrink-0">🔐</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-white">Секретный розыгрыш</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// особое задание · участвуй и выиграй приз</div>
+            </div>
+            <span className="font-bold text-[18px] shrink-0" style={{ color: '#C7A6FF' }}>›</span>
+          </div>
+        </div>
+      )}
 
       {/* Recent */}
       {(totalCount > 0 || recent.length > 0) && (

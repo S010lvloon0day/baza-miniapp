@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../api/client'
 
@@ -258,6 +258,12 @@ export default function GiveawayPage() {
   const [shake, setShake]      = useState(false)
   const [checking, setChecking] = useState(false)
   const [blocked, setBlocked]  = useState(false)
+  const [winner, setWinner]    = useState<string | null>(null)
+
+  useEffect(() => {
+    if (getLevel() >= 2) return
+    api.giveawayWinner().then(r => { if (r.winner) setWinner(r.winner.username) }).catch(() => {})
+  }, [])
 
   const advance = () => {
     const next = level + 1
@@ -281,6 +287,7 @@ export default function GiveawayPage() {
       const res = await api.giveawayCheck(lvl, input)
       if (res.ok) advance()
       else if (res.error === 'too_many_attempts') setBlocked(true)
+      else if (res.error === 'already_won') setWinner(res.winner ?? '???')
       else showError()
     } catch {
       showError()
@@ -299,6 +306,17 @@ export default function GiveawayPage() {
     if (tgApp?.openTelegramLink) tgApp.openTelegramLink(url)
     else window.open(url, '_blank')
   }
+
+  if (winner && level < 2) return (
+    <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
+      <div className="text-5xl">🏆</div>
+      <div className="font-display text-[20px] tracking-[2px] uppercase text-white">РОЗЫГРЫШ ЗАВЕРШЁН</div>
+      <div className="font-mono text-[11px] leading-relaxed" style={{ color: 'rgba(199,166,255,.8)' }}>
+        // победитель: @{winner}
+      </div>
+      <div className="font-mono text-[10px] text-gray2">// квест закрыт · следи за каналом</div>
+    </div>
+  )
 
   if (blocked) return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
