@@ -173,7 +173,7 @@ function Level1({ input, setInput, error, shake, checking, onSubmit }: {
         <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-0.5">
           <div><span style={{ color: '#60A5FA' }}>[INFO]</span><span className="text-gray2 ml-2">Финальный уровень</span></div>
           <div><span style={{ color: '#FBBF24' }}>[RIDDLE]</span><span className="text-gray2 ml-2">{RIDDLE_TEXT}</span></div>
-          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи модель из чертежа</span></div>
+          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Первое слово на чертеже + модель телефона</span></div>
           <div className="text-white/20">...<span className="blink">█</span></div>
         </div>
       </TermCard>
