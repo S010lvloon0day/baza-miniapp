@@ -7,7 +7,7 @@ import { api } from '../api/client'
 //  Пароли задаются в .env на сервере (GIVEAWAY_CODE_1 / GIVEAWAY_CODE_2)
 // ================================================================
 const VIDEO_URL    = 'https://youtu.be/ПОМЕНЯЙ_ССЫЛКУ'           // Ссылка на видео с заданием
-const RIDDLE_TEXT  = 'Найди второй адрес того же магазина. Он существует. Зайди внутрь — посмотри фотографии. На одной из них лежит чертёж. Что за модель?' // Загадка уровня 2
+const RIDDLE_TEXT  = 'Найди второй адрес того же магазина. Зайди внутрь — посмотри фотографии. На одной лежит чертёж. Первое слово на чертеже и модель телефона — вот твой код.' // Загадка уровня 2
 const SECRET_OFFER = 'ПОМЕНЯЙ: текст секретного предложения'     // Приз победителю
 const ADMIN_TG     = 'S010lvloon'                                // Telegram username
 // ================================================================
@@ -180,7 +180,7 @@ function Level1({ input, setInput, error, shake, checking, onSubmit }: {
 
       <CodeInput
         value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder="модель телефона"
+        error={error} shake={shake} placeholder="первое слово + модель телефона"
       />
       <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
