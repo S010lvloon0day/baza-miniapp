@@ -69,9 +69,8 @@ const STAGES: Stage[] = [
   {
     file: 'case_001/trace_05.txt',
     lines: [
-      { tag: 'MSG',  color: C.blue,  text: 'You found the entrance.' },
-      { tag: 'KEY',  color: C.amber, text: 'ZXJvdQ==' },
-      { tag: 'HINT', color: C.green, text: 'The beginning was hidden.' },
+      { tag: 'MSG', color: C.blue,  text: 'One final step.' },
+      { tag: 'KEY', color: C.amber, text: 'Y29uZ3JhdHVsYXRpb25z' },
     ],
     placeholder: 'финальный ответ (en)',
   },
@@ -106,9 +105,9 @@ function Steps({ step }: { step: number }) {
   )
 }
 
-function CodeInput({ value, onChange, onEnter, error, shake, placeholder }: {
+function CodeInput({ value, onChange, onEnter, error, shake, placeholder, errorText }: {
   value: string; onChange: (v: string) => void; onEnter: () => void;
-  error: boolean; shake: boolean; placeholder?: string
+  error: boolean; shake: boolean; placeholder?: string; errorText?: string | null
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -136,9 +135,9 @@ function CodeInput({ value, onChange, onEnter, error, shake, placeholder }: {
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="font-mono text-[10px]" style={{ color: '#FF5050' }}
+            className="font-mono text-[10px]" style={{ color: errorText ? '#FBBF24' : '#FF5050' }}
           >
-            ✗ ACCESS DENIED — неверный код
+            {errorText || '✗ ACCESS DENIED — неверный код'}
           </motion.div>
         )}
       </AnimatePresence>
@@ -159,9 +158,10 @@ function SubmitBtn({ onClick, disabled, checking }: { onClick: () => void; disab
 
 // ---------- stage screen ----------
 
-function StageScreen({ level, input, setInput, error, shake, checking, onSubmit, onMap }: {
+function StageScreen({ level, input, setInput, error, shake, checking, onSubmit, onMap, errorText }: {
   level: number; input: string; setInput: (v: string) => void
   error: boolean; shake: boolean; checking: boolean; onSubmit: () => void; onMap: () => void
+  errorText?: string | null
 }) {
   const stage = STAGES[level]
   return (
@@ -214,7 +214,7 @@ function StageScreen({ level, input, setInput, error, shake, checking, onSubmit,
 
       <CodeInput
         value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder={stage.placeholder}
+        error={error} shake={shake} placeholder={stage.placeholder} errorText={errorText}
       />
       <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
@@ -293,6 +293,7 @@ export default function GiveawayPage() {
   const [checking, setChecking] = useState(false)
   const [blocked, setBlocked]  = useState(false)
   const [winner, setWinner]    = useState<string | null>(null)
+  const [errText, setErrText]  = useState<string | null>(null)
 
   useEffect(() => {
     if (getLevel() >= 5) return
@@ -307,11 +308,12 @@ export default function GiveawayPage() {
     setError(false)
   }
 
-  const showError = () => {
+  const showError = (text: string | null = null) => {
+    setErrText(text)
     setError(true)
     setShake(true)
     setTimeout(() => setShake(false), 450)
-    setTimeout(() => setError(false), 2500)
+    setTimeout(() => setError(false), text ? 4000 : 2500)
   }
 
   const tryCode = async () => {
@@ -323,6 +325,7 @@ export default function GiveawayPage() {
       else if (res.error === 'too_many_attempts') setBlocked(true)
       else if (res.error === 'already_won') setWinner(res.winner ?? '???')
       else if (res.error === 'wrong_level') { saveLevel(0); setLevelState(0); setInput('') }
+      else if (res.error === 'use_key') showError('Wrong question. Use it.')
       else showError()
     } catch {
       showError()
@@ -371,7 +374,7 @@ export default function GiveawayPage() {
             key={`s${level}`}
             level={level}
             input={input} setInput={setInput} error={error} shake={shake} checking={checking}
-            onSubmit={tryCode} onMap={openMap}
+            onSubmit={tryCode} onMap={openMap} errorText={errText}
           />
         )}
         {level >= 5 && (
