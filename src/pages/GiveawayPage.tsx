@@ -3,20 +3,79 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { api } from '../api/client'
 
 // ================================================================
-//  НАСТРОЙКИ РОЗЫГРЫША — МЕНЯЙ ТОЛЬКО ЗДЕСЬ
-//  Пароли задаются в .env на сервере (GIVEAWAY_CODE_1 / GIVEAWAY_CODE_2)
+//  CASE 001: RABBIT HOLE — расследование из 5 этапов
+//  Ответы задаются в .env на сервере (GIVEAWAY_CODE_1..5)
 // ================================================================
-const VIDEO_URL    = 'https://www.instagram.com/reel/DYv66Zxu7Xo/?igsh=NTc4MTIwNjQ2YQ=='  // Ссылка на видео с заданием
-const RIDDLE_TEXT  = 'Найди второй адрес того же магазина. Тут нет земли, но карта не врёт! Зайди внутрь — посмотри на стол. На столе лежит чертёж. Первое слово на чертеже и модель телефона — вот твой код.' // Загадка уровня 2
-const SECRET_OFFER = 'Ты прошёл квест до конца. Приз — 30 USDT. Напиши @S010lvloon_bot и отправь скриншот этого экрана.'     // Приз победителю
-const ADMIN_TG     = 'S010lvloon'                                // Telegram username
+const MAPS_URL     = 'https://maps.google.com/?q=44.244,7.769'        // Координаты этапа 1
+const SECRET_OFFER = 'Ты прошёл CASE 001 до конца. Приз — 20 USDT. Напиши @S010lvloon_bot и отправь скриншот этого экрана.' // Приз победителю
+const ADMIN_TG     = 'S010lvloon'                                     // Telegram username
 // ================================================================
 
-const LS_KEY = 'gw_lvl'
+const LS_KEY = 'case001_lvl'
 const tgApp  = (window as any).Telegram?.WebApp
 
 function getLevel()           { return parseInt(localStorage.getItem(LS_KEY) || '0', 10) }
 function saveLevel(n: number) { localStorage.setItem(LS_KEY, String(n)) }
+
+// ---------- stage content ----------
+
+type TermLine = { tag: string; color: string; text: string }
+
+type Stage = {
+  file: string
+  lines: TermLine[]
+  placeholder: string
+  showMap?: boolean
+}
+
+const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#28C840' }
+
+const STAGES: Stage[] = [
+  {
+    file: 'case_001/brief.txt',
+    lines: [
+      { tag: 'CASE',   color: C.blue,  text: '001 — RABBIT HOLE' },
+      { tag: 'COORD',  color: C.amber, text: '44.244° N, 7.769° E' },
+      { tag: 'CIPHER', color: C.green, text: 'WOMMWP' },
+    ],
+    placeholder: 'одно слово (en)',
+    showMap: true,
+  },
+  {
+    file: 'case_001/trace_02.txt',
+    lines: [
+      { tag: 'MSG',    color: C.blue,  text: 'Every trace remains in history.' },
+      { tag: 'REPO',   color: C.amber, text: 'github.com/S010lvloon0day/rabbit-hole' },
+      { tag: 'COMMIT', color: C.green, text: '9f8e1a' },
+    ],
+    placeholder: 'одно слово (en)',
+  },
+  {
+    file: 'case_001/trace_03.txt',
+    lines: [
+      { tag: 'MSG',  color: C.blue,  text: 'The truth was deleted.' },
+      { tag: 'MSG',  color: C.blue,  text: 'Not destroyed.' },
+      { tag: 'FILE', color: C.amber, text: 'report_final.pdf' },
+    ],
+    placeholder: 'имя (en)',
+  },
+  {
+    file: 'case_001/trace_04.txt',
+    lines: [
+      { tag: 'MSG', color: C.blue, text: 'Who is Moreau?' },
+    ],
+    placeholder: 'кодовое слово (en)',
+  },
+  {
+    file: 'case_001/trace_05.txt',
+    lines: [
+      { tag: 'MSG',  color: C.blue,  text: 'You found the entrance.' },
+      { tag: 'KEY',  color: C.amber, text: 'ZXJvdQ==' },
+      { tag: 'HINT', color: C.green, text: 'The beginning was hidden.' },
+    ],
+    placeholder: 'финальный ответ (en)',
+  },
+]
 
 // ---------- shared UI ----------
 
@@ -37,12 +96,12 @@ function TermCard({ filename, children }: { filename: string; children: ReactNod
 function Steps({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-1.5 font-mono text-[10px] text-gray2">
-      {[1, 2].map(n => (
+      {[1, 2, 3, 4, 5].map(n => (
         <span key={n} style={{ color: n <= step ? '#28C840' : undefined }}>
           {n < step ? '●' : n === step ? '◉' : '○'}
         </span>
       ))}
-      <span>{step} / 2</span>
+      <span>{step} / 5</span>
     </div>
   )
 }
@@ -98,12 +157,13 @@ function SubmitBtn({ onClick, disabled, checking }: { onClick: () => void; disab
   )
 }
 
-// ---------- levels ----------
+// ---------- stage screen ----------
 
-function Level0({ input, setInput, error, shake, checking, onVideo, onSubmit }: {
-  input: string; setInput: (v: string) => void
-  error: boolean; shake: boolean; checking: boolean; onVideo: () => void; onSubmit: () => void
+function StageScreen({ level, input, setInput, error, shake, checking, onSubmit, onMap }: {
+  level: number; input: string; setInput: (v: string) => void
+  error: boolean; shake: boolean; checking: boolean; onSubmit: () => void; onMap: () => void
 }) {
+  const stage = STAGES[level]
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -111,83 +171,57 @@ function Level0({ input, setInput, error, shake, checking, onVideo, onSubmit }: 
       className="px-4 py-4 flex flex-col gap-4"
     >
       <div className="flex items-center justify-between">
-        <div className="font-display text-[22px] tracking-[3px] uppercase">🔐 КВЕСТ</div>
-        <Steps step={1} />
+        <div className="font-display text-[22px] tracking-[3px] uppercase">🐇 CASE 001</div>
+        <Steps step={level + 1} />
       </div>
 
-      <TermCard filename="secret/mission_01.txt">
+      {level > 0 && (
+        <div
+          className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
+          style={{ borderColor: 'rgba(40,200,64,.3)', background: 'rgba(40,200,64,.05)', color: '#28C840' }}
+        >
+          ✓ &nbsp;Этап {level} пройден — след принят
+        </div>
+      )}
+
+      <TermCard filename={stage.file}>
         <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-0.5">
-          <div><span style={{ color: '#60A5FA' }}>[INFO]</span><span className="text-gray2 ml-2">Секретный раздел активирован</span></div>
-          <div><span style={{ color: '#FBBF24' }}>[TASK]</span><span className="text-gray2 ml-2">Посмотри видео — там задание</span></div>
-          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Введи кодовое слово</span></div>
+          {stage.lines.map((l, i) => (
+            <div key={i}>
+              <span style={{ color: l.color }}>[{l.tag}]</span>
+              <span className="text-gray2 ml-2">{l.text}</span>
+            </div>
+          ))}
           <div className="text-white/20">...<span className="blink">█</span></div>
         </div>
       </TermCard>
 
-      <button
-        onClick={onVideo}
-        className="flex items-center gap-3 px-4 py-3.5 border border-bd2 bg-s1 active:border-white/20 active:bg-s2 transition-colors"
-      >
-        <div className="w-10 h-10 flex items-center justify-center text-xl shrink-0 border border-bd2 text-white" style={{ background: 'rgba(255,255,255,.04)' }}>
-          ▶
-        </div>
-        <div className="flex-1 text-left">
-          <div className="text-[13px] font-semibold text-white">Смотреть видео</div>
-          <div className="text-[10px] text-gray font-mono">// задание и подсказка к паролю</div>
-        </div>
-        <span className="text-gray2 text-[16px]">›</span>
-      </button>
+      {stage.showMap && (
+        <button
+          onClick={onMap}
+          className="flex items-center gap-3 px-4 py-3.5 border border-bd2 bg-s1 active:border-white/20 active:bg-s2 transition-colors"
+        >
+          <div className="w-10 h-10 flex items-center justify-center text-xl shrink-0 border border-bd2 text-white" style={{ background: 'rgba(255,255,255,.04)' }}>
+            ◎
+          </div>
+          <div className="flex-1 text-left">
+            <div className="text-[13px] font-semibold text-white">Открыть координаты</div>
+            <div className="text-[10px] text-gray font-mono">// начни с того, что там стоит</div>
+          </div>
+          <span className="text-gray2 text-[16px]">›</span>
+        </button>
+      )}
 
       <CodeInput
         value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder="одно слово"
+        error={error} shake={shake} placeholder={stage.placeholder}
       />
       <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
     </motion.div>
   )
 }
 
-function Level1({ input, setInput, error, shake, checking, onSubmit }: {
-  input: string; setInput: (v: string) => void
-  error: boolean; shake: boolean; checking: boolean; onSubmit: () => void
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.22 }}
-      className="px-4 py-4 flex flex-col gap-4"
-    >
-      <div className="flex items-center justify-between">
-        <div className="font-display text-[22px] tracking-[3px] uppercase">🔓 УРОВЕНЬ 2</div>
-        <Steps step={2} />
-      </div>
-
-      <div
-        className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
-        style={{ borderColor: 'rgba(40,200,64,.3)', background: 'rgba(40,200,64,.05)', color: '#28C840' }}
-      >
-        ✓ &nbsp;Уровень 1 пройден — доступ получен
-      </div>
-
-      <TermCard filename="secret/mission_02.txt">
-        <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-0.5">
-          <div><span style={{ color: '#60A5FA' }}>[INFO]</span><span className="text-gray2 ml-2">Финальный уровень</span></div>
-          <div><span style={{ color: '#FBBF24' }}>[RIDDLE]</span><span className="text-gray2 ml-2">{RIDDLE_TEXT}</span></div>
-          <div><span style={{ color: '#28C840' }}>[CODE]</span><span className="text-gray2 ml-2">Первое слово на чертеже + модель телефона</span></div>
-          <div className="text-white/20">...<span className="blink">█</span></div>
-        </div>
-      </TermCard>
-
-      <CodeInput
-        value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder="первое слово + модель телефона"
-      />
-      <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
-    </motion.div>
-  )
-}
-
-function Level2({ onAdmin }: { onAdmin: () => void }) {
+function FinalScreen({ onAdmin }: { onAdmin: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
@@ -200,24 +234,24 @@ function Level2({ onAdmin }: { onAdmin: () => void }) {
           transition={{ type: 'spring', delay: 0.15, stiffness: 180 }}
           className="text-[56px]"
         >
-          🏆
+          🐇
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="font-display text-[30px] tracking-[4px] uppercase text-white"
+          className="font-display text-[26px] tracking-[4px] uppercase text-white"
         >
-          ТЫ ВЫИГРАЛ!
+          CASE 001 COMPLETED
         </motion.div>
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
-          className="font-mono text-[10px] text-gray2"
+          className="font-mono text-[11px] text-gray2 leading-relaxed"
         >
-          // все уровни пройдены · quest completed
+          The rabbit was never the answer.<br />It was only the entrance.
         </motion.div>
       </div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-        <TermCard filename="secret/prize.txt">
+        <TermCard filename="case_001/prize.txt">
           <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-2">
             <div><span style={{ color: '#28C840' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
             <div
@@ -261,7 +295,7 @@ export default function GiveawayPage() {
   const [winner, setWinner]    = useState<string | null>(null)
 
   useEffect(() => {
-    if (getLevel() >= 2) return
+    if (getLevel() >= 5) return
     api.giveawayWinner().then(r => { if (r.winner) setWinner(r.winner.username) }).catch(() => {})
   }, [])
 
@@ -280,14 +314,15 @@ export default function GiveawayPage() {
     setTimeout(() => setError(false), 2500)
   }
 
-  const tryCode = async (lvl: number) => {
+  const tryCode = async () => {
     if (checking || !input.trim()) return
     setChecking(true)
     try {
-      const res = await api.giveawayCheck(lvl, input)
+      const res = await api.giveawayCheck(level + 1, input)
       if (res.ok) advance()
       else if (res.error === 'too_many_attempts') setBlocked(true)
       else if (res.error === 'already_won') setWinner(res.winner ?? '???')
+      else if (res.error === 'wrong_level') { saveLevel(0); setLevelState(0); setInput('') }
       else showError()
     } catch {
       showError()
@@ -296,9 +331,9 @@ export default function GiveawayPage() {
     }
   }
 
-  const openVideo = () => {
-    if (tgApp?.openLink) tgApp.openLink(VIDEO_URL)
-    else window.open(VIDEO_URL, '_blank')
+  const openMap = () => {
+    if (tgApp?.openLink) tgApp.openLink(MAPS_URL)
+    else window.open(MAPS_URL, '_blank')
   }
 
   const openAdmin = () => {
@@ -307,14 +342,14 @@ export default function GiveawayPage() {
     else window.open(url, '_blank')
   }
 
-  if (winner && level < 2) return (
+  if (winner && level < 5) return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
-      <div className="text-5xl">🏆</div>
-      <div className="font-display text-[20px] tracking-[2px] uppercase text-white">РОЗЫГРЫШ ЗАВЕРШЁН</div>
+      <div className="text-5xl">🐇</div>
+      <div className="font-display text-[20px] tracking-[2px] uppercase text-white">CASE 001 ЗАКРЫТО</div>
       <div className="font-mono text-[11px] leading-relaxed" style={{ color: 'rgba(199,166,255,.8)' }}>
         // победитель: @{winner}
       </div>
-      <div className="font-mono text-[10px] text-gray2">// квест закрыт · следи за каналом</div>
+      <div className="font-mono text-[10px] text-gray2">// расследование завершено · следи за каналом</div>
     </div>
   )
 
@@ -331,22 +366,16 @@ export default function GiveawayPage() {
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       <AnimatePresence mode="wait">
-        {level === 0 && (
-          <Level0
-            key="l0"
+        {level < 5 && (
+          <StageScreen
+            key={`s${level}`}
+            level={level}
             input={input} setInput={setInput} error={error} shake={shake} checking={checking}
-            onVideo={openVideo} onSubmit={() => tryCode(1)}
+            onSubmit={tryCode} onMap={openMap}
           />
         )}
-        {level === 1 && (
-          <Level1
-            key="l1"
-            input={input} setInput={setInput} error={error} shake={shake} checking={checking}
-            onSubmit={() => tryCode(2)}
-          />
-        )}
-        {level >= 2 && (
-          <Level2 key="l2" onAdmin={openAdmin} />
+        {level >= 5 && (
+          <FinalScreen key="final" onAdmin={openAdmin} />
         )}
       </AnimatePresence>
     </div>

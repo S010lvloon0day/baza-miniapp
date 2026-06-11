@@ -128,10 +128,10 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
         >
           <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(157,92,255,.7), transparent)' }} />
           <div className="flex items-center gap-3 px-4 py-3.5">
-            <div className="text-2xl shrink-0">🔐</div>
+            <div className="text-2xl shrink-0">🐇</div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">Секретный розыгрыш</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// особое задание · участвуй и выиграй приз</div>
+              <div className="text-[13px] font-bold text-white">CASE 001: RABBIT HOLE</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// расследование · 5 этапов · приз 20 USDT</div>
             </div>
             <span className="font-bold text-[18px] shrink-0" style={{ color: '#C7A6FF' }}>›</span>
           </div>
