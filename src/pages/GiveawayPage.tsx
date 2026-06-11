@@ -333,6 +333,14 @@ export default function GiveawayPage() {
   const [errText, setErrText]  = useState<string | null>(null)
 
   useEffect(() => {
+    // Прогресс хранится на сервере — восстанавливаем, если localStorage очищен
+    api.giveawayProgress().then(r => {
+      if (r.level > getLevel()) {
+        saveLevel(r.level)
+        setLevelState(r.level)
+        setView(r.level)
+      }
+    }).catch(() => {})
     if (getLevel() >= 5) return
     api.giveawayWinner().then(r => { if (r.winner) setWinner(r.winner.username) }).catch(() => {})
   }, [])
