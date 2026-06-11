@@ -158,8 +158,9 @@ function SubmitBtn({ onClick, disabled, checking }: { onClick: () => void; disab
 
 // ---------- stage screen ----------
 
-function StageScreen({ level, input, setInput, error, shake, checking, onSubmit, onMap, errorText }: {
-  level: number; input: string; setInput: (v: string) => void
+function StageScreen({ level, passed, canBack, onBack, onForward, input, setInput, error, shake, checking, onSubmit, onMap, errorText }: {
+  level: number; passed: boolean; canBack: boolean; onBack: () => void; onForward: () => void
+  input: string; setInput: (v: string) => void
   error: boolean; shake: boolean; checking: boolean; onSubmit: () => void; onMap: () => void
   errorText?: string | null
 }) {
@@ -175,7 +176,18 @@ function StageScreen({ level, input, setInput, error, shake, checking, onSubmit,
         <Steps step={level + 1} />
       </div>
 
-      {level > 0 && (
+      {(canBack || passed) && (
+        <div className="flex items-center justify-between font-mono text-[10px] text-gray2">
+          <button onClick={onBack} disabled={!canBack} className="px-2 py-1 disabled:opacity-0 active:text-white transition-colors">
+            ‹ пред. этап
+          </button>
+          <button onClick={onForward} disabled={!passed} className="px-2 py-1 disabled:opacity-0 active:text-white transition-colors">
+            след. этап ›
+          </button>
+        </div>
+      )}
+
+      {!passed && level > 0 && (
         <div
           className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
           style={{ borderColor: 'rgba(40,200,64,.3)', background: 'rgba(40,200,64,.05)', color: '#28C840' }}
@@ -212,22 +224,46 @@ function StageScreen({ level, input, setInput, error, shake, checking, onSubmit,
         </button>
       )}
 
-      <CodeInput
-        value={input} onChange={setInput} onEnter={onSubmit}
-        error={error} shake={shake} placeholder={stage.placeholder} errorText={errorText}
-      />
-      <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
+      {passed ? (
+        <>
+          <div
+            className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
+            style={{ borderColor: 'rgba(40,200,64,.3)', background: 'rgba(40,200,64,.05)', color: '#28C840' }}
+          >
+            ✓ &nbsp;Этап пройден — ответ принят
+          </div>
+          <button
+            onClick={onForward}
+            className="w-full py-3.5 bg-white text-bg font-mono font-bold text-[12px] tracking-[2px] uppercase active:bg-white/80 transition-opacity"
+          >
+            ДАЛЬШЕ →
+          </button>
+        </>
+      ) : (
+        <>
+          <CodeInput
+            value={input} onChange={setInput} onEnter={onSubmit}
+            error={error} shake={shake} placeholder={stage.placeholder} errorText={errorText}
+          />
+          <SubmitBtn onClick={onSubmit} disabled={!input.trim()} checking={checking} />
+        </>
+      )}
     </motion.div>
   )
 }
 
-function FinalScreen({ onAdmin }: { onAdmin: () => void }) {
+function FinalScreen({ onAdmin, onBack }: { onAdmin: () => void; onBack: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
       className="px-4 py-6 flex flex-col gap-5"
     >
+      <div className="flex items-center font-mono text-[10px] text-gray2">
+        <button onClick={onBack} className="px-2 py-1 active:text-white transition-colors">
+          ‹ посмотреть этапы
+        </button>
+      </div>
       <div className="flex flex-col items-center gap-3 py-4 text-center">
         <motion.div
           initial={{ scale: 0 }} animate={{ scale: 1 }}
@@ -287,6 +323,7 @@ function FinalScreen({ onAdmin }: { onAdmin: () => void }) {
 
 export default function GiveawayPage() {
   const [level, setLevelState] = useState(getLevel)
+  const [view, setView]        = useState(getLevel)
   const [input, setInput]      = useState('')
   const [error, setError]      = useState(false)
   const [shake, setShake]      = useState(false)
@@ -304,9 +341,13 @@ export default function GiveawayPage() {
     const next = level + 1
     saveLevel(next)
     setLevelState(next)
+    setView(next)
     setInput('')
     setError(false)
   }
+
+  const goBack    = () => { setView(v => Math.max(0, v - 1)); setError(false) }
+  const goForward = () => { setView(v => Math.min(level, v + 1)); setError(false) }
 
   const showError = (text: string | null = null) => {
     setErrText(text)
@@ -324,7 +365,7 @@ export default function GiveawayPage() {
       if (res.ok) advance()
       else if (res.error === 'too_many_attempts') setBlocked(true)
       else if (res.error === 'already_won') setWinner(res.winner ?? '???')
-      else if (res.error === 'wrong_level') { saveLevel(0); setLevelState(0); setInput('') }
+      else if (res.error === 'wrong_level') { saveLevel(0); setLevelState(0); setView(0); setInput('') }
       else if (res.error === 'use_key') showError('Wrong question. Use it.')
       else showError()
     } catch {
@@ -369,16 +410,19 @@ export default function GiveawayPage() {
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       <AnimatePresence mode="wait">
-        {level < 5 && (
+        {view < 5 && (
           <StageScreen
-            key={`s${level}`}
-            level={level}
+            key={`s${view}`}
+            level={view}
+            passed={view < level}
+            canBack={view > 0}
+            onBack={goBack} onForward={goForward}
             input={input} setInput={setInput} error={error} shake={shake} checking={checking}
             onSubmit={tryCode} onMap={openMap} errorText={errText}
           />
         )}
-        {level >= 5 && (
-          <FinalScreen key="final" onAdmin={openAdmin} />
+        {view >= 5 && (
+          <FinalScreen key="final" onAdmin={openAdmin} onBack={goBack} />
         )}
       </AnimatePresence>
     </div>
