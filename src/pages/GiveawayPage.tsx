@@ -177,12 +177,18 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
       </div>
 
       {(canBack || passed) && (
-        <div className="flex items-center justify-between font-mono text-[10px] text-gray2">
-          <button onClick={onBack} disabled={!canBack} className="px-2 py-1 disabled:opacity-0 active:text-white transition-colors">
-            ‹ пред. этап
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onBack} disabled={!canBack}
+            className="flex-1 py-2.5 border border-bd2 bg-s1 font-mono text-[11px] tracking-[1px] text-white disabled:opacity-25 active:bg-s2 transition-colors"
+          >
+            ‹ ПРЕД. ЭТАП
           </button>
-          <button onClick={onForward} disabled={!passed} className="px-2 py-1 disabled:opacity-0 active:text-white transition-colors">
-            след. этап ›
+          <button
+            onClick={onForward} disabled={!passed}
+            className="flex-1 py-2.5 border border-bd2 bg-s1 font-mono text-[11px] tracking-[1px] text-white disabled:opacity-25 active:bg-s2 transition-colors"
+          >
+            СЛЕД. ЭТАП ›
           </button>
         </div>
       )}
@@ -259,11 +265,12 @@ function FinalScreen({ onAdmin, onBack }: { onAdmin: () => void; onBack: () => v
       transition={{ duration: 0.3 }}
       className="px-4 py-6 flex flex-col gap-5"
     >
-      <div className="flex items-center font-mono text-[10px] text-gray2">
-        <button onClick={onBack} className="px-2 py-1 active:text-white transition-colors">
-          ‹ посмотреть этапы
-        </button>
-      </div>
+      <button
+        onClick={onBack}
+        className="w-full py-2.5 border border-bd2 bg-s1 font-mono text-[11px] tracking-[1px] text-white active:bg-s2 transition-colors"
+      >
+        ‹ ПОСМОТРЕТЬ ПРОЙДЕННЫЕ ЭТАПЫ
+      </button>
       <div className="flex flex-col items-center gap-3 py-4 text-center">
         <motion.div
           initial={{ scale: 0 }} animate={{ scale: 1 }}
