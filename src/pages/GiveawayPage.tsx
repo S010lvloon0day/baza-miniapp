@@ -11,11 +11,14 @@ const SECRET_OFFER = 'Ты прошёл CASE 001 до конца. Приз — 2
 const ADMIN_TG     = 'S010lvloon'                                     // Telegram username
 // ================================================================
 
-const LS_KEY = 'case001_lvl'
+const LS_KEY   = 'case001_lvl'
+const DONE_KEY = 'case001_done'
 const tgApp  = (window as any).Telegram?.WebApp
 
 function getLevel()           { return parseInt(localStorage.getItem(LS_KEY) || '0', 10) }
 function saveLevel(n: number) { localStorage.setItem(LS_KEY, String(n)) }
+function isDone()             { return localStorage.getItem(DONE_KEY) === '1' }
+function markDone()           { localStorage.setItem(DONE_KEY, '1') }
 
 // ---------- stage content ----------
 
@@ -258,7 +261,9 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
   )
 }
 
-function FinalScreen({ onAdmin, onBack }: { onAdmin: () => void; onBack: () => void }) {
+function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
+  onAdmin: () => void; onBack: () => void; onReplay: () => void; hasWinner: boolean
+}) {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }}
@@ -293,35 +298,53 @@ function FinalScreen({ onAdmin, onBack }: { onAdmin: () => void; onBack: () => v
         </motion.div>
       </div>
 
-      <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
-        <TermCard filename="case_001/prize.txt">
-          <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-2">
-            <div><span style={{ color: '#28C840' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
-            <div
-              className="px-3 py-2.5 text-[13px] text-white leading-snug font-sans border-l-2"
-              style={{ borderLeftColor: 'rgba(40,200,64,.6)', background: 'rgba(40,200,64,.05)' }}
-            >
-              {SECRET_OFFER}
-            </div>
-          </div>
-        </TermCard>
-      </motion.div>
+      {hasWinner ? (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+          className="font-mono text-[11px] text-gray2 text-center leading-relaxed"
+        >
+          // расследование пройдено<br />// этот розыгрыш уже завершён — победитель определён
+        </motion.div>
+      ) : (
+        <>
+          <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <TermCard filename="case_001/prize.txt">
+              <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-2">
+                <div><span style={{ color: '#28C840' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
+                <div
+                  className="px-3 py-2.5 text-[13px] text-white leading-snug font-sans border-l-2"
+                  style={{ borderLeftColor: 'rgba(40,200,64,.6)', background: 'rgba(40,200,64,.05)' }}
+                >
+                  {SECRET_OFFER}
+                </div>
+              </div>
+            </TermCard>
+          </motion.div>
 
-      <motion.button
-        initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
-        onClick={onAdmin}
-        className="w-full py-3.5 bg-white text-bg font-mono font-bold text-[12px] tracking-[2px] uppercase active:bg-white/80 transition-opacity"
-        style={{ boxShadow: '0 0 24px rgba(255,255,255,.15)' }}
-      >
-        ✉ НАПИСАТЬ @{ADMIN_TG}
-      </motion.button>
+          <motion.button
+            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
+            onClick={onAdmin}
+            className="w-full py-3.5 bg-white text-bg font-mono font-bold text-[12px] tracking-[2px] uppercase active:bg-white/80 transition-opacity"
+            style={{ boxShadow: '0 0 24px rgba(255,255,255,.15)' }}
+          >
+            ✉ НАПИСАТЬ @{ADMIN_TG}
+          </motion.button>
 
-      <motion.div
-        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-        className="font-mono text-[10px] text-gray2/60 text-center"
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+            className="font-mono text-[10px] text-gray2/60 text-center"
+          >
+            Напиши секретное предложение — получишь приз
+          </motion.div>
+        </>
+      )}
+
+      <button
+        onClick={onReplay}
+        className="w-full py-3 border border-bd2 bg-s1 font-mono text-[12px] tracking-[2px] uppercase text-white active:bg-s2 transition-colors"
       >
-        Напиши секретное предложение — получишь приз
-      </motion.div>
+        ↻ Пройти заново
+      </button>
     </motion.div>
   )
 }
@@ -338,25 +361,40 @@ export default function GiveawayPage() {
   const [blocked, setBlocked]  = useState(false)
   const [winner, setWinner]    = useState<string | null>(null)
   const [errText, setErrText]  = useState<string | null>(null)
+  const [completedOnce, setCompletedOnce] = useState(() => getLevel() >= 5 || isDone())
 
   useEffect(() => {
-    // Прогресс хранится на сервере — восстанавливаем, если localStorage очищен
+    // Прогресс хранится на сервере — восстанавливаем, если localStorage очищен.
+    // При повторном прохождении (DONE_KEY) серверный максимум не перетирает
+    // локальный уровень — иначе повтор сбрасывался бы на финал при перезагрузке.
     api.giveawayProgress().then(r => {
-      if (r.level > getLevel()) {
+      if (r.level >= 5) { markDone(); setCompletedOnce(true) }
+      if (r.level > getLevel() && !isDone()) {
         saveLevel(r.level)
         setLevelState(r.level)
         setView(r.level)
       }
     }).catch(() => {})
-    if (getLevel() >= 5) return
     api.giveawayWinner().then(r => { if (r.winner) setWinner(r.winner.username) }).catch(() => {})
   }, [])
 
   const advance = () => {
     const next = level + 1
     saveLevel(next)
+    if (next >= 5) { markDone(); setCompletedOnce(true) }
     setLevelState(next)
     setView(next)
+    setInput('')
+    setError(false)
+  }
+
+  const replay = () => {
+    // Сбрасываем только локально — серверный прогресс хранит MAX(level),
+    // победитель не перезаписывается
+    markDone()
+    saveLevel(0)
+    setLevelState(0)
+    setView(0)
     setInput('')
     setError(false)
   }
@@ -401,17 +439,6 @@ export default function GiveawayPage() {
     else window.open(url, '_blank')
   }
 
-  if (winner && level < 5) return (
-    <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
-      <div className="text-5xl">🐇</div>
-      <div className="font-display text-[20px] tracking-[2px] uppercase text-white">CASE 001 ЗАКРЫТО</div>
-      <div className="font-mono text-[11px] leading-relaxed" style={{ color: 'rgba(199,166,255,.8)' }}>
-        // победитель: @{winner}
-      </div>
-      <div className="font-mono text-[10px] text-gray2">// расследование завершено · следи за каналом</div>
-    </div>
-  )
-
   if (blocked) return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
       <div className="text-4xl">🚫</div>
@@ -424,6 +451,14 @@ export default function GiveawayPage() {
 
   return (
     <div className="flex-1 overflow-y-auto pb-14">
+      {completedOnce && view < 5 && (
+        <div
+          className="mx-4 mt-3 flex items-center gap-2 px-3 py-2.5 border font-mono text-[10px]"
+          style={{ borderColor: 'rgba(255,188,46,.3)', background: 'rgba(255,188,46,.05)', color: 'rgba(255,188,46,.85)' }}
+        >
+          ↻ &nbsp;повторное прохождение{winner ? <> · победитель: @{winner}</> : null}
+        </div>
+      )}
       <AnimatePresence mode="wait">
         {view < 5 && (
           <StageScreen
@@ -437,7 +472,7 @@ export default function GiveawayPage() {
           />
         )}
         {view >= 5 && (
-          <FinalScreen key="final" onAdmin={openAdmin} onBack={goBack} />
+          <FinalScreen key="final" onAdmin={openAdmin} onBack={goBack} onReplay={replay} hasWinner={!!winner} />
         )}
       </AnimatePresence>
     </div>

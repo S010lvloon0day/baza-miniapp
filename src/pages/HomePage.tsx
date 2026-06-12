@@ -108,16 +108,18 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
       {/* Giveaway card */}
       {giveawayWinner ? (
         <div
-          className="relative mx-4 mt-3 overflow-hidden"
+          onClick={onGiveaway}
+          className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
           style={{ background: 'rgba(255,188,46,.04)', border: '1px solid rgba(255,188,46,.25)' }}
         >
           <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.6), transparent)' }} />
           <div className="flex items-center gap-3 px-4 py-3.5">
             <div className="text-2xl shrink-0">🏆</div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">Розыгрыш завершён</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(255,188,46,.75)' }}>// победитель: @{giveawayWinner}</div>
+              <div className="text-[13px] font-bold text-white">CASE 001: RABBIT HOLE — завершён</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(255,188,46,.75)' }}>// победитель: @{giveawayWinner} · квест открыт</div>
             </div>
+            <span className="font-bold text-[18px] shrink-0" style={{ color: 'rgba(255,188,46,.75)' }}>›</span>
           </div>
         </div>
       ) : (
