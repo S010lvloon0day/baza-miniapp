@@ -75,8 +75,6 @@ export interface Plan {
   days: number
   label: string
   price: number
-  stars?: number
-  rub?: number
 }
 
 export interface Config {
@@ -108,9 +106,7 @@ export const api = {
   addFavorite:    (id: number)   => post<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
   removeFavorite: (id: number)   => del<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
   sendFile:       (id: number)   => post<{ ok: boolean; error?: string }>(`/api/send_file/${id}`),
-  starsInvoice:   (days: number) => post<{ invoice_link: string; stars: number }>(`/api/stars_invoice/${days}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),
-  tegroInvoice:   (days: number) => post<{ checkout_url: string; order_id: string }>(`/api/tegro_invoice/${days}`),
   recent:         ()             => get<{ materials: Material[]; today_count: number; today_sections: TodaySection[]; total_count: number }>('/api/recent'),
   history:        ()             => get<{ materials: Material[] }>('/api/history'),
   clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),

@@ -14,7 +14,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Plan | null>(null)
-  const [paying, setPaying] = useState<'crypto' | 'stars' | 'rub' | null>(null)
+  const [paying, setPaying] = useState<'crypto' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const plansRef = useRef<HTMLDivElement>(null)
 
@@ -49,36 +49,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
     } catch {
       setMsg('Ошибка создания счёта. Попробуйте позже.')
     } finally {
-      setPaying(null)
-    }
-  }
-
-  const buyWithStars = async () => {
-    if (!selected || paying) return
-    setPaying('stars')
-    setMsg(null)
-    try {
-      const { invoice_link } = await api.starsInvoice(selected.days)
-      if (tg?.openInvoice) {
-        tg.openInvoice(invoice_link, (status: string) => {
-          setPaying(null)
-          if (status === 'paid') {
-            setMsg('✅ Оплата прошла! Premium активируется в течение нескольких секунд.')
-            setTimeout(() => {
-              api.profile().then(p => { if (p) setProf(p) }).catch(() => {})
-            }, 3000)
-          } else if (status !== 'cancelled') {
-            setMsg('Платёж не завершён. Попробуйте ещё раз.')
-          } else {
-            setMsg(null)
-          }
-        })
-      } else {
-        tg?.openLink?.(invoice_link)
-        setPaying(null)
-      }
-    } catch {
-      setMsg('Ошибка создания счёта. Попробуйте позже.')
       setPaying(null)
     }
   }
@@ -208,46 +178,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                     : <span className="text-[11px] text-violet font-semibold">{prof?.is_premium ? 'Продлить' : 'Оплатить'}</span>}
                 </button>
 
-                <div className="h-px bg-bd mx-4" />
-
-                {/* Stars */}
-                {selected.stars != null && (
-                  <>
-                    <button
-                      disabled={!!paying}
-                      onClick={buyWithStars}
-                      className="flex items-center gap-3 px-4 py-3.5 active:bg-s2 disabled:opacity-50 transition-colors"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-[rgba(255,210,80,.10)] border border-[rgba(255,210,80,.3)] flex items-center justify-center text-[16px] shrink-0">
-                        ⭐
-                      </div>
-                      <div className="flex-1 text-left">
-                        <div className="text-[13px] font-semibold text-white">Telegram Stars</div>
-                        <div className="text-[11px] text-gray">{selected.stars} звёзд · мгновенно</div>
-                      </div>
-                      {paying === 'stars'
-                        ? <span className="text-[11px] text-gray animate-pulse">Открываю…</span>
-                        : <span className="text-[11px] text-[rgba(255,210,80,1)] font-semibold">{prof?.is_premium ? 'Продлить' : 'Оплатить'}</span>}
-                    </button>
-                    <div className="h-px bg-bd mx-4" />
-                  </>
-                )}
-
-                {/* RUB */}
-                {selected.rub != null && (
-                  <button
-                    disabled
-                    className="flex items-center gap-3 px-4 py-3.5 opacity-50 cursor-not-allowed transition-colors"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-[rgba(76,175,80,.10)] border border-[rgba(76,175,80,.35)] flex items-center justify-center text-[16px] shrink-0">
-                      💳
-                    </div>
-                    <div className="flex-1 text-left">
-                      <div className="text-[13px] font-semibold text-white">Банковская карта <span className="text-gray font-normal">(временно недоступно)</span></div>
-                      <div className="text-[11px] text-gray">Tegro.money · {selected.rub} ₽</div>
-                    </div>
-                  </button>
-                )}
               </div>
             )}
 
