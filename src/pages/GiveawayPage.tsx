@@ -80,7 +80,6 @@ const STAGES: Stage[] = [
       { tag: 'TASK', color: C.blue,  text: 'Найди город, который дублируется на Google картах.' },
     ],
     placeholder: 'название города (рус)',
-    media: [{ type: 'image', file: 'map1.png' }, { type: 'image', file: 'map2.png' }],
   },
   {
     file: 'case_002/brief_05.txt',
