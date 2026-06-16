@@ -55,7 +55,7 @@ const STAGES: Stage[] = [
       { tag: 'HINT', color: C.green, text: 'Это фотография. Приглядись.' },
     ],
     placeholder: 'кодовое слово (рус)',
-    media: [{ type: 'video', file: 'video.mp4' }, { type: 'image', file: 'photo.png' }],
+    media: [{ type: 'video', file: 'video.mp4' }],  // фото НЕ показываем — ищут в Базе
   },
   {
     file: 'case_002/brief_02.txt',
