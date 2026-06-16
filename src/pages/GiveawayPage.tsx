@@ -50,9 +50,8 @@ const STAGES: Stage[] = [
   {
     file: 'case_002/brief_01.txt',
     lines: [
-      { tag: 'CASE', color: C.blue,  text: '002 — начало' },
-      { tag: 'MSG',  color: C.amber, text: 'Смотри внимательно. Ответ — в Базе.' },
-      { tag: 'HINT', color: C.green, text: 'Это фотография. Приглядись.' },
+      { tag: 'CASE', color: C.blue,  text: '002 — дверь первая' },
+      { tag: 'MSG',  color: C.amber, text: 'Смотри внимательно. Здесь всё не случайно.' },
     ],
     placeholder: 'кодовое слово (рус)',
     media: [{ type: 'video', file: 'video.mp4' }],  // фото НЕ показываем — ищут в Базе
@@ -60,8 +59,8 @@ const STAGES: Stage[] = [
   {
     file: 'case_002/brief_02.txt',
     lines: [
-      { tag: 'MSG',  color: C.blue,  text: 'Личный кабинет с двумя дырами.' },
-      { tag: 'TASK', color: C.amber, text: 'Зайди как хакер. Поменяй пользователя.' },
+      { tag: 'MSG',  color: C.blue,  text: 'Личный кабинет. У него есть слабости.' },
+      { tag: 'TASK', color: C.amber, text: 'Войди и достань секрет.' },
       { tag: 'SITE', color: C.green, text: 'SQL-инъекция + IDOR' },
     ],
     placeholder: 'секрет из кабинета (рус)',
@@ -72,8 +71,7 @@ const STAGES: Stage[] = [
     file: 'case_002/brief_03.txt',
     lines: [
       { tag: 'MSG',  color: C.blue,  text: 'Соломония.' },
-      { tag: 'HINT', color: C.amber, text: 'Ты не умеешь прислушиваться.' },
-      { tag: 'HINT', color: C.green, text: 'Ответ — в самом видео.' },
+      { tag: 'TASK', color: C.amber, text: 'Найди ответ.' },
     ],
     placeholder: 'два слова (рус)',
     media: [{ type: 'video', file: 'video.mov' }],
@@ -82,8 +80,6 @@ const STAGES: Stage[] = [
     file: 'case_002/brief_04.txt',
     lines: [
       { tag: 'TASK', color: C.blue,  text: 'Найди город, который дублируется на Google картах.' },
-      { tag: 'HINT', color: C.amber, text: 'Вспомни конкурс в Антарктиде.' },
-      { tag: 'HINT', color: C.green, text: 'Этого места не существует — но на картах оно есть.' },
     ],
     placeholder: 'название города (рус)',
     media: [{ type: 'image', file: 'map1.png' }, { type: 'image', file: 'map2.png' }],
@@ -92,8 +88,6 @@ const STAGES: Stage[] = [
     file: 'case_002/brief_05.txt',
     lines: [
       { tag: 'MSG',  color: C.blue,  text: 'Найди нас.' },
-      { tag: 'HINT', color: C.amber, text: 'Ищи меня в себе.' },
-      { tag: 'HINT', color: C.green, text: 'Мы идеальны.' },
     ],
     placeholder: 'одно слово (рус)',
     media: [{ type: 'image', file: 'photo.png' }],
@@ -103,7 +97,6 @@ const STAGES: Stage[] = [
     lines: [
       { tag: 'MSG',    color: C.blue,  text: 'Эх, чего-то не хватает.' },
       { tag: 'CIPHER', color: C.amber, text: 'Шифр без ключа бессмысленный.' },
-      { tag: 'HINT',   color: C.green, text: 'Вернись к истокам предыдущих заданий.' },
     ],
     placeholder: 'имя (рус)',
     media: [{ type: 'image', file: 'cipher.png' }],
