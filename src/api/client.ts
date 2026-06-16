@@ -81,6 +81,7 @@ export interface Config {
   plans: Plan[]
   currency: string
   bot_username?: string
+  giveaway_visible?: boolean
 }
 
 export interface Banner {

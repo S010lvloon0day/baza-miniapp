@@ -35,11 +35,16 @@ export default function App() {
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [botUsername, setBotUsername] = useState('')
   const [upgradePending, setUpgradePending] = useState(false)
+  // Квест виден только когда сервер разрешил (включён или текущий юзер — админ)
+  const [giveawayVisible, setGiveawayVisible] = useState(false)
 
   useEffect(() => {
     tg?.expand?.()
     tg?.ready?.()
-    api.config().then(c => { if (c.bot_username) setBotUsername(c.bot_username) }).catch(() => {})
+    api.config().then(c => {
+      if (c.bot_username) setBotUsername(c.bot_username)
+      setGiveawayVisible(!!c.giveaway_visible)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -90,8 +95,8 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onGiveaway={openGiveaway} />
-      if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={openGiveaway} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onGiveaway={openGiveaway} showGiveaway={giveawayVisible} />
+      if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
       if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
@@ -101,6 +106,8 @@ export default function App() {
       return <SectionPage section={top.section} initialPage={top.page} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
     }
     if (top?.type === 'giveaway') {
+      // Защита: если квест скрыт (не админ / выключен) — не открываем экран
+      if (!giveawayVisible) return null
       return <GiveawayPage />
     }
     if (top?.type === 'material') {

@@ -10,9 +10,10 @@ interface Props {
   onMaterial: (id: number, sectionId: number) => void
   onTabCats: () => void
   onGiveaway: () => void
+  showGiveaway: boolean
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway, showGiveaway }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -105,8 +106,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
       {/* Banner carousel */}
       {banners.length > 0 && <BannerCard banners={banners} />}
 
-      {/* Giveaway card */}
-      {giveawayWinner ? (
+      {/* Giveaway card — показывается только когда квест разрешён (включён / админ) */}
+      {showGiveaway && (giveawayWinner ? (
         <div
           onClick={onGiveaway}
           className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
@@ -116,7 +117,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
           <div className="flex items-center gap-3 px-4 py-3.5">
             <div className="text-2xl shrink-0">🏆</div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">CASE 001: RABBIT HOLE — завершён</div>
+              <div className="text-[13px] font-bold text-white">Case002 — завершён</div>
               <div className="text-[10px] font-mono" style={{ color: 'rgba(255,188,46,.75)' }}>// победитель: @{giveawayWinner} · квест открыт</div>
             </div>
             <span className="font-bold text-[18px] shrink-0" style={{ color: 'rgba(255,188,46,.75)' }}>›</span>
@@ -130,15 +131,15 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway 
         >
           <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(157,92,255,.7), transparent)' }} />
           <div className="flex items-center gap-3 px-4 py-3.5">
-            <div className="text-2xl shrink-0">🐇</div>
+            <div className="text-2xl shrink-0">🕵️</div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">CASE 001: RABBIT HOLE</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// расследование · 5 этапов · приз: [REDACTED]</div>
+              <div className="text-[13px] font-bold text-white">Case002</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// новое расследование · скоро · приз: [REDACTED]</div>
             </div>
             <span className="font-bold text-[18px] shrink-0" style={{ color: '#C7A6FF' }}>›</span>
           </div>
         </div>
-      )}
+      ))}
 
       {/* Recent */}
       {(totalCount > 0 || recent.length > 0) && (
