@@ -59,9 +59,7 @@ const STAGES: Stage[] = [
   {
     file: 'case_002/brief_02.txt',
     lines: [
-      { tag: 'MSG',  color: C.blue,  text: 'Личный кабинет. У него есть слабости.' },
-      { tag: 'TASK', color: C.amber, text: 'Войди и достань секрет.' },
-      { tag: 'SITE', color: C.green, text: 'SQL-инъекция + IDOR' },
+      { tag: 'TARGET', color: C.blue, text: 'Личный кабинет — по ссылке ниже.' },
     ],
     placeholder: 'секрет из кабинета (рус)',
     media: [{ type: 'video', file: 'video.mp4' }],
