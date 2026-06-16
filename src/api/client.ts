@@ -118,4 +118,16 @@ export const api = {
   giveawayCheck:  (level: number, code: string) => post<{ ok: boolean; error?: string; winner?: string }>('/api/giveaway/check', { level, code }),
   giveawayWinner: () => get<{ winner: { username: string; won_at: string } | null }>('/api/giveaway/winner'),
   giveawayProgress: () => get<{ level: number }>('/api/giveaway/progress'),
+  giveawayHints: (stage: number) =>
+    get<{ hints: { idx: number; unlocked: boolean; price: number; text: string | null }[] }>(`/api/giveaway/hints/${stage}`),
+  giveawayHintInvoice: (stage: number, hintIdx: number) =>
+    post<{ pay_url?: string; invoice_id?: string; stage?: number; hint_idx?: number; price?: number; error?: string }>('/api/giveaway/hint_invoice', { stage, hint_idx: hintIdx }),
+  giveawayHintConfirm: (invoiceId: string) =>
+    post<{ ok?: boolean; status?: string; stage?: number; hint_idx?: number; text?: string; error?: string }>('/api/giveaway/hint_confirm', { invoice_id: invoiceId }),
+}
+
+// URL медиа-ассета этапа. init_data в query — <video>/<img> не умеют слать заголовки.
+export function giveawayAssetUrl(stage: number, file: string): string {
+  const init = encodeURIComponent(tg?.initData || '')
+  return `${API_BASE}/api/giveaway/asset/${stage}/${file}?init_data=${init}`
 }

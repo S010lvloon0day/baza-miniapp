@@ -1,19 +1,17 @@
 import { useState, useEffect, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { api } from '../api/client'
+import { api, giveawayAssetUrl } from '../api/client'
 
 // ================================================================
-//  Case002 — расследование. Этапы описываются массивом STAGES ниже.
-//  Ответ на каждый этап задаётся в .env на сервере (GIVEAWAY_CODE_N,
-//  по порядку), число этапов = длине STAGES (и числу кодов в .env).
-//
-//  СТАТУС: сценарий в настройке — STAGES пуст, квест виден только
-//  админам (сервер: GIVEAWAY_ENABLED=0). Когда придёт контент с Mac —
-//  заполнить STAGES + GIVEAWAY_CODE_* в .env и выставить GIVEAWAY_ENABLED=1.
+//  Case002 — расследование из 7 этапов.
+//  Ответы задаются в .env на сервере (GIVEAWAY_CODE_1..7, по порядку).
+//  Медиа (видео/фото) лежат на сервере и отдаются через /api/giveaway/asset.
+//  Подсказки платные — 1 USDT за подсказку через CryptoBot (логика на сервере).
 // ================================================================
-const SECRET_OFFER = 'Ты прошёл Case002 до конца. Напиши @S010lvloon_bot и отправь скриншот этого экрана, чтобы получить приз.'
-const ADMIN_TG     = 'S010lvloon'   // Telegram username для связи
+const SECRET_OFFER = 'Ты прошёл Case002 до конца. Напиши контакт ниже и отправь скриншот этого экрана, чтобы получить приз.'
+const ADMIN_TG     = 'S010lvloon'   // TODO: контакт для приза (уточняется)
 const CASE_TITLE   = 'Case002'
+const SITE_URL     = 'https://case2.s010lvloon.com'  // сайт этапа 2 (SQLi/IDOR)
 // ================================================================
 
 const LS_KEY   = 'case002_lvl'
@@ -25,24 +23,102 @@ function saveLevel(n: number) { localStorage.setItem(LS_KEY, String(n)) }
 function isDone()             { return localStorage.getItem(DONE_KEY) === '1' }
 function markDone()           { localStorage.setItem(DONE_KEY, '1') }
 
+function openPay(url: string) {
+  if (url.includes('t.me') && tgApp?.openTelegramLink) tgApp.openTelegramLink(url)
+  else if (tgApp?.openLink) tgApp.openLink(url)
+  else window.open(url, '_blank')
+}
+
 // ---------- stage content ----------
 
 type TermLine = { tag: string; color: string; text: string }
-
+type Media    = { type: 'video' | 'image'; file: string }
 type StageLink = { url: string; title: string; hint: string }
 
 type Stage = {
   file: string
   lines: TermLine[]
   placeholder: string
-  link?: StageLink   // опциональная кнопка-ссылка (координаты / URL)
+  media?: Media[]
+  link?: StageLink
 }
 
-// Палитра тегов для строк терминала (использовать при наполнении STAGES):
-// const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#28C840' }
+const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#28C840' }
 
-// Этапы Case002. Пусто — сценарий в настройке (наполнить с Mac).
-const STAGES: Stage[] = []
+// Этапы Case002 (индекс 0 = этап 1). Серверный номер этапа = индекс + 1.
+const STAGES: Stage[] = [
+  {
+    file: 'case_002/brief_01.txt',
+    lines: [
+      { tag: 'CASE', color: C.blue,  text: '002 — начало' },
+      { tag: 'MSG',  color: C.amber, text: 'Смотри внимательно. Ответ — в Базе.' },
+      { tag: 'HINT', color: C.green, text: 'Это фотография. Приглядись.' },
+    ],
+    placeholder: 'кодовое слово (рус)',
+    media: [{ type: 'video', file: 'video.mp4' }, { type: 'image', file: 'photo.png' }],
+  },
+  {
+    file: 'case_002/brief_02.txt',
+    lines: [
+      { tag: 'MSG',  color: C.blue,  text: 'Личный кабинет с двумя дырами.' },
+      { tag: 'TASK', color: C.amber, text: 'Зайди как хакер. Поменяй пользователя.' },
+      { tag: 'SITE', color: C.green, text: 'SQL-инъекция + IDOR' },
+    ],
+    placeholder: 'секрет из кабинета (рус)',
+    media: [{ type: 'video', file: 'video.mp4' }],
+    link: { url: SITE_URL, title: 'Открыть сайт цели', hint: '// войди и достань секрет' },
+  },
+  {
+    file: 'case_002/brief_03.txt',
+    lines: [
+      { tag: 'MSG',  color: C.blue,  text: 'Соломония.' },
+      { tag: 'HINT', color: C.amber, text: 'Ты не умеешь прислушиваться.' },
+      { tag: 'HINT', color: C.green, text: 'Ответ — в самом видео.' },
+    ],
+    placeholder: 'два слова (рус)',
+    media: [{ type: 'video', file: 'video.mov' }],
+  },
+  {
+    file: 'case_002/brief_04.txt',
+    lines: [
+      { tag: 'TASK', color: C.blue,  text: 'Найди город, который дублируется на Google картах.' },
+      { tag: 'HINT', color: C.amber, text: 'Вспомни конкурс в Антарктиде.' },
+      { tag: 'HINT', color: C.green, text: 'Этого места не существует — но на картах оно есть.' },
+    ],
+    placeholder: 'название города (рус)',
+    media: [{ type: 'image', file: 'map1.png' }, { type: 'image', file: 'map2.png' }],
+  },
+  {
+    file: 'case_002/brief_05.txt',
+    lines: [
+      { tag: 'MSG',  color: C.blue,  text: 'Найди нас.' },
+      { tag: 'HINT', color: C.amber, text: 'Ищи меня в себе.' },
+      { tag: 'HINT', color: C.green, text: 'Мы идеальны.' },
+    ],
+    placeholder: 'одно слово (рус)',
+    media: [{ type: 'image', file: 'photo.png' }],
+  },
+  {
+    file: 'case_002/brief_06.txt',
+    lines: [
+      { tag: 'MSG',    color: C.blue,  text: 'Эх, чего-то не хватает.' },
+      { tag: 'CIPHER', color: C.amber, text: 'Шифр без ключа бессмысленный.' },
+      { tag: 'HINT',   color: C.green, text: 'Вернись к истокам предыдущих заданий.' },
+    ],
+    placeholder: 'имя (рус)',
+    media: [{ type: 'image', file: 'cipher.png' }],
+  },
+  {
+    file: 'case_002/brief_07.txt',
+    lines: [
+      { tag: 'FINAL', color: C.blue,  text: 'Печать Семи Дверей' },
+      { tag: 'MSG',   color: C.amber, text: 'Шесть имён ты добыл в пути — каждое стало числом.' },
+      { tag: 'MSG',   color: C.amber, text: 'Голова — место буквы в азбуке. Рост — букв до конца.' },
+      { tag: 'TASK',  color: C.green, text: 'Перемножь в каждом имени, сложи шесть чисел.' },
+    ],
+    placeholder: 'число',
+  },
+]
 
 const TOTAL = STAGES.length
 
@@ -64,13 +140,126 @@ function TermCard({ filename, children }: { filename: string; children: ReactNod
 
 function Steps({ step }: { step: number }) {
   return (
-    <div className="flex items-center gap-1.5 font-mono text-[10px] text-gray2">
+    <div className="flex items-center gap-1 font-mono text-[10px] text-gray2">
       {Array.from({ length: TOTAL }, (_, i) => i + 1).map(n => (
         <span key={n} style={{ color: n <= step ? '#28C840' : undefined }}>
           {n < step ? '●' : n === step ? '◉' : '○'}
         </span>
       ))}
-      <span>{step} / {TOTAL}</span>
+      <span className="ml-1">{step}/{TOTAL}</span>
+    </div>
+  )
+}
+
+function MediaBlock({ serverStage, media }: { serverStage: number; media: Media[] }) {
+  return (
+    <div className="flex flex-col gap-3">
+      {media.map((m, i) => m.type === 'video' ? (
+        <video
+          key={i}
+          src={giveawayAssetUrl(serverStage, m.file)}
+          controls playsInline preload="metadata"
+          className="w-full border border-bd2 bg-black"
+          style={{ maxHeight: 420 }}
+        />
+      ) : (
+        <img
+          key={i}
+          src={giveawayAssetUrl(serverStage, m.file)}
+          alt={`stage ${serverStage} media ${i + 1}`}
+          className="w-full border border-bd2 bg-black object-contain"
+          style={{ maxHeight: 480 }}
+        />
+      ))}
+    </div>
+  )
+}
+
+type HintItem = { idx: number; unlocked: boolean; price: number; text: string | null }
+
+function HintsPanel({ serverStage }: { serverStage: number }) {
+  const [open, setOpen]       = useState(false)
+  const [hints, setHints]     = useState<HintItem[]>([])
+  const [pending, setPending] = useState<Record<number, string>>({})  // idx -> invoice_id
+  const [busy, setBusy]       = useState<number | null>(null)
+  const [msg, setMsg]         = useState<string | null>(null)
+
+  const load = () => api.giveawayHints(serverStage).then(r => setHints(r.hints)).catch(() => {})
+  useEffect(() => { setMsg(null); setPending({}); setHints([]); load() }, [serverStage])
+
+  const buy = async (idx: number) => {
+    setBusy(idx); setMsg(null)
+    try {
+      const r = await api.giveawayHintInvoice(serverStage, idx)
+      if (r.error === 'already_owned') { await load(); return }
+      if (!r.pay_url || !r.invoice_id) { setMsg('Не удалось создать счёт. Попробуй позже.'); return }
+      setPending(p => ({ ...p, [idx]: r.invoice_id! }))
+      openPay(r.pay_url)
+    } catch { setMsg('Ошибка оплаты. Попробуй позже.') } finally { setBusy(null) }
+  }
+
+  const check = async (idx: number) => {
+    const inv = pending[idx]; if (!inv) return
+    setBusy(idx); setMsg(null)
+    try {
+      const r = await api.giveawayHintConfirm(inv)
+      if (r.ok) {
+        setHints(hs => hs.map(h => h.idx === idx ? { ...h, unlocked: true, text: r.text ?? h.text } : h))
+        setPending(p => { const n = { ...p }; delete n[idx]; return n })
+      } else if (r.status && r.status !== 'paid') {
+        setMsg('Оплата ещё не поступила — подожди минуту и проверь снова.')
+      } else {
+        setMsg('Не удалось подтвердить оплату.')
+      }
+    } catch { setMsg('Ошибка проверки. Попробуй позже.') } finally { setBusy(null) }
+  }
+
+  if (hints.length === 0) return null
+
+  return (
+    <div className="border border-bd2 bg-s1">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-3 py-2.5 font-mono text-[11px] text-white active:bg-s2 transition-colors"
+      >
+        <span>💡 Подсказки · {hints[0]?.price ?? 1} USDT за шт.</span>
+        <span className="text-gray2">{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div className="px-3 pb-3 flex flex-col gap-2">
+          {hints.map(h => (
+            <div key={h.idx} className="border border-bd2 bg-bg px-3 py-2.5">
+              {h.unlocked ? (
+                <div className="font-mono text-[11px]" style={{ color: '#28C840' }}>
+                  <span className="text-gray2">Подсказка #{h.idx + 1}:</span>
+                  <div className="text-white mt-1 font-sans text-[13px] leading-snug">{h.text}</div>
+                </div>
+              ) : pending[h.idx] ? (
+                <div className="flex flex-col gap-2">
+                  <div className="font-mono text-[10px] text-gray2">Подсказка #{h.idx + 1} · ожидает оплаты</div>
+                  <button
+                    onClick={() => check(h.idx)} disabled={busy === h.idx}
+                    className="w-full py-2.5 bg-white text-bg font-mono font-bold text-[11px] tracking-[1px] uppercase disabled:opacity-40 active:bg-white/80"
+                  >
+                    {busy === h.idx ? <span className="blink">ПРОВЕРКА...</span> : '✅ Я ОПЛАТИЛ — ПРОВЕРИТЬ'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => buy(h.idx)} disabled={busy === h.idx}
+                  className="w-full flex items-center justify-between gap-2 disabled:opacity-40"
+                >
+                  <span className="font-mono text-[11px] text-gray2">🔒 Подсказка #{h.idx + 1}</span>
+                  <span className="font-mono text-[11px] px-2.5 py-1 border border-bd2 text-white" style={{ background: 'rgba(157,92,255,.12)' }}>
+                    {busy === h.idx ? '...' : `Открыть · ${h.price} USDT`}
+                  </span>
+                </button>
+              )}
+            </div>
+          ))}
+          {msg && <div className="font-mono text-[10px]" style={{ color: '#FBBF24' }}>{msg}</div>}
+        </div>
+      )}
     </div>
   )
 }
@@ -135,6 +324,7 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
   errorText?: string | null
 }) {
   const stage = STAGES[level]
+  const serverStage = level + 1
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -184,6 +374,10 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
         </div>
       </TermCard>
 
+      {stage.media && stage.media.length > 0 && (
+        <MediaBlock serverStage={serverStage} media={stage.media} />
+      )}
+
       {stage.link && (
         <button
           onClick={() => onLink(stage.link!.url)}
@@ -199,6 +393,8 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
           <span className="text-gray2 text-[16px]">›</span>
         </button>
       )}
+
+      <HintsPanel serverStage={serverStage} />
 
       {passed ? (
         <>
@@ -310,7 +506,7 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
   )
 }
 
-// Заглушка на время настройки сценария (STAGES пуст). Видна только админам.
+// Заглушка на время настройки (STAGES пуст). Видна только админам.
 function SetupScreen() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
@@ -339,9 +535,6 @@ export default function GiveawayPage() {
 
   useEffect(() => {
     if (TOTAL === 0) return
-    // Прогресс хранится на сервере — восстанавливаем, если localStorage очищен.
-    // При повторном прохождении (DONE_KEY) серверный максимум не перетирает
-    // локальный уровень — иначе повтор сбрасывался бы на финал при перезагрузке.
     api.giveawayProgress().then(r => {
       if (r.level >= TOTAL) { markDone(); setCompletedOnce(true) }
       if (r.level > getLevel() && !isDone()) {
@@ -364,8 +557,6 @@ export default function GiveawayPage() {
   }
 
   const replay = () => {
-    // Сбрасываем только локально — серверный прогресс хранит MAX(level),
-    // победитель не перезаписывается
     markDone()
     saveLevel(0)
     setLevelState(0)

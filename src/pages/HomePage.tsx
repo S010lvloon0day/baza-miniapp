@@ -134,7 +134,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
             <div className="text-2xl shrink-0">🕵️</div>
             <div className="flex-1 min-w-0">
               <div className="text-[13px] font-bold text-white">Case002</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// новое расследование · скоро · приз: [REDACTED]</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// расследование · 7 этапов · приз: [REDACTED]</div>
             </div>
             <span className="font-bold text-[18px] shrink-0" style={{ color: '#C7A6FF' }}>›</span>
           </div>
