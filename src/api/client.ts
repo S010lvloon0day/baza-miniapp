@@ -39,6 +39,8 @@ export interface Section {
   emoji: string
   description: string
   is_premium: number
+  price?: number
+  owned?: boolean
   locked?: boolean
 }
 
@@ -124,6 +126,10 @@ export const api = {
     post<{ pay_url?: string; invoice_id?: string; stage?: number; hint_idx?: number; price?: number; error?: string }>('/api/giveaway/hint_invoice', { stage, hint_idx: hintIdx }),
   giveawayHintConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; stage?: number; hint_idx?: number; text?: string; error?: string }>('/api/giveaway/hint_confirm', { invoice_id: invoiceId }),
+  courseInvoice: (sectionId: number) =>
+    post<{ pay_url?: string; invoice_id?: string; section_id?: number; price?: number; error?: string }>('/api/course/invoice', { section_id: sectionId }),
+  courseConfirm: (invoiceId: string) =>
+    post<{ ok?: boolean; status?: string; section_id?: number; error?: string }>('/api/course/confirm', { invoice_id: invoiceId }),
 }
 
 // URL медиа-ассета этапа. init_data в query — <video>/<img> не умеют слать заголовки.

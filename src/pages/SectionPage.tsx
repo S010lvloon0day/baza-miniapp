@@ -4,6 +4,13 @@ import { Image, Video, File, Article, Star, Lock, Check } from '@phosphor-icons/
 import { api } from '../api/client'
 import type { Section, Material } from '../api/client'
 
+const tg = (window as any).Telegram?.WebApp
+const openPay = (url: string) => {
+  if (url.includes('t.me') && tg?.openTelegramLink) tg.openTelegramLink(url)
+  else if (tg?.openLink) tg.openLink(url)
+  else window.open(url, '_blank')
+}
+
 interface MaterialsResponse {
   materials: Material[]
   total: number
@@ -87,6 +94,88 @@ function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: ()
   )
 }
 
+function CoursePaywall({ section, onPurchased }: { section: Section; onPurchased: () => void }) {
+  const price = section.price ?? 0
+  const [invoice, setInvoice] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState<string | null>(null)
+
+  const buy = async () => {
+    setBusy(true); setMsg(null)
+    try {
+      const r = await api.courseInvoice(section.id)
+      if (r.error === 'already_owned') { onPurchased(); return }
+      if (!r.pay_url || !r.invoice_id) { setMsg('Не удалось создать счёт. Попробуй позже.'); return }
+      setInvoice(r.invoice_id)
+      openPay(r.pay_url)
+    } catch { setMsg('Ошибка оплаты. Попробуй позже.') } finally { setBusy(false) }
+  }
+
+  const check = async () => {
+    if (!invoice) return
+    setBusy(true); setMsg(null)
+    try {
+      const r = await api.courseConfirm(invoice)
+      if (r.ok) { onPurchased(); return }
+      if (r.status && r.status !== 'paid') setMsg('Оплата ещё не поступила — подожди минуту и проверь снова.')
+      else setMsg('Не удалось подтвердить оплату.')
+    } catch { setMsg('Ошибка проверки. Попробуй позже.') } finally { setBusy(false) }
+  }
+
+  return (
+    <div className="flex-1 overflow-y-auto pb-14">
+      <div className="flex flex-col items-center px-5 py-10 text-center gap-6">
+        <div className="relative">
+          <div className="w-24 h-24 bg-[rgba(40,200,64,.08)] border border-[rgba(40,200,64,.25)] rounded-2xl flex items-center justify-center text-5xl">
+            {section.emoji || '📁'}
+          </div>
+          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green rounded-full flex items-center justify-center shadow-lg">
+            <Lock size={16} weight="fill" className="text-bg" />
+          </div>
+        </div>
+
+        <div className="flex flex-col items-center gap-2">
+          <div className="font-display text-[18px] tracking-[2px] uppercase leading-snug text-white max-w-[260px]">
+            {section.title}
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(40,200,64,.12)] border border-[rgba(40,200,64,.3)]">
+            <span className="text-[11px] font-bold tracking-[1px] text-green uppercase">💰 Платный курс</span>
+          </div>
+        </div>
+
+        {section.description && (
+          <div className="text-[13px] text-gray leading-relaxed max-w-[280px]">{section.description}</div>
+        )}
+
+        <div className="w-full border border-bd rounded-xl p-4 flex flex-col gap-2 text-left" style={{ background: 'rgba(40,200,64,.04)' }}>
+          <div className="flex items-baseline justify-between">
+            <span className="text-[12px] text-gray uppercase tracking-[1px]">Стоимость</span>
+            <span className="text-[22px] font-bold text-white">{price} USDT</span>
+          </div>
+          <div className="text-[12px] text-white/70">Разовая покупка — доступ к курсу навсегда. Оплата криптовалютой (USDT) через CryptoBot.</div>
+        </div>
+
+        {!invoice ? (
+          <button
+            onClick={buy} disabled={busy}
+            className="w-full py-4 bg-green rounded-xl font-bold text-[15px] text-bg tracking-wide active:opacity-80 transition-opacity disabled:opacity-50"
+          >
+            💰 Купить за {price} USDT
+          </button>
+        ) : (
+          <button
+            onClick={check} disabled={busy}
+            className="w-full py-4 bg-white rounded-xl font-bold text-[15px] text-bg tracking-wide active:opacity-80 transition-opacity disabled:opacity-50"
+          >
+            ✅ Я оплатил — проверить
+          </button>
+        )}
+        {msg && <div className="text-[12px] text-gray2 leading-relaxed">{msg}</div>}
+      </div>
+    </div>
+  )
+}
+
 export default function SectionPage({ section, initialPage = 0, onMaterial, onSubsection, onUpgrade }: Props) {
   const [subs, setSubs] = useState<Section[]>([])
   const [mats, setMats] = useState<Material[]>([])
@@ -94,10 +183,14 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [totalWithPremium, setTotalWithPremium] = useState(0)
   const [page, setPage] = useState(initialPage)
   const [loading, setLoading] = useState(true)
+  const [owned, setOwned] = useState(!!section.owned)
+
+  const isPaid = (section.price ?? 0) > 0
+  const courseLocked = isPaid && !owned   // платный курс, ещё не куплен
 
   // Все хуки — до любого conditional return
   useEffect(() => {
-    if (section.locked) { setLoading(false); return }
+    if ((section.locked && !owned) || courseLocked) { setLoading(false); return }
     setPage(initialPage); setLoading(true)
     Promise.all([
       api.subsections(section.id).catch(() => ({ sections: [] as Section[] })),
@@ -108,7 +201,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
       setTotal(md.total)
       setTotalWithPremium((md as MaterialsResponse).total_with_premium ?? md.total)
     }).finally(() => setLoading(false))
-  }, [section.id])
+  }, [section.id, owned])
 
   const loadPage = async (p: number) => {
     setLoading(true)
@@ -118,8 +211,11 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
 
   const totalPages = Math.ceil(total / ITEMS_PER_PAGE) || 1
 
+  // Платный курс — экран покупки (подписка его не открывает)
+  if (courseLocked) return <CoursePaywall section={section} onPurchased={() => setOwned(true)} />
+
   // Показываем upsell если раздел locked ИЛИ все материалы premium (пусто для не-премиум)
-  const showUpsell = section.locked || (!loading && total === 0 && totalWithPremium > 0 && subs.length === 0)
+  const showUpsell = (section.locked && !owned) || (!loading && total === 0 && totalWithPremium > 0 && subs.length === 0)
   if (showUpsell) return <PremiumUpsell section={section} onUpgrade={onUpgrade} />
 
   return (
