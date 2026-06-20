@@ -6,6 +6,8 @@ import type { Section } from '../api/client'
 
 interface Props { onSection: (s: Section) => void; onGiveaway?: () => void }
 
+const FEATURED_TITLE = 'Знания S010lvloon'
+
 export default function CatsPage({ onSection, onGiveaway }: Props) {
   const [cats, setCats] = useState<Section[]>([])
   const [loading, setLoading] = useState(true)
@@ -23,11 +25,47 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
     </div>
   )
 
+  const featured = cats.find(s => s.title === FEATURED_TITLE)
+  const rest = cats.filter(s => s.title !== FEATURED_TITLE)
+
   return (
     <div className="flex-1 overflow-y-auto pb-14">
       <div className="px-4 pt-4 pb-2 text-[11px] font-mono tracking-[1px] text-gray2">
         // {cats.length} разделов доступно
       </div>
+
+      {/* Featured — авторский раздел S010lvloon */}
+      {featured && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => onSection(featured)}
+          className="relative mx-4 mb-3 cursor-pointer overflow-hidden rounded-md active:opacity-80 transition-opacity"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,188,46,.12), rgba(255,140,0,.05))',
+            border: '1px solid rgba(255,188,46,.45)',
+            boxShadow: '0 0 22px rgba(255,188,46,.12)',
+          }}
+        >
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.8), transparent)' }} />
+          <div className="flex items-center gap-3 px-4 py-4">
+            <div
+              className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+              style={{ background: 'rgba(255,188,46,.14)', border: '1px solid rgba(255,188,46,.35)' }}
+            >
+              {featured.emoji || '🧠'}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="inline-flex items-center gap-1 px-1.5 py-0.5 mb-1 rounded-sm" style={{ background: 'rgba(255,188,46,.18)' }}>
+                <span className="text-[8px] font-bold tracking-[2px] uppercase" style={{ color: '#FFBC2E' }}>★ Автор</span>
+              </div>
+              <div className="text-[14px] font-bold text-white leading-tight truncate">{featured.title}</div>
+              <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: 'rgba(255,188,46,.7)' }}>// курс · публикации · фишки</div>
+            </div>
+            <span className="font-bold text-[20px] shrink-0" style={{ color: '#FFBC2E' }}>›</span>
+          </div>
+        </motion.div>
+      )}
 
       {/* Secret giveaway card */}
       {onGiveaway && (
@@ -49,7 +87,7 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
       )}
 
       <div className="grid grid-cols-4 gap-2 px-4 pb-4">
-        {cats.map((s, i) => (
+        {rest.map((s, i) => (
           <motion.div
             key={s.id}
             initial={{ opacity: 0, y: 8 }}
