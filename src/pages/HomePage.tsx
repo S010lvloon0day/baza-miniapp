@@ -126,8 +126,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
           <div className="flex items-center gap-3 px-4 py-3.5">
             <div className="text-2xl shrink-0">🏆</div>
             <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">Case002 — завершён</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(255,188,46,.75)' }}>// победитель: @{giveawayWinner} · квест открыт</div>
+              <div className="text-[13px] font-bold text-white">Case002 — квест открыт</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(255,188,46,.75)' }}>// приз выдан победителю @{giveawayWinner} · проходи квест</div>
             </div>
             <span className="font-bold text-[18px] shrink-0" style={{ color: 'rgba(255,188,46,.75)' }}>›</span>
           </div>
