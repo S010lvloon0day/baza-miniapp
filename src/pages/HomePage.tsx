@@ -11,9 +11,10 @@ interface Props {
   onTabCats: () => void
   onGiveaway: () => void
   showGiveaway: boolean
+  botUsername?: string
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway, showGiveaway }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway, showGiveaway, botUsername }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -48,6 +49,14 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
 
   const openSection = (s: TodaySection) =>
     onSection({ id: s.id, title: s.title, emoji: s.emoji, parent_id: null, description: '', is_premium: 0 })
+
+  const openSubmit = () => {
+    if (!botUsername) return
+    const url = `https://t.me/${botUsername}?start=submit`
+    const tg = (window as any).Telegram?.WebApp
+    if (tg?.openTelegramLink) tg.openTelegramLink(url)
+    else window.open(url, '_blank')
+  }
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -140,6 +149,25 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
           </div>
         </div>
       ))}
+
+      {/* Предложить материал — открывает бота с готовым флоу подачи */}
+      {botUsername && (
+        <div
+          onClick={openSubmit}
+          className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
+          style={{ background: 'rgba(40,200,64,.05)', border: '1px solid rgba(40,200,64,.3)' }}
+        >
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(40,200,64,.7), transparent)' }} />
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="text-2xl shrink-0">📤</div>
+            <div className="flex-1 min-w-0">
+              <div className="text-[13px] font-bold text-white">Предложить материал</div>
+              <div className="text-[10px] font-mono" style={{ color: 'rgba(40,200,64,.75)' }}>// поделись полезным — добавим в базу после модерации</div>
+            </div>
+            <span className="font-bold text-[18px] shrink-0" style={{ color: 'rgba(40,200,64,.85)' }}>›</span>
+          </div>
+        </div>
+      )}
 
       {/* Recent */}
       {(totalCount > 0 || recent.length > 0) && (

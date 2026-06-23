@@ -445,12 +445,14 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
         </motion.div>
       </div>
 
+      {/* Приз выдаётся один раз. Если победитель уже определён — остальные
+          могут проходить квест, но приз больше не выдаётся. */}
       {hasWinner ? (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
           className="font-mono text-[11px] text-gray2 text-center leading-relaxed"
         >
-          // расследование пройдено<br />// этот розыгрыш уже завершён — победитель определён
+          // расследование пройдено<br />// приз уже выдан победителю — квест открыт для всех
         </motion.div>
       ) : (
         <>

@@ -95,7 +95,7 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onGiveaway={openGiveaway} showGiveaway={giveawayVisible} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onGiveaway={openGiveaway} showGiveaway={giveawayVisible} botUsername={botUsername} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
