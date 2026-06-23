@@ -112,6 +112,21 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
         </div>
       </div>
 
+      {/* Предложить материал — компактная терминальная строка в стиле hero,
+          открывает бота с готовым флоу подачи (выше баннера, без перегруза) */}
+      {botUsername && (
+        <div
+          onClick={openSubmit}
+          className="mx-4 mt-2.5 flex items-center gap-2 px-3.5 py-2.5 cursor-pointer font-mono text-[11px] active:opacity-70 transition-opacity"
+          style={{ background: 'rgba(40,200,64,.04)', border: '1px dashed rgba(40,200,64,.4)' }}
+        >
+          <span className="shrink-0 font-bold" style={{ color: '#28C840' }}>+</span>
+          <span className="shrink-0 text-white/85">./contribute</span>
+          <span className="flex-1 truncate text-gray2/70">— предложить материал в базу</span>
+          <span className="shrink-0 font-bold" style={{ color: 'rgba(40,200,64,.9)' }}>›</span>
+        </div>
+      )}
+
       {/* Banner carousel */}
       {banners.length > 0 && <BannerCard banners={banners} />}
 
@@ -149,25 +164,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
           </div>
         </div>
       ))}
-
-      {/* Предложить материал — открывает бота с готовым флоу подачи */}
-      {botUsername && (
-        <div
-          onClick={openSubmit}
-          className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
-          style={{ background: 'rgba(40,200,64,.05)', border: '1px solid rgba(40,200,64,.3)' }}
-        >
-          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(40,200,64,.7), transparent)' }} />
-          <div className="flex items-center gap-3 px-4 py-3.5">
-            <div className="text-2xl shrink-0">📤</div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">Предложить материал</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(40,200,64,.75)' }}>// поделись полезным — добавим в базу после модерации</div>
-            </div>
-            <span className="font-bold text-[18px] shrink-0" style={{ color: 'rgba(40,200,64,.85)' }}>›</span>
-          </div>
-        </div>
-      )}
 
       {/* Recent */}
       {(totalCount > 0 || recent.length > 0) && (
