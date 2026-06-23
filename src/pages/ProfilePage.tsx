@@ -54,6 +54,14 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   }
 
 
+  const openSubmit = () => {
+    const u = cfg.bot_username
+    if (!u) return
+    const url = `https://t.me/${u}?start=submit`
+    if (tg?.openTelegramLink) tg.openTelegramLink(url)
+    else window.open(url, '_blank')
+  }
+
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
@@ -117,6 +125,24 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Предложить материал — открывает бота с готовым флоу подачи */}
+        {cfg.bot_username && (
+          <button
+            onClick={openSubmit}
+            className="flex items-center gap-3 px-4 py-3.5 active:bg-s2 transition-colors"
+            style={{ background: 'rgba(157,92,255,.06)', border: '1px solid rgba(157,92,255,.3)' }}
+          >
+            <div className="w-9 h-9 rounded-full bg-[rgba(157,92,255,.12)] border border-[rgba(157,92,255,.3)] flex items-center justify-center text-[16px] shrink-0">
+              📤
+            </div>
+            <div className="flex-1 text-left">
+              <div className="text-[13px] font-semibold text-white">Предложить материал</div>
+              <div className="text-[11px] text-gray">После модерации добавим в базу знаний</div>
+            </div>
+            <span className="text-[18px] text-gray2">›</span>
+          </button>
+        )}
 
         {/* Plans */}
         {cfg.plans.length > 0 && (
