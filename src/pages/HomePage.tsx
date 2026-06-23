@@ -54,8 +54,12 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
     if (!botUsername) return
     const url = `https://t.me/${botUsername}?start=submit`
     const tg = (window as any).Telegram?.WebApp
-    if (tg?.openTelegramLink) tg.openTelegramLink(url)
-    else window.open(url, '_blank')
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(url)
+      tg.close?.()           // сворачиваем мини-апп — юзер уходит в чат с ботом
+    } else {
+      window.open(url, '_blank')
+    }
   }
 
   if (loading) return (

@@ -58,8 +58,12 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
     const u = cfg.bot_username
     if (!u) return
     const url = `https://t.me/${u}?start=submit`
-    if (tg?.openTelegramLink) tg.openTelegramLink(url)
-    else window.open(url, '_blank')
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(url)
+      tg.close?.()           // сворачиваем мини-апп — юзер уходит в чат с ботом
+    } else {
+      window.open(url, '_blank')
+    }
   }
 
   if (loading) return (
