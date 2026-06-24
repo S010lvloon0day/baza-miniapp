@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
-import type { Profile, Config, Plan } from '../api/client'
+import type { Profile, Config, Plan, Contributor } from '../api/client'
 
 const tg = (window as any).Telegram?.WebApp
 
@@ -16,6 +16,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [selected, setSelected] = useState<Plan | null>(null)
   const [paying, setPaying] = useState<'crypto' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [top, setTop] = useState<Contributor[]>([])
   const plansRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
         }
       })
       .finally(() => setLoading(false))
+    api.contributors().then(r => setTop(r.contributors ?? [])).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -127,6 +129,21 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                   : <span className="text-gray2">○ free_tier</span>}
               </div>
             </div>
+            <div className="mt-3">
+              <div style={{ color: '#C7A6FF' }}>[contributions]</div>
+              <div className="pl-4">
+                <span className="text-gray">submitted</span>
+                <span className="text-gray2"> = </span>
+                <span className="text-white">{prof?.contributions_total ?? 0}</span>
+              </div>
+              <div className="pl-4">
+                <span className="text-gray">approved</span>
+                <span className="text-gray2">&nbsp;&nbsp;= </span>
+                <span style={{ color: '#28C840' }}>{prof?.contributions_approved ?? 0}</span>
+                <span className="text-gray2"> · </span>
+                <span className="text-white/50">+{(prof?.contributions_approved ?? 0) * 2}д premium</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -146,6 +163,34 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
             </div>
             <span className="text-[18px] text-gray2">›</span>
           </button>
+        )}
+
+        {/* Топ-контрибьюторов базы */}
+        {top.length > 0 && (
+          <div className="terminal-glow overflow-hidden" style={{ background: '#04040C', border: '1px solid rgba(255,255,255,.09)' }}>
+            <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.06)' }}>
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: '0 0 5px rgba(255,95,87,.6)' }} />
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FEBC2E', boxShadow: '0 0 5px rgba(254,188,46,.6)' }} />
+              <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#28C840', boxShadow: '0 0 5px rgba(40,200,64,.6)' }} />
+              <span className="font-mono text-[10px] text-gray2 flex-1 text-center">🏆 top_contributors.log</span>
+            </div>
+            <div className="px-4 py-3 font-mono text-[11px] leading-[2]">
+              <div className="text-gray2/60 mb-1"># кто пополняет базу знаний</div>
+              {top.map((c, i) => {
+                const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
+                const me = c.user_id === prof?.user_id
+                return (
+                  <div key={c.user_id} className="flex items-center gap-2">
+                    <span className="w-6 shrink-0 text-center text-gray2">{medal}</span>
+                    <span className={`flex-1 truncate ${me ? 'text-green font-semibold' : 'text-white/85'}`}>
+                      {c.username ? `@${c.username}` : 'аноним'}{me ? ' (вы)' : ''}
+                    </span>
+                    <span style={{ color: '#28C840' }}>{c.approved}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         )}
 
         {/* Plans */}

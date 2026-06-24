@@ -71,6 +71,14 @@ export interface Profile {
   name: string
   is_premium: boolean
   premium_until?: string
+  contributions_total?: number
+  contributions_approved?: number
+}
+
+export interface Contributor {
+  user_id: number
+  username: string
+  approved: number
 }
 
 export interface Plan {
@@ -102,6 +110,7 @@ export const api = {
     get<{ materials: Material[]; total: number }>(`/api/sections/${id}/materials?page=${page}`),
   material:       (id: number)   => get<Material>(`/api/material/${id}`),
   profile:        ()             => get<Profile>('/api/profile'),
+  contributors:   ()             => get<{ contributors: Contributor[] }>('/api/contributors'),
   config:         ()             => get<Config>('/api/config'),
   documentText:   (id: number)   => get<{ title: string; text: string; extension: string; truncated?: boolean }>(`/api/document_text/${id}`),
   favorites:      ()             => get<{ ids: number[]; materials: Material[] }>('/api/favorites'),
