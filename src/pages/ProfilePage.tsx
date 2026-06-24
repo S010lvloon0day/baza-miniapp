@@ -17,6 +17,9 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [paying, setPaying] = useState<'crypto' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [top, setTop] = useState<Contributor[]>([])
+  const [totalContrib, setTotalContrib] = useState(0)
+  const [myRank, setMyRank] = useState<number | null>(null)
+  const [myApproved, setMyApproved] = useState(0)
   const plansRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -29,7 +32,12 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
         }
       })
       .finally(() => setLoading(false))
-    api.contributors().then(r => setTop(r.contributors ?? [])).catch(() => {})
+    api.contributors().then(r => {
+      setTop(r.contributors ?? [])
+      setTotalContrib(r.total ?? 0)
+      setMyRank(r.my_rank ?? null)
+      setMyApproved(r.my_approved ?? 0)
+    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -175,7 +183,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
               <span className="font-mono text-[10px] text-gray2 flex-1 text-center">🏆 top_contributors.log</span>
             </div>
             <div className="px-4 py-3 font-mono text-[11px] leading-[2]">
-              <div className="text-gray2/60 mb-1"># кто пополняет базу знаний</div>
+              <div className="text-gray2/60 mb-1"># топ-{top.length} из {totalContrib} авторов</div>
               {top.map((c, i) => {
                 const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
                 const me = c.user_id === prof?.user_id
@@ -189,6 +197,14 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                   </div>
                 )
               })}
+              {/* Личное место, если пользователь вне видимого топа */}
+              {myRank !== null && myRank > top.length && (
+                <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-bd/50">
+                  <span className="w-6 shrink-0 text-center text-gray2">#{myRank}</span>
+                  <span className="flex-1 truncate text-green font-semibold">вы</span>
+                  <span style={{ color: '#28C840' }}>{myApproved}</span>
+                </div>
+              )}
             </div>
           </div>
         )}
