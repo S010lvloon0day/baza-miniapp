@@ -121,12 +121,13 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
       {botUsername && (
         <div
           onClick={openSubmit}
-          className="mx-4 mt-2.5 flex items-center gap-2.5 px-4 py-3 cursor-pointer active:opacity-70 transition-opacity"
-          style={{ background: 'rgba(40,200,64,.12)', border: '1px solid rgba(40,200,64,.55)' }}
+          className="mx-4 mt-2.5 flex items-center gap-2 px-3.5 py-2.5 cursor-pointer font-mono text-[11px] active:opacity-70 transition-opacity"
+          style={{ background: 'rgba(40,200,64,.04)', border: '1px dashed rgba(40,200,64,.4)' }}
         >
-          <span className="shrink-0 text-[15px]">📤</span>
-          <span className="flex-1 truncate font-mono text-[13px] font-semibold text-white">Предложить материал в базу</span>
-          <span className="shrink-0 font-bold text-[16px]" style={{ color: '#28C840' }}>›</span>
+          <span className="shrink-0 font-bold" style={{ color: '#28C840' }}>+</span>
+          <span className="shrink-0 text-white/85">./contribute</span>
+          <span className="flex-1 truncate text-white/90">— предложить материал в базу</span>
+          <span className="shrink-0 font-bold" style={{ color: 'rgba(40,200,64,.9)' }}>›</span>
         </div>
       )}
 
