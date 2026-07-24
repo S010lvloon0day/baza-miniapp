@@ -1,54 +1,45 @@
 import { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { CaretRight, CaretDown, Crown } from '@phosphor-icons/react'
+import { motion } from 'framer-motion'
+import { Crown, CaretDown } from '@phosphor-icons/react'
 import { api } from '../api/client'
-import type { Section, Material, Banner, TodaySection } from '../api/client'
+import MediaTypeIcon from '../components/MediaTypeIcon'
+import type { Section, Material, Banner } from '../api/client'
 import BannerCard from '../components/BannerCard'
+import CategoryIcon from '../components/CategoryIcon'
+import BazaMark from '../components/BazaMark'
 
 interface Props {
   onSection: (s: Section) => void
   onMaterial: (id: number, sectionId: number) => void
   onTabCats: () => void
-  onGiveaway: () => void
-  showGiveaway: boolean
   botUsername?: string
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway, showGiveaway, botUsername }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats, botUsername }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
-  const [todaySections, setTodaySections] = useState<TodaySection[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [newOpen, setNewOpen] = useState(true)
-  const [newExpanded, setNewExpanded] = useState(false)
-  const [giveawayWinner, setGiveawayWinner] = useState<string | null>(null)
 
   useEffect(() => {
     let alive = true
     ;(async () => {
-      const [d, b, rd, gw] = await Promise.all([
+      const [d, b, rd] = await Promise.all([
         api.sections().catch(() => ({ sections: [] as Section[] })),
         api.banner().catch(() => ({ banners: [] as Banner[] })),
-        api.recent().catch(() => ({ materials: [] as Material[], today_count: 0, today_sections: [] as TodaySection[], total_count: 0 })),
-        api.giveawayWinner().catch(() => ({ winner: null })),
+        api.recent().catch(() => ({ materials: [] as Material[], today_count: 0, today_sections: [], total_count: 0 })),
       ])
       if (!alive) return
       setSections(d.sections.filter(s => !s.parent_id))
       setBanners(b.banners ?? [])
-      setRecent((rd.materials ?? []).slice(0, 10))
-      setTodaySections(rd.today_sections ?? [])
+      setRecent((rd.materials ?? []).slice(0, 4))
       setTotalCount(rd.total_count ?? 0)
-      if (gw.winner) setGiveawayWinner(gw.winner.username)
       setLoading(false)
     })()
     return () => { alive = false }
   }, [])
-
-
-  const openSection = (s: TodaySection) =>
-    onSection({ id: s.id, title: s.title, emoji: s.emoji, parent_id: null, description: '', is_premium: 0 })
 
   const openSubmit = () => {
     if (!botUsername) return
@@ -68,256 +59,169 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
     </div>
   )
 
+  const featured = sections.find(s => s.title === 'Знания S010lvloon')
+
   return (
-    <div className="flex-1 overflow-y-auto pb-14">
-      {/* Hero — terminal window */}
-      <div className="mx-4 mt-3 overflow-hidden terminal-glow" style={{ background: '#04040C', border: '1px solid rgba(255,255,255,.09)' }}>
-        {/* Title bar */}
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b" style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.06)' }}>
-          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: '0 0 6px rgba(255,95,87,.7)' }} />
-          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: '#FEBC2E', boxShadow: '0 0 6px rgba(254,188,46,.7)' }} />
-          <div className="w-3 h-3 rounded-full shrink-0" style={{ background: '#28C840', boxShadow: '0 0 6px rgba(40,200,64,.7)' }} />
-          <span className="font-mono text-[10px] text-gray2 flex-1 text-center">knowledge_base.sh — bash — 80×24</span>
-        </div>
+    <div className="flex-1 overflow-y-auto pb-navsafe">
+      <div className="px-4 pt-3">
 
-        {/* Body */}
-        <div className="px-4 py-3">
-          {/* Prompt */}
-          <div className="flex items-center gap-1 font-mono text-[11px] mb-2 flex-wrap">
-            <span style={{ color: '#28C840' }}>root@s010</span>
-            <span className="text-gray2">:</span>
-            <span style={{ color: '#60A5FA' }}>~/knowledge</span>
-            <span className="text-white/30 mx-0.5">$</span>
-            <span className="text-white">./start --secure</span>
-          </div>
-
-          {/* Slogan */}
-          <div className="font-display text-[19px] tracking-widest text-white leading-[1.2] mb-1">
-            ЗНАНИЯ — СИЛА.
-          </div>
-          <div className="font-mono text-[10px] text-gray2 mb-3">S010lvloon mode</div>
-
-          {/* Output */}
-          <div className="space-y-1 font-mono text-[10px]">
-            <div className="flex gap-2">
-              <span style={{ color: '#60A5FA' }}>[INIT]</span>
-              <span className="text-gray2">Подключение к базе знаний...</span>
-            </div>
-            <div className="flex gap-2">
-              <span style={{ color: '#FBBF24' }}>[AUTH]</span>
-              <span className="text-gray2">Авторизация пользователя</span>
-            </div>
-            <div className="flex gap-2">
-              <span style={{ color: '#28C840' }}>[&nbsp;OK&nbsp;]</span>
-              <span className="text-white/50">Система готова</span>
-              <span className="blink text-white ml-0.5">█</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Предложить материал — компактная терминальная строка в стиле hero,
-          открывает бота с готовым флоу подачи (выше баннера, без перегруза) */}
-      {botUsername && (
+        {/* Hero */}
         <div
-          onClick={openSubmit}
-          className="mx-4 mt-2.5 flex items-center gap-2 px-3.5 py-2.5 cursor-pointer font-mono text-[11px] active:opacity-70 transition-opacity"
-          style={{ background: 'rgba(40,200,64,.04)', border: '1px dashed rgba(40,200,64,.4)' }}
+          className="relative overflow-hidden rounded-[22px] px-5 pt-6 pb-6 mb-5"
+          style={{ border: '1px solid rgba(255,255,255,.08)', background: 'radial-gradient(120% 100% at 100% 0%, rgba(34,197,94,.14), transparent 55%), #0D0D11' }}
         >
-          <span className="shrink-0 font-bold" style={{ color: '#28C840' }}>+</span>
-          <span className="shrink-0 text-white/85">./contribute</span>
-          <span className="flex-1 truncate text-white/90">— предложить материал в базу</span>
-          <span className="shrink-0 font-bold" style={{ color: 'rgba(40,200,64,.9)' }}>›</span>
-        </div>
-      )}
-
-      {/* Banner carousel */}
-      {banners.length > 0 && <BannerCard banners={banners} />}
-
-      {/* Giveaway card — показывается только когда квест разрешён (включён / админ) */}
-      {showGiveaway && (giveawayWinner ? (
-        <div
-          onClick={onGiveaway}
-          className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
-          style={{ background: 'rgba(255,188,46,.04)', border: '1px solid rgba(255,188,46,.25)' }}
-        >
-          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.6), transparent)' }} />
-          <div className="flex items-center gap-3 px-4 py-3.5">
-            <div className="text-2xl shrink-0">🏆</div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">Case002 — квест открыт</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(255,188,46,.75)' }}>// приз выдан победителю @{giveawayWinner} · проходи квест</div>
-            </div>
-            <span className="font-bold text-[18px] shrink-0" style={{ color: 'rgba(255,188,46,.75)' }}>›</span>
+          {/* Decorative orbit rings + particles */}
+          <svg width="260" height="260" viewBox="0 0 260 260" fill="none" className="absolute pointer-events-none" style={{ right: -70, top: -60, opacity: .5 }}>
+            <circle cx="130" cy="130" r="90" stroke="#22C55E" strokeOpacity=".18" strokeWidth="1" />
+            <circle cx="130" cy="130" r="115" stroke="#22C55E" strokeOpacity=".1" strokeWidth="1" />
+            <circle cx="215" cy="60" r="3" fill="#4AE885" fillOpacity=".6" />
+            <circle cx="240" cy="130" r="2" fill="#4AE885" fillOpacity=".5" />
+            <circle cx="190" cy="20" r="2" fill="#4AE885" fillOpacity=".5" />
+          </svg>
+          {/* Diamond watermark */}
+          <div className="absolute pointer-events-none" style={{ right: 6, top: 26, opacity: .06 }}>
+            <BazaMark size={150} color="#fff" />
           </div>
-        </div>
-      ) : (
-        <div
-          onClick={onGiveaway}
-          className="relative mx-4 mt-3 cursor-pointer overflow-hidden active:opacity-75 transition-opacity"
-          style={{ background: 'rgba(157,92,255,.06)', border: '1px solid rgba(157,92,255,.3)' }}
-        >
-          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(157,92,255,.7), transparent)' }} />
-          <div className="flex items-center gap-3 px-4 py-3.5">
-            <div className="text-2xl shrink-0">🕵️</div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[13px] font-bold text-white">Case002</div>
-              <div className="text-[10px] font-mono" style={{ color: 'rgba(199,166,255,.65)' }}>// расследование · 7 этапов · приз: [REDACTED]</div>
-            </div>
-            <span className="font-bold text-[18px] shrink-0" style={{ color: '#C7A6FF' }}>›</span>
-          </div>
-        </div>
-      ))}
+          {/* Animated light streak */}
+          <svg width="140" height="220" viewBox="0 0 140 220" fill="none" className="absolute pointer-events-none" style={{ right: 14, top: -10 }}>
+            <path d="M110 0 C90 60 130 110 100 220" stroke="#4AE885" strokeWidth="2" strokeLinecap="round" opacity=".3" />
+            <path
+              d="M110 0 C90 60 130 110 100 220"
+              stroke="#9FFFC2" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="40 260"
+              style={{ filter: 'drop-shadow(0 0 6px rgba(74,232,133,.85))', animation: 'bazaLinePulse 2.6s linear infinite' }}
+            />
+          </svg>
+          <div className="baza-grain" />
 
-      {/* Recent */}
-      {(totalCount > 0 || recent.length > 0) && (
-        <section>
-          <div
-            className="flex items-center justify-between px-4 pt-5 pb-3 cursor-pointer select-none"
-            onClick={() => setNewOpen(o => !o)}
-          >
-            <div className="flex items-center gap-1.5">
-              <motion.span
-                animate={{ rotate: newOpen ? 0 : -90 }}
-                transition={{ duration: 0.2 }}
-                className="text-gray"
-              >
-                <CaretDown size={13} weight="bold" />
-              </motion.span>
-              <span className="text-[11px] font-mono tracking-[1px] text-green/80">// НОВОЕ</span>
-            </div>
-            <button
-              onClick={e => { e.stopPropagation(); onTabCats() }}
-              className="flex items-center gap-0.5 text-green text-[11px] tracking-wide"
+          <div className="relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 mb-[18px]" style={{ border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.03)' }}>
+            <span className="w-1.5 h-1.5 rounded-full baza-dot-pulse" style={{ background: '#22C55E' }} />
+            <span className="text-[10px] font-bold tracking-wider uppercase text-[#cfcfd4]">База знаний S010lvloon</span>
+          </div>
+
+          <div className="relative uppercase mb-2.5" style={{ fontFamily: "'Anton', sans-serif", fontSize: 35, lineHeight: 1.12, letterSpacing: '-1.6px' }}>
+            <span
+              className="relative inline-block"
+              style={{ color: '#fff', WebkitTextStroke: '1.9px #fff', textShadow: '1px 2px 0 rgba(0,0,0,.55), -1px 0 0 rgba(0,0,0,.15), 0 -1px 0 rgba(255,255,255,.5)' }}
             >
-              Смотреть все <CaretRight size={13} weight="bold" />
+              Все материалы
+            </span>
+            <br />
+            <span
+              className="relative inline-block baza-flicker"
+              style={{ color: '#3EEB73', WebkitTextStroke: '1.9px #3EEB73', textShadow: '0 0 1px #7dffab, 0 0 3px rgba(62,235,115,.4), 0 0 5px rgba(62,235,115,.25)' }}
+            >
+              в одном месте
+            </span>
+          </div>
+          <div className="relative text-[13px] text-[#9a9aa2] leading-relaxed mb-5 max-w-[270px]">
+            Гайды, инструменты и разборы по темам. Открывай раздел или ищи материал по названию.
+          </div>
+
+          <div className="relative flex gap-2.5">
+            <button
+              onClick={onTabCats}
+              className="flex-1 flex items-center justify-center gap-1 py-3.5 rounded-[13px] text-bg text-[12px] whitespace-nowrap font-extrabold transition-transform duration-150 active:-translate-y-0.5"
+              style={{ background: 'linear-gradient(180deg,#ffffff,#e8ebe9)', boxShadow: '0 8px 20px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.4) inset' }}
+            >
+              Смотреть разделы
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </button>
+            <button
+              onClick={openSubmit}
+              className="flex-1 flex items-center justify-center py-3.5 rounded-[13px] text-white text-[12px] whitespace-nowrap font-bold transition-transform duration-150 active:bg-white/[.1] active:border-white/30 active:-translate-y-0.5"
+              style={{ border: '1px solid rgba(255,255,255,.14)', background: 'linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))', boxShadow: '0 4px 14px rgba(0,0,0,.25)' }}
+            >
+              Предложить материал
             </button>
           </div>
+        </div>
 
-          {/* Сводная карточка */}
-          <AnimatePresence initial={false}>
-          {newOpen && <motion.div
-            key="new-card"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.22, ease: 'easeInOut' }}
-            style={{ overflow: 'hidden' }}
-          >
-          <div
-            className="mx-4 mb-3 rounded border border-bd2 bg-s2 relative"
-            style={{ maxHeight: newExpanded ? 'none' : 165, overflow: 'hidden' }}
-          >
-            {/* Общий счётчик + за сутки */}
-            <div className="px-4 pt-4 pb-3 border-b border-bd flex items-center justify-between gap-4">
-              <div>
-                <div className="text-[10px] font-bold tracking-[2px] uppercase text-gray mb-1">
-                  Всего материалов
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-[28px] font-bold text-white leading-none">{totalCount}</span>
-                </div>
-              </div>
+        {/* Banner slot */}
+        {banners.length > 0 && (
+          <div className="rounded-[18px] overflow-hidden mb-5" style={{ border: '1px solid rgba(255,255,255,.08)' }}>
+            <BannerCard banners={banners} />
+          </div>
+        )}
+
+        {/* Новое — collapsible */}
+        <div onClick={() => setNewOpen(o => !o)} className="flex items-center justify-between mb-3 cursor-pointer">
+          <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-[1.5px] uppercase text-[#9a9aa2] font-mono">
+            <motion.span animate={{ rotate: newOpen ? 0 : -90 }} transition={{ duration: 0.2 }} className="flex">
+              <CaretDown size={12} weight="bold" />
+            </motion.span>
+            // Новое
+          </span>
+          <button onClick={e => { e.stopPropagation(); onTabCats() }} className="text-white text-[12px] font-bold active:opacity-70 transition-opacity">
+            Смотреть все ›
+          </button>
+        </div>
+
+        {newOpen && (
+          <div className="rounded-2xl mb-7 overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014' }}>
+            <div className="px-[18px] py-4" style={{ borderBottom: '1px solid rgba(255,255,255,.07)' }}>
+              <div className="text-[10px] font-bold tracking-[1.2px] uppercase mb-1.5" style={{ color: '#7a7a83' }}>Всего материалов</div>
+              <div className="text-[32px] font-extrabold text-white">{totalCount}</div>
             </div>
-
-            {/* Последние 10 материалов */}
             {recent.length > 0 && (
-              <div className="border-b border-bd">
-                <div className="px-4 pt-3 pb-1.5">
-                  <div className="text-[10px] font-bold tracking-[2px] uppercase text-green">
-                    Последние добавленные
-                  </div>
-                </div>
-                {recent.map((m, i) => (
-                  <div
-                    key={m.id}
-                    onClick={() => onMaterial(m.id, m.section_id)}
-                    className={`px-4 py-2 flex items-center gap-2 cursor-pointer active:bg-s1 ${i < recent.length - 1 ? 'border-b border-bd/50' : ''}`}
-                  >
-                    <span className="text-base shrink-0">{m.section_emoji || '📁'}</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[11px] text-gray2 leading-none mb-0.5 truncate">{m.section_title}</div>
-                      <div className="text-[13px] font-medium text-white leading-snug truncate">{m.title}</div>
-                    </div>
-                    {m.locked && (
-                      <Crown size={14} weight="fill" className="shrink-0 text-violet opacity-80" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Разделы за сутки */}
-            {todaySections.length > 0 && (
-              <div className="px-4 py-3">
-                <div className="flex flex-wrap gap-1.5">
-                  {todaySections.map(s => (
-                    <button
-                      key={s.id}
-                      onClick={() => openSection(s)}
-                      className="flex items-center gap-1 px-2 py-0.5 bg-s1 border border-bd2 rounded-full text-[11px] text-gray whitespace-nowrap active:border-green active:text-green transition-colors"
+              <>
+                <div className="px-[18px] pt-3.5 pb-1.5 text-[10px] font-bold tracking-[1.2px] uppercase" style={{ color: '#7a7a83' }}>Последние добавленные</div>
+                <div className="flex flex-col">
+                  {recent.map(m => (
+                    <div
+                      key={m.id}
+                      onClick={() => onMaterial(m.id, m.section_id)}
+                      className="flex items-center gap-3 px-[18px] py-3 cursor-pointer transition-colors duration-150 active:bg-white/[.04]"
                     >
-                      <span>{s.emoji}</span>
-                      <span>{s.title}</span>
-                    </button>
+                      <MediaTypeIcon type={m.media_type} size={36} radius={10} iconSize={16} />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] text-[#8a8a93] mb-0.5 truncate">{m.section_title}</div>
+                        <div className="text-[14px] font-semibold truncate">{m.title}</div>
+                      </div>
+                      {m.locked && <Crown size={14} weight="fill" className="shrink-0 text-violet opacity-80" />}
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Градиент-подсказка «раскрыть» */}
-            {!newExpanded && (
-              <div
-                onClick={() => setNewExpanded(true)}
-                className="absolute bottom-0 inset-x-0 h-10 flex items-end justify-center pb-1.5 cursor-pointer"
-                style={{ background: 'linear-gradient(to top, #1B1728 30%, transparent)' }}
-              >
-                <CaretDown size={14} weight="bold" className="text-gray opacity-70" />
-              </div>
+              </>
             )}
           </div>
-          </motion.div>}
-          </AnimatePresence>
-        </section>
-      )}
+        )}
 
-      {/* Featured — авторский раздел S010lvloon */}
-      {sections.find(s => s.title === 'Знания S010lvloon') && (() => {
-        const featured = sections.find(s => s.title === 'Знания S010lvloon')!
-        return (
-          <div
-            onClick={() => onSection(featured)}
-            className="relative mx-4 mt-4 cursor-pointer overflow-hidden rounded-md active:opacity-80 transition-opacity"
-            style={{
-              background: 'linear-gradient(135deg, rgba(255,188,46,.12), rgba(255,140,0,.05))',
-              border: '1px solid rgba(255,188,46,.45)',
-              boxShadow: '0 0 22px rgba(255,188,46,.12)',
-            }}
-          >
-            <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.8), transparent)' }} />
-            <div className="flex items-center gap-3 px-4 py-4">
-              <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ background: 'rgba(255,188,46,.14)', border: '1px solid rgba(255,188,46,.35)' }}>
-                {featured.emoji || '🧠'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="inline-flex items-center gap-1 px-1.5 py-0.5 mb-1 rounded-sm" style={{ background: 'rgba(255,188,46,.18)' }}>
-                  <span className="text-[8px] font-bold tracking-[2px] uppercase" style={{ color: '#FFBC2E' }}>★ Автор</span>
+        {/* Featured — авторский раздел S010lvloon */}
+        {featured && (
+            <div
+              onClick={() => onSection(featured)}
+              className="relative mb-5 cursor-pointer overflow-hidden rounded-md active:opacity-80 transition-opacity"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,188,46,.12), rgba(255,140,0,.05))',
+                border: '1px solid rgba(255,188,46,.45)',
+                boxShadow: '0 0 22px rgba(255,188,46,.12)',
+              }}
+            >
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.8), transparent)' }} />
+              <div className="flex items-center gap-3 px-4 py-4">
+                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,188,46,.14)', border: '1px solid rgba(255,188,46,.35)', color: '#FFCB57' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ filter: 'drop-shadow(0 0 5px rgba(255,188,46,.9))' }}>
+                    <path d="M12 2l2.6 6.6L21 9l-5 4.3L17.5 20 12 16.3 6.5 20 8 13.3 3 9l6.4-.4z" />
+                  </svg>
                 </div>
-                <div className="text-[14px] font-bold text-white leading-tight truncate">{featured.title}</div>
-                <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: 'rgba(255,188,46,.7)' }}>// курс · публикации · фишки</div>
+                <div className="flex-1 min-w-0">
+                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 mb-1 rounded-sm" style={{ background: 'rgba(255,188,46,.18)' }}>
+                    <span className="text-[8px] font-bold tracking-[2px] uppercase" style={{ color: '#FFBC2E' }}>★ Автор</span>
+                  </div>
+                  <div className="text-[14px] font-bold text-white leading-tight truncate">{featured.title}</div>
+                  <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: 'rgba(255,188,46,.7)' }}>// курс · публикации · фишки</div>
+                </div>
+                <span className="font-bold text-[20px] shrink-0" style={{ color: '#FFBC2E' }}>›</span>
               </div>
-              <span className="font-bold text-[20px] shrink-0" style={{ color: '#FFBC2E' }}>›</span>
             </div>
-          </div>
-        )
-      })()}
+        )}
 
-      {/* Categories */}
-      <section>
-        <div className="flex items-center justify-between px-4 pt-5 pb-2.5">
-          <span className="text-[11px] font-mono tracking-[1px] text-green/80">// КАТЕГОРИИ</span>
-        </div>
-        <div className="grid grid-cols-4 gap-2 px-4 pb-4">
+        {/* Categories */}
+        <div className="text-[11px] font-bold tracking-[1.5px] uppercase text-[#9a9aa2] mb-3.5">Разделы</div>
+        <div className="grid grid-cols-4 gap-2 pb-4">
           {sections.filter(s => s.title !== 'Знания S010lvloon').slice(0, 8).map((s, i) => (
             <motion.div
               key={s.id}
@@ -325,40 +229,55 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onGiveaway,
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.04 }}
               onClick={() => onSection(s)}
-              className="relative border border-bd p-3 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-colors active:border-white/40 active:bg-white/[.03]"
-            style={{ background: 'rgba(255,255,255,.02)' }}
+              className="relative rounded-2xl p-3 flex flex-col items-center gap-1.5 cursor-pointer overflow-hidden transition-transform duration-150 active:-translate-y-0.5 active:border-green/50"
+              style={{ border: '1px solid rgba(255,255,255,.09)', background: 'radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,.05), transparent 60%), #101014' }}
             >
-              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.1), transparent)' }} />
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.14), transparent)' }} />
               <span className="absolute top-1.5 left-1.5 font-mono text-[8px] text-gray2/60 leading-none tabular-nums">
                 {String(i + 1).padStart(2, '0')}
               </span>
-              <div className="w-10 h-10 flex items-center justify-center text-xl">
-                {s.emoji || '📁'}
+              <div className="w-10 h-10 flex items-center justify-center">
+                <CategoryIcon title={s.title} />
               </div>
-              <span className="text-[9px] font-mono uppercase tracking-[0.5px] text-gray text-center leading-tight w-full line-clamp-2">
+              <span className="text-[9px] font-bold uppercase tracking-[0.3px] text-[#d4d4d8] text-center leading-tight w-full line-clamp-2">
                 {s.title}
               </span>
             </motion.div>
           ))}
         </div>
-      </section>
 
-      {/* Ad contact */}
-      <div className="px-4 pb-6 pt-1">
-        <button
+        {/* Ad contact */}
+        <div
           onClick={() => {
             const tg = (window as any).Telegram?.WebApp
             if (tg?.openTelegramLink) tg.openTelegramLink('https://t.me/S010lvloon_bot')
             else window.open('https://t.me/S010lvloon_bot', '_blank')
           }}
-          className="w-full flex items-center justify-center gap-2 h-10 rounded border border-bd2 bg-s1 active:border-green active:bg-s2 transition-colors"
+          className="relative mb-6 flex items-center gap-3.5 cursor-pointer overflow-hidden rounded-2xl transition-transform duration-150 active:-translate-y-0.5"
+          style={{
+            padding: '14px 16px',
+            border: '1px solid rgba(255,188,46,.4)',
+            background: 'linear-gradient(135deg,rgba(255,188,46,.1),rgba(20,15,4,.4) 60%)',
+            boxShadow: '0 8px 20px rgba(255,140,0,.08)',
+          }}
         >
-          <span className="text-[13px]">📣</span>
-          <span className="text-[11px] font-semibold tracking-[1px] uppercase text-gray2">
-            По вопросам рекламы
-          </span>
-          <span className="text-[11px] text-green font-bold">@S010lvloon_bot</span>
-        </button>
+          <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,188,46,.6),transparent)' }} />
+          <div
+            className="shrink-0 flex items-center justify-center"
+            style={{ width: 40, height: 40, borderRadius: 12, background: 'radial-gradient(circle,rgba(255,188,46,.32),rgba(255,188,46,.06) 68%,transparent)', boxShadow: '0 0 16px rgba(255,188,46,.35)', color: '#FFCB57' }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 11v2a2 2 0 0 0 2 2h2l4 4V5L7 9H5a2 2 0 0 0-2 2z" />
+              <path d="M16 8a4 4 0 0 1 0 8" />
+              <path d="M18.5 5.5a8 8 0 0 1 0 13" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-bold uppercase tracking-[1px]" style={{ color: '#FFCB57' }}>По вопросам рекламы</div>
+            <div className="text-[13px] font-semibold text-white mt-0.5">@S010lvloon_bot</div>
+          </div>
+          <span className="font-extrabold text-[18px] shrink-0" style={{ color: '#FFCB57' }}>›</span>
+        </div>
       </div>
     </div>
   )

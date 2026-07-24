@@ -4,6 +4,7 @@ import { CaretLeft, CaretRight, ArrowSquareOut, DownloadSimple } from '@phosphor
 import { api, API_BASE } from '../api/client'
 import { PaperPlaneTilt, Star, Crown } from '@phosphor-icons/react'
 import type { Material } from '../api/client'
+import MediaTypeIcon from '../components/MediaTypeIcon'
 
 const tg = (window as any).Telegram?.WebApp
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
@@ -111,6 +112,18 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
   const navigate = (id: number) => onNavId?.(id)
 
+  const [editingIdx, setEditingIdx] = useState(false)
+  const [idxInput, setIdxInput] = useState('')
+  const commitIdxJump = () => {
+    const n = parseInt(idxInput, 10)
+    if (Number.isFinite(n)) {
+      const clamped = Math.min(Math.max(n, 1), sectionMats.length)
+      const targetId = sectionMats[clamped - 1]
+      if (targetId !== undefined && targetId !== materialId) navigate(targetId)
+    }
+    setEditingIdx(false)
+  }
+
   const initData = encodeURIComponent(tg?.initData || '')
   const furl = mat?.file_url ? `${API_BASE}${mat.file_url}?init_data=${initData}` : null
 
@@ -140,10 +153,10 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
     <button
       onClick={openInTelegram}
       disabled={sending}
-      className={`w-full flex items-center justify-center gap-2 text-[12px] font-semibold tracking-[2px] uppercase rounded-sm active:opacity-70 disabled:opacity-50 ${
+      className={`w-full flex items-center justify-center gap-2 text-[12px] font-semibold tracking-[2px] uppercase rounded-xl active:opacity-70 disabled:opacity-50 transition-colors ${
         prominent
           ? 'h-12 bg-gradient-to-r from-[#2D7BF0] to-[#54A0FF] text-white'
-          : 'h-10 border border-bd2 text-gray'
+          : 'h-10 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] text-gray shadow-[0_4px_14px_rgba(0,0,0,.25)] active:border-green/40'
       }`}
     >
       <PaperPlaneTilt size={prominent ? 18 : 16} />
@@ -162,7 +175,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
             </motion.div>
           ) : mat?.premium_required ? (
             <motion.div key="lock" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="mx-4 mt-4 rounded overflow-hidden border border-[rgba(157,92,255,.3)]">
+              className="mx-4 mt-4 rounded-2xl overflow-hidden border border-[rgba(157,92,255,.3)]">
               {/* Header strip */}
               <div className="bg-gradient-to-r from-[#7B3DFF] to-[#9D5CFF] px-5 py-4 flex items-center gap-3">
                 <Crown size={24} weight="fill" className="text-white/90 shrink-0" />
@@ -190,7 +203,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                 </div>
                 <button
                   onClick={onUpgrade}
-                  className="w-full py-3 bg-gradient-to-r from-[#7B3DFF] to-[#C7A6FF] text-white font-bold text-[12px] tracking-[2px] uppercase rounded-sm active:opacity-80">
+                  className="w-full py-3 bg-gradient-to-r from-[#7B3DFF] to-[#C7A6FF] text-white font-bold text-[12px] tracking-[2px] uppercase rounded-xl active:opacity-80">
                   Оформить подписку →
                 </button>
               </div>
@@ -209,8 +222,8 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                 {mat.title}
               </h1>
 
-              <div className="flex items-center gap-2 px-4 pb-4 text-[12px] text-gray">
-                <span className="text-green">⏱</span>
+              <div className="flex items-center gap-2 px-4 pb-4 text-[12px] tracking-[.5px] text-gray">
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4AE885', boxShadow: '0 0 6px #4AE885' }} />
                 <span>{typeLabel(mat.media_type)}</span>
               </div>
 
@@ -218,7 +231,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {mat.media_type === 'photo' && furl && (
                 <div className="mx-4 mb-4">
                   <img src={furl} alt={mat.title} loading="lazy"
-                    className="w-full rounded border border-bd block"
+                    className="w-full rounded-2xl border border-white/[.08] block"
                     onError={e => (e.currentTarget.style.display = 'none')} />
                 </div>
               )}
@@ -227,8 +240,8 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {mat.media_type === 'video' && furl && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
                   {videoError ? (
-                    <div className="border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 text-center">
-                      <div className="text-4xl">🎬</div>
+                    <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 text-center">
+                      <MediaTypeIcon type="video" size={56} iconSize={24} radius={16} />
                       <div className="text-[13px] text-white/70 leading-snug">
                         Файл слишком большой — открыть в мини-аппе невозможно
                       </div>
@@ -241,12 +254,12 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                         controls
                         playsInline
                         preload="metadata"
-                        className="w-full rounded border border-bd block bg-black"
+                        className="w-full rounded-2xl border border-white/[.08] block bg-black"
                         onError={() => setVideoError(true)}
                       />
                       <TgButton />
                       <button onClick={openExternal}
-                        className="w-full h-9 border border-bd2 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-sm active:opacity-70">
+                        className="w-full h-9 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] shadow-[0_4px_14px_rgba(0,0,0,.25)] active:border-green/40 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-xl transition-colors active:opacity-70">
                         <ArrowSquareOut size={15} />
                         Открыть в браузере
                       </button>
@@ -260,14 +273,14 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                 <div className="mx-4 mb-4">
                   {/* Loading spinner */}
                   {docPreview === 'loading' && (
-                    <div className="h-32 border border-bd2 rounded bg-s2/70 flex items-center justify-center mb-3">
+                    <div className="h-32 border border-white/[.08] rounded-2xl bg-s2/70 flex items-center justify-center mb-3">
                       <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
                     </div>
                   )}
 
                   {/* Plain-text / markdown / csv */}
                   {docPreview === 'text' && docText !== null && (
-                    <div className="rounded border border-bd2 bg-bg/70 p-4 mb-3">
+                    <div className="rounded-2xl border border-white/[.08] bg-bg/70 p-4 mb-3">
                       <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-[1.7] text-white/85">
                         {renderWithLinks(docText)}
                       </pre>
@@ -282,10 +295,20 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     </div>
                   )}
 
-                  {/* Fallback: PDF/binary or generic error */}
-                  {(docPreview === 'pdf' || docPreview === 'error') && (
-                    <div className="border border-bd2 rounded bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
-                      <div className="text-4xl">📄</div>
+                  {/* PDF preview — rendered inline via the browser's native PDF viewer */}
+                  {docPreview === 'pdf' && furl && (
+                    <iframe
+                      src={furl}
+                      title={mat.title}
+                      className="w-full rounded-2xl border border-white/[.08] block mb-3"
+                      style={{ height: '70vh', background: '#fff' }}
+                    />
+                  )}
+
+                  {/* Fallback: genuinely unreadable document */}
+                  {docPreview === 'error' && (
+                    <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
+                      <MediaTypeIcon type="document" size={56} iconSize={24} radius={16} />
                       <div className="text-[13px] text-white/70 leading-snug">
                         Файл слишком большой — открыть в мини-аппе невозможно
                       </div>
@@ -297,7 +320,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   {docPreview !== 'loading' && (
                     <div className="flex flex-col gap-2">
                       <button onClick={openExternal}
-                        className="w-full h-11 border border-green flex items-center justify-center gap-2 text-violet text-[12px] font-semibold tracking-[2px] uppercase rounded-sm active:bg-[rgba(157,92,255,.10)]">
+                        className="w-full h-11 border border-green flex items-center justify-center gap-2 text-green text-[12px] font-semibold tracking-[2px] uppercase rounded-xl active:bg-[rgba(34,197,94,.10)]">
                         <DownloadSimple size={18} />
                         Открыть / скачать
                       </button>
@@ -310,7 +333,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {/* No media attached — offer Telegram delivery */}
               {!furl && mat.can_send && mat.media_type !== 'text' && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
-                  <div className="p-3 border border-bd rounded text-[12px] text-gray2 text-center">
+                  <div className="p-3 border border-white/[.08] rounded-2xl text-[12px] text-gray text-center">
                     Файл хранится в Telegram — получите его прямо в чат с ботом
                   </div>
                   <TgButton prominent />
@@ -334,18 +357,39 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
       </div>
 
       {sectionMats.length > 1 && (
-        <div className="fixed bottom-0 left-0 right-0 h-14 bg-s1/95 backdrop-blur-md border-t border-bd/60 flex items-center justify-between px-4 z-50"
+        <div className="fixed bottom-0 left-0 right-0 h-14 bg-s1/95 backdrop-blur-md border-t border-white/10 flex items-center justify-between px-4 z-50"
           style={{ boxShadow: '0 -8px 24px rgba(0,0,0,.4)' }}>
           <button disabled={!prevId} onClick={() => prevId && navigate(prevId)}
-            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-bd2 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
+            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-white/15 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
             <CaretLeft size={20} weight="bold" />
           </button>
-          <span className="text-[13px] tracking-widest">
-            <span className="font-semibold text-white">{idx >= 0 ? idx + 1 : '—'}</span>
-            <span className="text-gray2"> / {sectionMats.length}</span>
-          </span>
+          {editingIdx ? (
+            <span className="flex items-center gap-1.5">
+              <input
+                type="number" inputMode="numeric" min={1} max={sectionMats.length} autoFocus
+                value={idxInput}
+                onChange={e => setIdxInput(e.target.value)}
+                onFocus={e => e.currentTarget.select()}
+                onBlur={commitIdxJump}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                  if (e.key === 'Escape') setEditingIdx(false)
+                }}
+                className="w-11 py-1 bg-s2 border border-green/50 rounded text-[13px] text-white text-center tracking-widest outline-none"
+              />
+              <span className="text-[13px] text-gray tracking-widest">/ {sectionMats.length}</span>
+            </span>
+          ) : (
+            <span
+              onClick={() => { setIdxInput(String(idx >= 0 ? idx + 1 : 1)); setEditingIdx(true) }}
+              className="text-[13px] tracking-widest cursor-pointer px-2.5 py-1.5 rounded-lg border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] active:border-green/40 transition-colors"
+            >
+              <span className="font-semibold text-white">{idx >= 0 ? idx + 1 : '—'}</span>
+              <span className="text-gray"> / {sectionMats.length}</span>
+            </span>
+          )}
           <button disabled={!nextId} onClick={() => nextId && navigate(nextId)}
-            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-bd2 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
+            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-white/15 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
             <CaretRight size={20} weight="bold" />
           </button>
         </div>

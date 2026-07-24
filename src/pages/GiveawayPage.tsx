@@ -43,7 +43,7 @@ type Stage = {
   link?: StageLink
 }
 
-const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#28C840' }
+const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#22C55E' }
 
 // Этапы Case002 (индекс 0 = этап 1). Серверный номер этапа = индекс + 1.
 const STAGES: Stage[] = [
@@ -119,8 +119,8 @@ function TermCard({ filename, children }: { filename: string; children: ReactNod
     <div className="terminal-glow overflow-hidden" style={{ background: '#04040C', border: '1px solid rgba(255,255,255,.09)' }}>
       <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.06)' }}>
         <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: '0 0 5px rgba(255,95,87,.6)' }} />
-        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FEBC2E', boxShadow: '0 0 5px rgba(254,188,46,.6)' }} />
-        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#28C840', boxShadow: '0 0 5px rgba(40,200,64,.6)' }} />
+        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FFBC2E', boxShadow: '0 0 5px rgba(255,188,46,.6)' }} />
+        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#22C55E', boxShadow: '0 0 5px rgba(34,197,94,.6)' }} />
         <span className="font-mono text-[10px] text-gray2 flex-1 text-center">{filename}</span>
       </div>
       {children}
@@ -132,7 +132,7 @@ function Steps({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-1 font-mono text-[10px] text-gray2">
       {Array.from({ length: TOTAL }, (_, i) => i + 1).map(n => (
-        <span key={n} style={{ color: n <= step ? '#28C840' : undefined }}>
+        <span key={n} style={{ color: n <= step ? '#22C55E' : undefined }}>
           {n < step ? '●' : n === step ? '◉' : '○'}
         </span>
       ))}
@@ -220,7 +220,7 @@ function HintsPanel({ serverStage }: { serverStage: number }) {
           {hints.map(h => (
             <div key={h.idx} className="border border-bd2 bg-bg px-3 py-2.5">
               {h.unlocked ? (
-                <div className="font-mono text-[11px]" style={{ color: '#28C840' }}>
+                <div className="font-mono text-[11px]" style={{ color: '#22C55E' }}>
                   <span className="text-gray2">Подсказка #{h.idx + 1}:</span>
                   <div className="text-white mt-1 font-sans text-[13px] leading-snug">{h.text}</div>
                 </div>
@@ -346,7 +346,7 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
       {!passed && level > 0 && (
         <div
           className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
-          style={{ borderColor: 'rgba(40,200,64,.3)', background: 'rgba(40,200,64,.05)', color: '#28C840' }}
+          style={{ borderColor: 'rgba(34,197,94,.3)', background: 'rgba(34,197,94,.05)', color: '#22C55E' }}
         >
           ✓ &nbsp;Этап {level} пройден — след принят
         </div>
@@ -390,7 +390,7 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
         <>
           <div
             className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
-            style={{ borderColor: 'rgba(40,200,64,.3)', background: 'rgba(40,200,64,.05)', color: '#28C840' }}
+            style={{ borderColor: 'rgba(34,197,94,.3)', background: 'rgba(34,197,94,.05)', color: '#22C55E' }}
           >
             ✓ &nbsp;Этап пройден — ответ принят
           </div>
@@ -459,7 +459,7 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
             <TermCard filename="case_002/prize.txt">
               <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-2">
-                <div><span style={{ color: '#28C840' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
+                <div><span style={{ color: '#22C55E' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
                 <div
                   className="px-3 py-2.5 text-[13px] text-white leading-snug font-sans border-l-2"
                   style={{ borderLeftColor: 'rgba(40,200,64,.6)', background: 'rgba(40,200,64,.05)' }}
@@ -609,7 +609,7 @@ export default function GiveawayPage() {
   )
 
   return (
-    <div className="flex-1 overflow-y-auto pb-14">
+    <div className="flex-1 overflow-y-auto pb-navsafe">
       {completedOnce && view < TOTAL && (
         <div
           className="mx-4 mt-3 flex items-center gap-2 px-3 py-2.5 border font-mono text-[10px]"

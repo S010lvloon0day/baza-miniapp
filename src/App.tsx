@@ -13,7 +13,6 @@ import GiveawayPage from './pages/GiveawayPage'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
-import Logo from './components/Logo'
 import NotifySheet from './components/NotifySheet'
 import { api } from './api/client'
 import type { Section } from './api/client'
@@ -95,7 +94,7 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onGiveaway={openGiveaway} showGiveaway={giveawayVisible} botUsername={botUsername} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} botUsername={botUsername} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
@@ -129,17 +128,8 @@ export default function App() {
 
   const renderHeader = () => {
     if (!top) {
-      if (tab === 'home') return (
-        <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur border-b border-bd px-4 flex items-center gap-3 h-[56px] shrink-0">
-          <Logo size={30} />
-          <span className="flex-1 text-[15px] font-semibold tracking-wide">
-            <span className="text-green">S010</span>lvloon
-          </span>
-          <button className="text-gray2 p-1 active:opacity-60" onClick={() => setNotifyOpen(true)}>🔔</button>
-        </header>
-      )
-      const titles: Record<Tab, string> = { home: '', cats: 'Категории', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
-      return <Header showLogo={tab === 'cats'} title={titles[tab]} />
+      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
+      return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} />
     }
     if (top.type === 'giveaway') {
       return <Header showBack onBack={goBack} title="Секретный розыгрыш" />

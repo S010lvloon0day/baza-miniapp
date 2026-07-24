@@ -73,6 +73,7 @@ export interface Profile {
   premium_until?: string
   contributions_total?: number
   contributions_approved?: number
+  photo_url?: string
 }
 
 export interface Contributor {

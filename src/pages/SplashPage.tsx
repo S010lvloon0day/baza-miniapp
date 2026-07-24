@@ -1,56 +1,15 @@
-import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import Logo from '../components/Logo'
-
-function MatrixRain() {
-  const ref = useRef<HTMLCanvasElement>(null)
-  useEffect(() => {
-    const canvas = ref.current
-    if (!canvas) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    canvas.width  = canvas.offsetWidth
-    canvas.height = canvas.offsetHeight
-    const W = canvas.width
-    const H = canvas.height
-    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノ01100110マミムメモヤユヨラリルレロ'
-    const fs   = 11
-    const cols = Math.floor(W / fs)
-    const drops = Array.from({ length: cols }, () => Math.random() * -(H / fs))
-
-    const id = setInterval(() => {
-      ctx.fillStyle = 'rgba(6,6,12,.08)'
-      ctx.fillRect(0, 0, W, H)
-      ctx.font = `${fs}px "JetBrains Mono", monospace`
-      for (let i = 0; i < cols; i++) {
-        const y = drops[i] * fs
-        if (y > 0 && y < H + fs) {
-          const a = (0.03 + Math.random() * 0.11).toFixed(2)
-          ctx.fillStyle = `rgba(255,255,255,${a})`
-          ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * fs, y)
-        }
-        if (y > H && Math.random() > 0.975) drops[i] = -Math.floor(Math.random() * 22)
-        else drops[i] += 0.38
-      }
-    }, 60)
-    return () => clearInterval(id)
-  }, [])
-  return <canvas ref={ref} className="absolute inset-0 w-full h-full pointer-events-none" />
-}
+import BazaMark from '../components/BazaMark'
 
 export default function SplashPage({ onStart }: { onStart: () => void }) {
   return (
     <div className="relative flex flex-col items-center justify-center flex-1 px-8 text-center gap-0 bg-bg overflow-hidden">
-      <MatrixRain />
-      <div className="scanline" />
-
       {/* Top gradient fade */}
       <div className="absolute inset-x-0 top-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(6,6,12,1), transparent)' }} />
       {/* Bottom gradient fade */}
       <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(6,6,12,1), transparent)' }} />
       {/* Center radial glow */}
-      <div className="absolute inset-x-[-60px] top-[-100px] h-[280px] rounded-full blur-3xl pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(255,255,255,.04), transparent 65%)' }} />
+      <div className="absolute inset-x-[-60px] top-[-100px] h-[280px] rounded-full blur-3xl pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(34,197,94,.18), transparent 65%)' }} />
       {/* Bottom separator */}
       <div className="absolute inset-x-8 bottom-16 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent)' }} />
 
@@ -60,7 +19,12 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
         className="relative mb-8"
       >
-        <Logo size={128} glow />
+        <div
+          className="w-[104px] h-[104px] rounded-full flex items-center justify-center"
+          style={{ background: 'radial-gradient(circle, rgba(34,197,94,.22), rgba(34,197,94,.03) 65%, transparent)', boxShadow: '0 0 40px rgba(34,197,94,.35)' }}
+        >
+          <BazaMark size={52} color="#4AE885" glow />
+        </div>
       </motion.div>
 
       <motion.h1
@@ -69,7 +33,7 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         transition={{ delay: 0.25, duration: 0.4 }}
         className="relative text-[32px] font-bold tracking-widest mb-1"
       >
-        <span className="glitch-text text-white">S010</span><span className="text-gold">lvloon</span>
+        <span className="text-white">S010</span><span className="text-gold">lvloon</span>
       </motion.h1>
 
       <motion.p

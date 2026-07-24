@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Anton&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -58,27 +58,6 @@ html, body, #root {
 }
 .terminal-glow { animation: termGlow 3.5s ease-in-out infinite; }
 
-@keyframes glitch {
-  0%,88%,100% { text-shadow: none; transform: none; }
-  89%  { text-shadow:  2px 0 rgba(255,0,60,.85), -2px 0 rgba(0,200,255,.85); transform: skewX(-3deg) translateX(-1px); }
-  90%  { text-shadow: -2px 0 rgba(255,0,60,.85),  2px 0 rgba(0,200,255,.85); transform: skewX( 3deg) translateX( 1px); }
-  91%  { text-shadow: none; transform: none; }
-  92%  { text-shadow:  1px 0 rgba(255,0,60,.6);  transform: translateX(-1px); }
-  93%  { text-shadow: -1px 0 rgba(0,200,255,.6); transform: translateX( 0); }
-  94%  { text-shadow: none; transform: none; }
-}
-.glitch-text { animation: glitch 9s ease-in-out infinite; display: inline-block; }
-
-@keyframes scanline {
-  0%   { transform: translateY(-100%); }
-  100% { transform: translateY(100vh); }
-}
-.scanline {
-  position: absolute; left: 0; right: 0; height: 2px; pointer-events: none;
-  background: linear-gradient(transparent, rgba(255,255,255,.04), transparent);
-  animation: scanline 8s linear infinite;
-}
-
 @keyframes typewriter {
   from { width: 0; }
   to   { width: 100%; }
@@ -87,3 +66,39 @@ html, body, #root {
   overflow: hidden; white-space: nowrap;
   animation: typewriter 1.2s steps(30) 0.8s both;
 }
+
+@keyframes bazaDotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.5), 0 0 6px #22C55E; }
+  50% { box-shadow: 0 0 0 5px rgba(34,197,94,0), 0 0 10px #22C55E; }
+}
+@keyframes bazaRingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.45), 0 0 10px rgba(34,197,94,.35); }
+  50% { box-shadow: 0 0 0 6px rgba(34,197,94,0), 0 0 16px rgba(34,197,94,.55); }
+}
+@keyframes bazaLinePulse {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -300; }
+}
+@keyframes bazaFlicker {
+  0%, 100% { opacity: 1; }
+  42% { opacity: 1; }
+  44% { opacity: .15; }
+  46% { opacity: 1; }
+  48% { opacity: .2; }
+  50% { opacity: 1; }
+  70% { opacity: 1; }
+  71% { opacity: .1; }
+  73% { opacity: 1; }
+}
+.baza-dot-pulse { animation: bazaDotPulse 1.6s ease-in-out infinite; }
+.baza-ring-pulse { animation: bazaRingPulse 2s ease-in-out infinite; }
+.baza-flicker { animation: bazaFlicker 3s linear infinite; }
+.baza-grain {
+  position: absolute; inset: 0; pointer-events: none; opacity: .06; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Bottom clearance for scrollable pages so trailing content (buttons, list ends)
+   isn't hidden behind the fixed BottomNav — kept in sync with BottomNav's own
+   padding/icon/label sizing in one place instead of duplicating the calc per page. */
+.pb-navsafe { padding-bottom: calc(env(safe-area-inset-bottom, 10px) + 90px); }

@@ -84,9 +84,8 @@ export default function SearchPage({ onMaterial }: Props) {
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Grep-style input */}
       <div className="px-4 py-3 border-b border-bd shrink-0">
-        <div className="flex items-center bg-s1 border border-bd px-3 h-10 font-mono text-[12px] gap-0"
-          style={{ borderColor: query.trim().length >= 2 ? 'rgba(255,255,255,.18)' : undefined }}>
-          <span style={{ color: '#28C840' }} className="shrink-0">$&nbsp;</span>
+        <div className="flex items-center bg-s1 border border-[rgba(34,197,94,.3)] px-3 h-10 font-mono text-[12px] gap-0">
+          <span className="shrink-0 text-green">$&nbsp;</span>
           <span className="text-gray2 shrink-0">grep&nbsp;-ri&nbsp;&quot;</span>
           <input
             ref={inputRef}
@@ -121,7 +120,7 @@ export default function SearchPage({ onMaterial }: Props) {
             </div>
             {history.map(item => (
               <div key={item} className="flex items-center gap-2 px-4 py-2.5 active:bg-s1 group">
-                <span className="text-gray2 font-mono text-[11px] shrink-0">▶</span>
+                <span className="text-greenLight font-mono text-[11px] shrink-0">▶</span>
                 <button
                   className="flex-1 text-left font-mono text-[12px] text-white/70"
                   onClick={() => setQuery(item)}

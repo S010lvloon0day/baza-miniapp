@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import type { Material } from '../api/client'
-
+import MediaTypeIcon from '../components/MediaTypeIcon'
 
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
-const typeIcon  = (t: string) => ({ photo: '🖼', video: '🎬', document: '📄', text: '📝' }[t] ?? '📄')
 
 interface Props { onMaterial: (id: number, sectionId: number) => void }
 
@@ -38,27 +37,24 @@ export default function RecentPage({ onMaterial }: Props) {
   )
 
   return (
-    <div className="flex-1 overflow-y-auto pb-14">
-      <div className="px-4 pt-3 pb-1">
-        <span className="text-[11px] font-bold tracking-[2px] uppercase text-gray">{items.length} материалов</span>
+    <div className="flex-1 overflow-y-auto pb-navsafe">
+      <div className="px-4 pt-3 pb-3.5">
+        <span className="text-[11px] font-bold tracking-[1.5px] uppercase text-gray">{items.length} материалов</span>
       </div>
-      <div className="mx-4 flex flex-col divide-y divide-bd">
+      <div className="mx-4 flex flex-col" style={{ gap: 10 }}>
         {items.map(m => (
           <div key={m.id} onClick={() => onMaterial(m.id, m.section_id)}
-            className="flex items-center gap-3 py-3.5 cursor-pointer active:bg-s1 -mx-4 px-4 transition-colors">
-            <div className="w-11 h-11 bg-gradient-to-br from-s2 to-bg rounded-xl border border-bd2 flex items-center justify-center text-xl shrink-0">
-              {typeIcon(m.media_type)}
-            </div>
+            className="flex items-center gap-3 cursor-pointer border border-white/[.08] active:border-green/40 transition-transform duration-150 active:translate-x-0.5"
+            style={{ padding: 12, borderRadius: 14, background: '#101014' }}>
+            <MediaTypeIcon type={m.media_type} />
             <div className="flex-1 min-w-0">
-              {(m.section_title || m.section_emoji) && (
-                <div className="text-[10px] text-gray2 leading-none mb-0.5 truncate">
-                  {m.section_emoji} {m.section_title}
-                </div>
+              {m.section_title && (
+                <div className="text-[11px] truncate mb-0.5" style={{ color: '#8a8a93' }}>{m.section_title}</div>
               )}
-              <div className="text-[13px] font-semibold text-white line-clamp-2 leading-snug">{m.title}</div>
-              <div className="text-[10px] text-gray uppercase tracking-[1px] mt-0.5">{typeLabel(m.media_type)}</div>
+              <div className="text-[14px] font-semibold truncate">{m.title}</div>
+              <div className="text-[10px] mt-0.5" style={{ color: '#6a6a75', letterSpacing: '.5px' }}>{typeLabel(m.media_type)}</div>
             </div>
-            <div className="dot-glow shrink-0" />
+            <span className="shrink-0" style={{ width: 6, height: 6, borderRadius: '50%', background: '#4AE885', boxShadow: '0 0 6px #4AE885' }} />
           </div>
         ))}
       </div>
