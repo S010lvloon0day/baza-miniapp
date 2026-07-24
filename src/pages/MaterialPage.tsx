@@ -1,10 +1,15 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CaretLeft, CaretRight, ArrowSquareOut, DownloadSimple } from '@phosphor-icons/react'
 import { api, API_BASE } from '../api/client'
 import { PaperPlaneTilt, Star, Crown } from '@phosphor-icons/react'
 import type { Material } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
+
+// react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
+// users who actually open a PDF document — lazy-load it so the main bundle (and every other
+// page: Home, Categories, Profile, etc.) doesn't pay that cost on initial load.
+const PdfViewer = lazy(() => import('../components/PdfViewer'))
 
 const tg = (window as any).Telegram?.WebApp
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
@@ -166,7 +171,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
-      <div className="flex-1 overflow-y-auto pb-16">
+      <div className="flex-1 overflow-y-auto pb-navsafe">
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div key="spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -295,14 +300,18 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     </div>
                   )}
 
-                  {/* PDF preview — rendered inline via the browser's native PDF viewer */}
+                  {/* PDF preview — rendered via pdf.js into our own canvas so it behaves
+                      identically on iOS/Android/desktop, instead of each platform's inconsistent
+                      native iframe PDF plugin (Android showed nothing at all; iOS showed only
+                      page 1 with no way to scroll further). */}
                   {docPreview === 'pdf' && furl && (
-                    <iframe
-                      src={furl}
-                      title={mat.title}
-                      className="w-full rounded-2xl border border-white/[.08] block mb-3"
-                      style={{ height: '70vh', background: '#fff' }}
-                    />
+                    <Suspense fallback={
+                      <div className="mb-3 h-64 rounded-2xl border border-white/[.08] flex items-center justify-center" style={{ background: '#fff' }}>
+                        <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+                      </div>
+                    }>
+                      <PdfViewer file={furl} />
+                    </Suspense>
                   )}
 
                   {/* Fallback: genuinely unreadable document */}
@@ -357,8 +366,8 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
       </div>
 
       {sectionMats.length > 1 && (
-        <div className="fixed bottom-0 left-0 right-0 h-14 bg-s1/95 backdrop-blur-md border-t border-white/10 flex items-center justify-between px-4 z-50"
-          style={{ boxShadow: '0 -8px 24px rgba(0,0,0,.4)' }}>
+        <div className="fixed bottom-0 left-0 right-0 bg-s1/95 backdrop-blur-md border-t border-white/10 flex items-center justify-between px-4 z-50"
+          style={{ boxShadow: '0 -8px 24px rgba(0,0,0,.4)', paddingTop: 10, paddingBottom: 'calc(env(safe-area-inset-bottom, 10px) + 10px)' }}>
           <button disabled={!prevId} onClick={() => prevId && navigate(prevId)}
             className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-white/15 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
             <CaretLeft size={20} weight="bold" />
