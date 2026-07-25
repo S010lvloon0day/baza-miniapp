@@ -248,7 +248,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 text-center">
                       <MediaTypeIcon type="video" size={56} iconSize={24} radius={16} />
                       <div className="text-[13px] text-white/70 leading-snug">
-                        Файл слишком большой — открыть в мини-аппе невозможно
+                        Не удалось загрузить — попробуйте открыть в Telegram
                       </div>
                       <TgButton prominent />
                     </div>
@@ -319,7 +319,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
                       <MediaTypeIcon type="document" size={56} iconSize={24} radius={16} />
                       <div className="text-[13px] text-white/70 leading-snug">
-                        Файл слишком большой — открыть в мини-аппе невозможно
+                        Не удалось загрузить — попробуйте открыть в Telegram
                       </div>
                       <TgButton prominent />
                     </div>
