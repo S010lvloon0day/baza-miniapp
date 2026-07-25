@@ -156,7 +156,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
           <div className="mb-6">
             <div className="text-[11px] font-bold uppercase mb-3" style={{ letterSpacing: '1.5px', color: '#9a9aa2' }}>Топ контрибьюторов</div>
             <div className="rounded-[14px]" style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014', padding: '0 16px' }}>
-              {top.map((c, i) => {
+              {top.slice(0, 3).map((c, i) => {
                 const me = c.user_id === prof?.user_id
                 return (
                   <div key={c.user_id} className="flex items-center gap-2.5" style={{ padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
@@ -168,7 +168,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                   </div>
                 )
               })}
-              {myRank !== null && myRank > top.length && (
+              {myRank !== null && myRank > 3 && (
                 <div className="flex items-center gap-2.5" style={{ padding: '9px 0' }}>
                   <span className="w-[18px] text-center text-[12px] font-mono shrink-0" style={{ color: '#6a6a75' }}>{myRank}</span>
                   <span className="flex-1 truncate text-[13px] font-semibold text-green">вы</span>
