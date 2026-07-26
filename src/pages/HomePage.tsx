@@ -146,6 +146,36 @@ export default function HomePage({ onSection, onMaterial, onTabCats, botUsername
           </div>
         )}
 
+        {/* Featured — авторский раздел S010lvloon: выше «Последних добавленных» */}
+        {featured && (
+            <div
+              onClick={() => onSection(featured)}
+              className="relative mb-5 cursor-pointer overflow-hidden rounded-md active:opacity-80 transition-opacity"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,188,46,.12), rgba(255,140,0,.05))',
+                border: '1px solid rgba(255,188,46,.45)',
+                boxShadow: '0 0 22px rgba(255,188,46,.12)',
+              }}
+            >
+              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.8), transparent)' }} />
+              <div className="flex items-center gap-3 px-4 py-4">
+                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,188,46,.14)', border: '1px solid rgba(255,188,46,.35)', color: '#FFCB57' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ filter: 'drop-shadow(0 0 5px rgba(255,188,46,.9))' }}>
+                    <path d="M12 2l2.6 6.6L21 9l-5 4.3L17.5 20 12 16.3 6.5 20 8 13.3 3 9l6.4-.4z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 mb-1 rounded-sm" style={{ background: 'rgba(255,188,46,.18)' }}>
+                    <span className="text-[8px] font-bold tracking-[2px] uppercase" style={{ color: '#FFBC2E' }}>★ Автор</span>
+                  </div>
+                  <div className="text-[14px] font-bold text-white leading-tight truncate">{featured.title}</div>
+                  <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: 'rgba(255,188,46,.7)' }}>// курс · публикации · фишки</div>
+                </div>
+                <span className="font-bold text-[20px] shrink-0" style={{ color: '#FFBC2E' }}>›</span>
+              </div>
+            </div>
+        )}
+
         {/* Новое — collapsible */}
         <div onClick={() => setNewOpen(o => !o)} className="flex items-center justify-between mb-3 cursor-pointer">
           <span className="flex items-center gap-1.5 text-[11px] font-bold tracking-[1.5px] uppercase text-[#9a9aa2] font-mono">
@@ -187,36 +217,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats, botUsername
               </>
             )}
           </div>
-        )}
-
-        {/* Featured — авторский раздел S010lvloon */}
-        {featured && (
-            <div
-              onClick={() => onSection(featured)}
-              className="relative mb-5 cursor-pointer overflow-hidden rounded-md active:opacity-80 transition-opacity"
-              style={{
-                background: 'linear-gradient(135deg, rgba(255,188,46,.12), rgba(255,140,0,.05))',
-                border: '1px solid rgba(255,188,46,.45)',
-                boxShadow: '0 0 22px rgba(255,188,46,.12)',
-              }}
-            >
-              <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,188,46,.8), transparent)' }} />
-              <div className="flex items-center gap-3 px-4 py-4">
-                <div className="shrink-0 w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,188,46,.14)', border: '1px solid rgba(255,188,46,.35)', color: '#FFCB57' }}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style={{ filter: 'drop-shadow(0 0 5px rgba(255,188,46,.9))' }}>
-                    <path d="M12 2l2.6 6.6L21 9l-5 4.3L17.5 20 12 16.3 6.5 20 8 13.3 3 9l6.4-.4z" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="inline-flex items-center gap-1 px-1.5 py-0.5 mb-1 rounded-sm" style={{ background: 'rgba(255,188,46,.18)' }}>
-                    <span className="text-[8px] font-bold tracking-[2px] uppercase" style={{ color: '#FFBC2E' }}>★ Автор</span>
-                  </div>
-                  <div className="text-[14px] font-bold text-white leading-tight truncate">{featured.title}</div>
-                  <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: 'rgba(255,188,46,.7)' }}>// курс · публикации · фишки</div>
-                </div>
-                <span className="font-bold text-[20px] shrink-0" style={{ color: '#FFBC2E' }}>›</span>
-              </div>
-            </div>
         )}
 
         {/* Categories */}

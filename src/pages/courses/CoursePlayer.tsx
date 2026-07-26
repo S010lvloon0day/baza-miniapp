@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import StepBar from '../../components/course/StepBar'
 import Syllabus from '../../components/course/Syllabus'
+import LessonContent, { stepKindLabel } from '../../components/course/LessonContent'
 import { CenterLoader, CourseButton, ErrorNote, ProgressBar } from '../../components/course/ui'
 import { useIsWide } from '../../hooks/useMediaQuery'
 import { coursesApi } from '../../api/courses'
@@ -342,14 +343,14 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
 
       {step.kind === 'lesson' ? (
         <>
-          <div className="font-mono" style={{ fontSize: 10, color: '#5c8a6e', marginBottom: 8 }}>Теория</div>
-          <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 14 }}>{step.title}</div>
+          <div className="font-mono" style={{ fontSize: 10, color: '#5c8a6e', marginBottom: 8 }}>
+            {stepKindLabel(step.title)}
+          </div>
+          <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.35, marginBottom: 16 }}>{step.title}</div>
           {lessonCache[step.id] ? (
             <>
               <LessonMedia type={step.type} url={lessonCache[step.id].media_url} />
-              <div style={{ fontSize: 13.5, color: '#c9c9ce', lineHeight: 1.7, marginBottom: 26, whiteSpace: 'pre-line' }}>
-                {lessonCache[step.id].content}
-              </div>
+              <LessonContent text={lessonCache[step.id].content} />
             </>
           ) : (
             <div className="font-mono" style={{ fontSize: 11, color: '#4a4a52', marginBottom: 26 }}>
