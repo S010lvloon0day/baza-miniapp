@@ -17,6 +17,7 @@ export interface DraftQuestion {
 }
 
 export interface DraftLesson {
+  kind: 'lesson'
   id: DraftId
   type: LessonType
   title: string
@@ -24,12 +25,14 @@ export interface DraftLesson {
   media_url: string
 }
 
+/** Шаг главы: теория или задача — порядок в массиве и есть порядок прохождения. */
+export type DraftStep = DraftLesson | (DraftQuestion & { kind: 'question' })
+
 export interface DraftChapter {
   id: DraftId
   title: string
   icon: CourseIconKey
-  lessons: DraftLesson[]
-  questions: DraftQuestion[]
+  steps: DraftStep[]
   expanded: boolean
 }
 
@@ -60,12 +63,16 @@ export function emptyQuestion(): DraftQuestion {
   return { id: newId('q'), text: '', multi: false, options: [emptyOption(), emptyOption()] }
 }
 
+export function emptyQuestionStep(): DraftStep {
+  return { kind: 'question', ...emptyQuestion() }
+}
+
 export function emptyLesson(): DraftLesson {
-  return { id: newId('les'), type: 'text', title: '', content: '', media_url: '' }
+  return { kind: 'lesson', id: newId('les'), type: 'text', title: '', content: '', media_url: '' }
 }
 
 export function emptyChapter(): DraftChapter {
-  return { id: newId('ch'), title: '', icon: 'book', lessons: [emptyLesson()], questions: [emptyQuestion()], expanded: true }
+  return { id: newId('ch'), title: '', icon: 'book', steps: [emptyLesson(), emptyQuestionStep()], expanded: true }
 }
 
 export function emptyCourse(sectionId: number): DraftCourse {

@@ -12,9 +12,7 @@ import ProfilePage from './pages/ProfilePage'
 import GiveawayPage from './pages/GiveawayPage'
 import CoursesListPage from './pages/courses/CoursesListPage'
 import CourseDetailPage from './pages/courses/CourseDetailPage'
-import LessonPage from './pages/courses/LessonPage'
-import QuizPage from './pages/courses/QuizPage'
-import CourseResultPage from './pages/courses/CourseResultPage'
+import CoursePlayer from './pages/courses/CoursePlayer'
 import ConstructorPage from './pages/constructor/ConstructorPage'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
@@ -33,9 +31,7 @@ type View =
   | { type: 'giveaway' }
   | { type: 'courses'; section: Section }
   | { type: 'course'; courseId: number; title: string }
-  | { type: 'lesson'; courseId: number; chapterId: number }
-  | { type: 'quiz'; courseId: number; chapterId: number | null }
-  | { type: 'courseResult'; courseId: number; mode: 'chapter' | 'final'; mistakes: number; total: number }
+  | { type: 'player'; courseId: number }
 
 export default function App() {
   const [started, setStarted] = useState(() => !!localStorage.getItem('started'))
@@ -110,20 +106,10 @@ export default function App() {
   const openCourse = (courseId: number, title = 'Курс') =>
     setStack(s => [...s, { type: 'course', courseId, title }])
 
-  const openChapter = (courseId: number, chapterId: number) =>
-    setStack(s => [...s, { type: 'lesson', courseId, chapterId }])
+  const openPlayer = (courseId: number) =>
+    setStack(s => [...s, { type: 'player', courseId }])
 
-  const openQuiz = (courseId: number, chapterId: number | null) =>
-    setStack(s => [...s, { type: 'quiz', courseId, chapterId }])
-
-  /** Тест пройден: экран результата заменяет собой квиз, чтобы «назад» не вернул в тест. */
-  const finishQuiz = (courseId: number, chapterId: number | null, mistakes: number, total: number) =>
-    setStack(s => [
-      ...s.slice(0, -1),
-      { type: 'courseResult', courseId, mode: chapterId === null ? 'final' : 'chapter', mistakes, total },
-    ])
-
-  /** С экрана результата возвращаемся к карточке курса, свернув пройденные шаги. */
+  /** Из плеера возвращаемся к странице курса — там прогресс и отзывы. */
   const backToCourse = () =>
     setStack(s => {
       const idx = s.map(v => v.type).lastIndexOf('course')
@@ -154,42 +140,10 @@ export default function App() {
       return <CoursesListPage sectionId={top.section.id} onOpen={openCourse} />
     }
     if (top?.type === 'course') {
-      return (
-        <CourseDetailPage
-          courseId={top.courseId}
-          onChapter={chapterId => openChapter(top.courseId, chapterId)}
-          onExam={() => openQuiz(top.courseId, null)}
-        />
-      )
+      return <CourseDetailPage courseId={top.courseId} onStart={() => openPlayer(top.courseId)} />
     }
-    if (top?.type === 'lesson') {
-      return (
-        <LessonPage
-          courseId={top.courseId}
-          chapterId={top.chapterId}
-          onQuiz={() => openQuiz(top.courseId, top.chapterId)}
-        />
-      )
-    }
-    if (top?.type === 'quiz') {
-      return (
-        <QuizPage
-          courseId={top.courseId}
-          chapterId={top.chapterId}
-          onDone={(mistakes, total) => finishQuiz(top.courseId, top.chapterId, mistakes, total)}
-        />
-      )
-    }
-    if (top?.type === 'courseResult') {
-      return (
-        <CourseResultPage
-          courseId={top.courseId}
-          mode={top.mode}
-          mistakes={top.mistakes}
-          total={top.total}
-          onContinue={backToCourse}
-        />
-      )
+    if (top?.type === 'player') {
+      return <CoursePlayer courseId={top.courseId} onExit={backToCourse} />
     }
     if (top?.type === 'section') {
       return <SectionPage section={top.section} initialPage={top.page} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
@@ -230,14 +184,8 @@ export default function App() {
     if (top.type === 'course') {
       return <Header showBack onBack={goBack} title="Курс" />
     }
-    if (top.type === 'lesson') {
-      return <Header showBack onBack={goBack} title="Урок" />
-    }
-    if (top.type === 'quiz') {
-      return <Header showBack onBack={goBack} title={top.chapterId === null ? 'Финальный экзамен' : 'Тест по главе'} />
-    }
-    if (top.type === 'courseResult') {
-      return <Header showBack onBack={backToCourse} title="Результат" />
+    if (top.type === 'player') {
+      return <Header showBack onBack={backToCourse} title="Обучение" />
     }
     if (top.type === 'giveaway') {
       return <Header showBack onBack={goBack} title="Секретный розыгрыш" />

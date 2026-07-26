@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# macOS AppleDouble
+._*
+.DS_Store

@@ -54,6 +54,8 @@ export interface CourseSummary {
   is_active: number
   position: number
   chapters_count: number
+  steps_count: number
+  steps_solved: number
   percent: number
   status_label: string
   owned: boolean
@@ -86,15 +88,32 @@ export interface CourseLesson {
   media_url: string
 }
 
+export interface LessonStep extends CourseLesson {
+  kind: 'lesson'
+  solved: boolean
+  attempts: number
+}
+
+export interface QuestionStep {
+  kind: 'question'
+  id: number
+  text: string
+  multi: boolean
+  options: QuizOption[]
+  solved: boolean
+  attempts: number
+}
+
+export type CourseStep = LessonStep | QuestionStep
+
 export interface CourseChapter {
   id: number
   title: string
   icon: CourseIconKey
-  lessons_count: number
-  questions_count: number
-  locked: boolean
-  done: boolean
-  lessons: CourseLesson[]
+  is_exam: boolean
+  steps_count: number
+  solved_count: number
+  steps: CourseStep[]
 }
 
 export interface CourseDetail {
@@ -108,11 +127,12 @@ export interface CourseDetail {
   owned: boolean
   locked: boolean
   percent: number
-  exam_passed: boolean
+  completed: boolean
+  steps_count: number
+  steps_solved: number
   rating: number
   reviews_count: number
   chapters: CourseChapter[]
-  final_exam_count: number
 }
 
 export interface QuizOption {
@@ -150,12 +170,15 @@ export interface AdminQuestion {
   options: AdminOption[]
 }
 
+export type AdminStep =
+  | ({ kind: 'lesson' } & CourseLesson)
+  | ({ kind: 'question' } & AdminQuestion)
+
 export interface AdminChapter {
   id: number
   title: string
   icon: CourseIconKey
-  lessons: CourseLesson[]
-  questions: AdminQuestion[]
+  steps: AdminStep[]
 }
 
 export interface AdminCourse {
@@ -188,33 +211,17 @@ export const coursesApi = {
 
   detail: (courseId: number) => request<CourseDetail>('GET', `/api/courses/${courseId}`),
 
-  quiz: (courseId: number, chapterId: number | null) =>
-    request<{ questions: QuizQuestion[]; mode: 'chapter' | 'final'; chapter_id: number | null }>(
-      'GET',
-      chapterId === null
-        ? `/api/courses/${courseId}/quiz`
-        : `/api/courses/${courseId}/quiz?chapter_id=${chapterId}`,
-    ),
-
-  checkAnswer: (courseId: number, questionId: number, optionIds: number[]) =>
-    request<{ correct: boolean; correct_option_ids: number[] }>(
+  submitStep: (courseId: number, questionId: number, optionIds: number[]) =>
+    request<{ correct: boolean; correct_option_ids: number[]; percent: number; completed: boolean }>(
       'POST',
-      `/api/courses/${courseId}/quiz/check`,
-      { question_id: questionId, option_ids: optionIds },
+      `/api/courses/${courseId}/steps/${questionId}/submit`,
+      { option_ids: optionIds },
     ),
 
-  completeChapter: (courseId: number, chapterId: number, answers: Record<number, number[]>, mistakes: number) =>
-    request<{ ok: boolean; percent: number; chapters_done: number[] }>(
-      'POST',
-      `/api/courses/${courseId}/chapters/${chapterId}/complete`,
-      { answers, mistakes },
-    ),
-
-  completeExam: (courseId: number, answers: Record<number, number[]>, mistakes: number) =>
+  viewLesson: (courseId: number, lessonId: number) =>
     request<{ ok: boolean; percent: number }>(
       'POST',
-      `/api/courses/${courseId}/exam/complete`,
-      { answers, mistakes },
+      `/api/courses/${courseId}/lessons/${lessonId}/view`,
     ),
 
   invoice: (courseId: number) =>

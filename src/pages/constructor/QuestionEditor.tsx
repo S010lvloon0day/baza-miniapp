@@ -34,9 +34,11 @@ interface Props {
   question: DraftQuestion
   onChange: (q: DraftQuestion) => void
   onRemove: () => void
+  /** Внутри строки шага рамку и кнопку удаления рисует родитель. */
+  bare?: boolean
 }
 
-export default function QuestionEditor({ question, onChange, onRemove }: Props) {
+export default function QuestionEditor({ question, onChange, onRemove, bare }: Props) {
   const patch = (fields: Partial<DraftQuestion>) => onChange({ ...question, ...fields })
 
   const patchOption = (optionId: DraftQuestion['options'][number]['id'], fields: Partial<DraftQuestion['options'][number]>) =>
@@ -55,8 +57,12 @@ export default function QuestionEditor({ question, onChange, onRemove }: Props) 
     })
   }
 
+  const frame = bare
+    ? undefined
+    : { border: '1px solid rgba(255,255,255,.07)', borderRadius: 11, padding: 10, background: '#0D0D11' }
+
   return (
-    <div style={{ border: '1px solid rgba(255,255,255,.07)', borderRadius: 11, padding: 10, background: '#0D0D11' }}>
+    <div style={frame}>
       <div className="flex" style={{ gap: 6, marginBottom: 7 }}>
         <input
           value={question.text}
@@ -64,7 +70,7 @@ export default function QuestionEditor({ question, onChange, onRemove }: Props) 
           placeholder="Текст вопроса"
           style={{ ...inputStyle, flex: 1, minWidth: 0 }}
         />
-        <XButton onClick={onRemove} />
+        {!bare && <XButton onClick={onRemove} />}
       </div>
 
       <label className="flex items-center" style={{ gap: 6, fontSize: 10.5, color: '#8a8a93', marginBottom: 8, cursor: 'pointer' }}>

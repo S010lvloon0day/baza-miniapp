@@ -24,8 +24,11 @@ function toDraft(course: AdminCourse): DraftCourse {
       title: ch.title,
       icon: ch.icon,
       expanded: false,
-      lessons: ch.lessons.map(l => ({ ...l })),
-      questions: ch.questions.map(q => ({ ...q, options: q.options.map(o => ({ ...o })) })),
+      steps: ch.steps.map(step =>
+        step.kind === 'question'
+          ? { ...step, options: step.options.map(o => ({ ...o })) }
+          : { ...step },
+      ),
     })),
     final_exam: course.final_exam.map(q => ({ ...q, options: q.options.map(o => ({ ...o })) })),
   }
@@ -197,8 +200,8 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
         id: ch.id,
         title: ch.title,
         icon: ch.icon,
-        lessons: ch.lessons.map(l => ({ id: l.id, type: l.type, title: l.title, content: l.content, media_url: l.media_url })),
-        questions: ch.questions.filter(q => q.text.trim()),
+        // Пустые задачи не сохраняем, теорию оставляем как есть
+        steps: ch.steps.filter(s => s.kind === 'lesson' || s.text.trim()),
       })),
       final_exam: draft.final_exam.filter(q => q.text.trim()),
     }

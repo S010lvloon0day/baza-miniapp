@@ -2,8 +2,8 @@ import { useState } from 'react'
 import CourseIcon from '../../components/CourseIcon'
 import { CourseButton, ErrorNote } from '../../components/course/ui'
 import QuestionEditor, { inputStyle, XButton } from './QuestionEditor'
-import { emptyChapter, emptyLesson, emptyQuestion } from './types'
-import type { DraftChapter, DraftCourse, DraftLesson, DraftQuestion } from './types'
+import { emptyChapter, emptyLesson, emptyQuestion, emptyQuestionStep } from './types'
+import type { DraftChapter, DraftCourse, DraftLesson, DraftQuestion, DraftStep } from './types'
 import { COURSE_ICONS, COURSE_LEVELS } from '../../api/courses'
 import type { AdminSection, CourseIconKey, LessonType } from '../../api/courses'
 
@@ -39,11 +39,11 @@ function SegButton({ active, onClick, children }: { active: boolean; onClick: ()
   )
 }
 
-function LessonBlock({ lesson, onChange, onRemove }: { lesson: DraftLesson; onChange: (l: DraftLesson) => void; onRemove: () => void }) {
+function LessonBlock({ lesson, onChange }: { lesson: DraftLesson; onChange: (l: DraftLesson) => void }) {
   const patch = (fields: Partial<DraftLesson>) => onChange({ ...lesson, ...fields })
 
   return (
-    <div style={{ border: '1px solid rgba(255,255,255,.07)', borderRadius: 11, padding: 10, background: '#0D0D11' }}>
+    <div>
       <div className="flex" style={{ gap: 6, marginBottom: 8 }}>
         {(Object.keys(LESSON_TYPE_LABEL) as LessonType[]).map(type => (
           <button
@@ -61,7 +61,6 @@ function LessonBlock({ lesson, onChange, onRemove }: { lesson: DraftLesson; onCh
             {LESSON_TYPE_LABEL[type]}
           </button>
         ))}
-        <XButton onClick={onRemove} />
       </div>
 
       <input
@@ -91,6 +90,77 @@ function LessonBlock({ lesson, onChange, onRemove }: { lesson: DraftLesson; onCh
   )
 }
 
+function StepRow({
+  step,
+  index,
+  total,
+  onChange,
+  onRemove,
+  onMove,
+}: {
+  step: DraftStep
+  index: number
+  total: number
+  onChange: (s: DraftStep) => void
+  onRemove: () => void
+  onMove: (delta: number) => void
+}) {
+  const isLesson = step.kind === 'lesson'
+
+  return (
+    <div style={{ border: `1px solid ${isLesson ? 'rgba(255,255,255,.07)' : 'rgba(34,197,94,.22)'}`, borderRadius: 12, background: '#0D0D11' }}>
+      <div className="flex items-center" style={{ gap: 8, padding: '9px 10px 0' }}>
+        <span
+          className="font-mono flex items-center justify-center shrink-0"
+          style={{
+            width: 22, height: 22, borderRadius: 7, fontSize: 10, fontWeight: 800,
+            background: isLesson ? 'rgba(255,255,255,.06)' : 'rgba(34,197,94,.14)',
+            color: isLesson ? '#8a8a93' : '#4AE885',
+          }}
+        >
+          {index + 1}
+        </span>
+        <span className="uppercase" style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.8px', color: isLesson ? '#8a8a93' : '#4AE885' }}>
+          {isLesson ? 'Теория' : 'Задача'}
+        </span>
+        <span className="flex-1" />
+        <button
+          type="button"
+          onClick={() => onMove(-1)}
+          disabled={index === 0}
+          aria-label="Выше"
+          style={{ border: 'none', background: 'transparent', color: index === 0 ? '#3a3a44' : '#8a8a93', cursor: index === 0 ? 'default' : 'pointer', padding: 2, lineHeight: 0 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15" /></svg>
+        </button>
+        <button
+          type="button"
+          onClick={() => onMove(1)}
+          disabled={index === total - 1}
+          aria-label="Ниже"
+          style={{ border: 'none', background: 'transparent', color: index === total - 1 ? '#3a3a44' : '#8a8a93', cursor: index === total - 1 ? 'default' : 'pointer', padding: 2, lineHeight: 0 }}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+        </button>
+        <XButton onClick={onRemove} />
+      </div>
+
+      <div style={{ padding: '8px 10px 10px' }}>
+        {isLesson ? (
+          <LessonBlock lesson={step} onChange={onChange} />
+        ) : (
+          <QuestionEditor
+            question={step}
+            onChange={q => onChange({ kind: 'question', ...q })}
+            onRemove={onRemove}
+            bare
+          />
+        )}
+      </div>
+    </div>
+  )
+}
+
 function ChapterBlock({
   chapter,
   index,
@@ -103,6 +173,18 @@ function ChapterBlock({
   onRemove: () => void
 }) {
   const patch = (fields: Partial<DraftChapter>) => onChange({ ...chapter, ...fields })
+
+  const move = (from: number, delta: number) => {
+    const to = from + delta
+    if (to < 0 || to >= chapter.steps.length) return
+    const steps = [...chapter.steps]
+    const [item] = steps.splice(from, 1)
+    steps.splice(to, 0, item)
+    patch({ steps })
+  }
+
+  const lessons = chapter.steps.filter(s => s.kind === 'lesson').length
+  const tasks = chapter.steps.length - lessons
 
   return (
     <div style={{ border: '1px solid rgba(255,255,255,.08)', borderRadius: 16, background: '#101014', overflow: 'hidden' }}>
@@ -126,7 +208,7 @@ function ChapterBlock({
           style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#fff', fontSize: 13.5, fontWeight: 700, outline: 'none', fontFamily: 'inherit' }}
         />
         <span className="font-mono" style={{ fontSize: 10, color: '#6a6a75', flex: 'none' }}>
-          {chapter.lessons.length} ур · {chapter.questions.length} вопр
+          {lessons} теор · {tasks} зад
         </span>
         <XButton size={14} onClick={onRemove} />
       </div>
@@ -159,43 +241,35 @@ function ChapterBlock({
           </div>
 
           <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-            <span className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', color: '#7a7a83' }}>Уроки</span>
-            <button
-              type="button"
-              onClick={() => patch({ lessons: [...chapter.lessons, emptyLesson()] })}
-              style={{ border: 'none', background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 10.5, fontWeight: 700, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
-            >
-              + Урок
-            </button>
-          </div>
-          <div className="flex flex-col" style={{ gap: 8, marginBottom: 16 }}>
-            {chapter.lessons.map(lesson => (
-              <LessonBlock
-                key={String(lesson.id)}
-                lesson={lesson}
-                onChange={updated => patch({ lessons: chapter.lessons.map(l => (l.id === lesson.id ? updated : l)) })}
-                onRemove={() => patch({ lessons: chapter.lessons.filter(l => l.id !== lesson.id) })}
-              />
-            ))}
+            <span className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', color: '#7a7a83' }}>Шаги главы</span>
+            <span className="flex" style={{ gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => patch({ steps: [...chapter.steps, emptyLesson()] })}
+                style={{ border: 'none', background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 10.5, fontWeight: 700, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
+              >
+                + Теория
+              </button>
+              <button
+                type="button"
+                onClick={() => patch({ steps: [...chapter.steps, emptyQuestionStep()] })}
+                style={{ border: 'none', background: 'rgba(34,197,94,.12)', color: '#4AE885', fontSize: 10.5, fontWeight: 700, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
+              >
+                + Задача
+              </button>
+            </span>
           </div>
 
-          <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-            <span className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', color: '#7a7a83' }}>Тест по главе</span>
-            <button
-              type="button"
-              onClick={() => patch({ questions: [...chapter.questions, emptyQuestion()] })}
-              style={{ border: 'none', background: 'rgba(255,255,255,.06)', color: '#fff', fontSize: 10.5, fontWeight: 700, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
-            >
-              + Вопрос
-            </button>
-          </div>
           <div className="flex flex-col" style={{ gap: 8 }}>
-            {chapter.questions.map(question => (
-              <QuestionEditor
-                key={String(question.id)}
-                question={question}
-                onChange={updated => patch({ questions: chapter.questions.map(q => (q.id === question.id ? updated : q)) })}
-                onRemove={() => patch({ questions: chapter.questions.filter(q => q.id !== question.id) })}
+            {chapter.steps.map((step, si) => (
+              <StepRow
+                key={String(step.id)}
+                step={step}
+                index={si}
+                total={chapter.steps.length}
+                onChange={updated => patch({ steps: chapter.steps.map((s, i) => (i === si ? updated : s)) })}
+                onRemove={() => patch({ steps: chapter.steps.filter((_, i) => i !== si) })}
+                onMove={delta => move(si, delta)}
               />
             ))}
           </div>
@@ -215,9 +289,9 @@ function validate(course: DraftCourse): string | null {
     (q.options.filter(o => o.text.trim()).length < 2 || !q.options.some(o => o.correct && o.text.trim()))
 
   for (const [i, chapter] of course.chapters.entries()) {
-    const question = chapter.questions.find(badQuestion)
-    if (question) {
-      return `Глава ${i + 1}: у вопроса «${question.text.slice(0, 30)}…» нужно минимум 2 варианта и хотя бы один правильный.`
+    const step = chapter.steps.find(s => s.kind === 'question' && badQuestion(s))
+    if (step && step.kind === 'question') {
+      return `Глава ${i + 1}: у задачи «${step.text.slice(0, 30)}…» нужно минимум 2 варианта и хотя бы один правильный.`
     }
   }
   const examQuestion = course.final_exam.find(badQuestion)

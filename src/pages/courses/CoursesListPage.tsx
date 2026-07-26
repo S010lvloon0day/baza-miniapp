@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { CourseIconBadge } from '../../components/CourseIcon'
-import { CenterLoader, ProgressBar, StarRow } from '../../components/course/ui'
+import { CenterLoader, ErrorNote, ProgressBar, StarRow } from '../../components/course/ui'
 import { coursesApi } from '../../api/courses'
 import type { CourseSummary } from '../../api/courses'
 
@@ -13,17 +13,27 @@ interface Props {
 export default function CoursesListPage({ sectionId, onOpen }: Props) {
   const [courses, setCourses] = useState<CourseSummary[]>([])
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
     let alive = true
     coursesApi.list(sectionId)
-      .then(d => { if (alive) setCourses(d.courses) })
-      .catch(() => {})
+      .then(d => { if (alive) { setCourses(d.courses); setFailed(false) } })
+      // Сбой сети не должен выглядеть как «курсов нет» — это разные вещи
+      .catch(() => { if (alive) setFailed(true) })
       .finally(() => { if (alive) setLoading(false) })
     return () => { alive = false }
   }, [sectionId])
 
   if (loading) return <CenterLoader />
+
+  if (failed) {
+    return (
+      <div className="flex-1 overflow-y-auto pb-navsafe px-4 pt-4">
+        <ErrorNote>Не удалось загрузить курсы. Проверь соединение и открой раздел снова.</ErrorNote>
+      </div>
+    )
+  }
 
   if (!courses.length) {
     return (
@@ -46,13 +56,15 @@ export default function CoursesListPage({ sectionId, onOpen }: Props) {
 
       <div className="flex flex-col" style={{ gap: 12 }}>
         {courses.map((c, i) => (
-          <motion.div
+          <motion.button
             key={c.id}
+            type="button"
+            aria-label={c.title}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
             onClick={() => onOpen(c.id)}
-            className="relative flex overflow-hidden cursor-pointer transition-transform duration-150 active:-translate-y-0.5"
+            className="relative flex overflow-hidden text-left cursor-pointer transition-transform duration-150 active:-translate-y-0.5"
             style={{
               gap: 14,
               padding: '16px 18px',
@@ -97,7 +109,7 @@ export default function CoursesListPage({ sectionId, onOpen }: Props) {
 
               <ProgressBar percent={c.percent} />
             </div>
-          </motion.div>
+          </motion.button>
         ))}
       </div>
     </div>

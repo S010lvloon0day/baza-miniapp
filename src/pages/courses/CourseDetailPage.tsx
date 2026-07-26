@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import CourseIcon, { CourseIconBadge } from '../../components/CourseIcon'
+import CourseIcon from '../../components/CourseIcon'
+import Syllabus from '../../components/course/Syllabus'
 import { CenterLoader, CourseButton, ErrorNote, MonoLabel, ProgressBar, StarRow } from '../../components/course/ui'
+import { useIsWide } from '../../hooks/useMediaQuery'
 import { coursesApi } from '../../api/courses'
 import type { CourseDetail, CourseReview } from '../../api/courses'
 
@@ -14,8 +15,7 @@ const openPay = (url: string) => {
 
 interface Props {
   courseId: number
-  onChapter: (chapterId: number) => void
-  onExam: () => void
+  onStart: () => void
 }
 
 function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: () => void }) {
@@ -59,22 +59,22 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
       </div>
 
       <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 8 }}>{course.title}</div>
-      <div style={{ fontSize: 13, color: '#9a9aa2', lineHeight: 1.6, maxWidth: 280, marginBottom: 18 }}>
+      <div style={{ fontSize: 13, color: '#9a9aa2', lineHeight: 1.6, maxWidth: 320, marginBottom: 18 }}>
         {course.description}
       </div>
 
       <div
         className="w-full flex flex-col text-left"
-        style={{ gap: 10, padding: 16, border: '1px solid rgba(255,255,255,.08)', borderRadius: 16, background: '#101014', marginBottom: 18 }}
+        style={{ gap: 10, padding: 16, border: '1px solid rgba(255,255,255,.08)', borderRadius: 16, background: '#101014', marginBottom: 18, maxWidth: 520 }}
       >
         <div className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', color: '#7a7a83' }}>
           Что внутри
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)' }}>
-          {course.chapters.length} глав · {course.chapters.reduce((s, c) => s + c.lessons_count, 0)} уроков
+          {course.chapters.filter(c => !c.is_exam).length} глав · {course.steps_count} шагов
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)' }}>
-          Тест после каждой главы и финальный экзамен
+          Теория и задачи вперемешку, в конце — финальный экзамен
         </div>
         {course.reviews_count > 0 && (
           <div className="flex items-center" style={{ gap: 7 }}>
@@ -88,24 +88,27 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
 
       {msg && <ErrorNote>{msg}</ErrorNote>}
 
-      {!invoice ? (
-        <CourseButton onClick={buy} disabled={busy}>
-          Купить за {course.price} USDT
-        </CourseButton>
-      ) : (
-        <div className="w-full flex flex-col" style={{ gap: 9 }}>
-          <CourseButton onClick={check} disabled={busy}>Проверить оплату</CourseButton>
-          <CourseButton onClick={buy} variant="ghost" disabled={busy}>Открыть счёт снова</CourseButton>
-        </div>
-      )}
+      <div className="w-full" style={{ maxWidth: 520 }}>
+        {!invoice ? (
+          <CourseButton onClick={buy} disabled={busy}>
+            Купить за {course.price} USDT
+          </CourseButton>
+        ) : (
+          <div className="flex flex-col" style={{ gap: 9 }}>
+            <CourseButton onClick={check} disabled={busy}>Проверить оплату</CourseButton>
+            <CourseButton onClick={buy} variant="ghost" disabled={busy}>Открыть счёт снова</CourseButton>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
 
-function ReviewsBlock({ courseId, examPassed }: { courseId: number; examPassed: boolean }) {
+function ReviewsBlock({ courseId, canReviewHint }: { courseId: number; canReviewHint: boolean }) {
   const [reviews, setReviews] = useState<CourseReview[]>([])
   const [rating, setRating] = useState(0)
   const [count, setCount] = useState(0)
+  const [canReview, setCanReview] = useState(canReviewHint)
   const [myRating, setMyRating] = useState(0)
   const [myText, setMyText] = useState('')
   const [saved, setSaved] = useState(false)
@@ -116,6 +119,7 @@ function ReviewsBlock({ courseId, examPassed }: { courseId: number; examPassed: 
       setReviews(d.reviews)
       setRating(d.rating)
       setCount(d.reviews_count)
+      setCanReview(d.can_review)
       if (d.my_review) {
         setMyRating(d.my_review.rating)
         setMyText(d.my_review.text)
@@ -150,7 +154,7 @@ function ReviewsBlock({ courseId, examPassed }: { courseId: number; examPassed: 
         )}
       </div>
 
-      {examPassed && (
+      {canReview && (
         <div style={{ border: '1px solid rgba(34,197,94,.25)', borderRadius: 16, background: '#101014', padding: 16, marginBottom: 14 }}>
           <div className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', color: '#7a7a83', marginBottom: 10 }}>
             {saved ? 'Ваш отзыв' : 'Оцените курс'}
@@ -179,7 +183,7 @@ function ReviewsBlock({ courseId, examPassed }: { courseId: number; examPassed: 
 
       {reviews.length === 0 ? (
         <div style={{ fontSize: 12, color: '#6a6a75' }}>
-          {examPassed ? 'Ваш отзыв будет первым.' : 'Отзывы появятся после того, как курс пройдут ученики.'}
+          {canReview ? 'Ваш отзыв будет первым.' : 'Отзывы появятся после того, как курс пройдут ученики.'}
         </div>
       ) : (
         <div className="flex flex-col" style={{ gap: 9 }}>
@@ -210,9 +214,10 @@ function ReviewsBlock({ courseId, examPassed }: { courseId: number; examPassed: 
   )
 }
 
-export default function CourseDetailPage({ courseId, onChapter, onExam }: Props) {
+export default function CourseDetailPage({ courseId, onStart }: Props) {
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [loading, setLoading] = useState(true)
+  const isWide = useIsWide()
 
   const load = useCallback(() => {
     setLoading(true)
@@ -241,86 +246,69 @@ export default function CourseDetailPage({ courseId, onChapter, onExam }: Props)
     )
   }
 
-  const allDone = course.chapters.length > 0 && course.chapters.every(ch => ch.done)
-  const examEnabled = allDone && !course.exam_passed && course.final_exam_count > 0
-  const examLabel = course.exam_passed
-    ? '✓ Финальный экзамен сдан'
-    : course.final_exam_count === 0
-      ? 'Финальный экзамен не добавлен'
-      : allDone ? 'Пройти финальный экзамен' : 'Пройдите все главы для экзамена'
+  const started = course.steps_solved > 0
 
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe px-4 pt-4">
       <div
-        style={{
-          border: '1px solid rgba(34,197,94,.25)', borderRadius: 18,
-          background: 'radial-gradient(120% 100% at 0% 0%, rgba(34,197,94,.1), transparent 60%), #0D0D11',
-          padding: 18, marginBottom: 22,
-        }}
+        className="mx-auto w-full"
+        style={isWide ? { maxWidth: 900, display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24, alignItems: 'start' } : undefined}
       >
-        <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 6 }}>{course.title}</div>
-        {course.description && (
-          <div style={{ fontSize: 12, color: '#9a9aa2', lineHeight: 1.5, marginBottom: 12 }}>{course.description}</div>
-        )}
-        <ProgressBar percent={course.percent} />
-        <div className="font-mono" style={{ fontSize: 10, color: '#6a6a75', marginTop: 6 }}>
-          {course.percent}% пройдено
-        </div>
-      </div>
-
-      <MonoLabel>// ГЛАВЫ КУРСА</MonoLabel>
-
-      <div className="grid grid-cols-3" style={{ gap: 9, marginBottom: 20 }}>
-        {course.chapters.map((ch, i) => {
-          const state = ch.done ? 'done' : ch.locked ? 'locked' : 'active'
-          return (
-            <motion.div
-              key={ch.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: ch.locked ? 0.55 : 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              onClick={ch.locked ? undefined : () => onChapter(ch.id)}
-              className="relative flex flex-col items-center overflow-hidden"
-              style={{
-                gap: 9, padding: '16px 6px 13px',
-                border: `1px solid ${ch.done ? 'rgba(34,197,94,.4)' : ch.locked ? 'rgba(255,255,255,.05)' : 'rgba(255,255,255,.09)'}`,
-                borderRadius: 16,
-                background: 'radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,.05), transparent 60%), #101014',
-                cursor: ch.locked ? 'default' : 'pointer',
-              }}
-            >
-              <div className="absolute top-0 left-0 right-0" style={{ height: 1, background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)' }} />
-              <span className="absolute font-mono" style={{ top: 7, left: 9, fontSize: 8, color: '#52525b' }}>
-                {String(i + 1).padStart(2, '0')}
-              </span>
-
-              <CourseIconBadge icon={ch.icon} size={46} iconSize={18} state={state} />
-
+        <div>
+          <div
+            style={{
+              border: '1px solid rgba(34,197,94,.25)', borderRadius: 18,
+              background: 'radial-gradient(120% 100% at 0% 0%, rgba(34,197,94,.1), transparent 60%), #0D0D11',
+              padding: 18, marginBottom: 18,
+            }}
+          >
+            <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
               <span
-                className="relative uppercase text-center"
-                style={{ fontSize: 9, fontWeight: 700, lineHeight: 1.3, letterSpacing: '.3px', color: '#d4d4d8' }}
+                className="uppercase"
+                style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.5px', color: '#8a8a93', background: 'rgba(255,255,255,.06)', borderRadius: 6, padding: '2px 8px' }}
               >
-                {ch.title}
+                {course.level}
               </span>
-              <span className="relative font-mono" style={{ fontSize: 8, color: '#5c8a6e' }}>
-                {ch.done ? 'Пройдено' : ch.locked ? 'Заблокировано' : `${ch.lessons_count} ур.`}
-              </span>
-            </motion.div>
-          )
-        })}
+              {course.reviews_count > 0 && (
+                <span className="flex items-center" style={{ gap: 5 }}>
+                  <StarRow value={course.rating} size={11} />
+                  <span style={{ fontSize: 10.5, color: '#8a8a93' }}>{course.rating.toFixed(1)}</span>
+                </span>
+              )}
+            </div>
+
+            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>{course.title}</div>
+            {course.description && (
+              <div style={{ fontSize: 12.5, color: '#9a9aa2', lineHeight: 1.55, marginBottom: 14 }}>{course.description}</div>
+            )}
+
+            <ProgressBar percent={course.percent} />
+            <div className="font-mono" style={{ fontSize: 10, color: '#6a6a75', margin: '6px 0 14px' }}>
+              {course.percent}% · решено {course.steps_solved} из {course.steps_count} шагов
+            </div>
+
+            <CourseButton onClick={onStart}>
+              {course.completed ? 'Повторить курс' : started ? 'Продолжить обучение' : 'Начать обучение'}
+            </CourseButton>
+          </div>
+
+          {!isWide && (
+            <>
+              <MonoLabel>// ПРОГРАММА КУРСА</MonoLabel>
+              <Syllabus chapters={course.chapters} onSelect={onStart} expandAll={false} />
+            </>
+          )}
+
+          <ReviewsBlock courseId={course.id} canReviewHint={course.completed} />
+        </div>
+
+        {isWide && (
+          <div>
+            <MonoLabel>// ПРОГРАММА КУРСА</MonoLabel>
+            <Syllabus chapters={course.chapters} onSelect={onStart} expandAll />
+          </div>
+        )}
       </div>
-
-      <CourseButton
-        onClick={examEnabled ? onExam : undefined}
-        disabled={!examEnabled}
-        style={course.exam_passed
-          ? { background: 'rgba(34,197,94,.1)', color: '#4AE885', border: '1px solid rgba(34,197,94,.4)' }
-          : undefined}
-      >
-        {examLabel}
-      </CourseButton>
-
-      <ReviewsBlock courseId={course.id} examPassed={course.exam_passed} />
     </div>
   )
 }
