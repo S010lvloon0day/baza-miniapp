@@ -10,6 +10,12 @@ import FavsPage from './pages/FavsPage'
 import RecentPage from './pages/RecentPage'
 import ProfilePage from './pages/ProfilePage'
 import GiveawayPage from './pages/GiveawayPage'
+import CoursesListPage from './pages/courses/CoursesListPage'
+import CourseDetailPage from './pages/courses/CourseDetailPage'
+import LessonPage from './pages/courses/LessonPage'
+import QuizPage from './pages/courses/QuizPage'
+import CourseResultPage from './pages/courses/CourseResultPage'
+import ConstructorPage from './pages/constructor/ConstructorPage'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
@@ -25,6 +31,11 @@ type View =
   | { type: 'section'; section: Section; page: number }
   | { type: 'material'; id: number; sectionId: number }
   | { type: 'giveaway' }
+  | { type: 'courses'; section: Section }
+  | { type: 'course'; courseId: number; title: string }
+  | { type: 'lesson'; courseId: number; chapterId: number }
+  | { type: 'quiz'; courseId: number; chapterId: number | null }
+  | { type: 'courseResult'; courseId: number; mode: 'chapter' | 'final'; mistakes: number; total: number }
 
 export default function App() {
   const [started, setStarted] = useState(() => !!localStorage.getItem('started'))
@@ -36,6 +47,9 @@ export default function App() {
   const [upgradePending, setUpgradePending] = useState(false)
   // Квест виден только когда сервер разрешил (включён или текущий юзер — админ)
   const [giveawayVisible, setGiveawayVisible] = useState(false)
+  // Вкладка конструктора — только для админов, признак приходит с сервера
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [ctorEditing, setCtorEditing] = useState(false)
 
   useEffect(() => {
     tg?.expand?.()
@@ -43,6 +57,7 @@ export default function App() {
     api.config().then(c => {
       if (c.bot_username) setBotUsername(c.bot_username)
       setGiveawayVisible(!!c.giveaway_visible)
+      setIsAdmin(!!c.is_admin)
     }).catch(() => {})
   }, [])
 
@@ -71,7 +86,13 @@ export default function App() {
   const goBack = useCallback(() => setStack(s => s.slice(0, -1)), [])
 
   const openGiveaway = () => setStack(s => [...s, { type: 'giveaway' }])
-  const openSection = (section: Section) => setStack(s => [...s, { type: 'section', section, page: 0 }])
+  const openSection = (section: Section) =>
+    setStack(s => [
+      ...s,
+      section.section_type === 'courses'
+        ? { type: 'courses', section }
+        : { type: 'section', section, page: 0 },
+    ])
   const openMaterial = (id: number, sectionId: number, page: number = 0) =>
     setStack(s => {
       const updated = s.map(v =>
@@ -83,7 +104,31 @@ export default function App() {
   const switchTab = (t: Tab) => {
     setTab(t)
     setStack([])
+    if (t !== 'ctor') setCtorEditing(false)
   }
+
+  const openCourse = (courseId: number, title = 'Курс') =>
+    setStack(s => [...s, { type: 'course', courseId, title }])
+
+  const openChapter = (courseId: number, chapterId: number) =>
+    setStack(s => [...s, { type: 'lesson', courseId, chapterId }])
+
+  const openQuiz = (courseId: number, chapterId: number | null) =>
+    setStack(s => [...s, { type: 'quiz', courseId, chapterId }])
+
+  /** Тест пройден: экран результата заменяет собой квиз, чтобы «назад» не вернул в тест. */
+  const finishQuiz = (courseId: number, chapterId: number | null, mistakes: number, total: number) =>
+    setStack(s => [
+      ...s.slice(0, -1),
+      { type: 'courseResult', courseId, mode: chapterId === null ? 'final' : 'chapter', mistakes, total },
+    ])
+
+  /** С экрана результата возвращаемся к карточке курса, свернув пройденные шаги. */
+  const backToCourse = () =>
+    setStack(s => {
+      const idx = s.map(v => v.type).lastIndexOf('course')
+      return idx === -1 ? [] : s.slice(0, idx + 1)
+    })
 
   if (!started) {
     return <SplashPage onStart={startApp} />
@@ -100,6 +145,51 @@ export default function App() {
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
       if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
+      if (tab === 'ctor') {
+        if (!isAdmin) return null
+        return <ConstructorPage editing={ctorEditing} onEditingChange={setCtorEditing} />
+      }
+    }
+    if (top?.type === 'courses') {
+      return <CoursesListPage sectionId={top.section.id} onOpen={openCourse} />
+    }
+    if (top?.type === 'course') {
+      return (
+        <CourseDetailPage
+          courseId={top.courseId}
+          onChapter={chapterId => openChapter(top.courseId, chapterId)}
+          onExam={() => openQuiz(top.courseId, null)}
+        />
+      )
+    }
+    if (top?.type === 'lesson') {
+      return (
+        <LessonPage
+          courseId={top.courseId}
+          chapterId={top.chapterId}
+          onQuiz={() => openQuiz(top.courseId, top.chapterId)}
+        />
+      )
+    }
+    if (top?.type === 'quiz') {
+      return (
+        <QuizPage
+          courseId={top.courseId}
+          chapterId={top.chapterId}
+          onDone={(mistakes, total) => finishQuiz(top.courseId, top.chapterId, mistakes, total)}
+        />
+      )
+    }
+    if (top?.type === 'courseResult') {
+      return (
+        <CourseResultPage
+          courseId={top.courseId}
+          mode={top.mode}
+          mistakes={top.mistakes}
+          total={top.total}
+          onContinue={backToCourse}
+        />
+      )
     }
     if (top?.type === 'section') {
       return <SectionPage section={top.section} initialPage={top.page} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
@@ -128,8 +218,26 @@ export default function App() {
 
   const renderHeader = () => {
     if (!top) {
-      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль' }
+      if (tab === 'ctor' && ctorEditing) {
+        return <Header showBack onBack={() => setCtorEditing(false)} title="Конструктор" />
+      }
+      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль', ctor: 'Конструктор' }
       return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} />
+    }
+    if (top.type === 'courses') {
+      return <Header showBack onBack={goBack} title={top.section.title} />
+    }
+    if (top.type === 'course') {
+      return <Header showBack onBack={goBack} title="Курс" />
+    }
+    if (top.type === 'lesson') {
+      return <Header showBack onBack={goBack} title="Урок" />
+    }
+    if (top.type === 'quiz') {
+      return <Header showBack onBack={goBack} title={top.chapterId === null ? 'Финальный экзамен' : 'Тест по главе'} />
+    }
+    if (top.type === 'courseResult') {
+      return <Header showBack onBack={backToCourse} title="Результат" />
     }
     if (top.type === 'giveaway') {
       return <Header showBack onBack={goBack} title="Секретный розыгрыш" />
@@ -170,7 +278,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {!isMat && <BottomNav active={tab} onChange={switchTab} />}
+      {!isMat && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} />}
 
       <NotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} />
     </div>

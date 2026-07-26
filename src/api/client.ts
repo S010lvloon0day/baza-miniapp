@@ -42,6 +42,8 @@ export interface Section {
   price?: number
   owned?: boolean
   locked?: boolean
+  /** 'courses' — раздел показывает курсы конструктора вместо списка материалов */
+  section_type?: 'materials' | 'courses'
 }
 
 export interface Material {
@@ -93,6 +95,7 @@ export interface Config {
   currency: string
   bot_username?: string
   giveaway_visible?: boolean
+  is_admin?: boolean
 }
 
 export interface Banner {
