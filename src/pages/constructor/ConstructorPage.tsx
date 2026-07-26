@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CenterLoader, ErrorNote } from '../../components/course/ui'
 import CourseEditor from './CourseEditor'
+import GrantSheet from './GrantSheet'
 import { emptyCourse } from './types'
 import type { DraftCourse } from './types'
 import { coursesApi } from '../../api/courses'
@@ -39,9 +40,10 @@ interface ListProps {
   onCreate: () => void
   onEdit: (id: number) => void
   onDelete: (id: number) => void
+  onGrant: (id: number) => void
 }
 
-function ConstructorList({ courses, onCreate, onEdit, onDelete }: ListProps) {
+function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListProps) {
   const [confirmId, setConfirmId] = useState<number | null>(null)
 
   return (
@@ -106,6 +108,23 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete }: ListProps) {
               </>
             ) : (
               <>
+                {c.price > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onGrant(c.id)}
+                    aria-label="Подарить курс"
+                    className="flex items-center justify-center"
+                    style={{ border: '1px solid rgba(34,197,94,.35)', background: 'rgba(34,197,94,.08)', color: '#4AE885', width: 32, height: 32, borderRadius: 9, cursor: 'pointer', flex: 'none' }}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 12 20 22 4 22 4 12" />
+                      <rect x="2" y="7" width="20" height="5" />
+                      <line x1="12" y1="22" x2="12" y2="7" />
+                      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
+                      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
+                    </svg>
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => onEdit(c.id)}
@@ -145,6 +164,7 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
   const [draft, setDraft] = useState<DraftCourse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [grant, setGrant] = useState<{ id: number; title: string } | null>(null)
 
   const reload = useCallback(async () => {
     try {
@@ -228,7 +248,22 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
   return (
     <>
       {error && <div className="px-4 pt-4"><ErrorNote>{error}</ErrorNote></div>}
-      <ConstructorList courses={courses} onCreate={create} onEdit={edit} onDelete={remove} />
+      <ConstructorList
+        courses={courses}
+        onCreate={create}
+        onEdit={edit}
+        onDelete={remove}
+        onGrant={id => {
+          const c = courses.find(x => x.id === id)
+          if (c) setGrant({ id, title: c.title })
+        }}
+      />
+      <GrantSheet
+        open={grant !== null}
+        courseId={grant?.id ?? null}
+        courseTitle={grant?.title ?? ''}
+        onClose={() => setGrant(null)}
+      />
     </>
   )
 }

@@ -207,6 +207,28 @@ export interface AdminSection {
   parent_title: string | null
 }
 
+export interface AdminMember {
+  user_id: number
+  username: string | null
+  full_name: string | null
+  paid_at: string | null
+  /** true — доступ выдан вручную из админки, false — оплачен */
+  manual: boolean
+}
+
+export interface GrantResult {
+  ok: boolean
+  /** true — у пользователя уже был доступ до этой выдачи */
+  already: boolean
+  member: {
+    user_id: number
+    username: string | null
+    full_name: string | null
+    /** false — ID не найден в базе (пользователь ещё не открывал бота), доступ выдан заранее */
+    known: boolean
+  }
+}
+
 export const coursesApi = {
   list: (sectionId?: number) =>
     request<{ courses: CourseSummary[] }>(
@@ -264,4 +286,11 @@ export const coursesApi = {
   adminDelete: (courseId: number) =>
     request<{ ok: boolean }>('DELETE', `/api/admin/courses/${courseId}`),
   adminSections: () => request<{ sections: AdminSection[] }>('GET', '/api/admin/sections'),
+
+  adminMembers: (courseId: number) =>
+    request<{ members: AdminMember[]; count: number }>('GET', `/api/admin/courses/${courseId}/members`),
+  adminGrant: (courseId: number, user: string) =>
+    request<GrantResult>('POST', `/api/admin/courses/${courseId}/grant`, { user }),
+  adminRevoke: (courseId: number, userId: number) =>
+    request<{ ok: boolean }>('POST', `/api/admin/courses/${courseId}/revoke`, { user_id: userId }),
 }
