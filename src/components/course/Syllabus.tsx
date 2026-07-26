@@ -43,7 +43,7 @@ export default function Syllabus({ chapters, activeChapter, activeStep, onSelect
               />
               <span className="flex-1 min-w-0">
                 <span className="block truncate" style={{ fontSize: 12.5, fontWeight: 800, color: '#fff' }}>
-                  {ch.is_exam ? '🏁 ' : ''}{ch.title}
+                  {ch.title}
                 </span>
                 <span className="block font-mono" style={{ fontSize: 9.5, color: '#6a6a75', marginTop: 2 }}>
                   {ch.solved_count} / {ch.steps_count} шагов

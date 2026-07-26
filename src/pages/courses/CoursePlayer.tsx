@@ -332,7 +332,7 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
     <div ref={scrollRef} className="flex-1 overflow-y-auto pb-navsafe px-4 pt-4">
       <div className="flex items-center justify-between" style={{ marginBottom: 10, gap: 10 }}>
         <span className="font-mono truncate" style={{ fontSize: 10.5, color: '#8a8a93' }}>
-          {chapter.is_exam ? '🏁 ' : `Глава ${chapterIdx + 1} · `}{chapter.title}
+          {chapter.is_exam ? '' : `Глава ${chapterIdx + 1} · `}{chapter.title}
         </span>
         <span className="font-mono shrink-0" style={{ fontSize: 10, color: '#6a6a75' }}>
           {flatIndex + 1} / {totalSteps}
