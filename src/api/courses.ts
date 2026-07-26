@@ -88,8 +88,13 @@ export interface CourseLesson {
   media_url: string
 }
 
-export interface LessonStep extends CourseLesson {
+/** В оглавлении курса текст урока не передаётся — его отдаёт lessonContent(). */
+export interface LessonStep {
   kind: 'lesson'
+  id: number
+  type: LessonType
+  title: string
+  has_media?: boolean
   solved: boolean
   attempts: number
 }
@@ -217,6 +222,9 @@ export const coursesApi = {
       `/api/courses/${courseId}/steps/${questionId}/submit`,
       { option_ids: optionIds },
     ),
+
+  lessonContent: (courseId: number, lessonId: number) =>
+    request<CourseLesson & { kind: 'lesson' }>('GET', `/api/courses/${courseId}/lessons/${lessonId}`),
 
   viewLesson: (courseId: number, lessonId: number) =>
     request<{ ok: boolean; percent: number }>(
