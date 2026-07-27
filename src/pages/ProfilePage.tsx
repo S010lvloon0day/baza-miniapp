@@ -16,6 +16,8 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [selected, setSelected] = useState<Plan | null>(null)
   const [paying, setPaying] = useState<'crypto' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [invoiceId, setInvoiceId] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
   const [top, setTop] = useState<Contributor[]>([])
   const [myRank, setMyRank] = useState<number | null>(null)
   const [myApproved, setMyApproved] = useState(0)
@@ -51,15 +53,66 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
     setPaying('crypto')
     setMsg(null)
     try {
-      const { pay_url } = await api.cryptoInvoice(selected.days)
-      tg?.openLink ? tg.openLink(pay_url) : window.open(pay_url, '_blank')
-      setMsg('Счёт создан. После оплаты напишите /start боту.')
+      const r = await api.cryptoInvoice(selected.days)
+      if (!r.pay_url || !r.invoice_id) { setMsg('Не удалось создать счёт. Попробуйте позже.'); return }
+      setInvoiceId(r.invoice_id)
+      tg?.openLink ? tg.openLink(r.pay_url) : window.open(r.pay_url, '_blank')
+      setMsg('Счёт создан. После оплаты нажмите «Проверить оплату».')
     } catch {
       setMsg('Ошибка создания счёта. Попробуйте позже.')
     } finally {
       setPaying(null)
     }
   }
+
+  const checkPayment = async () => {
+    if (!invoiceId || checking) return
+    setChecking(true)
+    setMsg(null)
+    try {
+      const r = await api.cryptoInvoiceConfirm(invoiceId)
+      if (r.ok) {
+        const p = await api.profile().catch(() => null)
+        if (p) setProf(p)
+        setInvoiceId(null)
+        setMsg('✅ Premium активирован!')
+      } else if (r.status && r.status !== 'paid') {
+        setMsg('Оплата ещё не поступила — подождите минуту и проверьте снова.')
+      } else {
+        setMsg('Не удалось подтвердить оплату. Попробуйте позже.')
+      }
+    } catch {
+      setMsg('Ошибка проверки. Попробуйте позже.')
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  // Автопроверка после создания счёта: опрашиваем подтверждение и оживаем при
+  // возврате в мини-апп из CryptoBot. Останавливаемся, как только premium активирован.
+  useEffect(() => {
+    if (!invoiceId) return
+    let cancelled = false
+    let attempts = 0
+    const tryConfirm = async () => {
+      try {
+        const r = await api.cryptoInvoiceConfirm(invoiceId)
+        if (!cancelled && r.ok) {
+          const p = await api.profile().catch(() => null)
+          if (p && !cancelled) setProf(p)
+          if (!cancelled) { setInvoiceId(null); setMsg('✅ Premium активирован!') }
+        }
+      } catch { /* тихо игнорируем во время фонового опроса */ }
+    }
+    const id = setInterval(() => {
+      attempts++
+      if (cancelled || attempts > 45) { clearInterval(id); return }  // ~3 мин при 4с
+      tryConfirm()
+    }, 4000)
+    const onFocus = () => tryConfirm()
+    window.addEventListener('focus', onFocus)
+    return () => { cancelled = true; clearInterval(id); window.removeEventListener('focus', onFocus) }
+  }, [invoiceId])
 
   const openSubmit = () => {
     const u = cfg.bot_username
@@ -222,6 +275,18 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                 {paying === 'crypto'
                   ? 'Открываю…'
                   : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${selected.price}$ · крипто`}
+              </button>
+            )}
+
+            {/* Проверка оплаты — появляется после создания счёта */}
+            {invoiceId && (
+              <button
+                disabled={checking}
+                onClick={checkPayment}
+                className="w-full mt-2 rounded-xl text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
+                style={{ padding: 14, border: '1px solid rgba(34,197,94,.5)', background: 'rgba(34,197,94,.08)', color: '#4AE885' }}
+              >
+                {checking ? 'Проверяю…' : 'Проверить оплату'}
               </button>
             )}
 
