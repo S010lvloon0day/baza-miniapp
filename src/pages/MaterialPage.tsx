@@ -6,6 +6,8 @@ import { PaperPlaneTilt, Star, Crown } from '@phosphor-icons/react'
 import type { Material } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import CopyButton from '../components/CopyButton'
+import AttachmentBlock from '../components/AttachmentBlock'
+import { renderWithLinks } from '../components/RichText'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
 // users who actually open a PDF document — lazy-load it so the main bundle (and every other
@@ -14,32 +16,6 @@ const PdfViewer = lazy(() => import('../components/PdfViewer'))
 
 const tg = (window as any).Telegram?.WebApp
 const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
-
-const URL_RE = /(https?:\/\/[^\s<>"]+)/g
-
-function renderWithLinks(text: string) {
-  const parts = text.split(URL_RE)
-  return parts.map((part, i) => {
-    if (URL_RE.test(part)) {
-      URL_RE.lastIndex = 0
-      return (
-        <span
-          key={i}
-          className="text-green underline break-all cursor-pointer"
-          onClick={e => {
-            e.stopPropagation()
-            if (tg?.openLink) tg.openLink(part)
-            else window.open(part, '_blank')
-          }}
-        >
-          {part}
-        </span>
-      )
-    }
-    URL_RE.lastIndex = 0
-    return <span key={i}>{part}</span>
-  })
-}
 
 interface Props {
   materialId: number
@@ -129,6 +105,11 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
     }
     setEditingIdx(false)
   }
+
+  // Материал с несколькими вложениями рендерится списком блоков. Материалы
+  // с одним вложением идут прежним путём — их 2391 штука, трогать нечего.
+  const atts = mat?.attachments ?? []
+  const multi = atts.length > 1
 
   const initData = encodeURIComponent(tg?.initData || '')
   const furl = mat?.file_url ? `${API_BASE}${mat.file_url}?init_data=${initData}` : null
@@ -234,7 +215,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               </div>
 
               {/* ── PHOTO ── */}
-              {mat.media_type === 'photo' && furl && (
+              {!multi && mat.media_type === 'photo' && furl && (
                 <div className="mx-4 mb-4">
                   <img src={furl} alt={mat.title} loading="lazy"
                     className="w-full rounded-2xl border border-white/[.08] block"
@@ -243,7 +224,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               )}
 
               {/* ── VIDEO ── */}
-              {mat.media_type === 'video' && furl && (
+              {!multi && mat.media_type === 'video' && furl && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
                   {videoError ? (
                     <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 text-center">
@@ -275,7 +256,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               )}
 
               {/* ── DOCUMENT ── */}
-              {mat.media_type === 'document' && furl && (
+              {!multi && mat.media_type === 'document' && furl && (
                 <div className="mx-4 mb-4">
                   {/* Loading spinner */}
                   {docPreview === 'loading' && (
@@ -344,7 +325,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               )}
 
               {/* No media attached — offer Telegram delivery */}
-              {!furl && mat.can_send && mat.media_type !== 'text' && (
+              {!multi && !furl && mat.can_send && mat.media_type !== 'text' && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
                   <div className="p-3 border border-white/[.08] rounded-2xl text-[12px] text-gray text-center">
                     Файл хранится в Telegram — получите его прямо в чат с ботом
@@ -365,6 +346,24 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   <div className="px-4 text-[14px] leading-[1.85] text-white/80 whitespace-pre-wrap break-words">
                     {renderWithLinks(mat.content)}
                   </div>
+                </>
+              )}
+
+              {/* Несколько вложений — каждое своим блоком, в порядке загрузки */}
+              {multi && (
+                <>
+                  <div className="px-4 pt-5 pb-2.5 text-[11px] font-bold tracking-[3px] uppercase text-green">
+                    Вложения · {atts.length}
+                  </div>
+                  {atts.map((a, i) => (
+                    <AttachmentBlock
+                      key={a.id}
+                      materialId={materialId}
+                      att={a}
+                      index={i}
+                      total={atts.length}
+                    />
+                  ))}
                 </>
               )}
             </motion.div>

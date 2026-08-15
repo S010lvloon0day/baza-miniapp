@@ -46,6 +46,20 @@ export interface Section {
   section_type?: 'materials' | 'courses'
 }
 
+/** Вложение материала: файл либо текстовый блок. Материал может содержать
+ *  несколько тех и других вперемешку, порядок задаётся полем position. */
+export interface Attachment {
+  id: number
+  position: number
+  kind: 'photo' | 'video' | 'document' | 'text'
+  name?: string | null
+  caption?: string | null
+  /** Заполнен только у kind === 'text'. */
+  text?: string | null
+  /** Ссылка на файл; у текстового вложения null. */
+  url?: string | null
+}
+
 export interface Material {
   id: number
   section_id: number
@@ -60,6 +74,9 @@ export interface Material {
   section_emoji?: string
   created_at?: string
   premium_required?: boolean
+  /** Приходит только из /api/material/:id. Пусто у закрытых материалов. */
+  attachments?: Attachment[]
+  files_count?: number
 }
 
 export interface TodaySection {
@@ -117,11 +134,17 @@ export const api = {
   contributors:   ()             => get<{ contributors: Contributor[]; total: number; my_rank: number | null; my_approved: number }>('/api/contributors'),
   config:         ()             => get<Config>('/api/config'),
   documentText:   (id: number)   => get<{ title: string; text: string; extension: string; truncated?: boolean }>(`/api/document_text/${id}`),
+  /** Текст конкретного вложения-документа. */
+  attachmentText: (id: number, attachmentId: number) =>
+    get<{ title: string; text: string; extension: string; truncated?: boolean }>(`/api/document_text/${id}/${attachmentId}`),
   favorites:      ()             => get<{ ids: number[]; materials: Material[] }>('/api/favorites'),
   favorite:       (id: number)   => get<{ favorite: boolean }>(`/api/favorites/${id}`),
   addFavorite:    (id: number)   => post<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
   removeFavorite: (id: number)   => del<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
-  sendFile:       (id: number)   => post<{ ok: boolean; error?: string }>(`/api/send_file/${id}`),
+  /** Без attachmentId шлёт материал целиком — все вложения по порядку. */
+  sendFile:       (id: number)   => post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}`),
+  sendAttachment: (id: number, attachmentId: number) =>
+    post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}/${attachmentId}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),
   cryptoInvoiceConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; premium_until?: string; error?: string }>('/api/crypto_invoice/confirm', { invoice_id: invoiceId }),
