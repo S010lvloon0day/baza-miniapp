@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { CenterLoader, ErrorNote } from '../../components/course/ui'
 import CourseEditor from './CourseEditor'
 import GrantSheet from './GrantSheet'
+import UploadPage from './UploadPage'
 import { emptyCourse } from './types'
 import type { DraftCourse } from './types'
 import { coursesApi } from '../../api/courses'
@@ -165,6 +166,8 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [grant, setGrant] = useState<{ id: number; title: string } | null>(null)
+  // Конструктор обслуживает две задачи: загрузку материалов и курсы.
+  const [mode, setMode] = useState<'material' | 'course'>('material')
 
   const reload = useCallback(async () => {
     try {
@@ -229,6 +232,31 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
     await reload()
     onEditingChange(false)
     setDraft(null)
+  }
+
+  const ModeSwitch = () => (
+    <div className="px-4 pt-4">
+      <div className="flex gap-1 p-1 rounded-xl border border-white/[.08] bg-s2/40">
+        {([['material', 'Материал'], ['course', 'Курсы']] as const).map(([id, label]) => (
+          <button key={id} onClick={() => setMode(id)}
+            className={`flex-1 h-9 rounded-lg text-[11px] font-semibold tracking-[1.5px] uppercase
+                        transition-colors ${mode === id
+                          ? 'bg-green text-bg'
+                          : 'text-white/60 active:bg-bd2'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  if (!editing && mode === 'material') {
+    return (
+      <div className="flex flex-col flex-1 overflow-hidden">
+        <ModeSwitch />
+        <UploadPage />
+      </div>
+    )
   }
 
   if (loading) return <CenterLoader />
