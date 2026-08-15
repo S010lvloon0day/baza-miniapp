@@ -341,7 +341,15 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                       <span className="text-[9px] font-mono tracking-[1px] text-violet uppercase">premium</span>
                     </div>
                   ) : (
-                    <div className="text-[10px] mt-0.5" style={{ color: '#6a6a75', letterSpacing: '.5px' }}>{typeLabel(m.media_type)}</div>
+                    <div className="text-[10px] mt-0.5 flex items-center gap-1.5" style={{ color: '#6a6a75', letterSpacing: '.5px' }}>
+                      <span>{typeLabel(m.media_type)}</span>
+                      {(m.files_count ?? 0) > 1 && (
+                        <span className="px-1.5 py-px rounded-sm text-green"
+                              style={{ background: 'rgba(34,197,94,.12)', fontSize: 9 }}>
+                          ×{m.files_count}
+                        </span>
+                      )}
+                    </div>
                   )}
                 </div>
                 {!m.locked && (
