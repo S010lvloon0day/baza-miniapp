@@ -5,6 +5,7 @@ import { api, API_BASE } from '../api/client'
 import { PaperPlaneTilt, Star, Crown } from '@phosphor-icons/react'
 import type { Material } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
+import CopyButton from '../components/CopyButton'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
 // users who actually open a PDF document — lazy-load it so the main bundle (and every other
@@ -286,6 +287,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   {/* Plain-text / markdown / csv */}
                   {docPreview === 'text' && docText !== null && (
                     <div className="rounded-2xl border border-white/[.08] bg-bg/70 p-4 mb-3">
+                      <div className="flex justify-end pb-3 mb-3 border-b border-white/[.06]">
+                        <CopyButton text={docText} />
+                      </div>
                       <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-[1.7] text-white/85">
                         {renderWithLinks(docText)}
                       </pre>
@@ -352,8 +356,11 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {/* Text content */}
               {mat.content && (
                 <>
-                  <div className="px-4 pb-2.5 text-[11px] font-bold tracking-[3px] uppercase text-green">
-                    {mat.media_type === 'text' ? 'Содержание' : 'Описание'}
+                  <div className="px-4 pb-2.5 flex items-center justify-between gap-3">
+                    <div className="text-[11px] font-bold tracking-[3px] uppercase text-green">
+                      {mat.media_type === 'text' ? 'Содержание' : 'Описание'}
+                    </div>
+                    <CopyButton text={mat.content} />
                   </div>
                   <div className="px-4 text-[14px] leading-[1.85] text-white/80 whitespace-pre-wrap break-words">
                     {renderWithLinks(mat.content)}

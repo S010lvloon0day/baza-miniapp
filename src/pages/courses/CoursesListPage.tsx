@@ -39,7 +39,7 @@ export default function CoursesListPage({ sectionId, onOpen }: Props) {
     return (
       <div className="flex-1 overflow-y-auto pb-navsafe px-4 pt-4">
         <div className="font-mono" style={{ fontSize: 11, color: '#8a8a93', marginBottom: 14 }}>
-          // курсов пока нет
+          курсов пока нет
         </div>
         <div style={{ fontSize: 13, color: '#6a6a75', lineHeight: 1.6 }}>
           Здесь появятся курсы, собранные в конструкторе.
@@ -51,7 +51,7 @@ export default function CoursesListPage({ sectionId, onOpen }: Props) {
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe px-4 pt-4">
       <div className="font-mono" style={{ fontSize: 11, color: '#8a8a93', marginBottom: 14 }}>
-        // {courses.length} {courses.length === 1 ? 'курс' : 'курсов'} доступно
+        {courses.length} {courses.length === 1 ? 'курс' : 'курсов'} доступно
       </div>
 
       <div className="flex flex-col" style={{ gap: 12 }}>

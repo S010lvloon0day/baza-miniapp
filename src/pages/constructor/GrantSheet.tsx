@@ -161,7 +161,7 @@ export default function GrantSheet({ open, courseId, courseTitle, onClose }: Pro
 
             {/* Members list */}
             <div className="font-mono px-4" style={{ fontSize: 10.5, color: '#6a6a75', margin: '18px 0 10px' }}>
-              // доступ есть у {members.length}
+              доступ есть у {members.length}
             </div>
             <div className="overflow-y-auto px-4" style={{ flex: 1 }}>
               {loading ? (

@@ -28,7 +28,7 @@ function LessonMedia({ type, url }: { type: string; url: string }) {
     return (
       <div className="flex items-center justify-center" style={frame}>
         <span className="font-mono" style={{ fontSize: 11, color: '#4a4a52' }}>
-          {type === 'video' ? '// видео не добавлено' : '// изображение не добавлено'}
+          {type === 'video' ? 'видео не добавлено' : 'изображение не добавлено'}
         </span>
       </div>
     )
@@ -354,7 +354,7 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
             </>
           ) : (
             <div className="font-mono" style={{ fontSize: 11, color: '#4a4a52', marginBottom: 26 }}>
-              {lessonLoading ? '// загружаем…' : '// текст недоступен'}
+              {lessonLoading ? 'загружаем…' : 'текст недоступен'}
             </div>
           )}
         </>

@@ -67,7 +67,7 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
       </button>
 
       <div className="font-mono" style={{ fontSize: 11, color: '#8a8a93', marginBottom: 14 }}>
-        // {courses.length} курсов в конструкторе
+        {courses.length} курсов в конструкторе
       </div>
 
       <div className="flex flex-col" style={{ gap: 10 }}>

@@ -169,7 +169,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, botUsername
                     <span className="text-[8px] font-bold tracking-[2px] uppercase" style={{ color: '#FFBC2E' }}>★ Автор</span>
                   </div>
                   <div className="text-[14px] font-bold text-white leading-tight truncate">{featured.title}</div>
-                  <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: 'rgba(255,188,46,.7)' }}>// курс · публикации · фишки</div>
+                  <div className="text-[10px] font-mono mt-0.5 truncate" style={{ color: 'rgba(255,188,46,.7)' }}>курс · публикации · фишки</div>
                 </div>
                 <span className="font-bold text-[20px] shrink-0" style={{ color: '#FFBC2E' }}>›</span>
               </div>
@@ -182,7 +182,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, botUsername
             <motion.span animate={{ rotate: newOpen ? 0 : -90 }} transition={{ duration: 0.2 }} className="flex">
               <CaretDown size={12} weight="bold" />
             </motion.span>
-            // Новое
+            Новое
           </span>
           <button onClick={e => { e.stopPropagation(); onTabCats() }} className="text-white text-[12px] font-bold active:opacity-70 transition-opacity">
             Смотреть все ›

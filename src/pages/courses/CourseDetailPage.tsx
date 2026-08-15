@@ -144,7 +144,7 @@ function ReviewsBlock({ courseId, canReviewHint }: { courseId: number; canReview
     <div style={{ marginTop: 26 }}>
       <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
         <span className="uppercase font-mono" style={{ fontSize: 11, letterSpacing: '1.5px', color: '#8a8a93' }}>
-          // ОТЗЫВЫ
+          ОТЗЫВЫ
         </span>
         {count > 0 && (
           <span className="flex items-center" style={{ gap: 6 }}>
@@ -294,7 +294,7 @@ export default function CourseDetailPage({ courseId, onStart }: Props) {
 
           {!isWide && (
             <>
-              <MonoLabel>// ПРОГРАММА КУРСА</MonoLabel>
+              <MonoLabel>ПРОГРАММА КУРСА</MonoLabel>
               <Syllabus chapters={course.chapters} onSelect={onStart} expandAll={false} />
             </>
           )}
@@ -304,7 +304,7 @@ export default function CourseDetailPage({ courseId, onStart }: Props) {
 
         {isWide && (
           <div>
-            <MonoLabel>// ПРОГРАММА КУРСА</MonoLabel>
+            <MonoLabel>ПРОГРАММА КУРСА</MonoLabel>
             <Syllabus chapters={course.chapters} onSelect={onStart} expandAll />
           </div>
         )}

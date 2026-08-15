@@ -28,7 +28,7 @@ export default function RecentPage({ onMaterial }: Props) {
     <div className="flex-1 flex flex-col items-center justify-center gap-3 px-8">
       <div className="font-mono text-[12px] text-center space-y-1">
         <div><span className="text-white/20">$</span><span className="text-gray2"> cat ~/.history</span></div>
-        <div className="text-gray2">// no entries found</div>
+        <div className="text-gray2">no entries found</div>
       </div>
       <div className="text-[11px] text-gray text-center leading-relaxed max-w-[220px] mt-1">
         Здесь появятся материалы, которые ты открывал

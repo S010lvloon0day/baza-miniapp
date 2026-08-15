@@ -63,7 +63,7 @@ const STAGES: Stage[] = [
     ],
     placeholder: 'секрет из кабинета (рус)',
     media: [{ type: 'video', file: 'video.mp4' }],
-    link: { url: SITE_URL, title: 'Открыть сайт цели', hint: '// войди и достань секрет' },
+    link: { url: SITE_URL, title: 'Открыть сайт цели', hint: 'войди и достань секрет' },
   },
   {
     file: 'case_002/brief_03.txt',
@@ -452,7 +452,7 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
           className="font-mono text-[11px] text-gray2 text-center leading-relaxed"
         >
-          // расследование пройдено<br />// приз уже выдан победителю — квест открыт для всех
+          расследование пройдено<br />приз уже выдан победителю — квест открыт для всех
         </motion.div>
       ) : (
         <>
@@ -505,7 +505,7 @@ function SetupScreen() {
       <div className="text-4xl">🛠️</div>
       <div className="font-display text-[20px] tracking-[2px] uppercase text-white">{CASE_TITLE}</div>
       <div className="font-mono text-[11px] text-gray2 leading-relaxed">
-        // расследование готовится<br />// этапы ещё не загружены
+        расследование готовится<br />этапы ещё не загружены
       </div>
     </div>
   )
@@ -603,7 +603,7 @@ export default function GiveawayPage() {
       <div className="text-4xl">🚫</div>
       <div className="font-display text-[20px] tracking-[2px] uppercase text-white">ДОСТУП ЗАКРЫТ</div>
       <div className="font-mono text-[11px] text-gray2 leading-relaxed">
-        // превышен лимит попыток<br />// попробуй снова через 1 час
+        превышен лимит попыток<br />попробуй снова через 1 час
       </div>
     </div>
   )

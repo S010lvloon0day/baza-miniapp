@@ -42,7 +42,7 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         transition={{ delay: 0.35 }}
         className="relative text-[10px] font-mono tracking-[2px] text-gray2 mb-8"
       >
-        // ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
+        ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
       </motion.p>
 
       <motion.p

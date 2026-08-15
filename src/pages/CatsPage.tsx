@@ -32,7 +32,7 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
       <div className="px-4 pt-4 pb-4 text-[11px] font-mono text-gray2">
-        // {cats.length} разделов доступно
+        {cats.length} разделов доступно
       </div>
 
       {/* Featured — авторский раздел S010lvloon */}

@@ -29,7 +29,7 @@ export default function FavsPage({ onMaterial }: Props) {
       <div className="font-mono text-[12px] text-center space-y-1">
         <div><span className="text-white/20">$</span><span className="text-gray2"> ls ~/favorites/</span></div>
         <div className="text-gray2">total 0</div>
-        <div className="text-gray2">// directory is empty</div>
+        <div className="text-gray2">directory is empty</div>
       </div>
       <div className="text-[11px] text-gray text-center leading-relaxed max-w-[220px] mt-1">
         Открой материал и нажми закладку в заголовке

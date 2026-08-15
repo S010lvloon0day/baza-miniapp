@@ -110,7 +110,7 @@ export default function SearchPage({ onMaterial }: Props) {
         {showHistory && (
           <div className="flex flex-col">
             <div className="flex items-center justify-between px-4 pt-4 pb-2">
-              <span className="text-[10px] font-mono tracking-[1.5px] text-gray2">// recent_queries</span>
+              <span className="text-[10px] font-mono tracking-[1.5px] text-gray2">recent_queries</span>
               <button
                 onClick={clearHistory}
                 className="text-[10px] font-mono text-gray2/60 active:text-gray2 transition-opacity"
@@ -142,8 +142,8 @@ export default function SearchPage({ onMaterial }: Props) {
         {!showHistory && !loading && !searched && (
           <div className="flex flex-col items-start justify-center pt-10 px-4 gap-2 font-mono text-[11px]">
             <div className="text-gray2">$ grep: waiting for pattern...</div>
-            <div className="text-gray2/50">// введите минимум 2 символа</div>
-            <div className="text-gray2/50">// для поиска по базе знаний</div>
+            <div className="text-gray2/50">введите минимум 2 символа</div>
+            <div className="text-gray2/50">для поиска по базе знаний</div>
           </div>
         )}
 
@@ -151,7 +151,7 @@ export default function SearchPage({ onMaterial }: Props) {
         {loading && (
           <div className="flex flex-col items-start pt-10 px-4 gap-1.5 font-mono text-[11px]">
             <div className="text-gray2">$ grep -ri &quot;{query.trim()}&quot; ./база/ <span className="blink">█</span></div>
-            <div className="text-gray2/50">// searching...</div>
+            <div className="text-gray2/50">searching...</div>
           </div>
         )}
 
@@ -159,9 +159,9 @@ export default function SearchPage({ onMaterial }: Props) {
         {!loading && searched && results.length === 0 && (
           <div className="flex flex-col items-start pt-10 px-4 gap-1.5 font-mono text-[11px]">
             <div className="text-gray2">$ grep -ri &quot;{query.trim()}&quot; ./база/</div>
-            <div className="text-white/30">// grep: no matches found</div>
-            <div className="text-white/20">// pattern: &quot;{query.trim()}&quot;</div>
-            <div className="text-white/20">// 0 results</div>
+            <div className="text-white/30">grep: no matches found</div>
+            <div className="text-white/20">pattern: &quot;{query.trim()}&quot;</div>
+            <div className="text-white/20">0 results</div>
           </div>
         )}
 
@@ -169,7 +169,7 @@ export default function SearchPage({ onMaterial }: Props) {
         {!loading && results.length > 0 && (
           <>
             <div className="px-4 pt-3 pb-1 font-mono text-[10px] text-gray2">
-              // {results.length} совпадений в ./база/
+              {results.length} совпадений в ./база/
             </div>
             <div className="flex flex-col divide-y divide-bd">
               {results.map(m => (

@@ -261,7 +261,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
       {/* Subsections */}
       {subs.length > 0 && (
         <section>
-          <div className="px-4 pt-4 pb-2 text-[11px] font-mono tracking-[1px] text-green/70">// ПОДРАЗДЕЛЫ</div>
+          <div className="px-4 pt-4 pb-2 text-[11px] font-mono tracking-[1px] text-green/70">ПОДРАЗДЕЛЫ</div>
           <div className="grid grid-cols-3 px-4 pb-2" style={{ gap: 9 }}>
             {subs.map((s, i) => (
               <motion.div key={s.id}
@@ -317,7 +317,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         </div>
       ) : mats.length > 0 ? (
         <section className="px-4">
-          <div className="pt-4 pb-3.5 font-mono text-[11px] tracking-[1.5px]" style={{ color: '#8a8a93' }}>// {total} файлов</div>
+          <div className="pt-4 pb-3.5 font-mono text-[11px] tracking-[1.5px]" style={{ color: '#8a8a93' }}>{total} файлов</div>
           <div className="flex flex-col" style={{ gap: 9 }}>
             {mats.map((m, i) => (
               <motion.div
