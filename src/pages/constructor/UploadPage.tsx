@@ -32,9 +32,10 @@ function humanSize(bytes: number): string {
  */
 export default function UploadPage() {
   const [sections, setSections] = useState<AdminSection[]>([])
-  const [sectionId, setSectionId] = useState<number | null>(null)
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const [query, setQuery] = useState('')
+  // Раздел и подраздел выбираются РАЗДЕЛЬНО. Один список с путями «Раздел ›
+  // Подраздел» обрезается на узком экране, и легко промахнуться уровнем.
+  const [rootId, setRootId] = useState<number | null>(null)
+  const [subId, setSubId] = useState<number | null>(null)
 
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -51,16 +52,22 @@ export default function UploadPage() {
       .catch(() => setResult({ ok: false, text: 'Не удалось загрузить список разделов' }))
   }, [])
 
-  const chosen = sections.find(s => s.id === sectionId) || null
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return sections
-    return sections.filter(s => s.path.toLowerCase().includes(q) || s.title.toLowerCase().includes(q))
-  }, [sections, query])
+  const roots = useMemo(() => sections.filter(s => !s.parent_id), [sections])
+  const subs = useMemo(
+    () => (rootId ? sections.filter(s => s.parent_id === rootId) : []),
+    [sections, rootId],
+  )
+  // Публикуем в подраздел, если он выбран, иначе в сам раздел.
+  const sectionId = subId ?? rootId
 
   const uploading = items.some(i => i.kind !== 'text' && i.status === 'uploading')
   const hasErrors = items.some(i => i.kind !== 'text' && i.status === 'error')
   const readyFiles = items.filter(i => i.kind !== 'text' && i.status === 'done').length
+
+  const chooseRoot = (id: number) => {
+    setRootId(id)
+    setSubId(null)   // подраздел прежнего раздела здесь не при чём
+  }
 
   const patch = (uid: string, upd: Partial<DraftAttachment>) =>
     setItems(prev => prev.map(i => (i.uid === uid ? ({ ...i, ...upd } as DraftAttachment) : i)))
@@ -156,48 +163,30 @@ export default function UploadPage() {
         </div>
       </div>
 
-      {/* ── Раздел ── */}
+      {/* ── Раздел и подраздел — раздельно ── */}
       <div className="px-4 pt-4">
         <div className={LABEL + ' pb-2'}>Раздел</div>
-        <button onClick={() => setPickerOpen(o => !o)}
-          className={FIELD + ' text-left flex items-center justify-between gap-2'}>
-          <span className={chosen ? 'text-white truncate' : 'text-gray2'}>
-            {chosen ? chosen.path : 'Выберите раздел'}
-          </span>
-          <span className="text-gray2 shrink-0">{pickerOpen ? '▲' : '▼'}</span>
-        </button>
-
-        <AnimatePresence>
-          {pickerOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
-              className="overflow-hidden">
-              <div className="mt-2 rounded-xl border border-white/[.10] bg-s2/60">
-                <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[.06]">
-                  <MagnifyingGlass size={14} className="text-gray2 shrink-0" />
-                  <input value={query} onChange={e => setQuery(e.target.value)}
-                    placeholder="Поиск раздела"
-                    className="w-full bg-transparent text-[13px] text-white placeholder:text-gray2 outline-none" />
-                </div>
-                <div className="max-h-64 overflow-y-auto">
-                  {filtered.map(s => (
-                    <button key={s.id}
-                      onClick={() => { setSectionId(s.id); setPickerOpen(false); setQuery('') }}
-                      className={`w-full text-left px-3 py-2.5 text-[13px] border-b border-white/[.04]
-                                  active:bg-bd2 ${s.id === sectionId ? 'text-green' : 'text-white/85'}`}>
-                      {s.path}
-                    </button>
-                  ))}
-                  {!filtered.length && (
-                    <div className="px-3 py-4 text-[13px] text-gray2 text-center">Ничего не найдено</div>
-                  )}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <SectionSelect
+          items={roots}
+          value={rootId}
+          placeholder="Выберите раздел"
+          onPick={chooseRoot}
+        />
       </div>
+
+      {rootId !== null && subs.length > 0 && (
+        <div className="px-4 pt-5">
+          <div className={LABEL + ' pb-2'}>Подраздел</div>
+          <SectionSelect
+            items={subs}
+            value={subId}
+            placeholder="Без подраздела — прямо в раздел"
+            clearable
+            onPick={setSubId}
+            onClear={() => setSubId(null)}
+          />
+        </div>
+      )}
 
       {/* ── Заголовок и описание ── */}
       <div className="px-4 pt-5">
@@ -355,5 +344,83 @@ export default function UploadPage() {
         )}
       </div>
     </div>
+  )
+}
+
+/**
+ * Выпадающий выбор одного уровня иерархии. Поиск включается, когда вариантов
+ * много: разделов под две сотни, листать их бессмысленно.
+ */
+function SectionSelect({
+  items, value, placeholder, onPick, clearable, onClear,
+}: {
+  items: AdminSection[]
+  value: number | null
+  placeholder: string
+  onPick: (id: number) => void
+  clearable?: boolean
+  onClear?: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+
+  const chosen = items.find(i => i.id === value) || null
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    return needle ? items.filter(i => i.title.toLowerCase().includes(needle)) : items
+  }, [items, q])
+
+  return (
+    <>
+      <button onClick={() => setOpen(o => !o)}
+        className={FIELD + ' text-left flex items-center justify-between gap-2'}>
+        <span className={chosen ? 'text-white truncate' : 'text-gray2 truncate'}>
+          {chosen ? `${chosen.emoji} ${chosen.title}` : placeholder}
+        </span>
+        <span className="flex items-center gap-2 shrink-0">
+          {chosen && clearable && (
+            <span role="button" onClick={e => { e.stopPropagation(); onClear?.() }}
+                  className="text-gray2 text-[16px] leading-none px-1">×</span>
+          )}
+          <span className="text-gray2">{open ? '▲' : '▼'}</span>
+        </span>
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.18 }}
+            className="overflow-hidden">
+            <div className="mt-2 rounded-xl border border-white/[.10] bg-s2/60">
+              {items.length > 8 && (
+                <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[.06]">
+                  <MagnifyingGlass size={14} className="text-gray2 shrink-0" />
+                  <input value={q} onChange={e => setQ(e.target.value)} placeholder="Поиск"
+                    className="w-full bg-transparent text-[13px] text-white placeholder:text-gray2 outline-none" />
+                </div>
+              )}
+              <div className="max-h-64 overflow-y-auto">
+                {shown.map(i => (
+                  <button key={i.id}
+                    onClick={() => { onPick(i.id); setOpen(false); setQ('') }}
+                    className={`w-full text-left px-3 py-2.5 text-[13px] border-b border-white/[.04]
+                                flex items-center justify-between gap-2 active:bg-bd2
+                                ${i.id === value ? 'text-green' : 'text-white/85'}`}>
+                    <span className="truncate">{i.emoji} {i.title}</span>
+                    {i.children > 0 && (
+                      <span className="text-[10px] text-gray2 shrink-0">{i.children} подр.</span>
+                    )}
+                  </button>
+                ))}
+                {!shown.length && (
+                  <div className="px-3 py-4 text-[13px] text-gray2 text-center">Ничего не найдено</div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

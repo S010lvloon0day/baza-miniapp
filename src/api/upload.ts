@@ -12,9 +12,13 @@ export interface UploadedFile {
 
 export interface AdminSection {
   id: number
+  /** null — раздел верхнего уровня. */
+  parent_id: number | null
   title: string
   emoji: string
-  /** Полный путь вида «📁 Раздел › 📂 Подраздел» — чтобы не путать одноимённые. */
+  /** Сколько подразделов внутри. 0 — публиковать можно прямо сюда. */
+  children: number
+  /** Полный путь вида «📁 Раздел › 📂 Подраздел». */
   path: string
 }
 
