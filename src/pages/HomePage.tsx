@@ -12,10 +12,10 @@ interface Props {
   onSection: (s: Section) => void
   onMaterial: (id: number, sectionId: number) => void
   onTabCats: () => void
-  botUsername?: string
+  onSubmit: () => void
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, botUsername }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats, onSubmit }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -41,17 +41,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats, botUsername
     return () => { alive = false }
   }, [])
 
-  const openSubmit = () => {
-    if (!botUsername) return
-    const url = `https://t.me/${botUsername}?start=submit`
-    const tg = (window as any).Telegram?.WebApp
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(url)
-      tg.close?.()           // сворачиваем мини-апп — юзер уходит в чат с ботом
-    } else {
-      window.open(url, '_blank')
-    }
-  }
+  // Раньше кнопка выкидывала человека в чат с ботом. Теперь форма открывается
+  // прямо здесь — уходить из приложения, чтобы что-то предложить, незачем.
+  const openSubmit = () => onSubmit()
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">

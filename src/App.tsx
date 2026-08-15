@@ -10,6 +10,7 @@ import FavsPage from './pages/FavsPage'
 import RecentPage from './pages/RecentPage'
 import ProfilePage from './pages/ProfilePage'
 import GiveawayPage from './pages/GiveawayPage'
+import SubmitPage from './pages/SubmitPage'
 import CoursesListPage from './pages/courses/CoursesListPage'
 import CourseDetailPage from './pages/courses/CourseDetailPage'
 import CoursePlayer from './pages/courses/CoursePlayer'
@@ -29,6 +30,7 @@ type View =
   | { type: 'section'; section: Section; page: number }
   | { type: 'material'; id: number; sectionId: number }
   | { type: 'giveaway' }
+  | { type: 'submit' }
   | { type: 'courses'; section: Section }
   | { type: 'course'; courseId: number; title: string }
   | { type: 'player'; courseId: number }
@@ -82,6 +84,7 @@ export default function App() {
   const goBack = useCallback(() => setStack(s => s.slice(0, -1)), [])
 
   const openGiveaway = () => setStack(s => [...s, { type: 'giveaway' }])
+  const openSubmit = () => setStack(s => [...s, { type: 'submit' }])
   const openSection = (section: Section) =>
     setStack(s => [
       ...s,
@@ -125,7 +128,7 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} botUsername={botUsername} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
@@ -147,6 +150,10 @@ export default function App() {
     }
     if (top?.type === 'section') {
       return <SectionPage section={top.section} initialPage={top.page} onMaterial={openMaterial} onSubsection={openSection} onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
+    }
+    if (top?.type === 'submit') {
+      // Форма заявки доступна всем — сервер сам решит, можно ли автору сейчас.
+      return <SubmitPage onDone={goBack} />
     }
     if (top?.type === 'giveaway') {
       // Защита: если квест скрыт (не админ / выключен) — не открываем экран
