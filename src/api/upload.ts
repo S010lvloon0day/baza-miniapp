@@ -31,6 +31,8 @@ export type DraftAttachment =
       name: string
       size: number
       caption: string
+      /** Название материала в режиме «каждый файл — отдельный материал». */
+      title?: string
       status: 'pending' | 'uploading' | 'done' | 'error'
       progress: number
       error?: string

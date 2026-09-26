@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, TextT, Trash, CheckCircle, WarningCircle, ArrowUp, ArrowDown, MagnifyingGlass,
+  SortAscending,
 } from '@phosphor-icons/react'
 import MediaTypeIcon from '../../components/MediaTypeIcon'
 import { uploadApi, uploadFile } from '../../api/upload'
@@ -23,6 +24,32 @@ function humanSize(bytes: number): string {
   return `${(bytes / 1024 / 1024).toFixed(1)} МБ`
 }
 
+// Номер урока в начале названия: «1.Intro», «01 - Intro», «Урок 3. …».
+const NUM_RE = /^\s*(?:урок|лекция|часть|глава|модуль|lesson|lecture|part|chapter|module|#|№)?\s*(\d{1,4})(?!\d)/i
+
+function leadingNumber(s: string): number | null {
+  const m = NUM_RE.exec(s || '')
+  return m ? parseInt(m[1], 10) : null
+}
+
+/** Имя файла без расширения — готовое название материала. */
+function fileStem(name: string): string {
+  return name.replace(/\.[^.]{1,5}$/, '').replace(/_/g, ' ').trim()
+}
+
+/**
+ * Стабильная сортировка по номеру в названии. Проводник и Telegram отдают файлы
+ * в порядке выбора, а не по урокам — отсюда «12.Strategies» между 4 и 5.
+ */
+function sortByNumber<T extends DraftAttachment>(list: T[]): T[] {
+  const label = (i: DraftAttachment) => (i.kind === 'text' ? '' : i.title || i.name)
+  return list
+    .map((it, idx) => ({ it, idx, n: leadingNumber(label(it)) }))
+    .sort((a, b) =>
+      (a.n === null ? 1 : 0) - (b.n === null ? 1 : 0) || (a.n ?? 0) - (b.n ?? 0) || a.idx - b.idx)
+    .map(x => x.it)
+}
+
 /**
  * Загрузка материала из мини-аппа — второй путь в дополнение к боту.
  *
@@ -40,6 +67,9 @@ export default function UploadPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [isPremium, setIsPremium] = useState(false)
+  // Режим курса: каждый файл становится отдельным материалом, по номерам.
+  const [perFile, setPerFile] = useState(false)
+  const [batchInfo, setBatchInfo] = useState<string | null>(null)
   const [items, setItems] = useState<DraftAttachment[]>([])
 
   const [saving, setSaving] = useState(false)
@@ -89,13 +119,16 @@ export default function UploadPage() {
 
   function addFiles(list: FileList | null) {
     if (!list?.length) return
-    const fresh: DraftAttachment[] = Array.from(list).map(f => ({
+    let fresh: DraftAttachment[] = Array.from(list).map(f => ({
       uid: nextUid(),
       kind: f.type.startsWith('image/') ? 'photo' : f.type.startsWith('video/') ? 'video' : 'document',
-      name: f.name, size: f.size, caption: '',
+      name: f.name, size: f.size, caption: '', title: fileStem(f.name),
       status: 'pending', progress: 0, file: f,
     }))
-    setItems(prev => [...prev, ...fresh])
+    // Выбор в проводнике не гарантирует порядок — ставим по номеру в имени,
+    // и грузим тоже по порядку.
+    fresh = sortByNumber(fresh)
+    setItems(prev => (perFile ? sortByNumber([...prev, ...fresh]) : [...prev, ...fresh]))
     // По одному: параллельная отправка нескольких видео забивает канал и
     // прогресс становится невозможно читать.
     ;(async () => {
@@ -110,6 +143,8 @@ export default function UploadPage() {
 
   const remove = (uid: string) => setItems(prev => prev.filter(i => i.uid !== uid))
 
+  const sortNow = () => setItems(prev => sortByNumber(prev))
+
   const move = (uid: string, dir: -1 | 1) =>
     setItems(prev => {
       const i = prev.findIndex(x => x.uid === uid)
@@ -120,13 +155,51 @@ export default function UploadPage() {
       return copy
     })
 
-  const canSave =
-    !!sectionId && title.trim().length > 0 && !uploading && !saving &&
-    (readyFiles > 0 || content.trim().length > 0 ||
-     items.some(i => i.kind === 'text' && i.text.trim()))
+  const canSave = perFile
+    ? !!sectionId && !uploading && !saving && readyFiles > 0
+    : !!sectionId && title.trim().length > 0 && !uploading && !saving &&
+      (readyFiles > 0 || content.trim().length > 0 ||
+       items.some(i => i.kind === 'text' && i.text.trim()))
+
+  // Режим курса: каждый загруженный файл — свой материал, в порядке списка.
+  async function saveBatch() {
+    if (!sectionId) return
+    const queue = items.filter(i => i.kind !== 'text' && i.status === 'done')
+    setSaving(true)
+    setResult(null)
+    let made = 0
+    try {
+      for (const it of queue) {
+        if (it.kind === 'text') continue
+        setBatchInfo(`Создаю ${made + 1} из ${queue.length}…`)
+        await uploadApi.createMaterial({
+          section_id: sectionId,
+          title: ((it.title || '').trim() || fileStem(it.name)).slice(0, 200),
+          content: '',
+          is_premium: isPremium,
+          attachments: [{ kind: it.kind, file_id: it.file_id,
+            channel_message_id: it.channel_message_id, name: it.name, caption: null }],
+        })
+        made++
+        // Созданное сразу убираем — повтор после ошибки не задвоит материалы.
+        setItems(prev => prev.filter(x => x.uid !== it.uid))
+      }
+      setResult({ ok: true, text: `Создано материалов: ${made}` })
+      tg?.HapticFeedback?.notificationOccurred?.('success')
+    } catch (e: any) {
+      setResult({ ok: false, text:
+        `Создано ${made} из ${queue.length}. Ошибка: ${String(e?.message || e)}. ` +
+        'Оставшиеся файлы в списке — нажмите «Создать» ещё раз.' })
+      tg?.HapticFeedback?.notificationOccurred?.('error')
+    } finally {
+      setSaving(false)
+      setBatchInfo(null)
+    }
+  }
 
   async function save() {
     if (!canSave || !sectionId) return
+    if (perFile) return saveBatch()
     setSaving(true)
     setResult(null)
     try {
@@ -188,6 +261,37 @@ export default function UploadPage() {
         </div>
       )}
 
+      {/* ── Режим ── */}
+      <div className="px-4 pt-5">
+        <div className={LABEL + ' pb-2'}>Режим</div>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { v: false, t: 'Один материал', d: 'все файлы внутри одного' },
+            { v: true, t: 'Каждый файл отдельно', d: 'курс: уроки по номерам' },
+          ].map(o => (
+            <button key={String(o.v)}
+              onClick={() => {
+                setPerFile(o.v)
+                if (o.v) setItems(prev => sortByNumber(prev.filter(i => i.kind !== 'text')))
+              }}
+              className={`rounded-xl border px-3 py-2.5 text-left transition-colors
+                          ${perFile === o.v ? 'border-green bg-[rgba(34,197,94,.08)]' : 'border-white/[.10]'}`}>
+              <div className={`text-[13px] font-semibold ${perFile === o.v ? 'text-green' : 'text-white/85'}`}>
+                {o.t}
+              </div>
+              <div className="text-[10px] text-gray mt-0.5">{o.d}</div>
+            </button>
+          ))}
+        </div>
+        {perFile && (
+          <div className="text-[11px] text-gray mt-2">
+            Название каждого материала берётся из имени файла — его можно поправить.
+            Файлы с номерами (1., 2., …) встают по порядку сами.
+          </div>
+        )}
+      </div>
+
+      {!perFile && (<>
       {/* ── Заголовок и описание ── */}
       <div className="px-4 pt-5">
         <div className={LABEL + ' pb-2'}>Название</div>
@@ -200,6 +304,7 @@ export default function UploadPage() {
         <textarea value={content} onChange={e => setContent(e.target.value)} rows={4}
           placeholder="Необязательно" className={FIELD + ' resize-y'} />
       </div>
+      </>)}
 
       <div className="px-4 pt-5">
         <button onClick={() => setIsPremium(p => !p)}
@@ -216,9 +321,17 @@ export default function UploadPage() {
       {/* ── Вложения ── */}
       <div className="px-4 pt-6 flex items-center justify-between">
         <div className={LABEL}>Вложения · {items.length}</div>
-        {readyFiles > 0 && (
-          <div className="text-[11px] text-gray">в хранилище: {readyFiles}</div>
-        )}
+        <div className="flex items-center gap-3">
+          {readyFiles > 0 && (
+            <div className="text-[11px] text-gray">в хранилище: {readyFiles}</div>
+          )}
+          {items.filter(i => i.kind !== 'text').length > 1 && (
+            <button onClick={sortNow}
+              className="flex items-center gap-1 text-[11px] text-green font-semibold active:opacity-70">
+              <SortAscending size={14} weight="bold" /> По номеру
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="px-4 pt-2 flex gap-2">
@@ -230,12 +343,12 @@ export default function UploadPage() {
                      active:bg-[rgba(34,197,94,.10)]">
           <Plus size={16} weight="bold" /> Файлы
         </button>
-        <button onClick={addText}
+        {!perFile && <button onClick={addText}
           className="flex-1 h-11 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02]
                      flex items-center justify-center gap-1.5 text-white/85 text-[12px] font-semibold
                      tracking-[1.5px] uppercase rounded-xl active:opacity-70">
           <TextT size={16} weight="bold" /> Текст
-        </button>
+        </button>}
       </div>
 
       <div className="px-4 pt-3 flex flex-col gap-2">
@@ -291,6 +404,12 @@ export default function UploadPage() {
                   onChange={e => patch(it.uid, { text: e.target.value })}
                   className={FIELD + ' text-[13px] resize-y'} />
               </div>
+            ) : perFile ? (
+              <div className="px-3 pb-3">
+                <input value={it.title ?? ''} placeholder="Название материала"
+                  onChange={e => patch(it.uid, { title: e.target.value })}
+                  className={FIELD + ' text-[13px] py-2'} />
+              </div>
             ) : it.status === 'done' && (
               <div className="px-3 pb-3">
                 <input value={it.caption} placeholder="Подпись к файлу (необязательно)"
@@ -335,7 +454,9 @@ export default function UploadPage() {
           className="w-full h-12 rounded-xl bg-gradient-to-r from-green to-greenLight
                      text-bg text-[13px] font-bold tracking-[2px] uppercase
                      disabled:opacity-30 active:opacity-80">
-          {saving ? 'Создаю…' : uploading ? 'Файлы ещё грузятся…' : 'Создать материал'}
+          {saving ? (batchInfo || 'Создаю…')
+            : uploading ? 'Файлы ещё грузятся…'
+            : perFile ? `Создать материалы (${readyFiles})` : 'Создать материал'}
         </button>
         {hasErrors && (
           <div className="text-[11px] text-gold text-center pt-2">
