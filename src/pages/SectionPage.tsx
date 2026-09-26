@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Star, Lock, Check } from '@phosphor-icons/react'
+import { Star, Lock, Check, Bell, BellRinging } from '@phosphor-icons/react'
 import { ICON_PATHS, resolveIcon } from '../components/CategoryIcon'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import { api } from '../api/client'
@@ -17,6 +17,7 @@ interface MaterialsResponse {
   materials: Material[]
   total: number
   total_with_premium?: number
+  viewed_count?: number
 }
 
 const ITEMS_PER_PAGE = 10
@@ -183,6 +184,31 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [page, setPage] = useState(initialPage)
   const [loading, setLoading] = useState(true)
   const [owned, setOwned] = useState(!!section.owned)
+  const [viewedCount, setViewedCount] = useState(0)
+  const [subscribed, setSubscribed] = useState(false)
+  const [subBusy, setSubBusy] = useState(false)
+  const [subMsg, setSubMsg] = useState<string | null>(null)
+
+  useEffect(() => {
+    api.sectionSub(section.id).then(r => setSubscribed(r.subscribed)).catch(() => {})
+  }, [section.id])
+
+  const toggleSub = async () => {
+    const next = !subscribed
+    setSubscribed(next)
+    setSubBusy(true)
+    try {
+      await api.setSectionSub(section.id, next)
+      setSubMsg(next ? '🔔 Пришлём в Telegram, когда здесь появятся новые материалы'
+                     : 'Уведомления по разделу выключены')
+      tg?.HapticFeedback?.notificationOccurred?.('success')
+      setTimeout(() => setSubMsg(null), 3500)
+    } catch {
+      setSubscribed(!next)
+    } finally {
+      setSubBusy(false)
+    }
+  }
 
   const isPaid = (section.price ?? 0) > 0
   const courseLocked = isPaid && !owned   // платный курс, ещё не куплен
@@ -199,6 +225,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
       setMats(md.materials)
       setTotal(md.total)
       setTotalWithPremium((md as MaterialsResponse).total_with_premium ?? md.total)
+      setViewedCount((md as MaterialsResponse).viewed_count ?? 0)
     }).finally(() => setLoading(false))
   }, [section.id, owned])
 
@@ -256,7 +283,13 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
             <div className="text-[11.5px] mt-1 line-clamp-2" style={{ color: '#8a8a93' }}>{section.description}</div>
           )}
         </div>
+        <button onClick={toggleSub} disabled={subBusy} aria-label="Уведомления о новых материалах"
+          className={`relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border transition-colors active:opacity-70
+            ${subscribed ? 'border-green/50 text-green bg-[rgba(34,197,94,.1)]' : 'border-white/[.12] text-gray'}`}>
+          {subscribed ? <BellRinging size={18} weight="fill" /> : <Bell size={18} />}
+        </button>
       </div>
+      {subMsg && <div className="mx-4 -mt-3 mb-4 text-[12px] text-green">{subMsg}</div>}
 
       {/* Subsections */}
       {subs.length > 0 && (
@@ -317,7 +350,19 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         </div>
       ) : mats.length > 0 ? (
         <section className="px-4">
-          <div className="pt-4 pb-3.5 font-mono text-[11px] tracking-[1.5px]" style={{ color: '#8a8a93' }}>{total} файлов</div>
+          <div className="pt-4 pb-3.5">
+            <div className="flex items-center justify-between font-mono text-[11px] tracking-[1.5px]" style={{ color: '#8a8a93' }}>
+              <span>{total} файлов</span>
+              {viewedCount > 0 && (
+                <span className="text-green">просмотрено {Math.min(viewedCount, total)} из {total}</span>
+              )}
+            </div>
+            {viewedCount > 0 && total > 0 && (
+              <div className="mt-2 h-[3px] rounded-full bg-white/[.08] overflow-hidden">
+                <div className="h-full bg-green" style={{ width: `${Math.min(100, (viewedCount / total) * 100)}%` }} />
+              </div>
+            )}
+          </div>
           <div className="flex flex-col" style={{ gap: 9 }}>
             {mats.map((m, i) => (
               <motion.div
@@ -352,9 +397,11 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                     </div>
                   )}
                 </div>
-                {!m.locked && (
+                {!m.locked && (m.viewed ? (
+                  <Check size={14} weight="bold" className="shrink-0 text-green" aria-label="просмотрено" />
+                ) : (
                   <span className="shrink-0" style={{ width: 6, height: 6, borderRadius: '50%', background: '#4AE885', boxShadow: '0 0 6px #4AE885' }} />
-                )}
+                ))}
               </motion.div>
             ))}
           </div>

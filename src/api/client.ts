@@ -77,6 +77,8 @@ export interface Material {
   /** Приходит только из /api/material/:id. Пусто у закрытых материалов. */
   attachments?: Attachment[]
   files_count?: number
+  /** Пользователь уже открывал этот материал (приходит в списке раздела). */
+  viewed?: boolean
 }
 
 export interface TodaySection {
@@ -153,6 +155,8 @@ export const api = {
   clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),
   watchGet:       (id: number)   => get<{ items: Record<string, { position: number; duration: number }> }>(`/api/watch/${id}`),
   watchContinue:  ()             => get<{ items: ContinueItem[] }>('/api/watch_continue'),
+  sectionSub:     (id: number)   => get<{ subscribed: boolean }>(`/api/section_sub/${id}`),
+  setSectionSub:  (id: number, on: boolean) => post<{ subscribed: boolean }>(`/api/section_sub/${id}`, { subscribed: on }),
   banner:         ()             => get<{ banners: Banner[] }>('/api/banner'),
   notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
   notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
