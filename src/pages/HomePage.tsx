@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { Crown, CaretDown } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
-import type { Section, Material, Banner } from '../api/client'
+import type { Section, Material, Banner, ContinueItem } from '../api/client'
+import { fmtTime } from '../hooks/useResume'
 import BannerCard from '../components/BannerCard'
 import CategoryIcon from '../components/CategoryIcon'
 import BazaMark from '../components/BazaMark'
@@ -22,6 +23,11 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onSubmit }:
   const [totalCount, setTotalCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [newOpen, setNewOpen] = useState(true)
+  const [cont, setCont] = useState<ContinueItem[]>([])
+
+  useEffect(() => {
+    api.watchContinue().then(d => setCont(d.items ?? [])).catch(() => {})
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -166,6 +172,36 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onSubmit }:
                 <span className="font-bold text-[20px] shrink-0" style={{ color: '#FFBC2E' }}>›</span>
               </div>
             </div>
+        )}
+
+        {/* Продолжить просмотр */}
+        {cont.length > 0 && (
+          <>
+            <div className="text-[11px] font-bold tracking-[1.5px] uppercase text-[#9a9aa2] font-mono mb-3">
+              Продолжить просмотр
+            </div>
+            <div className="rounded-2xl mb-7 overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014' }}>
+              {cont.map(c => (
+                <div
+                  key={c.id}
+                  onClick={() => onMaterial(c.id, c.section_id)}
+                  className="flex items-center gap-3 px-[18px] py-3 cursor-pointer transition-colors duration-150 active:bg-white/[.04]"
+                >
+                  <MediaTypeIcon type="video" size={36} radius={10} iconSize={16} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] text-[#8a8a93] mb-0.5 truncate">{c.section_title}</div>
+                    <div className="text-[14px] font-semibold truncate">{c.title}</div>
+                    {c.duration > 0 && (
+                      <div className="mt-1.5 h-[3px] rounded-full bg-white/[.08] overflow-hidden">
+                        <div className="h-full bg-green" style={{ width: `${Math.min(100, (c.position / c.duration) * 100)}%` }} />
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[11px] text-[#8a8a93] font-mono shrink-0">{fmtTime(c.position)}</span>
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         {/* Новое — collapsible */}

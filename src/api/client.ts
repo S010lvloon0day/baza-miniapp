@@ -151,6 +151,8 @@ export const api = {
   recent:         ()             => get<{ materials: Material[]; today_count: number; today_sections: TodaySection[]; total_count: number }>('/api/recent'),
   history:        ()             => get<{ materials: Material[] }>('/api/history'),
   clearHistory:   ()             => del<{ ok: boolean }>('/api/history'),
+  watchGet:       (id: number)   => get<{ items: Record<string, { position: number; duration: number }> }>(`/api/watch/${id}`),
+  watchContinue:  ()             => get<{ items: ContinueItem[] }>('/api/watch_continue'),
   banner:         ()             => get<{ banners: Banner[] }>('/api/banner'),
   notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
   notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
@@ -168,6 +170,24 @@ export const api = {
     post<{ pay_url?: string; invoice_id?: string; section_id?: number; price?: number; error?: string }>('/api/course/invoice', { section_id: sectionId }),
   courseConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; section_id?: number; error?: string }>('/api/course/confirm', { invoice_id: invoiceId }),
+}
+
+export interface ContinueItem {
+  id: number
+  title: string
+  section_id: number
+  section_title: string
+  position: number
+  duration: number
+}
+
+/** Сохранить позицию просмотра. keepalive — чтобы запрос ушёл и при закрытии мини-аппа. */
+export function watchSave(body: { material_id: number; attachment_id: number; position: number; duration: number }) {
+  try {
+    fetch(API_BASE + '/api/watch', {
+      method: 'POST', headers: headers(), body: JSON.stringify(body), keepalive: true,
+    }).catch(() => {})
+  } catch { /* не критично */ }
 }
 
 // URL медиа-ассета этапа. init_data в query — <video>/<img> не умеют слать заголовки.

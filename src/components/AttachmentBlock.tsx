@@ -5,6 +5,7 @@ import type { Attachment } from '../api/client'
 import MediaTypeIcon from './MediaTypeIcon'
 import CopyButton from './CopyButton'
 import { renderWithLinks } from './RichText'
+import { useResume, ResumeHint } from '../hooks/useResume'
 
 const PdfViewer = lazy(() => import('./PdfViewer'))
 
@@ -28,6 +29,8 @@ export default function AttachmentBlock({
   const [docTruncated, setDocTruncated] = useState(false)
   const [preview, setPreview] = useState<'idle' | 'loading' | 'text' | 'pdf' | 'error'>('idle')
   const [videoError, setVideoError] = useState(false)
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null)
+  const resume = useResume(videoEl, materialId, att.id)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
 
@@ -107,8 +110,11 @@ export default function AttachmentBlock({
               Видео не проигрывается здесь — получите его в Telegram
             </div>
           ) : (
-            <video src={url} controls playsInline className="w-full rounded-xl"
-                   onError={() => setVideoError(true)} />
+            <>
+              <video ref={setVideoEl} src={url} controls playsInline className="w-full rounded-xl"
+                     onError={() => setVideoError(true)} />
+              <div className="pt-1.5"><ResumeHint resume={resume} /></div>
+            </>
           )
         )}
 

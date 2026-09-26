@@ -7,6 +7,7 @@ import type { Material } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import CopyButton from '../components/CopyButton'
 import AttachmentBlock from '../components/AttachmentBlock'
+import { useResume, ResumeHint } from '../hooks/useResume'
 import { renderWithLinks } from '../components/RichText'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
@@ -31,6 +32,8 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
   const [docTruncated, setDocTruncated] = useState(false)
   const [docPreview, setDocPreview] = useState<'loading' | 'text' | 'pdf' | 'error'>('loading')
   const [videoError, setVideoError] = useState(false)
+  const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null)
+  const resume = useResume(videoEl, materialId, 0)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
   const [sectionMats, setSectionMats] = useState<number[]>([])
@@ -237,6 +240,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   ) : (
                     <>
                       <video
+                        ref={setVideoEl}
                         src={furl}
                         controls
                         playsInline
@@ -244,6 +248,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                         className="w-full rounded-2xl border border-white/[.08] block bg-black"
                         onError={() => setVideoError(true)}
                       />
+                      <ResumeHint resume={resume} />
                       <TgButton />
                       <button onClick={openExternal}
                         className="w-full h-9 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] shadow-[0_4px_14px_rgba(0,0,0,.25)] active:border-green/40 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-xl transition-colors active:opacity-70">
