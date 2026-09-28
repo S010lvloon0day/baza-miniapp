@@ -67,12 +67,40 @@ export function useResume(el: HTMLVideoElement | null, materialId: number, attac
       watchSave({ material_id: materialId, attachment_id: attachmentId, position: t, duration: d })
     }
 
-    const onMeta = () => apply()
+    // Ссылка на поток живёт 2–3 ч. Если видео стояло на паузе дольше, следующий
+    // запрос даст 403 и плеер упадёт с ошибкой. Тогда тихо перезапрашиваем ссылку
+    // (src с новым параметром → /api/media выдаст свежий редирект) и продолжаем
+    // с того же места. Не чаще 3 раз в минуту, чтобы не зациклиться.
+    let recoverAt: number[] = []
+    let pendingSeek: { t: number; play: boolean } | null = null
+    const onError = () => {
+      const now = Date.now()
+      recoverAt = recoverAt.filter(x => now - x < 60000)
+      if (recoverAt.length >= 3) return
+      recoverAt.push(now)
+      const src = el.currentSrc || el.src
+      if (!src) return
+      pendingSeek = { t: el.currentTime || 0, play: !el.paused || el.readyState < 3 }
+      const u = new URL(src, window.location.href)
+      u.searchParams.set('_r', String(now))
+      el.src = u.toString()
+      el.load()
+    }
+    const onMeta = () => {
+      apply()
+      if (pendingSeek) {
+        const { t, play } = pendingSeek
+        pendingSeek = null
+        if (t > 0) el.currentTime = t
+        if (play) el.play().catch(() => {})
+      }
+    }
     const onTime = () => save(false)
     const onPause = () => save(true)
     const onHide = () => save(true)
 
     el.addEventListener('loadedmetadata', onMeta)
+    el.addEventListener('error', onError)
     el.addEventListener('timeupdate', onTime)
     el.addEventListener('pause', onPause)
     el.addEventListener('ended', onPause)
@@ -83,6 +111,7 @@ export function useResume(el: HTMLVideoElement | null, materialId: number, attac
       cancelled = true
       save(true)
       el.removeEventListener('loadedmetadata', onMeta)
+      el.removeEventListener('error', onError)
       el.removeEventListener('timeupdate', onTime)
       el.removeEventListener('pause', onPause)
       el.removeEventListener('ended', onPause)
