@@ -71,31 +71,80 @@ function Result({ ok, total, good }: { ok: boolean; total: number; good: number 
   )
 }
 
-function Fill({ d }: { d: TaskData }) {
-  const parts = (d.text || '').split('[blank]')
+const CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳'
+
+function Fill({ d, seed }: { d: TaskData; seed: number }) {
+  // «[blank]» внутри кавычек «…» — кавычки убираем, пропуск и так выделен рамкой
+  const parts = (d.text || '').replace(/«\s*\[blank\]\s*»/g, '[blank]').split('[blank]')
   const n = parts.length - 1
+  const answers = d.blanks || []
+  const bank = useMemo(() => shuffled(answers.map((a, i) => ({ a, i })), seed), [answers, seed])
   const [vals, setVals] = useState<string[]>(Array(n).fill(''))
+  const [active, setActive] = useState(0)
   const [checked, setChecked] = useState<boolean[] | null>(null)
   const [shown, setShown] = useState(false)
-  const okAt = (i: number, v: string) =>
-    [d.blanks?.[i] ?? '', ...(d.accept?.[i] ?? [])].some(a => a && stemEq(v, a))
+  const okAt = (i: number, v: string) => [answers[i] ?? '', ...(d.accept?.[i] ?? [])].some(a => a && stemEq(v, a))
+  const setAt = (i: number, v: string) => { const x = vals.slice(); x[i] = v; setVals(x); setChecked(null) }
+  const usedCnt: Record<string, number> = {}
+  vals.forEach(v => { const k = norm(v); if (k) usedCnt[k] = (usedCnt[k] || 0) + 1 })
+  const seenCnt: Record<string, number> = {}
+  const pick = (word: string) => {
+    let i = vals[active] === '' ? active : vals.findIndex(v => v === '')
+    if (i < 0) i = active
+    setAt(i, word)
+    const next = vals.findIndex((v, k) => k !== i && v === '')
+    if (next >= 0) setActive(next)
+  }
   const check = () => { const c = vals.map((v, i) => okAt(i, v)); setChecked(c); haptic(c.every(Boolean)) }
   return (
     <>
-      <div className="text-[14px] leading-[2.1] text-white/85 break-words">
+      <div className="text-[11.5px] text-white/50">Нажмите на пропуск, затем выберите слово ниже — или впишите ответ сами.</div>
+      <div className="p-3.5 rounded-2xl border border-white/[.08] text-[14px] leading-[2.3] text-white/85 break-words">
         {parts.map((p, i) => (
           <span key={i}>
             <span className="whitespace-pre-wrap">{p}</span>
             {i < n && (
-              <input value={shown ? (d.blanks?.[i] ?? '') : vals[i]} readOnly={shown}
-                onChange={e => { const v = vals.slice(); v[i] = e.target.value; setVals(v); setChecked(null) }}
-                placeholder={`${i + 1}`}
-                className={`mx-1 px-2 py-0.5 w-[9.5em] max-w-full rounded-md bg-white/[.06] border text-[13px] text-white outline-none
-                  ${checked ? (checked[i] ? 'border-green' : 'border-red-400') : shown ? 'border-green/60' : 'border-white/20 focus:border-green'}`} />
+              <span className="inline-flex flex-col align-middle mx-1">
+                <span className="inline-flex items-center gap-1">
+                  <span className="text-green text-[13px] font-bold">{CIRCLED[i] ?? `(${i + 1})`}</span>
+                  <input value={shown ? (answers[i] ?? '') : vals[i]} readOnly={shown}
+                    onFocus={() => setActive(i)}
+                    onChange={e => setAt(i, e.target.value)}
+                    placeholder="______"
+                    className={`px-2 py-0.5 w-[11em] max-w-[70vw] rounded-md bg-white/[.07] border-2 text-[13px] text-white outline-none placeholder:text-white/30
+                      ${checked ? (checked[i] ? 'border-green' : 'border-red-400')
+                        : shown ? 'border-green/60' : active === i ? 'border-green/80' : 'border-white/25'}`} />
+                </span>
+                {checked && !checked[i] && !shown && (
+                  <span className="text-[11px] leading-[1.4] text-green/90 pl-5">✓ {answers[i]}</span>
+                )}
+              </span>
             )}
           </span>
         ))}
       </div>
+      {!shown && bank.length > 0 && (
+        <div>
+          <div className="text-[11px] font-bold tracking-[2px] uppercase text-green mb-1.5">Варианты</div>
+          <div className="flex flex-wrap gap-1.5">
+            {bank.map(({ a, i }) => {
+              const k = norm(a)
+              seenCnt[k] = (seenCnt[k] || 0) + 1
+              const isUsed = seenCnt[k] <= (usedCnt[k] || 0)
+              return (
+                <button key={i} onClick={() => pick(a)} disabled={isUsed}
+                  className={`px-2.5 py-1 rounded-lg border text-[12.5px] ${isUsed ? 'border-white/[.06] text-white/25' : 'border-green/50 text-white/90 active:bg-green/10'}`}>
+                  {a}
+                </button>
+              )
+            })}
+            {vals.some(v => v) && (
+              <button onClick={() => { setVals(Array(n).fill('')); setChecked(null); setActive(0) }}
+                className="px-2.5 py-1 rounded-lg text-[12px] text-white/50 active:opacity-70">↺ Очистить</button>
+            )}
+          </div>
+        </div>
+      )}
       {checked && !shown && <Result ok={checked.every(Boolean)} total={n} good={checked.filter(Boolean).length} />}
       <Buttons onCheck={shown ? undefined : check} shown={shown} onShow={() => setShown(!shown)} />
     </>
@@ -216,7 +265,7 @@ export default function TaskCard({ data, seed }: { data: TaskData; seed: number 
   return (
     <div className="mx-4 mb-5 flex flex-col gap-3">
       <Intro t={data.intro} />
-      {data.kind === 'fill' && <Fill d={data} />}
+      {data.kind === 'fill' && <Fill d={data} seed={seed} />}
       {data.kind === 'match' && <Match d={data} seed={seed} />}
       {data.kind === 'order' && <Order d={data} />}
       {data.kind === 'reveal' && <Reveal d={data} />}
