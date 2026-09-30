@@ -65,7 +65,7 @@ export interface Material {
   section_id: number
   title: string
   content: string
-  media_type: 'photo' | 'video' | 'document' | 'text'
+  media_type: 'photo' | 'video' | 'document' | 'text' | 'quiz'
   is_premium: number
   locked?: boolean
   file_url?: string

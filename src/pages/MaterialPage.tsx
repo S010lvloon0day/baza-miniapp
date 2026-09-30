@@ -9,6 +9,7 @@ import CopyButton from '../components/CopyButton'
 import AttachmentBlock from '../components/AttachmentBlock'
 import { useResume, ResumeHint } from '../hooks/useResume'
 import { renderWithLinks } from '../components/RichText'
+import QuizCard, { parseQuiz } from '../components/QuizCard'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
 // users who actually open a PDF document — lazy-load it so the main bundle (and every other
@@ -16,7 +17,7 @@ import { renderWithLinks } from '../components/RichText'
 const PdfViewer = lazy(() => import('../components/PdfViewer'))
 
 const tg = (window as any).Telegram?.WebApp
-const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ' }[t] ?? t.toUpperCase())
+const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ', quiz: 'ТЕСТ' }[t] ?? t.toUpperCase())
 
 interface Props {
   materialId: number
@@ -330,7 +331,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               )}
 
               {/* No media attached — offer Telegram delivery */}
-              {!multi && !furl && mat.can_send && mat.media_type !== 'text' && (
+              {!multi && !furl && mat.can_send && mat.media_type !== 'text' && mat.media_type !== 'quiz' && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
                   <div className="p-3 border border-white/[.08] rounded-2xl text-[12px] text-gray text-center">
                     Файл хранится в Telegram — получите его прямо в чат с ботом
@@ -339,8 +340,14 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                 </div>
               )}
 
+              {/* Тест с вариантами ответа */}
+              {mat.media_type === 'quiz' && (() => {
+                const q = parseQuiz(mat.content)
+                return q ? <QuizCard key={mat.id} data={q} /> : null
+              })()}
+
               {/* Text content */}
-              {mat.content && (
+              {mat.content && mat.media_type !== 'quiz' && (
                 <>
                   <div className="px-4 pb-2.5 flex items-center justify-between gap-3">
                     <div className="text-[11px] font-bold tracking-[3px] uppercase text-green">
