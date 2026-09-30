@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-type MediaType = 'text' | 'video' | 'photo' | 'document' | 'quiz'
+type MediaType = 'text' | 'video' | 'photo' | 'document' | 'quiz' | 'task'
 
 const PATHS: Record<MediaType, ReactNode> = {
   text: (
@@ -20,6 +20,12 @@ const PATHS: Record<MediaType, ReactNode> = {
       <rect x="3" y="4" width="18" height="16" rx="2.5" />
       <circle cx="8.5" cy="10" r="1.6" />
       <path d="M21 16l-5.2-5.2a2 2 0 0 0-2.8 0L5 19" />
+    </>
+  ),
+  task: (
+    <>
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
     </>
   ),
   quiz: (
