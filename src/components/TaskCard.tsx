@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import MarkdownLite from './MarkdownLite'
 
 /** Практическое задание (media_type = 'task'), content — JSON:
  *  fill:   { kind, intro, text (с [blank]), blanks[], accept[][] }
@@ -17,6 +18,7 @@ export interface TaskData {
   sub?: string
   template?: string
   answer?: string
+  answer_md?: string
   keys?: string[]
   answer_is_code?: boolean
 }
@@ -234,9 +236,11 @@ function Reveal({ d }: { d: TaskData }) {
           <div className="text-[11px] font-bold tracking-[2px] uppercase text-green mb-2">
             {d.sub === 'short' ? 'Пример ответа' : 'Ответ'}
           </div>
-          {d.answer_is_code
-            ? <pre className="text-[12px] leading-[1.6] text-white/85 overflow-x-auto">{d.answer}</pre>
-            : <div className="text-[13.5px] leading-[1.75] text-white/85 whitespace-pre-wrap break-words">{d.answer}</div>}
+          {d.answer_md
+            ? <div className="-mx-4"><MarkdownLite content={d.answer_md} /></div>
+            : d.answer_is_code
+              ? <pre className="text-[12px] leading-[1.6] text-white/85 overflow-x-auto">{d.answer}</pre>
+              : <div className="text-[13.5px] leading-[1.75] text-white/85 whitespace-pre-wrap break-words">{d.answer}</div>}
           {d.keys && d.keys.length > 0 && (
             <div className="mt-3">
               <div className="text-[12px] font-bold text-white/70 mb-1">Что должно быть в ответе:</div>
