@@ -13,10 +13,10 @@ interface Props {
   onSection: (s: Section) => void
   onMaterial: (id: number, sectionId: number) => void
   onTabCats: () => void
-  onSubmit: () => void
+  onSubmit?: () => void
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, onSubmit }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -49,7 +49,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onSubmit }:
 
   // Раньше кнопка выкидывала человека в чат с ботом. Теперь форма открывается
   // прямо здесь — уходить из приложения, чтобы что-то предложить, незачем.
-  const openSubmit = () => onSubmit()
 
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
@@ -126,13 +125,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onSubmit }:
                 <line x1="5" y1="12" x2="19" y2="12" />
                 <polyline points="12 5 19 12 12 19" />
               </svg>
-            </button>
-            <button
-              onClick={openSubmit}
-              className="flex-1 flex items-center justify-center py-3.5 rounded-[13px] text-white text-[12px] whitespace-nowrap font-bold transition-transform duration-150 active:bg-white/[.1] active:border-white/30 active:-translate-y-0.5"
-              style={{ border: '1px solid rgba(255,255,255,.14)', background: 'linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02))', boxShadow: '0 4px 14px rgba(0,0,0,.25)' }}
-            >
-              Предложить материал
             </button>
           </div>
         </div>
