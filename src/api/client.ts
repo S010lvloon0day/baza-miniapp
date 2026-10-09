@@ -107,6 +107,7 @@ export interface Plan {
   days: number
   label: string
   price: number
+  stars?: number
 }
 
 export interface Config {
@@ -148,6 +149,7 @@ export const api = {
   sendAttachment: (id: number, attachmentId: number) =>
     post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}/${attachmentId}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),
+  starsInvoice:   (days: number) => post<{ link: string; stars: number; days: number; error?: string }>(`/api/stars_invoice/${days}`),
   cryptoInvoiceConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; premium_until?: string; error?: string }>('/api/crypto_invoice/confirm', { invoice_id: invoiceId }),
   recent:         ()             => get<{ materials: Material[]; today_count: number; today_sections: TodaySection[]; total_count: number }>('/api/recent'),

@@ -14,7 +14,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Plan | null>(null)
-  const [paying, setPaying] = useState<'crypto' | null>(null)
+  const [paying, setPaying] = useState<'crypto' | 'stars' | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
@@ -60,6 +60,30 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
       setMsg('Счёт создан. После оплаты нажмите «Проверить оплату».')
     } catch {
       setMsg('Ошибка создания счёта. Попробуйте позже.')
+    } finally {
+      setPaying(null)
+    }
+  }
+
+  const buyWithStars = async () => {
+    if (!selected || paying) return
+    setPaying('stars')
+    setMsg(null)
+    try {
+      const r = await api.starsInvoice(selected.days)
+      if (!r.link) { setMsg('Не удалось создать счёт Stars. Попробуйте позже.'); return }
+      const done = (status: string) => {
+        if (status === 'paid') {
+          setMsg('✅ Оплата получена! Обновляю профиль…')
+          api.profile().catch(() => null).then(p => { if (p) setProf(p) })
+        } else if (status === 'failed') {
+          setMsg('Оплата не прошла. Попробуйте ещё раз.')
+        }
+      }
+      if (tg?.openInvoice) tg.openInvoice(r.link, done)
+      else window.open(r.link, '_blank')
+    } catch {
+      setMsg('Ошибка создания счёта Stars. Попробуйте позже.')
     } finally {
       setPaying(null)
     }
@@ -114,18 +138,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
     return () => { cancelled = true; clearInterval(id); window.removeEventListener('focus', onFocus) }
   }, [invoiceId])
 
-  const openSubmit = () => {
-    const u = cfg.bot_username
-    if (!u) return
-    const url = `https://t.me/${u}?start=submit`
-    if (tg?.openTelegramLink) {
-      tg.openTelegramLink(url)
-      tg.close?.()           // сворачиваем мини-апп — юзер уходит в чат с ботом
-    } else {
-      window.open(url, '_blank')
-    }
-  }
-
   if (loading) return (
     <div className="flex-1 flex items-center justify-center">
       <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
@@ -179,30 +191,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
             </span>
           </div>
         </div>
-
-        {/* Предложить материал */}
-        {cfg.bot_username && (
-          <button
-            onClick={openSubmit}
-            className="w-full flex items-center gap-3 rounded-2xl mb-5 cursor-pointer transition-colors duration-150 border-white/[.08] active:border-[rgba(34,197,94,.4)] active:bg-[#131318]"
-            style={{ padding: '13px 16px', borderWidth: 1, borderStyle: 'solid', background: '#101014' }}
-          >
-            <div
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 baza-ring-pulse"
-              style={{ background: 'radial-gradient(circle,rgba(34,197,94,.28),rgba(34,197,94,.05) 65%,transparent)', color: '#4AE885' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="12" y1="19" x2="12" y2="5" />
-                <polyline points="5 12 12 5 19 12" />
-              </svg>
-            </div>
-            <div className="flex-1 text-left min-w-0">
-              <div className="text-[13px] font-bold">Предложить материал</div>
-              <div className="text-[11px]" style={{ color: '#8a8a93' }}>После модерации добавим в базу</div>
-            </div>
-            <span className="font-extrabold" style={{ color: '#6a6a75' }}>›</span>
-          </button>
-        )}
 
         {/* Топ контрибьюторов */}
         {top.length > 0 && (
@@ -259,6 +247,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                   >
                     <div className="text-[13px] font-extrabold text-white">{p.label}</div>
                     <div className="text-[11px] mt-[3px]" style={{ color: '#8a8a93' }}>${p.price}</div>
+                    {p.stars ? <div className="text-[11px] mt-[1px]" style={{ color: '#E8B84A' }}>{p.stars}⭐</div> : null}
                   </button>
                 )
               })}
@@ -266,16 +255,30 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
 
             {/* Pay */}
             {selected && (
-              <button
-                disabled={!!paying}
-                onClick={buyWithCrypto}
-                className="w-full rounded-xl bg-white text-bg text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
-                style={{ padding: 14 }}
-              >
-                {paying === 'crypto'
-                  ? 'Открываю…'
-                  : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${selected.price}$ · крипто`}
-              </button>
+              <div className="flex flex-col gap-2">
+                <button
+                  disabled={!!paying}
+                  onClick={buyWithCrypto}
+                  className="w-full rounded-xl bg-white text-bg text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
+                  style={{ padding: 14 }}
+                >
+                  {paying === 'crypto'
+                    ? 'Открываю…'
+                    : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${selected.price}$ · крипто`}
+                </button>
+                {!!selected.stars && (
+                  <button
+                    disabled={!!paying}
+                    onClick={buyWithStars}
+                    className="w-full rounded-xl text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
+                    style={{ padding: 14, background: 'rgba(232,184,74,.12)', border: '1px solid rgba(232,184,74,.5)', color: '#E8B84A' }}
+                  >
+                    {paying === 'stars'
+                      ? 'Открываю…'
+                      : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${selected.stars}⭐ · Telegram Stars`}
+                  </button>
+                )}
+              </div>
             )}
 
             {/* Проверка оплаты — появляется после создания счёта */}
