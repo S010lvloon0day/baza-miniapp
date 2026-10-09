@@ -33,9 +33,9 @@ interface Props {
 const typeLabel = (t: string) => ({ photo:'ФОТО', video:'ВИДЕО', document:'ДОКУМЕНТ', text:'ТЕКСТ' }[t] ?? t.toUpperCase())
 
 const BENEFITS = [
-  'Полный доступ ко всем закрытым курсам',
+  'Полный доступ ко всем закрытым разделам и материалам',
   'Новые материалы раньше всех остальных',
-  'Без ограничений — навсегда',
+  'Подписка на 1, 3 или 12 месяцев — крипта или Telegram Stars',
 ]
 
 function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: () => void }) {

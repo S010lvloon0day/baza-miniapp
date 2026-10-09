@@ -129,6 +129,7 @@ export interface CourseDetail {
   level: CourseLevel
   icon: CourseIconKey
   price: number
+  stars?: number
   owned: boolean
   locked: boolean
   percent: number
@@ -258,6 +259,12 @@ export const coursesApi = {
     request<{ pay_url: string; invoice_id: string; course_id: number; price: number }>(
       'POST',
       `/api/courses/${courseId}/invoice`,
+    ),
+
+  starsInvoice: (courseId: number) =>
+    request<{ link: string; stars: number; course_id: number }>(
+      'POST',
+      `/api/courses/${courseId}/stars_invoice`,
     ),
 
   confirm: (invoiceId: string) =>

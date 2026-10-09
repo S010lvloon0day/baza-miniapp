@@ -35,6 +35,22 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
     } finally { setBusy(false) }
   }
 
+  const buyStars = async () => {
+    setBusy(true); setMsg(null)
+    try {
+      const r = await coursesApi.starsInvoice(course.id)
+      const done = (status: string) => {
+        if (status === 'paid') { setMsg('✅ Оплата получена, открываю курс…'); setTimeout(onPurchased, 1500) }
+        else if (status === 'failed') setMsg('Оплата не прошла. Попробуй ещё раз.')
+      }
+      if (tg?.openInvoice) tg.openInvoice(r.link, done)
+      else window.open(r.link, '_blank')
+    } catch (e: any) {
+      if (e?.code === 'already_owned') { onPurchased(); return }
+      setMsg('Не удалось создать счёт Stars. Попробуй позже.')
+    } finally { setBusy(false) }
+  }
+
   const check = async () => {
     if (!invoice) return
     setBusy(true); setMsg(null)
@@ -90,9 +106,22 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
 
       <div className="w-full" style={{ maxWidth: 520 }}>
         {!invoice ? (
-          <CourseButton onClick={buy} disabled={busy}>
-            Купить за {course.price} USDT
-          </CourseButton>
+          <div className="flex flex-col" style={{ gap: 9 }}>
+            <CourseButton onClick={buy} disabled={busy}>
+              Купить за {course.price} USDT
+            </CourseButton>
+            {!!course.stars && (
+              <button
+                onClick={buyStars}
+                disabled={busy}
+                className="w-full rounded-xl font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
+                style={{ padding: 14, fontSize: 14, background: 'rgba(232,184,74,.12)', border: '1px solid rgba(232,184,74,.5)', color: '#E8B84A' }}
+              >
+                Купить за {course.stars}⭐ · Telegram Stars
+              </button>
+            )}
+            <div style={{ fontSize: 11, color: '#6a6a75' }}>Разовая покупка, курс остаётся у вас навсегда. Premium-подписка этот курс не открывает.</div>
+          </div>
         ) : (
           <div className="flex flex-col" style={{ gap: 9 }}>
             <CourseButton onClick={check} disabled={busy}>Проверить оплату</CourseButton>
