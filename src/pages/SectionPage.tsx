@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Star, Lock, Check, Bell, BellRinging } from '@phosphor-icons/react'
 import { ICON_PATHS, resolveIcon } from '../components/CategoryIcon'
 import MediaTypeIcon from '../components/MediaTypeIcon'
+import { CardSocial } from '../components/MaterialSocial'
 import { api } from '../api/client'
 import type { Section, Material } from '../api/client'
 
@@ -381,9 +382,12 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                     {m.title}
                   </div>
                   {m.locked ? (
-                    <div className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 border border-[rgba(157,92,255,.3)]" style={{ background: 'rgba(157,92,255,.08)' }}>
-                      <Star size={9} weight="fill" className="text-violet" />
-                      <span className="text-[9px] font-mono tracking-[1px] text-violet uppercase">premium</span>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 border border-[rgba(157,92,255,.3)]" style={{ background: 'rgba(157,92,255,.08)' }}>
+                        <Star size={9} weight="fill" className="text-violet" />
+                        <span className="text-[9px] font-mono tracking-[1px] text-violet uppercase">premium</span>
+                      </div>
+                      <CardSocial rating={m.rating} ratingCount={m.rating_count} comments={m.comments_count} />
                     </div>
                   ) : (
                     <div className="text-[10px] mt-0.5 flex items-center gap-1.5" style={{ color: '#6a6a75', letterSpacing: '.5px' }}>
@@ -394,6 +398,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                           ×{m.files_count}
                         </span>
                       )}
+                      <CardSocial rating={m.rating} ratingCount={m.rating_count} comments={m.comments_count} />
                     </div>
                   )}
                 </div>

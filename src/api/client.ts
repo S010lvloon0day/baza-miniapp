@@ -79,6 +79,10 @@ export interface Material {
   files_count?: number
   /** Пользователь уже открывал этот материал (приходит в списке раздела). */
   viewed?: boolean
+  /** Средняя оценка, число оценок и комментариев (в списке раздела; нет — значит ещё не было). */
+  rating?: number
+  rating_count?: number
+  comments_count?: number
 }
 
 export interface TodaySection {

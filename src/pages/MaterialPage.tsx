@@ -12,6 +12,7 @@ import { renderWithLinks } from '../components/RichText'
 import QuizCard, { parseQuiz } from '../components/QuizCard'
 import TaskCard, { parseTask } from '../components/TaskCard'
 import MarkdownLite from '../components/MarkdownLite'
+import MaterialSocial, { SocialProof } from '../components/MaterialSocial'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
 // users who actually open a PDF document — lazy-load it so the main bundle (and every other
@@ -194,6 +195,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     </div>
                   ))}
                 </div>
+                <SocialProof key={materialId} materialId={materialId} />
                 <button
                   onClick={onUpgrade}
                   className="w-full py-3 bg-gradient-to-r from-[#7B3DFF] to-[#C7A6FF] text-white font-bold text-[12px] tracking-[2px] uppercase rounded-xl active:opacity-80">
@@ -391,6 +393,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   ))}
                 </>
               )}
+
+              {/* Оценки и обсуждение */}
+              <MaterialSocial key={materialId} materialId={materialId} />
             </motion.div>
           ) : null}
         </AnimatePresence>
