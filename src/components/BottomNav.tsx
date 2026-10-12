@@ -42,9 +42,15 @@ const TABS: { id: Exclude<Tab, 'search'>; label: string }[] = [
 
 const CTOR_TAB = { id: 'ctor' as const, label: 'Конструктор' }
 
-interface Props { active: Tab; onChange: (t: Tab) => void; showConstructor?: boolean }
+interface Props {
+  active: Tab
+  onChange: (t: Tab) => void
+  showConstructor?: boolean
+  /** Счётчики на вкладках (например, новые обсуждения у админа). */
+  badges?: Partial<Record<Tab, number>>
+}
 
-export default function BottomNav({ active, onChange, showConstructor }: Props) {
+export default function BottomNav({ active, onChange, showConstructor, badges }: Props) {
   const tabs = showConstructor ? [...TABS, CTOR_TAB] : TABS
   return (
     <nav
@@ -59,11 +65,12 @@ export default function BottomNav({ active, onChange, showConstructor }: Props) 
     >
       {tabs.map(({ id, label }) => {
         const on = active === id
+        const badge = badges?.[id] ?? 0
         return (
           <button
             key={id}
             onClick={() => onChange(id)}
-            className="flex-1 flex flex-col items-center gap-1 rounded-[13px] transition-colors duration-150 active:bg-white/[.06]"
+            className="relative flex-1 flex flex-col items-center gap-1 rounded-[13px] transition-colors duration-150 active:bg-white/[.06]"
             style={{
               padding: tabs.length > 5 ? '13px 1px' : '15px 2px',
               background: on ? 'linear-gradient(180deg,rgba(34,197,94,.22),rgba(34,197,94,.08))' : 'transparent',
@@ -81,6 +88,12 @@ export default function BottomNav({ active, onChange, showConstructor }: Props) 
             >
               {label}
             </span>
+            {badge > 0 && (
+              <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-green text-black text-[9.5px] font-extrabold flex items-center justify-center"
+                style={{ boxShadow: '0 0 8px rgba(34,197,94,.6)' }}>
+                {badge > 99 ? '99+' : badge}
+              </span>
+            )}
           </button>
         )
       })}

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, Heart, ChatCircle, Flag, Trash, PaperPlaneRight, SealCheck } from '@phosphor-icons/react'
+import { Star, Heart, ChatCircle, Flag, Trash, PaperPlaneRight, SealCheck, ArrowBendDownRight } from '@phosphor-icons/react'
 import { social, plural, timeAgo } from '../api/social'
 import type { MaterialComment, SocialData } from '../api/social'
 
@@ -59,13 +59,62 @@ function RatingBadge({ rating, count }: { rating: number; count: number }) {
   )
 }
 
+/* ─── Поле ввода (новый комментарий и ответ) ───────────────────────────── */
+
+export function Composer({ placeholder, sending, onSend, onCancel, autoFocus, compact }: {
+  placeholder: string
+  sending: boolean
+  onSend: (text: string) => Promise<boolean>
+  onCancel?: () => void
+  autoFocus?: boolean
+  compact?: boolean
+}) {
+  const [text, setText] = useState('')
+  const send = async () => {
+    const t = text.trim()
+    if (!t || sending) return
+    if (await onSend(t)) setText('')
+  }
+  return (
+    <div className={`rounded-2xl border border-white/[.1] bg-[#0D0D11] focus-within:border-green/40 transition-colors ${compact ? '' : 'mb-4'}`}>
+      <textarea
+        value={text}
+        autoFocus={autoFocus}
+        onChange={e => setText(e.target.value.slice(0, MAX_LEN))}
+        placeholder={placeholder}
+        rows={2}
+        className="w-full bg-transparent resize-none px-3.5 pt-3 pb-1 text-[13.5px] leading-[1.55] text-white placeholder:text-white/30 outline-none"
+      />
+      <div className="flex items-center justify-between gap-2 px-3.5 pb-2.5">
+        <span className="text-[10.5px] text-gray">
+          {text.length > MAX_LEN - 150 ? `${text.length}/${MAX_LEN}` : 'Без ссылок и контактов'}
+        </span>
+        <div className="flex items-center gap-2">
+          {onCancel && (
+            <button onClick={onCancel} className="h-8 px-3 rounded-lg text-[11.5px] text-gray active:text-white">
+              Отмена
+            </button>
+          )}
+          <button onClick={send} disabled={!text.trim() || sending}
+            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-green text-black text-[11.5px] font-bold tracking-wide disabled:opacity-35 active:opacity-80">
+            {sending ? '…' : <>Отправить <PaperPlaneRight size={13} weight="bold" /></>}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 /* ─── Один комментарий ───────────────────────────────────────────────────── */
 
-function CommentItem({ c, canInteract, isAdmin, preview, onChange, onRemoved, onToast }: {
+function CommentItem({ c, canInteract, isAdmin, preview, reply, onReply, onChange, onRemoved, onToast }: {
   c: MaterialComment
   canInteract: boolean
   isAdmin: boolean
   preview?: boolean
+  /** Это ответ внутри ветки — компактнее, без своей кнопки «Ответить». */
+  reply?: boolean
+  onReply?: () => void
   onChange: (c: MaterialComment) => void
   onRemoved: (id: number) => void
   onToast: (s: string) => void
@@ -99,7 +148,9 @@ function CommentItem({ c, canInteract, isAdmin, preview, onChange, onRemoved, on
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}
-      className="rounded-2xl border border-white/[.07] bg-[#101014] px-3.5 py-3">
+      className={reply
+        ? `rounded-xl border px-3 py-2.5 ${c.team ? 'border-green/25 bg-[rgba(34,197,94,.05)]' : 'border-white/[.06] bg-[#0E0E12]'}`
+        : 'rounded-2xl border border-white/[.07] bg-[#101014] px-3.5 py-3'}>
       <div className="flex items-center gap-2 mb-1.5">
         <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
           style={{ background: c.team ? 'rgba(34,197,94,.18)' : 'rgba(255,255,255,.07)', color: c.team ? '#4AE885' : '#c9c9d1' }}>
@@ -123,6 +174,11 @@ function CommentItem({ c, canInteract, isAdmin, preview, onChange, onRemoved, on
             <Heart size={14} weight={c.liked ? 'fill' : 'regular'} />
             {c.likes > 0 ? c.likes : 'Полезно'}
           </button>
+          {onReply && canInteract && (
+            <button onClick={onReply} className="inline-flex items-center gap-1 text-[11.5px] text-gray active:text-white">
+              <ArrowBendDownRight size={14} /> Ответить
+            </button>
+          )}
           <div className="ml-auto flex items-center gap-3">
             {canInteract && !c.mine && (
               <button onClick={report} aria-label="Пожаловаться" className="text-gray/70 active:text-white">
@@ -146,8 +202,8 @@ function CommentItem({ c, canInteract, isAdmin, preview, onChange, onRemoved, on
 export default function MaterialSocial({ materialId }: { materialId: number }) {
   const [data, setData] = useState<SocialData | null>(null)
   const [sort, setSort] = useState<'top' | 'new'>('top')
-  const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [replyTo, setReplyTo] = useState<number | null>(null)
   const [rating, setRatingBusy] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
@@ -184,21 +240,29 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
     } else showToast(r.message || 'Не удалось сохранить оценку')
   }
 
-  const send = async () => {
-    const t = text.trim()
-    if (!t || sending) return
+  /** Новый комментарий (parentId не задан) или ответ в ветке parentId. */
+  const send = async (t: string, parentId?: number): Promise<boolean> => {
     setSending(true)
-    const r = await social.comment(materialId, t)
+    const r = await social.comment(materialId, t, parentId)
     setSending(false)
-    if (r.ok) {
-      haptic('medium')
-      setText('')
-      setData(d => d && ({
-        ...d, comments_count: r.comments_count,
-        comments: [r.comment, ...d.comments.filter(c => c.id !== r.comment.id)],
-      }))
-      showToast(r.cut ? 'Опубликовано. Ссылки и контакты скрыты' : 'Комментарий опубликован')
-    } else showToast(r.message || 'Не удалось отправить')
+    if (!r.ok) {
+      showToast(r.message || 'Не удалось отправить')
+      return false
+    }
+    haptic('medium')
+    setData(d => {
+      if (!d) return d
+      if (!parentId) {
+        return { ...d, comments_count: r.comments_count,
+          comments: [{ ...r.comment, replies: [] }, ...d.comments.filter(c => c.id !== r.comment.id)] }
+      }
+      return { ...d, comments_count: r.comments_count,
+        comments: d.comments.map(c => c.id === parentId
+          ? { ...c, replies: [...(c.replies ?? []), r.comment] } : c) }
+    })
+    setReplyTo(null)
+    showToast(r.cut ? 'Опубликовано. Ссылки и контакты скрыты' : parentId ? 'Ответ опубликован' : 'Комментарий опубликован')
+    return true
   }
 
   const more = async () => {
@@ -209,9 +273,18 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
   }
 
   const update = (c: MaterialComment) =>
-    setData(d => d && ({ ...d, comments: d.comments.map(x => (x.id === c.id ? c : x)) }))
+    setData(d => d && ({ ...d, comments: d.comments.map(x => x.id === c.id
+      ? { ...c, replies: x.replies }
+      : { ...x, replies: x.replies?.map(y => (y.id === c.id ? c : y)) }) }))
+  // Удалили корень — уходит вся ветка (ответы без него не показываются).
   const removed = (id: number) =>
-    setData(d => d && ({ ...d, comments_count: Math.max(0, d.comments_count - 1), comments: d.comments.filter(x => x.id !== id) }))
+    setData(d => {
+      if (!d) return d
+      const root = d.comments.find(x => x.id === id)
+      const gone = root ? 1 + (root.replies?.length ?? 0) : 1
+      return { ...d, comments_count: Math.max(0, d.comments_count - gone),
+        comments: d.comments.filter(x => x.id !== id).map(x => ({ ...x, replies: x.replies?.filter(y => y.id !== id) })) }
+    })
 
   return (
     <section className="mx-4 mt-6 mb-4">
@@ -253,24 +326,8 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
 
       {/* Поле ввода */}
       {data.can_interact && (
-        <div className="rounded-2xl border border-white/[.1] bg-[#0D0D11] focus-within:border-green/40 transition-colors mb-4">
-          <textarea
-            value={text}
-            onChange={e => setText(e.target.value.slice(0, MAX_LEN))}
-            placeholder="Вопрос, опыт или дополнение к материалу…"
-            rows={text ? 3 : 2}
-            className="w-full bg-transparent resize-none px-3.5 pt-3 pb-1 text-[13.5px] leading-[1.55] text-white placeholder:text-white/30 outline-none"
-          />
-          <div className="flex items-center justify-between px-3.5 pb-2.5">
-            <span className="text-[10.5px] text-gray">
-              {text.length > MAX_LEN - 150 ? `${text.length}/${MAX_LEN}` : 'Без ссылок и контактов'}
-            </span>
-            <button onClick={send} disabled={!text.trim() || sending}
-              className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-green text-black text-[11.5px] font-bold tracking-wide disabled:opacity-35 active:opacity-80">
-              {sending ? '…' : <>Отправить <PaperPlaneRight size={13} weight="bold" /></>}
-            </button>
-          </div>
-        </div>
+        <Composer placeholder="Вопрос, опыт или дополнение к материалу…" sending={sending && replyTo === null}
+          onSend={t => send(t)} />
       )}
 
       {/* Список */}
@@ -282,8 +339,23 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
         <div className="flex flex-col gap-2.5">
           <AnimatePresence initial={false}>
             {data.comments.map(c => (
-              <CommentItem key={c.id} c={c} canInteract={data.can_interact} isAdmin={data.is_admin}
-                onChange={update} onRemoved={removed} onToast={showToast} />
+              <div key={c.id} className="flex flex-col gap-2">
+                <CommentItem c={c} canInteract={data.can_interact} isAdmin={data.is_admin}
+                  onReply={() => setReplyTo(replyTo === c.id ? null : c.id)}
+                  onChange={update} onRemoved={removed} onToast={showToast} />
+                {((c.replies?.length ?? 0) > 0 || replyTo === c.id) && (
+                  <div className="ml-4 pl-3 border-l border-white/[.08] flex flex-col gap-2">
+                    {c.replies?.map(r => (
+                      <CommentItem key={r.id} c={r} reply canInteract={data.can_interact} isAdmin={data.is_admin}
+                        onChange={update} onRemoved={removed} onToast={showToast} />
+                    ))}
+                    {replyTo === c.id && (
+                      <Composer compact autoFocus placeholder="Ваш ответ…"
+                        sending={sending} onSend={t => send(t, c.id)} onCancel={() => setReplyTo(null)} />
+                    )}
+                  </div>
+                )}
+              </div>
             ))}
           </AnimatePresence>
           {data.has_more && (

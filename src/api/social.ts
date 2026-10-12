@@ -12,6 +12,10 @@ export interface MaterialComment {
   liked: boolean
   mine: boolean
   team: boolean
+  /** null — корневой комментарий; иначе id корня, к которому это ответ. */
+  parent_id: number | null
+  /** Ответы (только у корневых комментариев). */
+  replies?: MaterialComment[]
 }
 
 export interface SocialData {
@@ -52,13 +56,66 @@ export const social = {
   rate: (id: number, rating: number) =>
     call<{ rating: number; rating_count: number; my_rating: number; comments_count: number }>(
       'POST', `/api/material/${id}/rate`, { rating }),
-  comment: (id: number, text: string) =>
+  comment: (id: number, text: string, parentId?: number) =>
     call<{ comment: MaterialComment; cut: boolean; comments_count: number }>(
-      'POST', `/api/material/${id}/comments`, { text }),
+      'POST', `/api/material/${id}/comments`, parentId ? { text, parent_id: parentId } : { text }),
   remove: (commentId: number) => call<Record<string, never>>('DELETE', `/api/comments/${commentId}`),
   like: (commentId: number) => call<{ liked: boolean; likes: number }>('POST', `/api/comments/${commentId}/like`),
   report: (commentId: number) =>
     call<{ hidden?: boolean; already?: boolean }>('POST', `/api/comments/${commentId}/report`),
+  restore: (commentId: number) => call<Record<string, never>>('POST', `/api/comments/${commentId}/restore`),
+}
+
+/* ─── Лента «Обсуждения» для админа ─────────────────────────────────────── */
+
+export interface FeedCounts {
+  comments: number
+  ratings: number
+  total: number
+  unanswered: number
+  hidden: number
+}
+
+interface FeedBase {
+  material_id: number
+  material_title: string
+  section_title: string | null
+  user_id: number
+  author: string
+  /** Время события (UTC, формат SQLite). */
+  at: string
+  /** Появилось после последнего просмотра ленты. */
+  new: boolean
+}
+
+export interface FeedComment extends FeedBase {
+  type: 'comment'
+  id: number
+  text: string
+  hidden: boolean
+  reports: number
+  parent_id: number | null
+  parent_text: string | null
+  parent_author: string | null
+  replies: number
+  /** Команда уже ответила на этот комментарий. */
+  answered: boolean
+}
+
+export interface FeedRating extends FeedBase {
+  type: 'rating'
+  rating: number
+}
+
+export type FeedItem = FeedComment | FeedRating
+export type FeedKind = 'all' | 'unanswered' | 'comments' | 'ratings' | 'hidden'
+
+export const feedback = {
+  list: (kind: FeedKind, offset = 0) =>
+    call<{ items: FeedItem[]; has_more: boolean; seen: string; counts: FeedCounts }>(
+      'GET', `/api/admin/feedback?kind=${kind}&offset=${offset}`),
+  unread: () => call<FeedCounts>('GET', '/api/admin/feedback/unread'),
+  seen: () => call<Record<string, never>>('POST', '/api/admin/feedback/seen'),
 }
 
 /** «1 оценка / 2 оценки / 5 оценок». */

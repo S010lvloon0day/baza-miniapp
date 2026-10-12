@@ -15,6 +15,8 @@ import CoursesListPage from './pages/courses/CoursesListPage'
 import CourseDetailPage from './pages/courses/CourseDetailPage'
 import CoursePlayer from './pages/courses/CoursePlayer'
 import ConstructorPage from './pages/constructor/ConstructorPage'
+import FeedbackPage from './pages/FeedbackPage'
+import { feedback } from './api/social'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
@@ -34,9 +36,22 @@ type View =
   | { type: 'courses'; section: Section }
   | { type: 'course'; courseId: number; title: string }
   | { type: 'player'; courseId: number }
+  | { type: 'feedback' }
+
+/** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
+function readDeepLink(): { material?: number; feedback?: boolean } {
+  const qp = new URLSearchParams(location.search)
+  const sp: string = tg?.initDataUnsafe?.start_param || ''
+  const m = Number(qp.get('m') || (sp.match(/^m(\d+)$/)?.[1] ?? ''))
+  return {
+    material: Number.isInteger(m) && m > 0 ? m : undefined,
+    feedback: qp.get('feedback') === '1' || sp === 'feedback',
+  }
+}
 
 export default function App() {
-  const [started, setStarted] = useState(() => !!localStorage.getItem('started'))
+  const [deepLink] = useState(readDeepLink)
+  const [started, setStarted] = useState(() => !!localStorage.getItem('started') || !!deepLink.material || deepLink.feedback)
   const [tab, setTab] = useState<Tab>('home')
   const [stack, setStack] = useState<View[]>([])
   const [bmTick, setBmTick] = useState(0)
@@ -48,6 +63,18 @@ export default function App() {
   // Вкладка конструктора — только для админов, признак приходит с сервера
   const [isAdmin, setIsAdmin] = useState(false)
   const [ctorEditing, setCtorEditing] = useState(false)
+  // Новые комментарии и оценки с прошлого просмотра ленты (только у админа)
+  const [fbUnread, setFbUnread] = useState(0)
+  const [fbUnanswered, setFbUnanswered] = useState(0)
+
+  /** Открыть материал, зная только id (из ссылки бота или ленты обсуждений). */
+  const openMaterialById = (id: number, replace = false) => {
+    api.material(id).then(d => {
+      const view: View = { type: 'material', id, sectionId: d.section_id }
+      setStack(s => (replace ? [view] : [...s, view]))
+    }).catch(() => {})
+  }
+
 
   useEffect(() => {
     tg?.expand?.()
@@ -56,8 +83,24 @@ export default function App() {
       if (c.bot_username) setBotUsername(c.bot_username)
       setGiveawayVisible(!!c.giveaway_visible)
       setIsAdmin(!!c.is_admin)
+      if (c.is_admin && deepLink.feedback) setStack([{ type: 'feedback' }])
     }).catch(() => {})
+    if (deepLink.material) openMaterialById(deepLink.material, true)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const refreshUnread = useCallback(() => {
+    feedback.unread().then(r => {
+      if (r.ok) { setFbUnread(r.total); setFbUnanswered(r.unanswered) }
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!isAdmin) return
+    refreshUnread()
+    const t = window.setInterval(refreshUnread, 60_000)
+    return () => window.clearInterval(t)
+  }, [isAdmin, refreshUnread])
 
   useEffect(() => {
     if (!started) return
@@ -106,6 +149,8 @@ export default function App() {
     if (t !== 'ctor') setCtorEditing(false)
   }
 
+  const openFeedback = () => setStack(s => [...s, { type: 'feedback' }])
+
   const openCourse = (courseId: number, title = 'Курс') =>
     setStack(s => [...s, { type: 'course', courseId, title }])
 
@@ -136,8 +181,34 @@ export default function App() {
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
       if (tab === 'ctor') {
         if (!isAdmin) return null
-        return <ConstructorPage editing={ctorEditing} onEditingChange={setCtorEditing} />
+        if (ctorEditing) return <ConstructorPage editing={ctorEditing} onEditingChange={setCtorEditing} />
+        return (
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <button onClick={openFeedback}
+              className="mx-4 mt-3 flex items-center gap-3 rounded-2xl border border-green/30 px-4 py-3 text-left active:opacity-80"
+              style={{ background: 'radial-gradient(120% 120% at 0% 0%, rgba(34,197,94,.12), transparent 60%), #0D0D11' }}>
+              <span className="text-[20px]">💬</span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-[14px] font-bold">Обсуждения и оценки</span>
+                <span className="block text-[11.5px] text-gray truncate">
+                  {fbUnread > 0 ? `Новых: ${fbUnread}` : 'Новых нет'}{fbUnanswered > 0 ? ` · без ответа: ${fbUnanswered}` : ''}
+                </span>
+              </span>
+              {fbUnread > 0 && (
+                <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-green text-black text-[11px] font-extrabold flex items-center justify-center">
+                  {fbUnread}
+                </span>
+              )}
+              <span className="text-gray">›</span>
+            </button>
+            <ConstructorPage editing={ctorEditing} onEditingChange={setCtorEditing} />
+          </div>
+        )
       }
+    }
+    if (top?.type === 'feedback') {
+      if (!isAdmin) return null
+      return <FeedbackPage onOpenMaterial={id => openMaterialById(id)} onSeen={() => { setFbUnread(0); refreshUnread() }} />
     }
     if (top?.type === 'courses') {
       return <CoursesListPage sectionId={top.section.id} onOpen={openCourse} />
@@ -184,6 +255,9 @@ export default function App() {
       }
       const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль', ctor: 'Конструктор' }
       return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} />
+    }
+    if (top.type === 'feedback') {
+      return <Header showBack onBack={goBack} title="Обсуждения" />
     }
     if (top.type === 'courses') {
       return <Header showBack onBack={goBack} title={top.section.title} />
@@ -233,7 +307,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {!isMat && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} />}
+      {!isMat && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread }} />}
 
       <NotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} />
     </div>
