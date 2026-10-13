@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import CourseIcon from '../../components/CourseIcon'
 import Syllabus from '../../components/course/Syllabus'
 import { CenterLoader, CourseButton, ErrorNote, MonoLabel, ProgressBar, StarRow } from '../../components/course/ui'
@@ -24,6 +25,7 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [rubTx, setRubTx] = useState<string | null>(null)
+  const [payOpen, setPayOpen] = useState(false)
 
   const buyRub = async () => {
     setBusy(true); setMsg(null)
@@ -127,27 +129,51 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
 
       <div className="w-full" style={{ maxWidth: 520 }}>
         {!invoice ? (
-          <div className="flex flex-col" style={{ gap: 9 }}>
-            {!!course.rub && (
-              <CourseButton onClick={buyRub} disabled={busy}>
-                {rubTx ? 'Ждём оплату…' : `Купить за ${fmtRub(course.rub)} · СБП`}
-              </CourseButton>
-            )}
-            <CourseButton onClick={buy} disabled={busy} variant={course.rub ? 'ghost' : undefined}>
-              Купить за {course.price} USDT
-            </CourseButton>
-            {!!course.stars && (
-              <button
-                onClick={buyStars}
-                disabled={busy}
-                className="w-full rounded-xl font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
-                style={{ padding: 14, fontSize: 14, background: 'rgba(232,184,74,.12)', border: '1px solid rgba(232,184,74,.5)', color: '#E8B84A' }}
-              >
-                Купить за {course.stars}⭐ · Telegram Stars
-              </button>
-            )}
-            <div style={{ fontSize: 11, color: '#6a6a75' }}>Разовая покупка, курс остаётся у вас навсегда. Premium-подписка этот курс не открывает.</div>
-          </div>
+          (() => {
+            const methods = [
+              course.rub ? { key: 'rub', label: 'СБП · банковским приложением', amount: fmtRub(course.rub), color: '#4AE885', onClick: buyRub } : null,
+              { key: 'crypto', label: 'Криптовалюта', amount: `${course.price} USDT`, color: '#ffffff', onClick: buy },
+              course.stars ? { key: 'stars', label: 'Telegram Stars', amount: `${course.stars}⭐`, color: '#E8B84A', onClick: buyStars } : null,
+            ].filter(Boolean) as { key: string; label: string; amount: string; color: string; onClick: () => void }[]
+            const primary = course.rub ? fmtRub(course.rub) : `${course.price} USDT`
+            return (
+              <div className="flex flex-col">
+                <button
+                  disabled={busy}
+                  onClick={() => setPayOpen(o => !o)}
+                  aria-expanded={payOpen}
+                  className="w-full rounded-xl text-[14px] font-extrabold text-black disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5 flex items-center justify-center gap-2"
+                  style={{ padding: 14, background: 'linear-gradient(180deg,#4AE885,#22C55E)', boxShadow: '0 6px 20px rgba(34,197,94,.3)' }}
+                >
+                  {busy ? 'Открываю…' : <>Купить · {primary}
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}
+                      strokeLinecap="round" strokeLinejoin="round"
+                      style={{ transform: payOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>
+                      <path d="M6 9l6 6 6-6" />
+                    </svg></>}
+                </button>
+                <AnimatePresence initial={false}>
+                  {payOpen && !busy && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.18 }} className="overflow-hidden">
+                      <div className="flex flex-col gap-1.5 mt-2">
+                        {methods.map(m => (
+                          <button key={m.key} onClick={() => { setPayOpen(false); m.onClick() }}
+                            className="w-full flex items-center gap-3 rounded-xl text-left active:-translate-y-0.5 transition-transform duration-150"
+                            style={{ padding: '12px 14px', border: '1px solid rgba(255,255,255,.1)', background: '#101014' }}>
+                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
+                            <span className="flex-1 text-[13.5px] font-semibold text-white">{m.label}</span>
+                            <span className="text-[13.5px] font-bold" style={{ color: m.color === '#ffffff' ? '#e4e4e8' : m.color }}>{m.amount}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <div className="mt-2" style={{ fontSize: 11, color: '#6a6a75' }}>Разовая покупка, курс остаётся у вас навсегда. Premium-подписка этот курс не открывает.</div>
+              </div>
+            )
+          })()
         ) : (
           <div className="flex flex-col" style={{ gap: 9 }}>
             <CourseButton onClick={check} disabled={busy}>Проверить оплату</CourseButton>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { api } from '../api/client'
 import type { Profile, Config, Plan, Contributor } from '../api/client'
 import { useRubPayment, fmtRub } from '../hooks/useRubPayment'
@@ -17,6 +18,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [selected, setSelected] = useState<Plan | null>(null)
   const [paying, setPaying] = useState<'crypto' | 'stars' | 'rub' | null>(null)
   const [rubTx, setRubTx] = useState<string | null>(null)
+  const [payOpen, setPayOpen] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
@@ -266,7 +268,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                 return (
                   <button
                     key={p.days}
-                    onClick={() => { setSelected(p); setMsg(null) }}
+                    onClick={() => { setSelected(p); setMsg(null); setPayOpen(false) }}
                     className="flex-1 text-center rounded-xl transition-transform duration-150 active:-translate-y-0.5"
                     style={{
                       padding: '12px 6px',
@@ -283,45 +285,73 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
               })}
             </div>
 
-            {/* Pay */}
-            {selected && (
-              <div className="flex flex-col gap-2">
-                {!!selected.rub && (
+            {/* Pay — одна кнопка, способ выбирается в выпадающем меню */}
+            {selected && (() => {
+              const act = prof?.is_premium ? 'Продлить' : 'Оплатить'
+              const methods = [
+                selected.rub ? {
+                  key: 'rub', label: 'СБП · банковским приложением', amount: fmtRub(selected.rub),
+                  color: '#4AE885', onClick: buyWithRub,
+                } : null,
+                {
+                  key: 'crypto', label: 'Криптовалюта', amount: `${selected.price}$`,
+                  color: '#ffffff', onClick: buyWithCrypto,
+                },
+                selected.stars ? {
+                  key: 'stars', label: 'Telegram Stars', amount: `${selected.stars}⭐`,
+                  color: '#E8B84A', onClick: buyWithStars,
+                } : null,
+              ].filter(Boolean) as { key: string; label: string; amount: string; color: string; onClick: () => void }[]
+              const primaryAmount = selected.rub ? fmtRub(selected.rub) : `${selected.price}$`
+
+              return (
+                <div className="flex flex-col">
                   <button
                     disabled={!!paying}
-                    onClick={buyWithRub}
-                    className="w-full rounded-xl text-[14px] font-extrabold text-black disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
+                    onClick={() => setPayOpen(o => !o)}
+                    aria-expanded={payOpen}
+                    className="w-full rounded-xl text-[14px] font-extrabold text-black disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5 flex items-center justify-center gap-2"
                     style={{ padding: 14, background: 'linear-gradient(180deg,#4AE885,#22C55E)', boxShadow: '0 6px 20px rgba(34,197,94,.3)' }}
                   >
-                    {paying === 'rub'
+                    {paying
                       ? 'Открываю…'
-                      : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${fmtRub(selected.rub)} · СБП`}
+                      : <>{act} · {primaryAmount}
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                            style={{ transform: payOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>
+                            <path d="M6 9l6 6 6-6" />
+                          </svg>
+                        </>}
                   </button>
-                )}
-                <button
-                  disabled={!!paying}
-                  onClick={buyWithCrypto}
-                  className={`w-full rounded-xl text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5 ${selected.rub ? 'border border-white/20 text-white' : 'bg-white text-bg'}`}
-                  style={{ padding: 14 }}
-                >
-                  {paying === 'crypto'
-                    ? 'Открываю…'
-                    : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${selected.price}$ · крипто`}
-                </button>
-                {!!selected.stars && (
-                  <button
-                    disabled={!!paying}
-                    onClick={buyWithStars}
-                    className="w-full rounded-xl text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
-                    style={{ padding: 14, background: 'rgba(232,184,74,.12)', border: '1px solid rgba(232,184,74,.5)', color: '#E8B84A' }}
-                  >
-                    {paying === 'stars'
-                      ? 'Открываю…'
-                      : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${selected.stars}⭐ · Telegram Stars`}
-                  </button>
-                )}
-              </div>
-            )}
+
+                  <AnimatePresence initial={false}>
+                    {payOpen && !paying && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.18 }} className="overflow-hidden">
+                        <div className="flex flex-col gap-1.5 mt-2">
+                          <div className="text-[10px] font-bold uppercase tracking-[1.5px] px-1" style={{ color: '#6a6a75' }}>
+                            Способ оплаты
+                          </div>
+                          {methods.map(m => (
+                            <button
+                              key={m.key}
+                              onClick={() => { setPayOpen(false); m.onClick() }}
+                              className="w-full flex items-center gap-3 rounded-xl text-left active:-translate-y-0.5 transition-transform duration-150"
+                              style={{ padding: '12px 14px', border: '1px solid rgba(255,255,255,.1)', background: '#101014' }}
+                            >
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
+                              <span className="flex-1 text-[13.5px] font-semibold text-white">{m.label}</span>
+                              <span className="text-[13.5px] font-bold" style={{ color: m.color === '#ffffff' ? '#e4e4e8' : m.color }}>{m.amount}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            })()}
 
             {/* Проверка оплаты — появляется после создания счёта */}
             {invoiceId && (
