@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { Profile, Config, Plan, Contributor } from '../api/client'
+import { useRubPayment, fmtRub } from '../hooks/useRubPayment'
 
 const tg = (window as any).Telegram?.WebApp
 
@@ -14,7 +15,8 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Plan | null>(null)
-  const [paying, setPaying] = useState<'crypto' | 'stars' | null>(null)
+  const [paying, setPaying] = useState<'crypto' | 'stars' | 'rub' | null>(null)
+  const [rubTx, setRubTx] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
@@ -64,6 +66,33 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
       setPaying(null)
     }
   }
+
+  const buyWithRub = async () => {
+    if (!selected || paying) return
+    setPaying('rub')
+    setMsg(null)
+    try {
+      const r = await api.rubInvoice(selected.days)
+      if (!r.payment_url || !r.transaction_id) { setMsg('Не удалось создать платёж. Попробуйте позже.'); return }
+      setRubTx(r.transaction_id)
+      tg?.openLink ? tg.openLink(r.payment_url) : window.open(r.payment_url, '_blank')
+      setMsg('Оплатите через приложение банка (СБП) — Premium включится сам, обычно за минуту.')
+    } catch {
+      setMsg('Ошибка создания платежа. Попробуйте позже.')
+    } finally {
+      setPaying(null)
+    }
+  }
+
+  useRubPayment(rubTx, status => {
+    setRubTx(null)
+    if (status === 'paid') {
+      setMsg('✅ Оплата получена, Premium активирован!')
+      api.profile().catch(() => null).then(p => { if (p) setProf(p) })
+    } else {
+      setMsg('Оплата не прошла или отменена. Можно попробовать ещё раз.')
+    }
+  })
 
   const buyWithStars = async () => {
     if (!selected || paying) return
@@ -246,7 +275,8 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
                     }}
                   >
                     <div className="text-[13px] font-extrabold text-white">{p.label}</div>
-                    <div className="text-[11px] mt-[3px]" style={{ color: '#8a8a93' }}>${p.price}</div>
+                    {p.rub ? <div className="text-[12.5px] font-bold mt-[3px] text-green">{fmtRub(p.rub)}</div> : null}
+                    <div className="text-[11px] mt-[2px]" style={{ color: '#8a8a93' }}>${p.price}</div>
                     {p.stars ? <div className="text-[11px] mt-[1px]" style={{ color: '#E8B84A' }}>{p.stars}⭐</div> : null}
                   </button>
                 )
@@ -256,10 +286,22 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
             {/* Pay */}
             {selected && (
               <div className="flex flex-col gap-2">
+                {!!selected.rub && (
+                  <button
+                    disabled={!!paying}
+                    onClick={buyWithRub}
+                    className="w-full rounded-xl text-[14px] font-extrabold text-black disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
+                    style={{ padding: 14, background: 'linear-gradient(180deg,#4AE885,#22C55E)', boxShadow: '0 6px 20px rgba(34,197,94,.3)' }}
+                  >
+                    {paying === 'rub'
+                      ? 'Открываю…'
+                      : `${prof?.is_premium ? 'Продлить' : 'Оплатить'} ${fmtRub(selected.rub)} · СБП`}
+                  </button>
+                )}
                 <button
                   disabled={!!paying}
                   onClick={buyWithCrypto}
-                  className="w-full rounded-xl bg-white text-bg text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5"
+                  className={`w-full rounded-xl text-[14px] font-bold disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5 ${selected.rub ? 'border border-white/20 text-white' : 'bg-white text-bg'}`}
                   style={{ padding: 14 }}
                 >
                   {paying === 'crypto'

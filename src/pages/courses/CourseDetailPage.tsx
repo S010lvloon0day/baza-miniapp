@@ -5,6 +5,7 @@ import { CenterLoader, CourseButton, ErrorNote, MonoLabel, ProgressBar, StarRow 
 import { useIsWide } from '../../hooks/useMediaQuery'
 import { coursesApi } from '../../api/courses'
 import type { CourseDetail, CourseReview } from '../../api/courses'
+import { useRubPayment, fmtRub } from '../../hooks/useRubPayment'
 
 const tg = (window as any).Telegram?.WebApp
 const openPay = (url: string) => {
@@ -22,6 +23,26 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
   const [invoice, setInvoice] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [rubTx, setRubTx] = useState<string | null>(null)
+
+  const buyRub = async () => {
+    setBusy(true); setMsg(null)
+    try {
+      const r = await coursesApi.rubInvoice(course.id)
+      setRubTx(r.transaction_id)
+      openPay(r.payment_url)
+      setMsg('Оплатите через приложение банка (СБП) — курс откроется сам.')
+    } catch (e: any) {
+      if (e?.code === 'already_owned') { onPurchased(); return }
+      setMsg('Не удалось создать платёж. Попробуй позже.')
+    } finally { setBusy(false) }
+  }
+
+  useRubPayment(rubTx, status => {
+    setRubTx(null)
+    if (status === 'paid') { setMsg('✅ Оплата получена, открываю курс…'); setTimeout(onPurchased, 1200) }
+    else setMsg('Оплата не прошла или отменена. Можно попробовать ещё раз.')
+  })
 
   const buy = async () => {
     setBusy(true); setMsg(null)
@@ -107,7 +128,12 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
       <div className="w-full" style={{ maxWidth: 520 }}>
         {!invoice ? (
           <div className="flex flex-col" style={{ gap: 9 }}>
-            <CourseButton onClick={buy} disabled={busy}>
+            {!!course.rub && (
+              <CourseButton onClick={buyRub} disabled={busy}>
+                {rubTx ? 'Ждём оплату…' : `Купить за ${fmtRub(course.rub)} · СБП`}
+              </CourseButton>
+            )}
+            <CourseButton onClick={buy} disabled={busy} variant={course.rub ? 'ghost' : undefined}>
               Купить за {course.price} USDT
             </CourseButton>
             {!!course.stars && (

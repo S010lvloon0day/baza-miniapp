@@ -112,6 +112,8 @@ export interface Plan {
   label: string
   price: number
   stars?: number
+  /** Цена в рублях (СБП через SecretPay); нет — рублёвая оплата выключена. */
+  rub?: number
 }
 
 export interface Config {
@@ -154,6 +156,10 @@ export const api = {
     post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}/${attachmentId}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),
   starsInvoice:   (days: number) => post<{ link: string; stars: number; days: number; error?: string }>(`/api/stars_invoice/${days}`),
+  /** Рублёвый счёт SecretPay (СБП) на Premium. */
+  rubInvoice:     (days: number) => post<{ payment_url: string; transaction_id: string; amount: number }>(`/api/rub_invoice/${days}`),
+  /** Статус рублёвого платежа: pending | paid | failed | cancelled. */
+  rubStatus:      (txId: string) => get<{ status: string; kind?: string; premium_until?: string | null; course_id?: number }>(`/api/rub_invoice/${encodeURIComponent(txId)}`),
   cryptoInvoiceConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; premium_until?: string; error?: string }>('/api/crypto_invoice/confirm', { invoice_id: invoiceId }),
   recent:         ()             => get<{ materials: Material[]; today_count: number; today_sections: TodaySection[]; total_count: number }>('/api/recent'),

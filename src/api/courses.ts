@@ -130,6 +130,8 @@ export interface CourseDetail {
   icon: CourseIconKey
   price: number
   stars?: number
+  /** Цена в рублях (СБП через SecretPay); нет — рублёвая оплата курса выключена. */
+  rub?: number
   owned: boolean
   locked: boolean
   percent: number
@@ -259,6 +261,12 @@ export const coursesApi = {
     request<{ pay_url: string; invoice_id: string; course_id: number; price: number }>(
       'POST',
       `/api/courses/${courseId}/invoice`,
+    ),
+
+  rubInvoice: (courseId: number) =>
+    request<{ payment_url: string; transaction_id: string; amount: number }>(
+      'POST',
+      `/api/courses/${courseId}/rub_invoice`,
     ),
 
   starsInvoice: (courseId: number) =>
