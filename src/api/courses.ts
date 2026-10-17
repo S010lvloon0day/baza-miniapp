@@ -241,6 +241,14 @@ export const coursesApi = {
 
   detail: (courseId: number) => request<CourseDetail>('GET', `/api/courses/${courseId}`),
 
+  // Избранное для курса
+  favorite: (courseId: number) =>
+    request<{ favorite: boolean }>('GET', `/api/courses/${courseId}/favorite`),
+  addFavorite: (courseId: number) =>
+    request<{ ok: boolean; favorite: boolean }>('POST', `/api/courses/${courseId}/favorite`),
+  removeFavorite: (courseId: number) =>
+    request<{ ok: boolean; favorite: boolean }>('DELETE', `/api/courses/${courseId}/favorite`),
+
   submitStep: (courseId: number, questionId: number, optionIds: number[]) =>
     request<{ correct: boolean; correct_option_ids: number[]; percent: number; completed: boolean }>(
       'POST',

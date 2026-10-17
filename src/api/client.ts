@@ -1,3 +1,5 @@
+import type { CourseSummary } from './courses'
+
 const tg = (window as any).Telegram?.WebApp
 
 export const API_BASE =
@@ -44,6 +46,16 @@ export interface Section {
   locked?: boolean
   /** 'courses' — раздел показывает курсы конструктора вместо списка материалов */
   section_type?: 'materials' | 'courses'
+}
+
+/** Ответ /api/favorites: материалы + целые разделы и курсы в избранном. */
+export interface FavoritesResponse {
+  ids: number[]
+  materials: Material[]
+  section_ids?: number[]
+  sections?: Section[]
+  course_ids?: number[]
+  courses?: CourseSummary[]
 }
 
 /** Вложение материала: файл либо текстовый блок. Материал может содержать
@@ -146,10 +158,16 @@ export const api = {
   /** Текст конкретного вложения-документа. */
   attachmentText: (id: number, attachmentId: number) =>
     get<{ title: string; text: string; extension: string; truncated?: boolean }>(`/api/document_text/${id}/${attachmentId}`),
-  favorites:      ()             => get<{ ids: number[]; materials: Material[] }>('/api/favorites'),
+  /** Избранное пользователя: материалы, а также целые разделы и курсы.
+   *  section_ids/course_ids — id для локального кэша закладок; sections/courses — для показа на вкладке. */
+  favorites:      ()             => get<FavoritesResponse>('/api/favorites'),
   favorite:       (id: number)   => get<{ favorite: boolean }>(`/api/favorites/${id}`),
   addFavorite:    (id: number)   => post<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
   removeFavorite: (id: number)   => del<{ ok: boolean; favorite: boolean }>(`/api/favorites/${id}`),
+  // Избранное для целого раздела
+  sectionFavorite:       (id: number) => get<{ favorite: boolean }>(`/api/sections/${id}/favorite`),
+  addSectionFavorite:    (id: number) => post<{ ok: boolean; favorite: boolean }>(`/api/sections/${id}/favorite`),
+  removeSectionFavorite: (id: number) => del<{ ok: boolean; favorite: boolean }>(`/api/sections/${id}/favorite`),
   /** Без attachmentId шлёт материал целиком — все вложения по порядку. */
   sendFile:       (id: number)   => post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}`),
   sendAttachment: (id: number, attachmentId: number) =>

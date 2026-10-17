@@ -1,4 +1,5 @@
 import { api } from '../api/client'
+import { cacheFavIds } from './favsExtra'
 
 const KEY = 'bm'
 
@@ -24,6 +25,8 @@ export async function syncBookmarks(): Promise<number[]> {
   try {
     const data = await api.favorites()
     localStorage.setItem(KEY, JSON.stringify(data.ids))
+    // Тем же запросом обновляем кэш избранных разделов и курсов
+    cacheFavIds(data.section_ids ?? [], data.course_ids ?? [])
     return data.ids
   } catch {
     return getBookmarks()

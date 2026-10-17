@@ -24,8 +24,22 @@ import NotifySheet from './components/NotifySheet'
 import { api } from './api/client'
 import type { Section } from './api/client'
 import { isBookmarked, removeBookmarkRemote, saveBookmarkRemote, syncBookmarks } from './store/bookmarks'
+import { isCourseFav, isSectionFav, toggleCourseFav, toggleSectionFav } from './store/favsExtra'
 
 const tg = (window as any).Telegram?.WebApp
+
+/** На десктопных клиентах Telegram открываем мини-апп во весь экран сразу.
+ *  requestFullscreen — Bot API 8.0+; на старых/неподдерживающих клиентах просто
+ *  приходит событие fullscreenFailed, ничего не ломается. На телефоне не трогаем
+ *  (там работает обычный expand), на вебе нативного фуллскрина нет. */
+function enterFullscreenOnDesktop() {
+  try {
+    const desktop = tg?.platform === 'tdesktop' || tg?.platform === 'macos'
+    if (desktop && tg?.isVersionAtLeast?.('8.0') && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+      tg.requestFullscreen()
+    }
+  } catch { /* не критично */ }
+}
 
 type View =
   | { type: 'tab'; tab: Tab }
@@ -66,6 +80,8 @@ export default function App() {
   // Новые комментарии и оценки с прошлого просмотра ленты (только у админа)
   const [fbUnread, setFbUnread] = useState(0)
   const [fbUnanswered, setFbUnanswered] = useState(0)
+  // Отступы под оверлей Telegram в полноэкранном режиме (на ПК), чтобы шапку не перекрывало.
+  const [safeInset, setSafeInset] = useState({ top: 0, right: 0, left: 0 })
 
   /** Открыть материал, зная только id (из ссылки бота или ленты обсуждений). */
   const openMaterialById = (id: number, replace = false) => {
@@ -79,6 +95,7 @@ export default function App() {
   useEffect(() => {
     tg?.expand?.()
     tg?.ready?.()
+    enterFullscreenOnDesktop()
     api.config().then(c => {
       if (c.bot_username) setBotUsername(c.bot_username)
       setGiveawayVisible(!!c.giveaway_visible)
@@ -106,6 +123,24 @@ export default function App() {
     if (!started) return
     syncBookmarks().finally(() => setBmTick(t => t + 1))
   }, [started])
+
+  // Следим за безопасной зоной контента — в фуллскрине на ПК Telegram рисует свои
+  // кнопки поверх, и шапку надо сдвинуть. Вне фуллскрина инсеты нулевые (без изменений).
+  useEffect(() => {
+    const apply = () => {
+      const i = tg?.contentSafeAreaInset
+      if (i) setSafeInset({ top: i.top || 0, right: i.right || 0, left: i.left || 0 })
+    }
+    apply()
+    tg?.onEvent?.('contentSafeAreaChanged', apply)
+    tg?.onEvent?.('safeAreaChanged', apply)
+    tg?.onEvent?.('fullscreenChanged', apply)
+    return () => {
+      tg?.offEvent?.('contentSafeAreaChanged', apply)
+      tg?.offEvent?.('safeAreaChanged', apply)
+      tg?.offEvent?.('fullscreenChanged', apply)
+    }
+  }, [])
 
   // Show/hide Telegram back button
   useEffect(() => {
@@ -176,7 +211,7 @@ export default function App() {
       if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
-      if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} />
+      if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
       if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
       if (tab === 'ctor') {
@@ -260,10 +295,24 @@ export default function App() {
       return <Header showBack onBack={goBack} title="Обсуждения" />
     }
     if (top.type === 'courses') {
-      return <Header showBack onBack={goBack} title={top.section.title} />
+      const sid = top.section.id
+      return (
+        <Header
+          showBack onBack={goBack} title={top.section.title}
+          bookmarked={isSectionFav(sid)}
+          onBookmark={() => { toggleSectionFav(sid); setBmTick(t => t + 1) }}
+        />
+      )
     }
     if (top.type === 'course') {
-      return <Header showBack onBack={goBack} title="Курс" />
+      const courseId = top.courseId
+      return (
+        <Header
+          showBack onBack={goBack} title="Курс"
+          bookmarked={isCourseFav(courseId)}
+          onBookmark={() => { toggleCourseFav(courseId); setBmTick(t => t + 1) }}
+        />
+      )
     }
     if (top.type === 'player') {
       return <Header showBack onBack={backToCourse} title="Обучение" />
@@ -272,7 +321,14 @@ export default function App() {
       return <Header showBack onBack={goBack} title="Секретный розыгрыш" />
     }
     if (top.type === 'section') {
-      return <Header showBack onBack={goBack} title={top.section.title} />
+      const sid = top.section.id
+      return (
+        <Header
+          showBack onBack={goBack} title={top.section.title}
+          bookmarked={isSectionFav(sid)}
+          onBookmark={() => { toggleSectionFav(sid); setBmTick(t => t + 1) }}
+        />
+      )
     }
     if (top.type === 'material') {
       const bm = isBookmarked(top.id)
@@ -291,7 +347,8 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg">
+    <div className="flex flex-col h-full bg-bg"
+      style={{ paddingTop: safeInset.top, paddingRight: safeInset.right, paddingLeft: safeInset.left }}>
       {renderHeader()}
 
       <AnimatePresence mode="wait">
