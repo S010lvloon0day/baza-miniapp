@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { API_BASE } from '../api/client'
 
 /**
  * Интерактивная задача для ЛЮБОГО языка: редактор + запуск через Wandbox (wandbox.org).
@@ -8,7 +9,6 @@ import { useMemo, useRef, useState } from 'react'
  * Wandbox CORS: Access-Control-Allow-Origin: * — работает прямо из браузера.
  */
 
-const WANDBOX = 'https://wandbox.org/api/compile.json'
 
 // язык курса -> компилятор Wandbox (+ человекочитаемая метка)
 const COMPILER: Record<string, string> = {
@@ -42,9 +42,9 @@ export default function RunTask({ content }: { content: string }) {
   const exec = async (check: boolean) => {
     setStatus('running'); setOut('')
     try {
-      const r = await fetch(WANDBOX, {
+      const r = await fetch(API_BASE + '/api/run', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, compiler, stdin: task.stdin || '', options: '' }),
+        body: JSON.stringify({ code, compiler, stdin: task.stdin || '' }),
       })
       if (!r.ok) throw new Error('сервер запуска недоступен (' + r.status + ')')
       const j = await r.json()
