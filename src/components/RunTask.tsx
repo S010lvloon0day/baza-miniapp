@@ -1,34 +1,37 @@
 import { useMemo, useRef, useState } from 'react'
 
 /**
- * Интерактивная задача для ЛЮБОГО языка: редактор + запуск через Piston (emkc.org).
+ * Интерактивная задача для ЛЮБОГО языка: редактор + запуск через Wandbox (wandbox.org).
  * Формат JSON внутри ```runtask:
- *   { "lang":"javascript", "ver":"18.15.0", "starter":"...", "hint":"...",
- *     "stdin":"", "expected":"42", "fname":"main.js" }
+ *   { "lang":"cpp", "starter":"...", "hint":"...", "stdin":"", "expected":"42" }
  * Проверка — сравнение вывода программы с expected (без хвостовых пробелов/строк).
+ * Wandbox CORS: Access-Control-Allow-Origin: * — работает прямо из браузера.
  */
 
-const PISTON = 'https://emkc.org/api/v2/piston/execute'
+const WANDBOX = 'https://wandbox.org/api/compile.json'
 
-const DEFAULT_FNAME: Record<string, string> = {
-  javascript: 'main.js', typescript: 'main.ts', python: 'main.py', java: 'Main.java',
-  c: 'main.c', 'c++': 'main.cpp', cpp: 'main.cpp', csharp: 'main.cs', 'c#': 'main.cs',
-  go: 'main.go', rust: 'main.rs', php: 'main.php', ruby: 'main.rb',
-  kotlin: 'Main.kt', swift: 'main.swift', sqlite3: 'main.sql', bash: 'main.sh',
+// язык курса -> компилятор Wandbox (+ человекочитаемая метка)
+const COMPILER: Record<string, string> = {
+  javascript: 'nodejs-20.17.0', typescript: 'typescript-5.6.2', python: 'cpython-head',
+  java: 'openjdk-jdk-22+36', c: 'gcc-head-c', cpp: 'gcc-head', 'c++': 'gcc-head',
+  csharp: 'mono-6.12.0.199', 'c#': 'mono-6.12.0.199', go: 'go-1.23.2', rust: 'rust-1.82.0',
+  php: 'php-8.3.12', ruby: 'ruby-4.0.2', swift: 'swift-6.0.1', sql: 'sqlite-3.46.1',
+  sqlite3: 'sqlite-3.46.1', bash: 'bash',
 }
 const LABEL: Record<string, string> = {
   javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', java: 'Java',
-  c: 'C', 'c++': 'C++', cpp: 'C++', csharp: 'C#', 'c#': 'C#', go: 'Go', rust: 'Rust',
-  php: 'PHP', ruby: 'Ruby', kotlin: 'Kotlin', swift: 'Swift', sqlite3: 'SQL', bash: 'Bash',
+  c: 'C', cpp: 'C++', 'c++': 'C++', csharp: 'C#', 'c#': 'C#', go: 'Go', rust: 'Rust',
+  php: 'PHP', ruby: 'Ruby', swift: 'Swift', sql: 'SQL', sqlite3: 'SQL', bash: 'Bash',
 }
 
-type Task = { lang?: string; ver?: string; starter?: string; hint?: string; stdin?: string; expected?: string; fname?: string }
+type Task = { lang?: string; compiler?: string; starter?: string; hint?: string; stdin?: string; expected?: string }
 
-const norm = (s: string) => (s || '').replace(/\r/g, '').replace(/[ \t]+$/gm, '').replace(/\n+$/,'').trim()
+const norm = (s: string) => (s || '').replace(/\r/g, '').split('\n').map(l => l.replace(/[ \t]+$/,'')).join('\n').replace(/\n+$/,'').trim()
 
 export default function RunTask({ content }: { content: string }) {
   const task = useMemo<Task>(() => { try { return JSON.parse(content) } catch { return {} } }, [content])
   const lang = (task.lang || 'python').toLowerCase()
+  const compiler = task.compiler || COMPILER[lang] || 'cpython-head'
   const [code, setCode] = useState(task.starter ?? '')
   const [out, setOut] = useState('')
   const [status, setStatus] = useState<'idle' | 'running' | 'ok' | 'fail'>('idle')
@@ -38,33 +41,24 @@ export default function RunTask({ content }: { content: string }) {
 
   const exec = async (check: boolean) => {
     setStatus('running'); setOut('')
-    const fname = task.fname || DEFAULT_FNAME[lang] || 'main.txt'
     try {
-      const r = await fetch(PISTON, {
+      const r = await fetch(WANDBOX, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: lang, version: task.ver || '*', files: [{ name: fname, content: code }], stdin: task.stdin || '' }),
+        body: JSON.stringify({ code, compiler, stdin: task.stdin || '', options: '' }),
       })
       if (!r.ok) throw new Error('сервер запуска недоступен (' + r.status + ')')
       const j = await r.json()
-      const comp = j.compile && (j.compile.code !== 0) ? j.compile : null
-      const run = j.run || {}
-      if (comp) {
-        setOut('Ошибка компиляции:\n' + norm(comp.stderr || comp.output || ''))
+      const prog = norm(j.program_output || '')
+      const cerr = norm(j.compiler_error || '')
+      const perr = norm(j.program_error || '')
+      const okRun = String(j.status) === '0'
+      if (!okRun && !prog) {
+        setOut((cerr ? 'Ошибка компиляции:\n' + cerr : '') + (perr ? (cerr ? '\n\n' : '') + perr : '') || 'Ошибка выполнения')
         setStatus(check ? 'fail' : 'idle'); return
       }
-      const stdout = norm(run.stdout || '')
-      const stderr = norm(run.stderr || '')
-      if (stderr && (run.code !== 0 || !stdout)) {
-        setOut((stdout ? stdout + '\n\n' : '') + stderr)
-        setStatus(check ? 'fail' : 'idle'); return
-      }
-      setOut(stdout || (check ? '' : '(нет вывода)'))
-      if (check) {
-        const want = norm(task.expected ?? '')
-        setStatus(stdout === want ? 'ok' : 'fail')
-      } else {
-        setStatus('idle')
-      }
+      setOut(prog || (check ? '' : '(нет вывода)'))
+      if (check) setStatus(prog === norm(task.expected ?? '') ? 'ok' : 'fail')
+      else setStatus('idle')
     } catch (e: any) {
       setOut('⚠ ' + (e?.message || e))
       setStatus(check ? 'fail' : 'idle')
