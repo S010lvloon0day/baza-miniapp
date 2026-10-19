@@ -181,7 +181,6 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [subs, setSubs] = useState<Section[]>([])
   const [mats, setMats] = useState<Material[]>([])
   const [total, setTotal] = useState(0)
-  const [totalWithPremium, setTotalWithPremium] = useState(0)
   const [page, setPage] = useState(initialPage)
   const [loading, setLoading] = useState(true)
   const [owned, setOwned] = useState(!!section.owned)
@@ -216,7 +215,10 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
 
   // Все хуки — до любого conditional return
   useEffect(() => {
-    if ((section.locked && !owned) || courseLocked) { setLoading(false); return }
+    // Платный курс (price>0) открываем только покупкой — там свой экран.
+    // Premium-раздел (подписка) грузим всегда: показываем каталог как превью,
+    // материалы будут locked — чтобы было видно, за что платят.
+    if (courseLocked) { setLoading(false); return }
     setPage(initialPage); setLoading(true)
     Promise.all([
       api.subsections(section.id).catch(() => ({ sections: [] as Section[] })),
@@ -225,7 +227,6 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
       setSubs(sd.sections)
       setMats(md.materials)
       setTotal(md.total)
-      setTotalWithPremium((md as MaterialsResponse).total_with_premium ?? md.total)
       setViewedCount((md as MaterialsResponse).viewed_count ?? 0)
     }).finally(() => setLoading(false))
   }, [section.id, owned])
@@ -252,8 +253,11 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   // Платный курс — экран покупки (подписка его не открывает)
   if (courseLocked) return <CoursePaywall section={section} onPurchased={() => setOwned(true)} />
 
-  // Показываем upsell если раздел locked ИЛИ все материалы premium (пусто для не-премиум)
-  const showUpsell = (section.locked && !owned) || (!loading && total === 0 && totalWithPremium > 0 && subs.length === 0)
+  // Полный экран-пейвол показываем только когда превьюить нечего: premium-раздел
+  // без материалов и без подразделов. Если есть что показать — рендерим каталог
+  // (материалы будут locked) + компактный баннер подписки.
+  const lockedPreview = section.locked && !owned
+  const showUpsell = lockedPreview && !loading && total === 0 && subs.length === 0
   if (showUpsell) return <PremiumUpsell section={section} onUpgrade={onUpgrade} />
 
   return (
@@ -291,6 +295,26 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         </button>
       </div>
       {subMsg && <div className="mx-4 -mt-3 mb-4 text-[12px] text-green">{subMsg}</div>}
+
+      {/* Premium-баннер: раздел виден как превью, материалы откроются по подписке */}
+      {lockedPreview && (
+        <div className="mx-4 -mt-2 mb-5 flex items-center gap-3 rounded-2xl p-3.5"
+          style={{ border: '1px solid rgba(199,166,255,.3)', background: 'radial-gradient(120% 120% at 0% 0%, rgba(157,92,255,.14), transparent 60%), #0F0D16' }}>
+          <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(157,92,255,.18)', border: '1px solid rgba(199,166,255,.35)', color: '#C7A6FF' }}>
+            <Lock size={16} weight="fill" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[13px] font-bold text-white">Premium-раздел</div>
+            <div className="text-[11px] leading-snug" style={{ color: '#9a93ad' }}>Смотри, что внутри. Материалы откроются по подписке.</div>
+          </div>
+          <button onClick={onUpgrade}
+            className="shrink-0 rounded-xl text-[12px] font-extrabold text-white px-3.5 py-2 active:-translate-y-0.5 transition-transform"
+            style={{ background: 'linear-gradient(180deg,#B98CFF,#9D5CFF)', boxShadow: '0 4px 14px rgba(157,92,255,.35)' }}>
+            Открыть
+          </button>
+        </div>
+      )}
 
       {/* Subsections */}
       {subs.length > 0 && (
