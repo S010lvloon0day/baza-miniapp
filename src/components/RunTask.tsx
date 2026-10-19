@@ -15,13 +15,13 @@ const COMPILER: Record<string, string> = {
   javascript: 'nodejs-20.17.0', typescript: 'typescript-5.6.2', python: 'cpython-head',
   java: 'openjdk-jdk-22+36', c: 'gcc-head-c', cpp: 'gcc-head', 'c++': 'gcc-head',
   csharp: 'mono-6.12.0.199', 'c#': 'mono-6.12.0.199', go: 'go-1.23.2', rust: 'rust-1.82.0',
-  php: 'php-8.3.12', ruby: 'ruby-4.0.2', swift: 'swift-6.0.1', sql: 'sqlite-3.46.1',
+  php: 'php-8.3.12', ruby: 'ruby-4.0.2', swift: 'swift', kotlin: 'kotlin', sql: 'sqlite-3.46.1',
   sqlite3: 'sqlite-3.46.1', bash: 'bash',
 }
 const LABEL: Record<string, string> = {
   javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', java: 'Java',
   c: 'C', cpp: 'C++', 'c++': 'C++', csharp: 'C#', 'c#': 'C#', go: 'Go', rust: 'Rust',
-  php: 'PHP', ruby: 'Ruby', swift: 'Swift', sql: 'SQL', sqlite3: 'SQL', bash: 'Bash',
+  php: 'PHP', ruby: 'Ruby', swift: 'Swift', kotlin: 'Kotlin', sql: 'SQL', sqlite3: 'SQL', bash: 'Bash',
 }
 
 type Task = { lang?: string; compiler?: string; starter?: string; hint?: string; stdin?: string; expected?: string }
