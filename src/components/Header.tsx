@@ -1,4 +1,4 @@
-import { ArrowLeft, BookmarkSimple, MagnifyingGlass, Bell } from '@phosphor-icons/react'
+import { ArrowLeft, BookmarkSimple, MagnifyingGlass, Bell, CornersOut, CornersIn } from '@phosphor-icons/react'
 import BazaMark from './BazaMark'
 
 interface Props {
@@ -9,9 +9,11 @@ interface Props {
   onBell?: () => void
   bookmarked?: boolean
   onBookmark?: () => void
+  fullscreen?: boolean
+  onToggleFullscreen?: () => void
 }
 
-export default function Header({ title, showBack, onBack, onSearch, onBell, bookmarked, onBookmark }: Props) {
+export default function Header({ title, showBack, onBack, onSearch, onBell, bookmarked, onBookmark, fullscreen, onToggleFullscreen }: Props) {
   if (showBack) {
     return (
       <header className="sticky top-0 z-40 bg-bg/96 backdrop-blur-md border-b border-bd/60 px-4 flex items-center gap-3 h-[56px] shrink-0 relative">
@@ -42,6 +44,16 @@ export default function Header({ title, showBack, onBack, onSearch, onBell, book
         <BazaMark size={16} />
       </div>
       <span className="flex-1 text-[15px] font-extrabold tracking-wide truncate">BAZA<span className="text-green">.</span>{title}</span>
+      {onToggleFullscreen && (
+        <button
+          className="w-8 h-8 rounded-full bg-white/[.06] flex items-center justify-center active:bg-white/[.14] transition-colors shrink-0"
+          onClick={onToggleFullscreen}
+          aria-label={fullscreen ? 'Оконный режим' : 'Полный экран'}
+          title={fullscreen ? 'Оконный режим' : 'Полный экран'}
+        >
+          {fullscreen ? <CornersIn size={16} weight="bold" /> : <CornersOut size={16} weight="bold" />}
+        </button>
+      )}
       {onSearch && (
         <button
           className="w-8 h-8 rounded-full bg-white/[.06] flex items-center justify-center active:bg-white/[.14] transition-colors shrink-0"

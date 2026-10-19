@@ -32,10 +32,16 @@ const tg = (window as any).Telegram?.WebApp
  *  requestFullscreen — Bot API 8.0+; на старых/неподдерживающих клиентах просто
  *  приходит событие fullscreenFailed, ничего не ломается. На телефоне не трогаем
  *  (там работает обычный expand), на вебе нативного фуллскрина нет. */
+function fullscreenSupported() {
+  return (tg?.platform === 'tdesktop' || tg?.platform === 'macos')
+    && tg?.isVersionAtLeast?.('8.0') === true && typeof tg?.requestFullscreen === 'function'
+}
+
 function enterFullscreenOnDesktop() {
   try {
-    const desktop = tg?.platform === 'tdesktop' || tg?.platform === 'macos'
-    if (desktop && tg?.isVersionAtLeast?.('8.0') && typeof tg.requestFullscreen === 'function' && !tg.isFullscreen) {
+    // Уважаем выбор пользователя: если он выбрал оконный режим — не разворачиваем.
+    const pref = localStorage.getItem('fsPref')
+    if (fullscreenSupported() && pref !== 'off' && !tg.isFullscreen) {
       tg.requestFullscreen()
     }
   } catch { /* не критично */ }
@@ -82,6 +88,9 @@ export default function App() {
   const [fbUnanswered, setFbUnanswered] = useState(0)
   // Отступы под оверлей Telegram в полноэкранном режиме (на ПК), чтобы шапку не перекрывало.
   const [safeInset, setSafeInset] = useState({ top: 0, right: 0, left: 0 })
+  // Полноэкранный/оконный режим на ПК: текущее состояние и признак поддержки.
+  const [fs, setFs] = useState<boolean>(() => !!tg?.isFullscreen)
+  const [fsSupported] = useState<boolean>(() => fullscreenSupported())
 
   /** Открыть материал, зная только id (из ссылки бота или ленты обсуждений). */
   const openMaterialById = (id: number, replace = false) => {
@@ -130,6 +139,7 @@ export default function App() {
     const apply = () => {
       const i = tg?.contentSafeAreaInset
       if (i) setSafeInset({ top: i.top || 0, right: i.right || 0, left: i.left || 0 })
+      setFs(!!tg?.isFullscreen)
     }
     apply()
     tg?.onEvent?.('contentSafeAreaChanged', apply)
@@ -160,6 +170,14 @@ export default function App() {
   }
 
   const goBack = useCallback(() => setStack(s => s.slice(0, -1)), [])
+
+  // Переключение полноэкранного/оконного режима на ПК; выбор запоминаем в localStorage.
+  const toggleFullscreen = useCallback(() => {
+    try {
+      if (tg?.isFullscreen) { tg.exitFullscreen?.(); localStorage.setItem('fsPref', 'off') }
+      else { tg?.requestFullscreen?.(); localStorage.setItem('fsPref', 'on') }
+    } catch { /* не критично */ }
+  }, [])
 
   const openGiveaway = () => setStack(s => [...s, { type: 'giveaway' }])
   const openSubmit = () => setStack(s => [...s, { type: 'submit' }])
@@ -289,7 +307,7 @@ export default function App() {
         return <Header showBack onBack={() => setCtorEditing(false)} title="Конструктор" />
       }
       const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль', ctor: 'Конструктор' }
-      return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} />
+      return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
     }
     if (top.type === 'feedback') {
       return <Header showBack onBack={goBack} title="Обсуждения" />
