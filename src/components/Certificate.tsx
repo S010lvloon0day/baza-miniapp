@@ -163,7 +163,15 @@ function drawCertificate(canvas: HTMLCanvasElement, info: CertInfo) {
   ctx.fillStyle = 'rgba(180,180,190,0.6)'
   ctx.font = '400 16px "Courier New", monospace'
   ctx.fillText('ID: ' + info.cert_id, W - 130, 876)
+  if (info.code) {
+    ctx.fillStyle = 'rgba(212,175,55,0.7)'
+    ctx.fillText('Код: ' + info.code, W - 130, 902)
+  }
+  // Центральная подпись о проверке подлинности
   ctx.textAlign = 'center'
+  ctx.fillStyle = 'rgba(160,160,170,0.55)'
+  ctx.font = '400 15px Arial, sans-serif'
+  ctx.fillText('Подлинность проверяется в боте «База знаний» по ID и коду', cx, 940)
 }
 
 interface Props { parentId: number; language: string }
@@ -174,6 +182,8 @@ export default function Certificate({ parentId, language }: Props) {
   const [open, setOpen] = useState(false)
   const [sending, setSending] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
+  const [vr, setVr] = useState<import('../api/client').CertVerify | null>(null)
+  const [vLoading, setVLoading] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
 
   useEffect(() => {
@@ -249,6 +259,16 @@ export default function Certificate({ parentId, language }: Props) {
     } finally { setSending(false) }
   }
 
+  const verifySelf = async () => {
+    setVLoading(true); setVr(null)
+    try {
+      const r = await api.certificateVerify(info.cert_id)
+      setVr(r)
+    } catch {
+      setVr({ valid: false, reason: 'error' })
+    } finally { setVLoading(false) }
+  }
+
   // Сдан — диплом доступен
   return (
     <div className="mx-4 mb-5 rounded-2xl p-4"
@@ -288,7 +308,25 @@ export default function Certificate({ parentId, language }: Props) {
             </button>
           </div>
           {msg && <div className="text-[12px] leading-snug" style={{ color: '#d4af37' }}>{msg}</div>}
-          <div className="text-[10px] text-center" style={{ color: '#6a6250' }}>ID: {info.cert_id}</div>
+          <button onClick={verifySelf} disabled={vLoading}
+            className="w-full py-2.5 rounded-xl font-bold text-[13px] text-white active:-translate-y-0.5 transition-transform disabled:opacity-50"
+            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(212,175,55,.3)' }}>
+            {vLoading ? 'Проверяю…' : '🔎 Проверить подлинность'}
+          </button>
+          {vr && (
+            vr.valid ? (
+              <div className="rounded-xl p-3 text-[12px]" style={{ background: 'rgba(40,200,64,.08)', border: '1px solid rgba(40,200,64,.4)', color: '#4AE885' }}>
+                ✅ Сертификат подлинный. Владелец: <b>{vr.username}</b> · {vr.language} · {vr.date}. Код: {vr.code}.
+              </div>
+            ) : (
+              <div className="rounded-xl p-3 text-[12px]" style={{ background: 'rgba(255,80,80,.08)', border: '1px solid rgba(255,80,80,.4)', color: '#ff8a8a' }}>
+                ⚠️ Не подтверждён ({vr.reason === 'not_found' ? 'нет в реестре — возможно, подделка' : vr.revoked ? 'отозван' : 'ошибка проверки'}).
+              </div>
+            )
+          )}
+          <div className="text-[10px] text-center leading-relaxed" style={{ color: '#6a6250' }}>
+            ID: {info.cert_id}{info.code ? ' · код: ' + info.code : ''}
+          </div>
         </div>
       )}
     </div>

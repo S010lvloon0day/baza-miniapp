@@ -34,7 +34,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
   const [mat, setMat] = useState<Material | null>(null)
   const [docText, setDocText] = useState<string | null>(null)
   const [docTruncated, setDocTruncated] = useState(false)
-  const [docPreview, setDocPreview] = useState<'loading' | 'text' | 'pdf' | 'error'>('loading')
+  const [docPreview, setDocPreview] = useState<'loading' | 'text' | 'pdf' | 'error' | 'download'>('loading')
   const [videoError, setVideoError] = useState(false)
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null)
   const resume = useResume(videoEl, materialId, 0)
@@ -81,6 +81,11 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
   useEffect(() => {
     if (!mat || mat.media_type !== 'document' || !mat.file_url) return
+    // Архивы и бинарники не превьюим — их только скачивают.
+    const fname = String((mat.attachments && mat.attachments[0] && mat.attachments[0].name) || '').toLowerCase()
+    const ext = fname.includes('.') ? fname.split('.').pop() || '' : ''
+    const NO_PREVIEW = ['zip','rar','7z','tar','gz','tgz','bz2','xz','exe','apk','dmg','iso','msi','bin','deb','jar','apk']
+    if (NO_PREVIEW.includes(ext)) { setDocPreview('download'); return }
     setDocPreview('loading')
     api.documentText(materialId)
       .then(data => {
@@ -89,9 +94,10 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
         setDocPreview('text')
       })
       .catch(err => {
-        // 415 = unsupported type (PDF, binary) → try inline iframe
+        // 415 = не текст. Это PDF (превью через pdf.js) — иначе просто скачивание.
         const msg = String(err?.message || '')
-        setDocPreview(msg.includes('415') ? 'pdf' : 'error')
+        if (!msg.includes('415')) { setDocPreview('error'); return }
+        setDocPreview(ext === 'pdf' || ext === '' ? 'pdf' : 'download')
       })
   }, [mat, materialId])
 
@@ -320,13 +326,24 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                     </div>
                   )}
 
+                  {/* Архив/бинарник — без превью, только скачивание */}
+                  {docPreview === 'download' && (
+                    <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
+                      <MediaTypeIcon type="document" size={56} iconSize={24} radius={16} />
+                      <div className="text-[13px] text-white/80 leading-snug">
+                        {(mat.attachments && mat.attachments[0] && mat.attachments[0].name) || 'Архив'}
+                      </div>
+                      <div className="text-[11px] text-gray leading-snug">Архив — скачайте файл, чтобы открыть его на устройстве.</div>
+                    </div>
+                  )}
+
                   {/* Open / download + Telegram buttons */}
                   {docPreview !== 'loading' && (
                     <div className="flex flex-col gap-2">
                       <button onClick={openExternal}
                         className="w-full h-11 border border-green flex items-center justify-center gap-2 text-green text-[12px] font-semibold tracking-[2px] uppercase rounded-xl active:bg-[rgba(34,197,94,.10)]">
                         <DownloadSimple size={18} />
-                        Открыть / скачать
+                        {docPreview === 'download' ? 'Скачать' : 'Открыть / скачать'}
                       </button>
                       <TgButton />
                     </div>

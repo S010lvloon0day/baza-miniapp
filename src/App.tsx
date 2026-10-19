@@ -304,19 +304,19 @@ export default function App() {
   const renderHeader = () => {
     if (!top) {
       if (tab === 'ctor' && ctorEditing) {
-        return <Header showBack onBack={() => setCtorEditing(false)} title="Конструктор" />
+        return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={() => setCtorEditing(false)} title="Конструктор" />
       }
       const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль', ctor: 'Конструктор' }
       return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
     }
     if (top.type === 'feedback') {
-      return <Header showBack onBack={goBack} title="Обсуждения" />
+      return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Обсуждения" />
     }
     if (top.type === 'courses') {
       const sid = top.section.id
       return (
         <Header
-          showBack onBack={goBack} title={top.section.title}
+          showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title={top.section.title}
           bookmarked={isSectionFav(sid)}
           onBookmark={() => { toggleSectionFav(sid); setBmTick(t => t + 1) }}
         />
@@ -326,23 +326,23 @@ export default function App() {
       const courseId = top.courseId
       return (
         <Header
-          showBack onBack={goBack} title="Курс"
+          showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Курс"
           bookmarked={isCourseFav(courseId)}
           onBookmark={() => { toggleCourseFav(courseId); setBmTick(t => t + 1) }}
         />
       )
     }
     if (top.type === 'player') {
-      return <Header showBack onBack={backToCourse} title="Обучение" />
+      return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={backToCourse} title="Обучение" />
     }
     if (top.type === 'giveaway') {
-      return <Header showBack onBack={goBack} title="Секретный розыгрыш" />
+      return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Секретный розыгрыш" />
     }
     if (top.type === 'section') {
       const sid = top.section.id
       return (
         <Header
-          showBack onBack={goBack} title={top.section.title}
+          showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title={top.section.title}
           bookmarked={isSectionFav(sid)}
           onBookmark={() => { toggleSectionFav(sid); setBmTick(t => t + 1) }}
         />
@@ -352,7 +352,7 @@ export default function App() {
       const bm = isBookmarked(top.id)
       return (
         <Header
-          showBack onBack={goBack}
+          showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack}
           bookmarked={bm}
           onBookmark={() => {
             if (isBookmarked(top.id)) removeBookmarkRemote(top.id)

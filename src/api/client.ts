@@ -158,6 +158,19 @@ export interface CertInfo {
   cert_id: string
 }
 
+export interface CertVerify {
+  valid: boolean
+  revoked?: boolean
+  reason?: string
+  cert_id?: string
+  username?: string
+  language?: string
+  lessons_total?: number
+  tasks_total?: number
+  date?: string
+  code?: string
+}
+
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
@@ -220,6 +233,8 @@ export const api = {
   certificate:     (parentId: number) => get<CertInfo>(`/api/certificate/${parentId}`),
   certificateSend: (parentId: number, image: string) =>
     post<{ ok?: boolean; error?: string }>(`/api/certificate/${parentId}/send`, { image }),
+  certificateVerify: (certId: string) =>
+    get<CertVerify>(`/api/certificate/verify/${encodeURIComponent(certId)}`),
 }
 
 export interface ContinueItem {

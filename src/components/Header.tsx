@@ -25,6 +25,15 @@ export default function Header({ title, showBack, onBack, onSearch, onBell, book
         {title && (
           <span className="flex-1 text-[15px] font-semibold tracking-wide truncate">{title}</span>
         )}
+        {onToggleFullscreen && (
+          <button
+            onClick={onToggleFullscreen}
+            aria-label={fullscreen ? 'Оконный режим' : 'Полный экран'}
+            title={fullscreen ? 'Оконный режим' : 'Полный экран'}
+            className="w-8 h-8 rounded-full bg-white/[.06] flex items-center justify-center active:bg-white/[.14] transition-colors shrink-0">
+            {fullscreen ? <CornersIn size={16} weight="bold" /> : <CornersOut size={16} weight="bold" />}
+          </button>
+        )}
         {onBookmark !== undefined && (
           <button onClick={onBookmark} className={`p-1 active:opacity-60 transition-colors ${bookmarked ? 'text-green' : 'text-gray2'}`}>
             <BookmarkSimple size={22} weight={bookmarked ? 'fill' : 'regular'} />

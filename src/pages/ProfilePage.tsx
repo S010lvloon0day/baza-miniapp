@@ -11,6 +11,54 @@ interface Props {
   onScrolled?: () => void
 }
 
+function CertVerifyBox() {
+  const [id, setId] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [res, setRes] = useState<import('../api/client').CertVerify | null>(null)
+  const check = async () => {
+    const v = id.trim()
+    if (!v) return
+    setBusy(true); setRes(null)
+    try { setRes(await api.certificateVerify(v)) }
+    catch { setRes({ valid: false, reason: 'error' }) }
+    finally { setBusy(false) }
+  }
+  return (
+    <div className="mx-4 mt-4 rounded-2xl p-4" style={{ border: '1px solid rgba(212,175,55,.25)', background: 'radial-gradient(120% 120% at 0% 0%, rgba(212,175,55,.06), transparent 60%), #0d0c0a' }}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-[16px]">🔎</span>
+        <div className="text-[14px] font-bold text-white">Проверка сертификата</div>
+      </div>
+      <div className="text-[11px] leading-snug mb-3" style={{ color: '#b8a97a' }}>
+        Введи ID сертификата (например BZ-318-2026-7F3A9C), чтобы убедиться, что он настоящий и кому выдан.
+      </div>
+      <div className="flex gap-2">
+        <input value={id} onChange={e => setId(e.target.value)} placeholder="BZ-..."
+          className="flex-1 px-3 py-2.5 rounded-xl text-[13px] text-white outline-none"
+          style={{ background: '#101014', border: '1px solid rgba(212,175,55,.3)' }} />
+        <button onClick={check} disabled={busy}
+          className="px-4 py-2.5 rounded-xl font-extrabold text-[13px] disabled:opacity-50"
+          style={{ background: 'linear-gradient(180deg,#f3e3a3,#d4af37)', color: '#2a2200' }}>
+          {busy ? '…' : 'Проверить'}
+        </button>
+      </div>
+      {res && (
+        <div className="mt-3">
+          {res.valid ? (
+            <div className="rounded-xl p-3 text-[12px]" style={{ background: 'rgba(40,200,64,.08)', border: '1px solid rgba(40,200,64,.4)', color: '#4AE885' }}>
+              ✅ Подлинный. Владелец: <b>{res.username}</b> · {res.language} · {res.date}.<br />Уроков: {res.lessons_total}, задач: {res.tasks_total}. Код: {res.code}.
+            </div>
+          ) : (
+            <div className="rounded-xl p-3 text-[12px]" style={{ background: 'rgba(255,80,80,.08)', border: '1px solid rgba(255,80,80,.4)', color: '#ff8a8a' }}>
+              ⚠️ {res.reason === 'not_found' ? 'Такого сертификата нет в реестре — вероятно, подделка.' : res.revoked ? 'Сертификат отозван.' : 'Не удалось проверить, попробуй ещё раз.'}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
   const [prof, setProf]   = useState<Profile | null>(null)
   const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
@@ -374,6 +422,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
           </div>
         )}
       </div>
+      <CertVerifyBox />
     </div>
   )
 }
