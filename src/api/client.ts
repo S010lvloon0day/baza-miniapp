@@ -156,6 +156,7 @@ export interface CertInfo {
   total: number
   date: string
   cert_id: string
+  code?: string
 }
 
 export interface CertVerify {
