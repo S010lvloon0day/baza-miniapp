@@ -108,6 +108,42 @@ function jwtVerifyVuln(token: string, flag: string) {
   return { ok: false, reason: 'ты не admin' }
 }
 
+function noSqli(users: any[], bodyStr: string) {
+  let body: any
+  try { body = JSON.parse(bodyStr) } catch { return { ok: false, who: null, err: 'не JSON' } }
+  const isOp = (v: any) => v && typeof v === 'object' && Object.keys(v).some(k => k.startsWith('$'))
+  const match = users.filter(u => (isOp(body.user) ? true : u.user === body.user) && (isOp(body.pass) ? true : u.pass === body.pass))
+  return { ok: match.length > 0, who: match[0] ? match[0].user : null, err: null }
+}
+function ssti(input: string, flag: string) {
+  const m = input.match(/\{\{(.+?)\}\}/)
+  if (!m) return { out: input, flag: null as string | null, confirmed: false }
+  const expr = m[1].trim()
+  if (/config|flag|__class__|__globals__|self\.|request\./i.test(expr)) return { out: flag, flag, confirmed: true }
+  const am = expr.match(/^(\d+)\s*\*\s*(\d+)$/)
+  if (am) return { out: input.replace(/\{\{.+?\}\}/, String(Number(am[1]) * Number(am[2]))), flag: null, confirmed: true }
+  const sm = expr.match(/^(\d+)\s*\+\s*(\d+)$/)
+  if (sm) return { out: input.replace(/\{\{.+?\}\}/, String(Number(sm[1]) + Number(sm[2]))), flag: null, confirmed: true }
+  return { out: input.replace(/\{\{.+?\}\}/, ''), flag: null, confirmed: true }
+}
+function ssrf(url: string, secret: string) {
+  const low = (url || '').toLowerCase()
+  if (/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|169\.254\.169\.254|metadata|intranet|internal|192\.168\.|10\.0\.)/.test(low)) {
+    const fm = secret.match(/FLAG\{[^}]*\}/); return { out: secret, flag: fm ? fm[0] : null, internal: true }
+  }
+  return { out: 'Ответ от внешнего хоста (200 OK) — ничего интересного.', flag: null as string | null, internal: false }
+}
+function xxe(xml: string, fileContent: string) {
+  const hasEntity = /<!ENTITY\s+(\w+)\s+SYSTEM\s+["']file:\/\/[^"']+["']\s*>/i.test(xml)
+  const ref = /&(\w+);/.test(xml)
+  if (hasEntity && ref) { const fm = fileContent.match(/FLAG\{[^}]*\}/); return { out: fileContent, flag: fm ? fm[0] : null, exploited: true } }
+  return { out: 'XML обработан. Внешние сущности не сработали.', flag: null as string | null, exploited: false }
+}
+function bruteLogin(accepted: any[], user: string, pass: string) {
+  const hit = accepted.find((a: any) => a.user === user && a.pass === pass)
+  return { ok: !!hit, flag: hit ? (hit.flag || null) : null }
+}
+
 type Lab = any
 
 export default function HackLab({ content }: { content: string }) {
@@ -185,6 +221,11 @@ function LabBody({ lab, onReveal }: { lab: Lab; onReveal: (f: string) => void })
     case 'path': return <PathLab lab={lab} onReveal={onReveal} />
     case 'jwt': return <JwtLab lab={lab} onReveal={onReveal} />
     case 'recon': return <ReconLab lab={lab} onReveal={onReveal} />
+    case 'nosqli': return <NoSqliLab lab={lab} onReveal={onReveal} />
+    case 'ssti': return <SstiLab lab={lab} onReveal={onReveal} />
+    case 'ssrf': return <SsrfLab lab={lab} onReveal={onReveal} />
+    case 'xxe': return <XxeLab lab={lab} onReveal={onReveal} />
+    case 'brute': return <BruteLab lab={lab} onReveal={onReveal} />
     default: return <div className="text-white/50 text-[12px]">Неизвестный тип лаборатории.</div>
   }
 }
@@ -378,6 +419,67 @@ function ReconLab({ lab, onReveal }: any) {
       </div>
       <button onClick={() => setShowSrc(s => !s)} className="px-3 py-2 rounded font-bold text-[12.5px] mb-2" style={btn}>{showSrc ? 'Скрыть' : 'Посмотреть исходный код'}</button>
       {showSrc && <pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap break-all`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{lab.source}</pre>}
+    </div>
+  )
+}
+
+
+function NoSqliLab({ lab, onReveal }: any) {
+  const [body, setBody] = useState(String(lab.defaultBody || '{"user":"admin","pass":"?"}')); const [msg, setMsg] = useState<any>(null)
+  const go = () => { const r = noSqli(lab.users || [], body); if (r.ok) onReveal(lab.flag); setMsg(r) }
+  return (
+    <div>
+      <div className="text-[11.5px] text-white/55 mb-1.5">Вход (NoSQL/Mongo). Тело запроса — JSON. Сервер ищет <code className="text-amber-300">db.users.find(тело)</code> без фильтрации операторов.</div>
+      <textarea value={body} onChange={e => setBody(e.target.value)} rows={2} className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
+      <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Войти</button>
+      {msg && <div className={`${mono} p-2.5 rounded-lg mt-2`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: msg.ok ? '#6effa0' : '#ff9a9a' }}>{msg.err ? '⚠ ' + msg.err : msg.ok ? '✓ Вход выполнен как ' + msg.who : '✗ Неверные данные'}</div>}
+    </div>
+  )
+}
+function SstiLab({ lab, onReveal }: any) {
+  const [v, setV] = useState(''); const [out, setOut] = useState<any>(null)
+  const go = () => { const r = ssti(v, lab.flag); if (r.flag) onReveal(r.flag); setOut(r) }
+  return (
+    <div>
+      <div className="text-[11.5px] text-white/55 mb-1.5">Поле «Имя» подставляется в шаблон на сервере. Проверь инъекцию: <code className="text-amber-300">{'{{7*7}}'}</code>, затем доберись до <code className="text-amber-300">{'{{config}}'}</code>.</div>
+      <div className="flex gap-2 mb-2"><input value={v} onChange={e => setV(e.target.value)} placeholder="Имя" className={`flex-1 px-2.5 py-2 rounded ${mono}`} style={inp} /><button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Отправить</button></div>
+      {out && <div className={`${mono} p-2.5 rounded-lg`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>Привет, {out.out}{out.confirmed && !out.flag ? '  ← шаблон выполнил выражение!' : ''}</div>}
+    </div>
+  )
+}
+function SsrfLab({ lab, onReveal }: any) {
+  const [url, setUrl] = useState(''); const [out, setOut] = useState('')
+  const go = () => { const r = ssrf(url, lab.secret || ''); if (r.flag) onReveal(r.flag); setOut(r.out) }
+  return (
+    <div>
+      <div className="text-[11.5px] text-white/55 mb-1.5">Сервис загружает превью по URL (<code className="text-amber-300">/fetch?url=...</code>). Заставь сервер обратиться к внутреннему ресурсу.</div>
+      <div className="flex gap-2 mb-2"><input value={url} onChange={e => setUrl(e.target.value)} placeholder="http://..." className={`flex-1 px-2.5 py-2 rounded ${mono}`} style={inp} /><button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Загрузить</button></div>
+      {out && <pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{out}</pre>}
+    </div>
+  )
+}
+function XxeLab({ lab, onReveal }: any) {
+  const [xml, setXml] = useState(String(lab.defaultXml || '<?xml version="1.0"?>\n<data>привет</data>')); const [out, setOut] = useState('')
+  const go = () => { const r = xxe(xml, lab.fileContent || ''); if (r.flag) onReveal(r.flag); setOut(r.out) }
+  return (
+    <div>
+      <div className="text-[11.5px] text-white/55 mb-1.5">Сервер парсит присланный XML и допускает внешние сущности (XXE). Прочитай файл сервера.</div>
+      <textarea value={xml} onChange={e => setXml(e.target.value)} rows={4} className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
+      <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Отправить XML</button>
+      {out && <pre className={`${mono} p-2.5 rounded-lg mt-2 whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{out}</pre>}
+    </div>
+  )
+}
+function BruteLab({ lab, onReveal }: any) {
+  const [u, setU] = useState(''); const [p, setP] = useState(''); const [msg, setMsg] = useState<any>(null)
+  const go = () => { const r = bruteLogin(lab.accepted || [], u, p); if (r.flag) onReveal(r.flag); setMsg(r) }
+  return (
+    <div>
+      <div className="text-[11.5px] text-white/55 mb-1.5">Форма входа. Пароль не менялся с установки — попробуй типовые/дефолтные учётки (admin/admin, admin/password, admin/123456...).</div>
+      <input value={u} onChange={e => setU(e.target.value)} placeholder="логин" className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
+      <input value={p} onChange={e => setP(e.target.value)} placeholder="пароль" className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
+      <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Войти</button>
+      {msg && <div className={`${mono} p-2.5 rounded-lg mt-2`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: msg.ok ? '#6effa0' : '#ff9a9a' }}>{msg.ok ? '✓ Вход выполнен!' : '✗ Неверная пара логин/пароль'}</div>}
     </div>
   )
 }
