@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import CodeTask from './CodeTask'
 import RunTask from './RunTask'
+import MongoTask from './MongoTask'
 
 /** Лёгкий markdown для уроков: аккордеоны по ####, код с копированием, таблицы, списки, подсказки. */
 
@@ -9,6 +10,7 @@ type Block =
   | { t: 'svg'; text: string }
   | { t: 'pytask'; text: string }
   | { t: 'runtask'; text: string }
+  | { t: 'mongotask'; text: string }
   | { t: 'table'; rows: string[][]; head: boolean }
   | { t: 'ul'; items: string[] }
   | { t: 'ol'; items: string[] }
@@ -33,6 +35,7 @@ function lex(md: string): Block[] {
       if (fence[1] === 'svg') out.push({ t: 'svg', text: _fc })
       else if (fence[1] === 'pytask') out.push({ t: 'pytask', text: _fc })
       else if (fence[1] === 'runtask') out.push({ t: 'runtask', text: _fc })
+      else if (fence[1] === 'mongotask') out.push({ t: 'mongotask', text: _fc })
       else out.push({ t: 'code', lang: fence[1] || '', text: _fc })
       continue
     }
@@ -136,6 +139,7 @@ function Blocks({ blocks }: { blocks: Block[] }) {
         if (b.t === 'svg') return <div key={i} className="my-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto" dangerouslySetInnerHTML={{ __html: b.text }} />
         if (b.t === 'pytask') return <CodeTask key={i} content={b.text} />
         if (b.t === 'runtask') return <RunTask key={i} content={b.text} />
+        if (b.t === 'mongotask') return <MongoTask key={i} content={b.text} />
         if (b.t === 'h') return <div key={i} className="mt-3 mb-1 text-[15px] font-bold text-white">{inline(b.text)}</div>
         if (b.t === 'p') return <p key={i} className="my-1.5 text-[14px] leading-[1.8] text-white/80 whitespace-pre-wrap break-words">{inline(b.text)}</p>
         if (b.t === 'quote') return (
