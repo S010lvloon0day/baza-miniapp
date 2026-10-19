@@ -5,6 +5,7 @@ import { ICON_PATHS, resolveIcon } from '../components/CategoryIcon'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import { CardSocial } from '../components/MaterialSocial'
 import { api } from '../api/client'
+import Certificate from '../components/Certificate'
 import type { Section, Material } from '../api/client'
 
 const tg = (window as any).Telegram?.WebApp
@@ -295,6 +296,11 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         </button>
       </div>
       {subMsg && <div className="mx-4 -mt-3 mb-4 text-[12px] text-green">{subMsg}</div>}
+
+      {/* Диплом по языку программирования (разделы-языки под "Языки программирования", parent 303) */}
+      {section.parent_id === 303 && (
+        <Certificate parentId={section.id} language={section.title} />
+      )}
 
       {/* Premium-баннер: раздел виден как превью, материалы откроются по подписке */}
       {lockedPreview && (

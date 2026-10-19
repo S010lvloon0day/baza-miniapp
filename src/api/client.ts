@@ -145,6 +145,19 @@ export interface Banner {
   media_type?: 'photo' | 'animation'
 }
 
+export interface CertInfo {
+  eligible: boolean
+  username: string
+  language: string
+  modules: string[]
+  lessons_total: number
+  tasks_total: number
+  done: number
+  total: number
+  date: string
+  cert_id: string
+}
+
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
@@ -204,6 +217,9 @@ export const api = {
     post<{ pay_url?: string; invoice_id?: string; section_id?: number; price?: number; error?: string }>('/api/course/invoice', { section_id: sectionId }),
   courseConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; section_id?: number; error?: string }>('/api/course/confirm', { invoice_id: invoiceId }),
+  certificate:     (parentId: number) => get<CertInfo>(`/api/certificate/${parentId}`),
+  certificateSend: (parentId: number, image: string) =>
+    post<{ ok?: boolean; error?: string }>(`/api/certificate/${parentId}/send`, { image }),
 }
 
 export interface ContinueItem {
