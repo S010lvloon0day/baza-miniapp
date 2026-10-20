@@ -528,6 +528,14 @@ export default function ChatPage() {
       else { setAddPackLink(''); await loadPacks(); if (r.pack) setStickerTab(r.pack.name) }
     } catch { flash('Ошибка') } finally { setPackBusy(false) }
   }
+  const removePack = async (name: string) => {
+    try {
+      await api.chatStickersRemove(name)
+      if (stickerTab === name) setStickerTab('emoji')
+      await loadPacks()
+      flash('Набор удалён')
+    } catch { flash('Не удалось удалить') }
+  }
 
   const loadGifs = (q: string) => {
     setGifLoading(true)
@@ -734,6 +742,13 @@ export default function ChatPage() {
           <div ref={stScrollRef} className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
             {stickerTab === 'emoji' ? (
               emojiPack && emojiPack.stickers.length ? (
+                <>
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0c0c10' }}>
+                      <span className="text-[12px] font-bold text-[#cfcfd4] truncate flex-1">{emojiPack.title}</span>
+                      <button onClick={() => removePack(emojiPack.name)} className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}>Удалить</button>
+                    </div>
+                  )}
                 <div className="grid grid-cols-6 gap-1">
                   {emojiPack.stickers.map((st, i) => (
                     <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
@@ -747,6 +762,7 @@ export default function ChatPage() {
                     </button>
                   ))}
                 </div>
+                </>
               ) : (
                 <div className="grid grid-cols-7 gap-1">
                   {STICKERS.map(s => (
@@ -760,7 +776,8 @@ export default function ChatPage() {
               stickerPacks.map(p => (
                 <div key={p.name} id={`pk_${p.name}`} className="mb-3">
                   <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0c0c10' }}>
-                    <span className="text-[12px] font-bold text-[#cfcfd4] truncate">{p.title}</span>
+                    <span className="text-[12px] font-bold text-[#cfcfd4] truncate flex-1">{p.title}</span>
+                    <button onClick={() => removePack(p.name)} className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}>Удалить</button>
                   </div>
                   <div className="grid grid-cols-4 gap-1">
                     {p.stickers.map((st, i) => (
