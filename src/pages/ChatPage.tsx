@@ -488,14 +488,6 @@ export default function ChatPage() {
     else doUpload(type, f, f.type || '')
   }
 
-  const sendSticker = async (s: string) => {
-    setStickerOpen(false)
-    try {
-      await api.chatSticker(s, ttlSec || undefined)
-      const fresh = await api.chat(); setMsgs(fresh.messages); lastId.current = fresh.messages.at(-1)?.id || 0; scrollToBottom()
-    } catch { flash('Не удалось отправить') }
-  }
-
   const loadPacks = () => api.chatStickers().then(r => { setPacks(r.packs || []) }).catch(() => {})
   const openSticker = () => { setAttachOpen(false); setStickerOpen(true); loadPacks() }
   const sendStickerFile = async (fid: string, kind: string) => {
@@ -682,8 +674,6 @@ export default function ChatPage() {
           <div className="flex gap-2 px-4 py-2">
             <button onClick={() => photoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}>📷 Фото</button>
             <button onClick={() => videoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}>🎬 Видео</button>
-            {gifEnabled && <button onClick={openGif} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}>🎞 GIF</button>}
-            <button onClick={openSticker} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}>😎 Стикер</button>
           </div>
         </div>
       )}
@@ -721,9 +711,9 @@ export default function ChatPage() {
           {/* контент */}
           <div className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
             {stickerTab === 'emoji' ? (
-              <div className="grid grid-cols-6 gap-1">
+              <div className="grid grid-cols-7 gap-1">
                 {STICKERS.map(s => (
-                  <button key={s} onClick={() => sendSticker(s)} className="text-[34px] py-1 active:scale-125 transition-transform">{s}</button>
+                  <button key={s} onClick={() => { setText(t => t + s); taRef.current?.focus() }} className="text-[28px] py-1 active:scale-125 transition-transform">{s}</button>
                 ))}
               </div>
             ) : packs.length === 0 ? (
@@ -806,7 +796,9 @@ export default function ChatPage() {
             rows={1} placeholder="Сообщение…"
             className="flex-1 resize-none max-h-28 py-2.5 text-[16px] text-white outline-none bg-transparent min-w-0"
             style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
-          <button onClick={() => { setEmojiOpen(v => !v); setAttachOpen(false) }} className="shrink-0 w-10 h-10 flex items-center justify-center text-[20px]" style={{ color: emojiOpen ? '#4AE885' : '#8a8a93' }}>😊</button>
+          <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} className="shrink-0 w-10 h-10 flex items-center justify-center active:scale-90 transition-transform" style={{ color: stickerOpen ? '#2bd47d' : '#4AE885' }} aria-label="Эмодзи и стикеры">
+            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8" /><line x1="9" y1="9.5" x2="9.01" y2="9.5" /><line x1="15" y1="9.5" x2="15.01" y2="9.5" /></svg>
+          </button>
           {text.trim() ? (
             <button onClick={send} disabled={sending} className="shrink-0 w-10 h-10 flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform" style={{ color: '#4AE885' }}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20l18-8L3 4v6l12 2-12 2z" /></svg>
