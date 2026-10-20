@@ -5,6 +5,24 @@ import { inflate as pakoInflate } from 'pako'
 import { api } from '../api/client'
 import type { ChatMsg, ChatUserCard } from '../api/client'
 
+// ── контурные иконки в стиле приложения (вместо обычных эмодзи в UI) ──
+type IcP = { s?: number }
+const _ic = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+function IcEye({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg> }
+function IcTimer({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><circle cx="12" cy="13" r="8" /><path d="M12 9.5V13l2.5 2" /><path d="M9 2.5h6" /></svg> }
+function IcPhoto({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="9" r="1.6" /><path d="M21 15l-5-5L5 21" /></svg> }
+function IcVideo({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><rect x="2.5" y="6" width="13" height="12" rx="3" /><path d="M15.5 10l6-3v10l-6-3" /></svg> }
+function IcReply({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><polyline points="9 14 4 9 9 4" /><path d="M4 9h11a5 5 0 0 1 5 5v2" /></svg> }
+function IcUser({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 4-6 8-6s8 2 8 6" /></svg> }
+function IcEdit({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M14 6l4 4" /></svg> }
+function IcPin({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M12 17v5" /><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z" /></svg> }
+function IcTrash({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M6 6l1 14h10l1-14" /></svg> }
+function IcHide({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5 19 1 12 1 12a18 18 0 0 1 5-5.9M9.9 4.2A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a18 18 0 0 1-2.2 3.2M1 1l22 22" /></svg> }
+function IcCamera({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M4 7h3l2-2h6l2 2h3v12H4z" /><circle cx="12" cy="13" r="3.5" /></svg> }
+function IcBook({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M5 4a1 1 0 0 1 1-1h12v16H6a2 2 0 0 0-2 2V5z" /><path d="M4 19a2 2 0 0 1 2-2h12" /></svg> }
+function IcFlame({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M12 3c1 3-2 4-2 7a3 3 0 0 0 6 0c0-1-.3-2-1-3 2 1 4 3 4 7a7 7 0 1 1-14 0c0-5 5-6 7-11z" /></svg> }
+function IcCert({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><circle cx="12" cy="9" r="5" /><path d="M9 13l-1 8 4-2 4 2-1-8" /></svg> }
+
 /** Анимированный стикер .tgs (gzip-Lottie): качаем, распаковываем, крутим. */
 function LottieSticker({ url, size = 120, play = true }: { url: string; size?: number; play?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -347,9 +365,9 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 mb-4">
-              {[['📚', c.materials_done, 'пройдено'], ['🔥', c.streak, 'дней подряд'], ['🎓', c.certificates, 'сертификатов']].map(([ic, val, lab], i) => (
+              {[['book', c.materials_done, 'пройдено'], ['flame', c.streak, 'дней подряд'], ['cert', c.certificates, 'сертификатов']].map(([ic, val, lab], i) => (
                 <div key={i} className="rounded-2xl py-3 text-center" style={{ background: 'linear-gradient(180deg,rgba(74,232,133,.08),rgba(255,255,255,.015))', border: '1px solid rgba(74,232,133,.16)' }}>
-                  <div className="text-[15px] leading-none">{ic as string}</div>
+                  <div className="flex justify-center" style={{ color: '#4AE885' }}>{ic === 'book' ? <IcBook s={18} /> : ic === 'flame' ? <IcFlame s={18} /> : <IcCert s={18} />}</div>
                   <div className="text-[20px] font-extrabold text-green leading-none mt-1">{val as number}</div>
                   <div className="text-[9px] font-bold uppercase tracking-wide text-[#9a9aa2] mt-1">{lab as string}</div>
                 </div>
@@ -360,10 +378,10 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
               <div className="mb-4">
                 <div className="text-[11px] font-bold uppercase tracking-wide text-[#9a9aa2] mb-2">Аватар в чате {busy && <span className="text-green normal-case">· {busy}</span>}</div>
                 <div className="flex flex-col gap-2">
-                  <button onClick={() => avInput.current?.click()} className="w-full text-left px-4 py-2.5 rounded-xl text-[13px] font-bold text-white" style={{ background: '#17171d' }}>📷 Поставить своё фото / анимацию</button>
+                  <button onClick={() => avInput.current?.click()} className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold text-white" style={{ background: '#17171d' }}><IcCamera s={15} /> Поставить своё фото / анимацию</button>
                   <div className="flex gap-2">
-                    <button onClick={() => setMode('tg')} className="flex-1 px-3 py-2.5 rounded-xl text-[12px] font-bold text-white" style={{ background: '#17171d' }}>↩️ Из Telegram</button>
-                    <button onClick={() => setMode('hidden')} className="flex-1 px-3 py-2.5 rounded-xl text-[12px] font-bold text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}>🚫 Скрыть</button>
+                    <button onClick={() => setMode('tg')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-white" style={{ background: '#17171d' }}><IcReply s={14} /> Из Telegram</button>
+                    <button onClick={() => setMode('hidden')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}><IcHide s={14} /> Скрыть</button>
                   </div>
                 </div>
                 <div className="text-[10.5px] text-[#6a6a75] mt-2">Анимация — загрузи короткое видео/GIF (до 12 МБ). Все увидят его живым в чате.</div>
@@ -864,7 +882,7 @@ export default function ChatPage() {
 
       {pinned && !pinned.deleted && (
         <div className="flex items-center gap-2 px-4 py-2 shrink-0" style={{ borderBottom: '1px solid rgba(74,232,133,.22)', background: 'rgba(34,197,94,.06)' }}>
-          <span className="text-[14px]">📌</span>
+          <span className="text-green"><IcPin s={14} /></span>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wide text-green">Закреплено · {pinned.name}</div>
             <div className="text-[12px] text-white truncate">{stripTokens(pinned.text) || '📎 вложение'}</div>
@@ -917,17 +935,17 @@ export default function ChatPage() {
           <div className="flex gap-2 px-4 pt-2">
             <button onClick={() => setOnceOn(v => !v)} className="flex-1 py-2 rounded-xl text-[12px] font-bold"
               style={{ background: onceOn ? 'rgba(34,197,94,.18)' : '#17171d', color: onceOn ? '#4AE885' : '#9a9aa2', border: onceOn ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
-              👁 1 раз {onceOn ? '✓' : ''}
+              <span className="inline-flex items-center gap-1.5"><IcEye s={15} /> 1 раз {onceOn ? '✓' : ''}</span>
             </button>
             <button onClick={() => setTtlSec(s => { const i = TTL_STEPS.indexOf(s); return TTL_STEPS[(i + 1) % TTL_STEPS.length] })}
               className="flex-1 py-2 rounded-xl text-[12px] font-bold"
               style={{ background: ttlSec ? 'rgba(34,197,94,.18)' : '#17171d', color: ttlSec ? '#4AE885' : '#9a9aa2', border: ttlSec ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
-              ⏱ Таймер: {ttlLabel(ttlSec)}
+              <span className="inline-flex items-center gap-1.5"><IcTimer s={15} /> Таймер: {ttlLabel(ttlSec)}</span>
             </button>
           </div>
           <div className="flex gap-2 px-4 py-2">
-            <button onClick={() => photoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}>📷 Фото</button>
-            <button onClick={() => videoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}>🎬 Видео</button>
+            <button onClick={() => photoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}><span className="inline-flex items-center gap-1.5"><IcPhoto s={15} /> Фото</span></button>
+            <button onClick={() => videoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}><span className="inline-flex items-center gap-1.5"><IcVideo s={15} /> Видео</span></button>
           </div>
         </div>
       )}
@@ -1132,11 +1150,11 @@ export default function ChatPage() {
               </div>
               {/* действия — компактная карточка */}
               <div className="rounded-[16px] overflow-hidden" style={{ background: '#15161b', border: '1px solid rgba(255,255,255,.08)', boxShadow: '0 16px 40px rgba(0,0,0,.55)' }}>
-                <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><span className="text-[15px]">↩️</span>Ответить</button>
-                {!menuFor.mine && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><span className="text-[15px]">👤</span>Профиль автора</button></>)}
-                {menuFor.mine && menuFor.type === 'text' && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><span className="text-[15px]">✏️</span>Редактировать</button></>)}
-                {isAdmin && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => pin(menuFor.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-green active:opacity-70"><span className="text-[15px]">📌</span>Закрепить</button></>)}
-                {(menuFor.mine || isAdmin) && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { del(menuFor.id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold active:opacity-70" style={{ color: '#ff6b6b' }}><span className="text-[15px]">🗑</span>Удалить</button></>)}
+                <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><IcReply s={16} />Ответить</button>
+                {!menuFor.mine && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><IcUser s={16} />Профиль автора</button></>)}
+                {menuFor.mine && menuFor.type === 'text' && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><IcEdit s={16} />Редактировать</button></>)}
+                {isAdmin && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => pin(menuFor.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-green active:opacity-70"><IcPin s={16} />Закрепить</button></>)}
+                {(menuFor.mine || isAdmin) && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { del(menuFor.id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold active:opacity-70" style={{ color: '#ff6b6b' }}><IcTrash s={16} />Удалить</button></>)}
               </div>
             </motion.div>
           </motion.div>

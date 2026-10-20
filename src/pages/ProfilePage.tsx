@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { api } from '../api/client'
-import type { Profile, Config, Plan, Contributor } from '../api/client'
+import type { Profile, Config, Plan } from '../api/client'
 import { useRubPayment, fmtRub } from '../hooks/useRubPayment'
 
 const tg = (window as any).Telegram?.WebApp
@@ -94,9 +94,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
   const [msg, setMsg] = useState<string | null>(null)
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
   const [checking, setChecking] = useState(false)
-  const [top, setTop] = useState<Contributor[]>([])
-  const [myRank, setMyRank] = useState<number | null>(null)
-  const [myApproved, setMyApproved] = useState(0)
   const plansRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -109,11 +106,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
         }
       })
       .finally(() => setLoading(false))
-    api.contributors().then(r => {
-      setTop(r.contributors ?? [])
-      setMyRank(r.my_rank ?? null)
-      setMyApproved(r.my_approved ?? 0)
-    }).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -281,50 +273,8 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
           </div>
         </div>
 
-        {/* Stats card */}
-        <div className="rounded-2xl px-[18px] py-0 mb-3.5" style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014' }}>
-          <div className="flex justify-between text-[13px]" style={{ padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-            <span style={{ color: '#8a8a93' }}>Предложено материалов</span>
-            <span className="font-bold">{prof?.contributions_total ?? 0}</span>
-          </div>
-          <div className="flex justify-between text-[13px]" style={{ padding: '6px 0' }}>
-            <span style={{ color: '#8a8a93' }}>Одобрено</span>
-            <span className="font-bold" style={{ color: '#4AE885' }}>
-              {prof?.contributions_approved ?? 0} · +{(prof?.contributions_approved ?? 0) * 2}д premium
-            </span>
-          </div>
-        </div>
-
         {/* Мой ранг — вход в рейтинг/соревнование */}
         <RankCard onOpen={onCompete} />
-
-        {/* Топ контрибьюторов */}
-        {top.length > 0 && (
-          <div className="mb-6">
-            <div className="text-[11px] font-bold uppercase mb-3" style={{ letterSpacing: '1.5px', color: '#9a9aa2' }}>Топ контрибьюторов</div>
-            <div className="rounded-[14px]" style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014', padding: '0 16px' }}>
-              {top.slice(0, 3).map((c, i) => {
-                const me = c.user_id === prof?.user_id
-                return (
-                  <div key={c.user_id} className="flex items-center gap-2.5" style={{ padding: '9px 0', borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-                    <span className="w-[18px] text-center text-[12px] font-mono shrink-0" style={{ color: '#6a6a75' }}>{i + 1}</span>
-                    <span className={`flex-1 truncate text-[13px] font-semibold ${me ? 'text-green' : ''}`} style={me ? undefined : { color: '#e4e4e8' }}>
-                      {c.username ? `@${c.username}` : 'аноним'}{me ? ' (вы)' : ''}
-                    </span>
-                    <span className="text-[13px] font-bold" style={{ color: '#4AE885' }}>{c.approved}</span>
-                  </div>
-                )
-              })}
-              {myRank !== null && myRank > 3 && (
-                <div className="flex items-center gap-2.5" style={{ padding: '9px 0' }}>
-                  <span className="w-[18px] text-center text-[12px] font-mono shrink-0" style={{ color: '#6a6a75' }}>{myRank}</span>
-                  <span className="flex-1 truncate text-[13px] font-semibold text-green">вы</span>
-                  <span className="text-[13px] font-bold" style={{ color: '#4AE885' }}>{myApproved}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Plans */}
         {cfg.plans.length > 0 && (
