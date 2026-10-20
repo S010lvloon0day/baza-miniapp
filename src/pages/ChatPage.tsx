@@ -787,7 +787,8 @@ export default function ChatPage() {
   const insertMention = (un: string) => { insertTextAtCaret('@' + un + ' ') }
 
   const stopMic = () => {
-    if (micStream.current) { micStream.current.getTracks().forEach(t => t.stop()); micStream.current = null }
+    const s = micStream.current
+    if (s) { s.getTracks().forEach(t => { try { t.enabled = false } catch { /* */ } try { t.stop() } catch { /* */ } }); micStream.current = null }
   }
   const startRec = async () => {
     if (rec || micStream.current || wantRec.current) return   // уже идёт/готовится
@@ -816,9 +817,12 @@ export default function ChatPage() {
     wantRec.current = false
     setRec(false); setRecCancel(false)
     if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null }
+    const s = micStream.current
     const mr = mediaRec.current
     if (mr && mr.state !== 'inactive') { try { mr.stop() } catch { /* */ } }   // onstop выключит микрофон
     else { stopMic() }   // рекордер ещё не стартовал — глушим поток напрямую
+    // страховка: если onstop не выключил этот конкретный поток — глушим его принудительно
+    if (s) setTimeout(() => { s.getTracks().forEach(t => { try { t.stop() } catch { /* */ } }); if (micStream.current === s) micStream.current = null }, 600)
   }
   const cancelRec = () => { recCancelRef.current = true; stopRec() }
 
