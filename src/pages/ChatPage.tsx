@@ -689,28 +689,36 @@ export default function ChatPage() {
       )}
 
       {stickerOpen && (
-        <div className="shrink-0 flex flex-col" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10', maxHeight: '44vh' }}>
-          <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto">
-            <button onClick={() => setStickerTab('emoji')} className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[18px]"
-              style={{ background: stickerTab === 'emoji' ? 'rgba(34,197,94,.18)' : '#17171d', border: stickerTab === 'emoji' ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>😀</button>
-            {packs.map(p => (
-              <button key={p.name} onClick={() => setStickerTab(p.name)} className="shrink-0 px-2.5 h-9 rounded-lg text-[11px] font-bold whitespace-nowrap"
-                style={{ background: stickerTab === p.name ? 'rgba(34,197,94,.18)' : '#17171d', color: stickerTab === p.name ? '#4AE885' : '#cfcfd4', border: stickerTab === p.name ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
-                {p.title.slice(0, 12)}
-              </button>
-            ))}
-            <button onClick={() => setStickerOpen(false)} className="ml-auto shrink-0 text-[#8a8a93] text-[14px] px-2">✕</button>
+        <div className="shrink-0 flex flex-col" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10', height: '48vh' }}>
+          {/* верхние вкладки: Эмодзи / Стикеры / GIF — как в Telegram */}
+          <div className="flex items-center gap-5 px-4 pt-2 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+            {([['emoji', 'Эмодзи'], ['stickers', 'Стикеры'], ['gif', 'GIF']] as const).map(([k, lab]) => {
+              const active = k === 'emoji' ? stickerTab === 'emoji' : k === 'stickers' ? stickerTab !== 'emoji' : false
+              return (
+                <button key={k} onClick={() => {
+                  if (k === 'emoji') setStickerTab('emoji')
+                  else if (k === 'stickers') setStickerTab(packs[0]?.name || 'emoji')
+                  else { setStickerOpen(false); if (gifEnabled) openGif() }
+                }} className="relative pb-2 text-[14px] font-bold" style={{ color: active ? '#fff' : '#7a7a85' }}>
+                  {lab}
+                  {active && <span className="absolute left-0 right-0 bottom-0 h-[2px] rounded-full" style={{ background: '#4AE885' }} />}
+                </button>
+              )
+            })}
+            <button onClick={() => setStickerOpen(false)} className="ml-auto text-[#8a8a93] text-[16px]">✕</button>
           </div>
 
-          <div className="flex gap-2 px-2 pb-1.5">
-            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="Добавь свой пак: t.me/addstickers/..."
-              className="flex-1 px-2.5 py-1.5 rounded-lg text-[16px] text-white outline-none"
-              style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.1)', WebkitUserSelect: 'text', userSelect: 'text' }} />
-            <button onClick={addPack} disabled={packBusy} className="px-3 py-1.5 rounded-lg text-[13px] font-bold disabled:opacity-50" style={{ background: 'rgba(34,197,94,.18)', color: '#4AE885' }}>
-              {packBusy ? '…' : 'Добавить'}
+          {/* строка добавления своего пака */}
+          <div className="flex gap-2 px-2 py-1.5 shrink-0">
+            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="🔍 Добавь свой пак: t.me/addstickers/..."
+              className="flex-1 px-3 py-1.5 rounded-full text-[16px] text-white outline-none"
+              style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
+            <button onClick={addPack} disabled={packBusy} className="px-3.5 py-1.5 rounded-full text-[13px] font-bold disabled:opacity-50" style={{ background: 'rgba(34,197,94,.18)', color: '#4AE885' }}>
+              {packBusy ? '…' : '＋'}
             </button>
           </div>
 
+          {/* контент */}
           <div className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
             {stickerTab === 'emoji' ? (
               <div className="grid grid-cols-6 gap-1">
@@ -718,19 +726,46 @@ export default function ChatPage() {
                   <button key={s} onClick={() => sendSticker(s)} className="text-[34px] py-1 active:scale-125 transition-transform">{s}</button>
                 ))}
               </div>
+            ) : packs.length === 0 ? (
+              <div className="py-8 text-center text-[12px] text-[#8a8a93] px-6">Пока нет паков. Вставь ссылку <b className="text-green">t.me/addstickers/...</b> сверху и жми ＋ — добавится твой стикерпак из Telegram.</div>
             ) : (
-              <div className="grid grid-cols-4 gap-1">
-                {(packs.find(p => p.name === stickerTab)?.stickers || []).map((st, i) => (
-                  <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform">
-                    {st.kind === 'video'
-                      ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
-                      : st.kind === 'animated'
-                        ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={76} />
-                        : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
-                  </button>
-                ))}
-              </div>
+              packs.map(p => (
+                <div key={p.name} id={`pk_${p.name}`} className="mb-3">
+                  <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0c0c10' }}>
+                    <span className="text-[12px] font-bold text-[#cfcfd4] truncate">{p.title}</span>
+                  </div>
+                  <div className="grid grid-cols-4 gap-1">
+                    {p.stickers.map((st, i) => (
+                      <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform">
+                        {st.kind === 'video'
+                          ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                          : st.kind === 'animated'
+                            ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={76} />
+                            : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
             )}
+          </div>
+
+          {/* нижний ряд иконок-паков, как в Telegram */}
+          <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+            <button onClick={() => setStickerTab('emoji')} className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[18px]"
+              style={{ background: stickerTab === 'emoji' ? 'rgba(74,232,133,.16)' : 'transparent' }}>😀</button>
+            {packs.map(p => {
+              const th = p.stickers.find(s => s.kind === 'image') || p.stickers[0]
+              const on = stickerTab === p.name
+              return (
+                <button key={p.name} onClick={() => { setStickerTab(p.name); setTimeout(() => document.getElementById(`pk_${p.name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30) }}
+                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: on ? 'rgba(74,232,133,.16)' : 'transparent' }}>
+                  {th && th.kind === 'image'
+                    ? <img src={api.chatStickerUrl(th.fid, 'image')} alt="" loading="lazy" className="w-7 h-7 object-contain" />
+                    : <span className="text-[13px] font-bold text-[#cfcfd4]">{p.title.slice(0, 1).toUpperCase()}</span>}
+                </button>
+              )
+            })}
           </div>
         </div>
       )}
@@ -760,25 +795,30 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="flex items-end gap-2 px-3 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.08)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 10px)' }}>
-        <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[20px]" style={{ background: '#17171d', color: '#9a9aa2' }}>＋</button>
-        <button onClick={() => { setEmojiOpen(v => !v); setAttachOpen(false) }} className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-[18px]" style={{ background: '#17171d', color: '#9a9aa2' }}>😊</button>
-        <textarea ref={taRef} value={text} onChange={e => onInput(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-          rows={1} placeholder="Сообщение…"
-          className="flex-1 resize-none max-h-28 px-3.5 py-2.5 rounded-2xl text-[16px] text-white outline-none"
-          style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.1)', WebkitUserSelect: 'text', userSelect: 'text' }} />
-        {text.trim() ? (
-          <button onClick={send} disabled={sending} className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center disabled:opacity-50" style={{ background: 'linear-gradient(180deg,#39FF9A,#22C55E)', color: '#06281a' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20l18-8L3 4v6l12 2-12 2z" /></svg>
+      <div className="flex items-end px-2 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 8px)' }}>
+        {/* единое поле: 📎 слева, текст, справа 😊 и ➤ — как в Telegram */}
+        <div className="flex-1 flex items-end rounded-[22px] min-w-0" style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)' }}>
+          <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} className="shrink-0 w-10 h-10 flex items-center justify-center" style={{ color: attachOpen ? '#4AE885' : '#8a8a93' }}>
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
           </button>
-        ) : (
-          <button onMouseDown={startRec} onMouseUp={stopRec} onMouseLeave={() => rec && stopRec()}
-            onTouchStart={(e) => { e.preventDefault(); startRec() }} onTouchEnd={(e) => { e.preventDefault(); stopRec() }}
-            className="shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style={{ background: rec ? '#ff5050' : '#17171d', color: rec ? '#fff' : '#9a9aa2' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" /><path d="M5 11a7 7 0 0 0 14 0h-2a5 5 0 0 1-10 0H5zm6 7h2v3h-2z" /></svg>
-          </button>
-        )}
+          <textarea ref={taRef} value={text} onChange={e => onInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+            rows={1} placeholder="Сообщение…"
+            className="flex-1 resize-none max-h-28 py-2.5 text-[16px] text-white outline-none bg-transparent min-w-0"
+            style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
+          <button onClick={() => { setEmojiOpen(v => !v); setAttachOpen(false) }} className="shrink-0 w-10 h-10 flex items-center justify-center text-[20px]" style={{ color: emojiOpen ? '#4AE885' : '#8a8a93' }}>😊</button>
+          {text.trim() ? (
+            <button onClick={send} disabled={sending} className="shrink-0 w-10 h-10 flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform" style={{ color: '#4AE885' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20l18-8L3 4v6l12 2-12 2z" /></svg>
+            </button>
+          ) : (
+            <button onMouseDown={startRec} onMouseUp={stopRec} onMouseLeave={() => rec && stopRec()}
+              onTouchStart={(e) => { e.preventDefault(); startRec() }} onTouchEnd={(e) => { e.preventDefault(); stopRec() }}
+              className="shrink-0 w-10 h-10 flex items-center justify-center active:scale-90 transition-transform" style={{ color: rec ? '#ff5050' : '#8a8a93' }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" /><path d="M5 11a7 7 0 0 0 14 0h-2a5 5 0 0 1-10 0H5zm6 7h2v3h-2z" /></svg>
+            </button>
+          )}
+        </div>
       </div>
 
       <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPick('photo')} />
