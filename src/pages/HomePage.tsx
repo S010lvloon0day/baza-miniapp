@@ -95,7 +95,10 @@ function HeroChat({ onOpen }: { onOpen?: () => void }) {
         style={{ background: 'linear-gradient(135deg,#17a34a 0%,#0f8a3e 48%,#0a6a2f 100%)', border: '1px solid rgba(120,255,170,.3)', boxShadow: '0 10px 24px rgba(8,100,44,.45), inset 0 1px 0 rgba(255,255,255,.16)' }}>
         <span className="pointer-events-none absolute inset-0 opacity-70" style={{ background: 'radial-gradient(140px 50px at 22% -30%, rgba(255,255,255,.3), transparent 70%)' }} />
         <span className="relative z-10 flex items-center gap-2">
-          <span className="text-[15px]">💬</span> Открыть чат
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
+          </svg>
+          Открыть чат
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
             <line x1="5" y1="12" x2="19" y2="12" />
             <polyline points="12 5 19 12 12 19" />
