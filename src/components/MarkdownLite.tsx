@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import CodeTask from './CodeTask'
 import RunTask from './RunTask'
 import MongoTask from './MongoTask'
@@ -134,16 +134,16 @@ function Code({ text }: { text: string }) {
   )
 }
 
-function Blocks({ blocks }: { blocks: Block[] }) {
+function Blocks({ blocks, onSolve }: { blocks: Block[]; onSolve?: (tid: number) => void }) {
   return (
     <>
       {blocks.map((b, i) => {
         if (b.t === 'code') return <Code key={i} text={b.text} />
         if (b.t === 'svg') return <div key={i} className="my-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto" dangerouslySetInnerHTML={{ __html: b.text }} />
-        if (b.t === 'pytask') return <CodeTask key={i} content={b.text} />
-        if (b.t === 'runtask') return <RunTask key={i} content={b.text} />
-        if (b.t === 'mongotask') return <MongoTask key={i} content={b.text} />
-        if (b.t === 'hacklab') return <HackLab key={i} content={b.text} />
+        if (b.t === 'pytask') return <CodeTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
+        if (b.t === 'runtask') return <RunTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
+        if (b.t === 'mongotask') return <MongoTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
+        if (b.t === 'hacklab') return <HackLab key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
         if (b.t === 'h') return <div key={i} className="mt-3 mb-1 text-[15px] font-bold text-white">{inline(b.text)}</div>
         if (b.t === 'p') return <p key={i} className="my-1.5 text-[14px] leading-[1.8] text-white/80 whitespace-pre-wrap break-words">{inline(b.text)}</p>
         if (b.t === 'quote') return (
@@ -172,7 +172,7 @@ function Blocks({ blocks }: { blocks: Block[] }) {
   )
 }
 
-function Accordion({ title, blocks, defOpen }: { title: string; blocks: Block[]; defOpen: boolean }) {
+function Accordion({ title, blocks, defOpen, onSolve }: { title: string; blocks: Block[]; defOpen: boolean; onSolve?: (tid: number) => void }) {
   const [open, setOpen] = useState(defOpen)
   return (
     <div className="my-2 rounded-xl border border-white/[.1] overflow-hidden">
@@ -181,19 +181,37 @@ function Accordion({ title, blocks, defOpen }: { title: string; blocks: Block[];
         <span className="text-[14px] font-semibold text-white break-words">{inline(title)}</span>
         <span className={`shrink-0 text-green transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
       </button>
-      {open && <div className="px-3.5 pb-3 pt-0 border-t border-white/[.06]"><Blocks blocks={blocks} /></div>}
+      {open && <div className="px-3.5 pb-3 pt-0 border-t border-white/[.06]"><Blocks blocks={blocks} onSolve={onSolve} /></div>}
     </div>
   )
 }
 
-export default function MarkdownLite({ content }: { content: string }) {
-  const nodes = useMemo(() => group(lex(content)), [content])
+export default function MarkdownLite({ content, onAllSolved }: { content: string; onAllSolved?: () => void }) {
+  const { nodes, taskCount } = useMemo(() => {
+    const ns = group(lex(content))
+    let t = 0
+    const isTask = (b: Block) => b.t === 'pytask' || b.t === 'runtask' || b.t === 'mongotask' || b.t === 'hacklab'
+    const visit = (bs: Block[]) => bs.forEach(b => { if (isTask(b)) (b as any).__tid = t++ })
+    ns.forEach(n => n.t === 'acc' ? visit(n.blocks) : visit([n as Block]))
+    return { nodes: ns, taskCount: t }
+  }, [content])
   const firstAcc = nodes.findIndex(n => n.t === 'acc')
+  const solvedRef = useRef<Set<number>>(new Set())
+  const firedRef = useRef(false)
+  useEffect(() => { solvedRef.current = new Set(); firedRef.current = false }, [content])
+  const handleSolve = (tid: number) => {
+    if (typeof tid !== 'number') return
+    solvedRef.current.add(tid)
+    if (!firedRef.current && taskCount > 0 && solvedRef.current.size >= taskCount) {
+      firedRef.current = true
+      onAllSolved?.()
+    }
+  }
   return (
     <div className="px-4">
       {nodes.map((n, i) => n.t === 'acc'
-        ? <Accordion key={i} title={n.title} blocks={n.blocks} defOpen={i === firstAcc} />
-        : <Blocks key={i} blocks={[n]} />)}
+        ? <Accordion key={i} title={n.title} blocks={n.blocks} defOpen={i === firstAcc} onSolve={handleSolve} />
+        : <Blocks key={i} blocks={[n]} onSolve={handleSolve} />)}
     </div>
   )
 }

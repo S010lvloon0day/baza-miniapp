@@ -1,8 +1,14 @@
 import type { ReactNode } from 'react'
 
-export type Tab = 'home' | 'cats' | 'search' | 'favs' | 'recent' | 'prof' | 'ctor'
+export type Tab = 'home' | 'cats' | 'search' | 'favs' | 'recent' | 'prof' | 'ctor' | 'chat'
 
 const ICONS: Record<Exclude<Tab, 'search'>, ReactNode> = {
+  chat: (
+    <g fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" />
+      <path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" />
+    </g>
+  ),
   ctor: (
     <g fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
       <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z" />
@@ -34,6 +40,7 @@ const ICONS: Record<Exclude<Tab, 'search'>, ReactNode> = {
 
 const TABS: { id: Exclude<Tab, 'search'>; label: string }[] = [
   { id: 'home',   label: 'Главная'   },
+  { id: 'chat',   label: 'Чат'       },
   { id: 'cats',   label: 'Разделы'   },
   { id: 'favs',   label: 'Избранное' },
   { id: 'recent', label: 'История'   },

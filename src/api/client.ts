@@ -95,6 +95,8 @@ export interface Material {
   rating?: number
   rating_count?: number
   comments_count?: number
+  /** Файл материала — архив (.zip/.rar/...). */
+  is_archive?: boolean
 }
 
 export interface TodaySection {
@@ -172,6 +174,73 @@ export interface CertVerify {
   code?: string
 }
 
+export interface CompeteRank {
+  name: string
+  emoji: string
+  next_name: string | null
+  next_at: number | null
+  to_next: number
+  progress: number
+}
+export interface BoardRow { rank: number; name: string; xp: number; is_me: boolean }
+export interface FeedRow { name: string; kind: string; amount: number; text: string; ago: string }
+export interface Compete {
+  xp: number
+  rank: CompeteRank
+  streak: number
+  best_streak: number
+  pos_all: number | null
+  pos_week: number | null
+  week_xp: number
+  today_active: number
+  board_all: BoardRow[]
+  board_week: BoardRow[]
+  feed: FeedRow[]
+}
+
+export interface ChatReaction { emoji: string; count: number; mine: boolean }
+export interface ChatMsg {
+  id: number
+  user_id: number
+  name: string
+  username: string
+  avatar: string
+  mine: boolean
+  type: 'text' | 'photo' | 'video' | 'voice' | 'gif' | 'sticker'
+  text: string
+  has_media: boolean
+  media_url: string
+  mime: string
+  dur: number
+  reply_to: number | null
+  created_at: string
+  deleted: boolean
+  edited: boolean
+  reactions: ChatReaction[]
+  anim: boolean
+  once: boolean
+  ttl: boolean
+}
+export interface ChatResp { messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean }
+export interface GifItem { id: string; preview: string; send: string }
+export interface StickerDef { fid: string; emoji: string; kind: string }
+export interface StickerPack { name: string; title: string; stickers: StickerDef[] }
+export interface ChatUserCard {
+  user_id: number
+  name: string
+  username: string
+  avatar: string
+  is_premium: boolean
+  materials_done: number
+  certificates: number
+  xp: number
+  streak: number
+  rank: string
+  rank_emoji: string
+  avatar_mode: string
+  avatar_anim: boolean
+}
+
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
@@ -179,6 +248,30 @@ export const api = {
     get<{ materials: Material[]; total: number }>(`/api/sections/${id}/materials?page=${page}`),
   material:       (id: number)   => get<Material>(`/api/material/${id}`),
   profile:        ()             => get<Profile>('/api/profile'),
+  compete:        ()             => get<Compete>('/api/compete'),
+  chat:           (after?: number) => get<ChatResp>(`/api/chat${after ? `?after=${after}` : ''}`),
+  chatOlder:      (before: number) => get<{ messages: ChatMsg[] }>(`/api/chat/older?before=${before}`),
+  chatSend:       (text: string, reply_to?: number, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl }),
+  chatSticker:    (sticker: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker, ttl }),
+  chatGif:        (q: string)    => get<{ gifs: GifItem[] }>(`/api/chat/gif${q ? `?q=${encodeURIComponent(q)}` : ''}`),
+  chatGifSend:    (url: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string }>('/api/chat/gif/send', { url, ttl }),
+  chatStickers:   ()             => get<{ packs: StickerPack[]; is_admin: boolean }>('/api/chat/stickers'),
+  chatStickerUrl: (fid: string, kind: string) => `${API_BASE}/api/chat/sticker?fid=${encodeURIComponent(fid)}&k=${kind}&init_data=${encodeURIComponent(tg?.initData || '')}`,
+  chatStickerFile: (fid: string, kind: string, ttl?: number) => post<{ ok?: boolean; id?: number }>('/api/chat/send', { sticker_fid: fid, sticker_kind: kind, ttl }),
+  chatStickersAdd: (link: string) => post<{ ok?: boolean; pack?: StickerPack; error?: string; message?: string }>('/api/chat/stickers/add', { link }),
+  chatStickersRemove: (name: string) => post<{ ok?: boolean }>('/api/chat/stickers/remove', { name }),
+  chatDelete:     (id: number)   => del<{ ok?: boolean }>(`/api/chat/${id}`),
+  chatPin:        (id: number)   => post<{ ok?: boolean }>(`/api/chat/${id}/pin`),
+  chatUnpin:      ()             => post<{ ok?: boolean }>('/api/chat/unpin'),
+  chatReact:      (id: number, emoji: string) => post<{ ok?: boolean; on?: boolean }>(`/api/chat/${id}/react`, { emoji }),
+  chatEdit:       (id: number, text: string) => post<{ ok?: boolean; error?: string }>(`/api/chat/${id}/edit`, { text }),
+  chatTyping:     ()             => post<{ ok?: boolean }>('/api/chat/typing'),
+  chatUser:       (uid: number) => get<ChatUserCard>(`/api/chat/user/${uid}`),
+  chatMediaUrl:   (id: number)   => `${API_BASE}/api/chat/media/${id}?init_data=${encodeURIComponent(tg?.initData || '')}`,
+  chatAvatarUrl:  (uid: number, v?: string | number) => `${API_BASE}/api/chat/avatar/${uid}?init_data=${encodeURIComponent(tg?.initData || '')}${v != null ? `&v=${v}` : ''}`,
+  chatAvatarUploadUrl: ()        => `${API_BASE}/api/chat/avatar/upload`,
+  chatAvatarMode: (mode: string) => post<{ ok?: boolean; mode?: string }>('/api/chat/avatar/mode', { mode }),
+  chatUploadUrl:  (type: string, dur = 0, ttl = 0, once = false) => `${API_BASE}/api/chat/upload?type=${type}&dur=${dur}${ttl ? `&ttl=${ttl}` : ''}${once ? '&once=1' : ''}`,
   contributors:   ()             => get<{ contributors: Contributor[]; total: number; my_rank: number | null; my_approved: number }>('/api/contributors'),
   config:         ()             => get<Config>('/api/config'),
   documentText:   (id: number)   => get<{ title: string; text: string; extension: string; truncated?: boolean }>(`/api/document_text/${id}`),
@@ -197,6 +290,7 @@ export const api = {
   removeSectionFavorite: (id: number) => del<{ ok: boolean; favorite: boolean }>(`/api/sections/${id}/favorite`),
   /** Без attachmentId шлёт материал целиком — все вложения по порядку. */
   sendFile:       (id: number)   => post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}`),
+  completeMaterial: (id: number) => post<{ ok?: boolean; error?: string }>(`/api/material/${id}/complete`),
   sendAttachment: (id: number, attachmentId: number) =>
     post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}/${attachmentId}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),

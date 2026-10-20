@@ -9,6 +9,30 @@ const tg = (window as any).Telegram?.WebApp
 interface Props {
   scrollToPlans?: boolean
   onScrolled?: () => void
+  onCompete?: () => void
+}
+
+function RankCard({ onOpen }: { onOpen?: () => void }) {
+  const [c, setC] = useState<import('../api/client').Compete | null>(null)
+  useEffect(() => { api.compete().then(setC).catch(() => {}) }, [])
+  if (!c) return null
+  return (
+    <div onClick={onOpen}
+      className="rounded-2xl px-[18px] py-4 mb-3.5 cursor-pointer transition-transform duration-150 active:-translate-y-0.5"
+      style={{ border: '1px solid rgba(74,232,133,.35)', background: 'radial-gradient(130% 120% at 0% 0%, rgba(34,197,94,.16), transparent 60%), #0D0D11' }}>
+      <div className="flex items-center gap-3">
+        <span className="text-[30px] leading-none">{c.rank.emoji}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-bold tracking-[1.5px] uppercase" style={{ color: '#9a9aa2' }}>Твой ранг</div>
+          <div className="text-[16px] font-extrabold text-white leading-tight">{c.rank.name}</div>
+          <div className="text-[11px] mt-0.5" style={{ color: '#9a9aa2' }}>
+            {c.xp} XP · 🔥 {c.streak} дн · {c.pos_all ? `#${c.pos_all} в топе` : 'ещё не в топе'}
+          </div>
+        </div>
+        <span className="font-extrabold text-[18px] shrink-0 text-green">›</span>
+      </div>
+    </div>
+  )
 }
 
 function CertVerifyBox() {
@@ -59,7 +83,7 @@ function CertVerifyBox() {
   )
 }
 
-export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
+export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Props) {
   const [prof, setProf]   = useState<Profile | null>(null)
   const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
@@ -270,6 +294,9 @@ export default function ProfilePage({ scrollToPlans, onScrolled }: Props) {
             </span>
           </div>
         </div>
+
+        {/* Мой ранг — вход в рейтинг/соревнование */}
+        <RankCard onOpen={onCompete} />
 
         {/* Топ контрибьюторов */}
         {top.length > 0 && (

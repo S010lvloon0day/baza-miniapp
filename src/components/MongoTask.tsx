@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Query, Aggregator } from 'mingo'
 
 /**
@@ -35,7 +35,7 @@ function stable(v: any): any {
 }
 const canon = (v: any) => JSON.stringify(stable(v))
 
-export default function MongoTask({ content }: { content: string }) {
+export default function MongoTask({ content, onSolve }: { content: string; onSolve?: () => void }) {
   const task = useMemo<MTask>(() => { try { return JSON.parse(content) } catch { return {} } }, [content])
   const op = task.op || 'find'
   const data = task.data || []
@@ -45,6 +45,7 @@ export default function MongoTask({ content }: { content: string }) {
   const [status, setStatus] = useState<'idle' | 'ok' | 'fail'>('idle')
   const [showHint, setShowHint] = useState(false)
   const [showData, setShowData] = useState(false)
+  useEffect(() => { if (status === 'ok') onSolve?.() }, [status])
   const taRef = useRef<HTMLTextAreaElement>(null)
 
   const runQuery = (): any[] => {

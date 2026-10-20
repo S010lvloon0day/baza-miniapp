@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { API_BASE } from '../api/client'
 
 /**
@@ -28,7 +28,7 @@ type Task = { lang?: string; compiler?: string; starter?: string; hint?: string;
 
 const norm = (s: string) => (s || '').replace(/\r/g, '').split('\n').map(l => l.replace(/[ \t]+$/,'')).join('\n').replace(/\n+$/,'').trim()
 
-export default function RunTask({ content }: { content: string }) {
+export default function RunTask({ content, onSolve }: { content: string; onSolve?: () => void }) {
   const task = useMemo<Task>(() => { try { return JSON.parse(content) } catch { return {} } }, [content])
   const lang = (task.lang || 'python').toLowerCase()
   const compiler = task.compiler || COMPILER[lang] || 'cpython-head'
@@ -37,6 +37,7 @@ export default function RunTask({ content }: { content: string }) {
   const [status, setStatus] = useState<'idle' | 'running' | 'ok' | 'fail'>('idle')
   const [showHint, setShowHint] = useState(false)
   const busy = status === 'running'
+  useEffect(() => { if (status === 'ok') onSolve?.() }, [status])
   const taRef = useRef<HTMLTextAreaElement>(null)
 
   const exec = async (check: boolean) => {

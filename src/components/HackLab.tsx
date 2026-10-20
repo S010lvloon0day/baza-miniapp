@@ -146,7 +146,7 @@ function bruteLogin(accepted: any[], user: string, pass: string) {
 
 type Lab = any
 
-export default function HackLab({ content }: { content: string }) {
+export default function HackLab({ content, onSolve }: { content: string; onSolve?: () => void }) {
   const lab = useMemo<Lab>(() => { try { return JSON.parse(content) } catch { return { type: 'bad' } } }, [content])
   const [submitted, setSubmitted] = useState('')
   const [solved, setSolved] = useState(false)
@@ -154,6 +154,7 @@ export default function HackLab({ content }: { content: string }) {
   const [showHint, setShowHint] = useState(false)
 
   const flag: string = lab.flag || ''
+  useEffect(() => { if (solved) onSolve?.() }, [solved])
   const checkFlag = () => setSolved(submitted.trim() === flag)
 
   return (

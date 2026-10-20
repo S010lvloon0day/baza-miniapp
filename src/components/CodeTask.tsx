@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 /**
  * Интерактивная задача: редактор кода + запуск Python прямо в браузере (Pyodide).
@@ -28,13 +28,14 @@ function loadPy(): Promise<any> {
 
 type Task = { starter?: string; tests?: string; hint?: string }
 
-export default function CodeTask({ content }: { content: string }) {
+export default function CodeTask({ content, onSolve }: { content: string; onSolve?: () => void }) {
   const task = useMemo<Task>(() => { try { return JSON.parse(content) } catch { return {} } }, [content])
   const [code, setCode] = useState(task.starter ?? '')
   const [out, setOut] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'running' | 'ok' | 'fail'>('idle')
   const [showHint, setShowHint] = useState(false)
   const busy = status === 'loading' || status === 'running'
+  useEffect(() => { if (status === 'ok') onSolve?.() }, [status])
   const taRef = useRef<HTMLTextAreaElement>(null)
 
   const run = async (check: boolean) => {

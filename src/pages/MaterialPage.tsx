@@ -225,7 +225,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
               <div className="flex items-center gap-2 px-4 pb-4 text-[12px] tracking-[.5px] text-gray">
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4AE885', boxShadow: '0 0 6px #4AE885' }} />
-                <span>{typeLabel(mat.media_type)}</span>
+                <span>{mat.is_archive ? 'АРХИВ' : typeLabel(mat.media_type)}</span>
               </div>
 
               {/* ── PHOTO ── */}
@@ -369,7 +369,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
               {/* Markdown-урок */}
               {mat.media_type === 'doc' && mat.content && (
-                <div className="mb-4 -mx-0"><MarkdownLite content={mat.content} /></div>
+                <div className="mb-4 -mx-0"><MarkdownLite content={mat.content} onAllSolved={() => { api.completeMaterial(materialId).catch(() => {}) }} /></div>
               )}
 
               {/* Практическое задание */}

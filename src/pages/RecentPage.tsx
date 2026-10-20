@@ -52,7 +52,7 @@ export default function RecentPage({ onMaterial }: Props) {
                 <div className="text-[11px] truncate mb-0.5" style={{ color: '#8a8a93' }}>{m.section_title}</div>
               )}
               <div className="text-[14px] font-semibold truncate">{m.title}</div>
-              <div className="text-[10px] mt-0.5" style={{ color: '#6a6a75', letterSpacing: '.5px' }}>{typeLabel(m.media_type)}</div>
+              <div className="text-[10px] mt-0.5" style={{ color: '#6a6a75', letterSpacing: '.5px' }}>{m.is_archive ? 'АРХИВ' : typeLabel(m.media_type)}</div>
             </div>
             <span className="shrink-0" style={{ width: 6, height: 6, borderRadius: '50%', background: '#4AE885', boxShadow: '0 0 6px #4AE885' }} />
           </div>

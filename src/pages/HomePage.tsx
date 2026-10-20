@@ -14,9 +14,96 @@ interface Props {
   onMaterial: (id: number, sectionId: number) => void
   onTabCats: () => void
   onSubmit?: () => void
+  onCompete?: () => void
+  onChat?: () => void
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
+/** Живой мини-чат прямо в геро-окне: последние сообщения + онлайн, тикает каждые ~3.5с. */
+function HeroChat({ onOpen }: { onOpen?: () => void }) {
+  const [state, setState] = useState<{ online: number; msgs: { id: number; name: string; text: string }[] }>({ online: 0, msgs: [] })
+  useEffect(() => {
+    let alive = true
+    const load = () => api.chat().then(r => {
+      if (!alive) return
+      const msgs = r.messages.filter(m => !m.deleted).slice(-3)
+        .map(m => ({ id: m.id, name: m.name, text: m.text || (m.has_media ? '📎 вложение' : '') }))
+      setState({ online: r.online, msgs })
+    }).catch(() => {})
+    load()
+    const t = window.setInterval(load, 3500)
+    return () => { alive = false; window.clearInterval(t) }
+  }, [])
+  return (
+    <div className="relative mb-1">
+      <div className="rounded-2xl px-3.5 py-3 mb-3" style={{ background: 'rgba(0,0,0,.4)', border: '1px solid rgba(74,232,133,.28)' }}>
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-60" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-green" />
+          </span>
+          <span className="text-[10.5px] font-bold uppercase tracking-[1px] text-green">Чат базы · live · онлайн {state.online}</span>
+        </div>
+        {state.msgs.length === 0 ? (
+          <div className="text-[12.5px] text-[#9a9aa2] py-1">Пока тихо — будь первым, поздоровайся 👋</div>
+        ) : (
+          <div className="flex flex-col gap-1.5">
+            {state.msgs.map(m => (
+              <div key={m.id} className="text-[12.5px] leading-snug truncate">
+                <span className="font-bold text-green">{m.name}:</span>{' '}
+                <span className="text-[#d4d4d8]">{m.text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <button onClick={onOpen}
+        className="w-full flex items-center justify-center gap-1.5 py-3.5 rounded-[13px] text-bg text-[13px] font-extrabold transition-transform duration-150 active:-translate-y-0.5"
+        style={{ background: 'linear-gradient(180deg,#39FF9A,#22C55E)', boxShadow: '0 8px 20px rgba(34,197,94,.32)' }}>
+        💬 Открыть чат
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+function CompeteCard({ onOpen }: { onOpen?: () => void }) {
+  const [c, setC] = useState<import('../api/client').Compete | null>(null)
+  useEffect(() => { api.compete().then(setC).catch(() => {}) }, [])
+  if (!c) return null
+  const topName = c.board_week[0]?.name || c.board_all[0]?.name
+  return (
+    <div
+      onClick={onOpen}
+      className="relative mb-5 cursor-pointer overflow-hidden rounded-[18px] px-4 py-3.5 transition-transform duration-150 active:-translate-y-0.5"
+      style={{ border: '1px solid rgba(74,232,133,.4)', background: 'radial-gradient(120% 120% at 0% 0%, rgba(34,197,94,.16), transparent 60%), #0D0D11', boxShadow: '0 0 22px rgba(34,197,94,.1)' }}
+    >
+      <div className="flex items-center gap-3">
+        <div className="shrink-0 text-[26px]">{c.rank.emoji}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-[14px] font-extrabold text-white">Рейтинг базы</span>
+            <span className="inline-flex items-center gap-1 text-[10.5px] font-bold text-green">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-60" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green" />
+              </span>
+              сегодня учатся {c.today_active}
+            </span>
+          </div>
+          <div className="text-[11.5px] text-[#9a9aa2] truncate mt-0.5">
+            Ты {c.pos_all ? `${c.pos_all}-й` : 'ещё не в топе'} · {c.xp} XP{topName ? ` · лидер: ${topName}` : ''}
+          </div>
+        </div>
+        <span className="font-extrabold text-[18px] shrink-0 text-green">›</span>
+      </div>
+    </div>
+  )
+}
+
+export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, onChat }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -110,24 +197,15 @@ export default function HomePage({ onSection, onMaterial, onTabCats }: Props) {
               в одном месте
             </span>
           </div>
-          <div className="relative text-[13px] text-[#9a9aa2] leading-relaxed mb-5 max-w-[270px]">
-            Гайды, инструменты и разборы по темам. Открывай раздел или ищи материал по названию.
+          <div className="relative text-[13px] text-[#9a9aa2] leading-relaxed mb-4 max-w-[270px]">
+            Гайды, инструменты, разборы — и живой чат базы прямо здесь.
           </div>
 
-          <div className="relative flex gap-2.5">
-            <button
-              onClick={onTabCats}
-              className="flex-1 flex items-center justify-center gap-1 py-3.5 rounded-[13px] text-bg text-[12px] whitespace-nowrap font-extrabold transition-transform duration-150 active:-translate-y-0.5"
-              style={{ background: 'linear-gradient(180deg,#ffffff,#e8ebe9)', boxShadow: '0 8px 20px rgba(0,0,0,.35), 0 1px 0 rgba(255,255,255,.4) inset' }}
-            >
-              Смотреть разделы
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-                <line x1="5" y1="12" x2="19" y2="12" />
-                <polyline points="12 5 19 12 12 19" />
-              </svg>
-            </button>
-          </div>
+          <HeroChat onOpen={onChat} />
         </div>
+
+        {/* Рейтинг базы — соревнование и «ты не один» */}
+        <CompeteCard onOpen={onCompete} />
 
         {/* Banner slot */}
         {banners.length > 0 && (

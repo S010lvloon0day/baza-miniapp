@@ -9,6 +9,8 @@ import MaterialPage from './pages/MaterialPage'
 import FavsPage from './pages/FavsPage'
 import RecentPage from './pages/RecentPage'
 import ProfilePage from './pages/ProfilePage'
+import CompetePage from './pages/CompetePage'
+import ChatPage from './pages/ChatPage'
 import GiveawayPage from './pages/GiveawayPage'
 import SubmitPage from './pages/SubmitPage'
 import CoursesListPage from './pages/courses/CoursesListPage'
@@ -57,22 +59,24 @@ type View =
   | { type: 'course'; courseId: number; title: string }
   | { type: 'player'; courseId: number }
   | { type: 'feedback' }
+  | { type: 'compete' }
 
 /** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
-function readDeepLink(): { material?: number; feedback?: boolean } {
+function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean } {
   const qp = new URLSearchParams(location.search)
   const sp: string = tg?.initDataUnsafe?.start_param || ''
   const m = Number(qp.get('m') || (sp.match(/^m(\d+)$/)?.[1] ?? ''))
   return {
     material: Number.isInteger(m) && m > 0 ? m : undefined,
     feedback: qp.get('feedback') === '1' || sp === 'feedback',
+    chat: qp.get('chat') === '1' || sp === 'chat',
   }
 }
 
 export default function App() {
   const [deepLink] = useState(readDeepLink)
-  const [started, setStarted] = useState(() => !!localStorage.getItem('started') || !!deepLink.material || deepLink.feedback)
-  const [tab, setTab] = useState<Tab>('home')
+  const [started, setStarted] = useState(() => !!localStorage.getItem('started') || !!deepLink.material || deepLink.feedback || !!deepLink.chat)
+  const [tab, setTab] = useState<Tab>(deepLink.chat ? 'chat' : 'home')
   const [stack, setStack] = useState<View[]>([])
   const [bmTick, setBmTick] = useState(0)
   const [notifyOpen, setNotifyOpen] = useState(false)
@@ -204,6 +208,8 @@ export default function App() {
 
   const openFeedback = () => setStack(s => [...s, { type: 'feedback' }])
 
+  const openCompete = () => setStack(s => [...s, { type: 'compete' }])
+
   const openCourse = (courseId: number, title = 'Курс') =>
     setStack(s => [...s, { type: 'course', courseId, title }])
 
@@ -226,12 +232,13 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} onCompete={openCompete} onChat={() => switchTab('chat')} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
       if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
-      if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} />
+      if (tab === 'chat')   return <ChatPage />
+      if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} onCompete={openCompete} />
       if (tab === 'ctor') {
         if (!isAdmin) return null
         if (ctorEditing) return <ConstructorPage editing={ctorEditing} onEditingChange={setCtorEditing} />
@@ -262,6 +269,9 @@ export default function App() {
     if (top?.type === 'feedback') {
       if (!isAdmin) return null
       return <FeedbackPage onOpenMaterial={id => openMaterialById(id)} onSeen={() => { setFbUnread(0); refreshUnread() }} />
+    }
+    if (top?.type === 'compete') {
+      return <CompetePage />
     }
     if (top?.type === 'courses') {
       return <CoursesListPage sectionId={top.section.id} onOpen={openCourse} />
@@ -306,11 +316,17 @@ export default function App() {
       if (tab === 'ctor' && ctorEditing) {
         return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={() => setCtorEditing(false)} title="Конструктор" />
       }
-      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль', ctor: 'Конструктор' }
+      if (tab === 'chat') {
+        return <Header showBack onBack={() => switchTab('home')} title="Чат базы" fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
+      }
+      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль', ctor: 'Конструктор', chat: 'Чат базы' }
       return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
     }
     if (top.type === 'feedback') {
       return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Обсуждения" />
+    }
+    if (top.type === 'compete') {
+      return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Рейтинг" />
     }
     if (top.type === 'courses') {
       const sid = top.section.id
@@ -366,7 +382,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col h-full bg-bg"
-      style={{ paddingTop: safeInset.top, paddingRight: safeInset.right, paddingLeft: safeInset.left }}>
+      style={{ paddingTop: safeInset.top, paddingRight: safeInset.right, paddingLeft: safeInset.left, overflowX: 'hidden', maxWidth: '100vw' }}>
       {renderHeader()}
 
       <AnimatePresence mode="wait">
@@ -382,7 +398,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {!isMat && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread }} />}
+      {!isMat && tab !== 'chat' && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread }} />}
 
       <NotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} />
     </div>
