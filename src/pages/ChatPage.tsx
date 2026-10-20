@@ -700,7 +700,7 @@ export default function ChatPage() {
 
           {/* строка добавления своего пака */}
           <div className="flex gap-2 px-2 py-1.5 shrink-0">
-            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="🔍 Добавь свой пак: t.me/addstickers/..."
+            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="🔍 Пак или эмодзи: t.me/addstickers/… · t.me/addemoji/…"
               className="flex-1 px-3 py-1.5 rounded-full text-[16px] text-white outline-none"
               style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
             <button onClick={addPack} disabled={packBusy} className="px-3.5 py-1.5 rounded-full text-[13px] font-bold disabled:opacity-50" style={{ background: 'rgba(34,197,94,.18)', color: '#4AE885' }}>
@@ -717,7 +717,7 @@ export default function ChatPage() {
                 ))}
               </div>
             ) : packs.length === 0 ? (
-              <div className="py-8 text-center text-[12px] text-[#8a8a93] px-6">Пока нет паков. Вставь ссылку <b className="text-green">t.me/addstickers/...</b> сверху и жми ＋ — добавится твой стикерпак из Telegram.</div>
+              <div className="py-8 text-center text-[12px] text-[#8a8a93] px-6">Пока нет паков. Вставь ссылку <b className="text-green">t.me/addstickers/…</b> или <b className="text-green">t.me/addemoji/…</b> сверху и жми ＋ — добавится твой стикерпак или анимированные эмодзи из Telegram.</div>
             ) : (
               packs.map(p => (
                 <div key={p.name} id={`pk_${p.name}`} className="mb-3">
