@@ -66,6 +66,7 @@ function InView({ children, rootRef }: { children: any; rootRef: React.RefObject
 const tg = (window as any).Telegram?.WebApp
 const ME = tg?.initDataUnsafe?.user
 const MY_UN = (ME?.username || '').toLowerCase()
+const MY_ID = Number(ME?.id || 0)
 
 /** Цвета пузырей — как в тёмной теме Telegram. */
 const BUB_IN = '#18222d'        // входящие (чужие)
@@ -297,7 +298,9 @@ function MsgMeta({ m, light }: { m: ChatMsg; light?: boolean }) {
       {m.once && <span className="mr-1">👁</span>}
       {!!m.ttl && <span className="mr-1">⏱</span>}
       {timeOf(m.created_at)}
-      {m.mine && <span className="ml-1" style={{ color: light ? '#fff' : '#8fe6c0' }}>✓✓</span>}
+      {m.mine && ((m as any).pending
+        ? <span className="ml-1 opacity-70">🕐</span>
+        : <span className="ml-1" style={{ color: light ? '#fff' : '#8fe6c0' }}>✓✓</span>)}
     </span>
   )
 }
@@ -464,7 +467,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
   const onlyMedia = m.has_media && !m.text && !(m.once && !mine)
 
   return (
-    <div className={`flex gap-2 px-2 ${grouped ? 'mt-0.5' : 'mt-2'} ${mine ? 'flex-row-reverse' : ''}`} style={{ overflow: 'hidden' }}>
+    <div className={`flex gap-2 px-2 ${grouped ? 'mt-0.5' : 'mt-2'} ${mine ? 'flex-row-reverse' : ''}`} style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease' }}>
       {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[34px] shrink-0" />)}
       <div className={`max-w-[80%] min-w-0 ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
         <div onClick={() => onAction(m)} className="relative overflow-hidden active:opacity-90 max-w-full shadow-sm"
@@ -556,7 +559,10 @@ function chatSig(arr: ChatMsg[]): string {
   }
   return s
 }
-const maxId = (arr: ChatMsg[]) => arr.reduce((mx, m) => (m.id > mx ? m.id : mx), 0)
+// id оптимистичных (ещё не подтверждённых сервером) сообщений — выше любого реального,
+// чтобы они стояли внизу ленты и не попадали в lastId (иначе сломается инкрементальный опрос)
+const TEMP_BASE = 1e15
+const maxId = (arr: ChatMsg[]) => arr.reduce((mx, m) => (m.id < TEMP_BASE && m.id > mx ? m.id : mx), 0)
 
 export default function ChatPage() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
@@ -602,6 +608,7 @@ export default function ChatPage() {
   const lastId = useRef(0)
   const sigRef = useRef('')      // подпись текущей ленты — чтобы пропускать рендер на пустых опросах
   const pollTick = useRef(0)     // счётчик опросов: периодически делаем полную сверку
+  const tempSeq = useRef(0)      // счётчик оптимистичных сообщений
   const atBottom = useRef(true)
   const lastTyping = useRef(0)
   const mediaRec = useRef<MediaRecorder | null>(null)
@@ -628,7 +635,10 @@ export default function ChatPage() {
   const merge = useCallback((incoming: ChatMsg[]) => {
     if (!incoming.length) return
     setMsgs(prev => {
-      const map = new Map(prev.map(m => [m.id, m]))
+      // подчищаем «зависшие» оптимистичные черновики (на случай сбоя досверки)
+      const now = Date.now()
+      const base = prev.filter(m => !((m as any).pending && now - new Date(m.created_at).getTime() > 8000))
+      const map = new Map(base.map(m => [m.id, m]))
       for (const m of incoming) map.set(m.id, m)
       const arr = [...map.values()].sort((a, b) => a.id - b.id)
       const sig = chatSig(arr)
@@ -726,23 +736,69 @@ export default function ChatPage() {
     insertAtCaret(el, document.createTextNode(s)); refreshFromEditor()
   }
 
+  // инкрементальная досверка после действия: убираем оптимистичные «черновики» и вливаем реальные
+  const syncAfterSend = async () => {
+    try {
+      const fresh = await api.chat(lastId.current || undefined)
+      setMsgs(prev => {
+        const map = new Map(prev.filter(m => !(m as any).pending).map(m => [m.id, m]))
+        for (const m of fresh.messages) map.set(m.id, m)
+        const arr = [...map.values()].sort((a, b) => a.id - b.id)
+        sigRef.current = chatSig(arr); lastId.current = maxId(arr)
+        return arr
+      })
+      scrollToBottom(true)
+    } catch { /* следующий опрос подтянет */ }
+  }
+
   const send = async () => {
     const t = text.trim()
     if (!t || sending) return
-    setSending(true)
-    try {
-      if (editing) {
+
+    // правка существующего — отдельный путь (без оптимистичной вставки)
+    if (editing) {
+      setSending(true)
+      try {
         const r = await api.chatEdit(editing.id, t)
         if (r.error) flash('Не удалось изменить')
         setEditing(null); setComposer('')
-      } else {
-        const r = await api.chatSend(t, reply?.id, ttlSec || undefined)
-        if (r.error === 'slow') { flash(r.message || 'Не так быстро'); setSending(false); return }
-        setComposer(''); setReply(null)
+        await syncAfterSend()
+      } catch { flash('Не удалось отправить') }
+      finally { setSending(false) }
+      return
+    }
+
+    // оптимистичная отправка: сообщение появляется мгновенно, поле очищается,
+    // плавный скролл вниз; сервер подтверждает в фоне и заменяет «черновик» реальным
+    const replyId = reply?.id
+    const temp: ChatMsg = {
+      id: TEMP_BASE + (++tempSeq.current),
+      user_id: MY_ID, name: ME?.first_name || '', username: ME?.username || '',
+      avatar: '', mine: true, type: 'text', text: t, has_media: false, media_url: '',
+      mime: '', dur: 0, reply_to: replyId ?? null, created_at: new Date().toISOString(),
+      deleted: false, edited: false, reactions: [], anim: false, once: false, ttl: false,
+    } as any
+    ;(temp as any).pending = true
+    setMsgs(prev => { const arr = [...prev, temp]; sigRef.current = chatSig(arr); return arr })
+    setComposer(''); setReply(null)
+    atBottom.current = true
+    scrollToBottom(true)
+
+    setSending(true)
+    try {
+      const r = await api.chatSend(t, replyId, ttlSec || undefined)
+      if (r.error === 'slow') {
+        setMsgs(prev => prev.filter(m => m.id !== temp.id))  // убираем черновик
+        setComposer(t)                                        // возвращаем текст
+        flash(r.message || 'Не так быстро')
+        return
       }
-      const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
-    } catch { flash('Не удалось отправить') }
-    finally { setSending(false) }
+      await syncAfterSend()
+    } catch {
+      setMsgs(prev => prev.filter(m => m.id !== temp.id))
+      setComposer(t)
+      flash('Не удалось отправить')
+    } finally { setSending(false) }
   }
 
   const doUpload = async (type: string, file: Blob, mime: string, dur = 0) => {
