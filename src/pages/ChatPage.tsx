@@ -519,6 +519,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
 
 export default function ChatPage() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
+  const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
   const [online, setOnline] = useState(0)
   const [typing, setTyping] = useState<string[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
@@ -579,6 +580,7 @@ export default function ChatPage() {
       if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
     })
   }
+  const jumpBottom = () => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight }
 
   const merge = useCallback((incoming: ChatMsg[]) => {
     if (!incoming.length) return
@@ -600,7 +602,11 @@ export default function ChatPage() {
         setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setTyping(r.typing ?? []); setGifEnabled(!!r.gif)
         const wasBottom = atBottom.current
         setMsgs(r.messages); lastId.current = r.messages.length ? r.messages[r.messages.length - 1].id : 0
-        if (first || wasBottom) scrollToBottom(!first)
+        if (first) {
+          // открываем сразу на последнем сообщении, без видимой прокрутки
+          requestAnimationFrame(() => { jumpBottom(); requestAnimationFrame(() => { jumpBottom(); setReady(true) }) })
+          setTimeout(jumpBottom, 120); setTimeout(jumpBottom, 350); setTimeout(jumpBottom, 700)
+        } else if (wasBottom) scrollToBottom(true)
       } catch { /* тихо */ }
     }
     pull(true)
@@ -861,7 +867,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ overscrollBehavior: 'contain', background: WALL }}>
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ overscrollBehavior: 'contain', background: WALL, opacity: ready ? 1 : 0, transition: 'opacity .12s' }}>
         {msgs.length === 0 ? (
           <div className="h-full flex items-center justify-center text-[13px] text-[#8a8a93] px-8 text-center">Пока тихо. Напиши первым — поздоровайся с базой 👋</div>
         ) : msgs.map((m, i) => {
