@@ -168,6 +168,66 @@ function renderText(text: string, big = false) {
   return out
 }
 
+// ── rich-поле ввода (contenteditable): эмодзи рисуются прямо в строке, как в Telegram ──
+function buildEmojiSpan(kind: string, fid: string): HTMLElement {
+  const span = document.createElement('span')
+  span.setAttribute('contenteditable', 'false')
+  span.setAttribute('data-e', `${kind}:${fid}`)
+  span.style.display = 'inline-block'
+  span.style.width = '20px'; span.style.height = '20px'; span.style.verticalAlign = '-0.35em'; span.style.margin = '0 1px'
+  const url = api.chatStickerUrl(fid, kind === 'v' ? 'video' : kind === 'a' ? 'animated' : 'image')
+  if (kind === 'v') {
+    const v = document.createElement('video'); v.src = url; v.autoplay = true; v.loop = true; v.muted = true
+    v.setAttribute('playsinline', ''); v.style.width = '100%'; v.style.height = '100%'; v.style.objectFit = 'contain'; span.appendChild(v)
+  } else if (kind === 'a') {
+    const d = document.createElement('div'); d.style.width = '20px'; d.style.height = '20px'; span.appendChild(d)
+    fetch(url).then(r => r.arrayBuffer()).then(buf => {
+      try { const b = new Uint8Array(buf); const raw = (b[0] === 0x1f && b[1] === 0x8b) ? pakoInflate(b) : b; const data = JSON.parse(new TextDecoder().decode(raw)); lottie.loadAnimation({ container: d, renderer: 'svg', loop: true, autoplay: true, animationData: data }) } catch { /* */ }
+    }).catch(() => {})
+  } else {
+    const img = document.createElement('img'); img.src = url; img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'contain'; span.appendChild(img)
+  }
+  return span
+}
+
+function serializeEditor(root: HTMLElement): string {
+  let out = ''
+  root.childNodes.forEach((n) => {
+    if (n.nodeType === 3) out += n.textContent || ''
+    else if (n.nodeType === 1) {
+      const el = n as HTMLElement
+      if (el.tagName === 'BR') out += '\n'
+      else if (el.hasAttribute('data-e')) { const d = el.getAttribute('data-e') || ''; out += `{e:${d.slice(0, 1)}:${d.slice(2)}}` }
+      else { if (el.tagName === 'DIV' && out && !out.endsWith('\n')) out += '\n'; out += serializeEditor(el) }
+    }
+  })
+  return out
+}
+
+function fillEditor(root: HTMLElement, text: string) {
+  root.innerHTML = ''
+  const re = new RegExp(EMOJI_TOKEN.source, 'g')
+  let last = 0, m: RegExpExecArray | null
+  while ((m = re.exec(text))) {
+    if (m.index > last) root.appendChild(document.createTextNode(text.slice(last, m.index)))
+    let fid = m[2]; const k = m[1]; const h = fid.indexOf('#')
+    if (h >= 0) { const nm = fid.slice(0, h); fid = PACKCACHE[nm]?.stickers[parseInt(fid.slice(h + 1), 10)]?.fid || '' }
+    if (fid) root.appendChild(buildEmojiSpan(k, fid))
+    last = m.index + m[0].length
+  }
+  if (last < text.length) root.appendChild(document.createTextNode(text.slice(last)))
+}
+
+function insertAtCaret(root: HTMLElement, node: Node) {
+  const sel = window.getSelection()
+  if (sel && sel.rangeCount && root.contains(sel.anchorNode)) {
+    const range = sel.getRangeAt(0); range.deleteContents(); range.insertNode(node)
+    range.setStartAfter(node); range.collapse(true); sel.removeAllRanges(); sel.addRange(range)
+  } else {
+    root.appendChild(node)
+  }
+}
+
 /** Время + «изменено» + галочки, как в Telegram (встроено в хвост последней строки). */
 function MsgMeta({ m, light }: { m: ChatMsg; light?: boolean }) {
   return (
@@ -446,7 +506,7 @@ export default function ChatPage() {
   const recStart = useRef(0)
   const photoInput = useRef<HTMLInputElement>(null)
   const videoInput = useRef<HTMLInputElement>(null)
-  const taRef = useRef<HTMLTextAreaElement>(null)
+  const taRef = useRef<HTMLDivElement>(null)   // rich-поле ввода (contenteditable)
   const stScrollRef = useRef<HTMLDivElement>(null)
 
   const byId = new Map(msgs.map(m => [m.id, m]))
@@ -517,10 +577,22 @@ export default function ChatPage() {
     finally { setTimeout(() => { loadingOlder.current = false }, 400) }
   }
 
-  const onInput = (v: string) => {
-    setText(v)
+  // синхронизация rich-поля: читаем контент редактора в text (с токенами эмодзи)
+  const refreshFromEditor = () => { const el = taRef.current; if (el) setText(serializeEditor(el)) }
+  const setComposer = (t: string) => { setText(t); const el = taRef.current; if (el) fillEditor(el, t) }
+  const onEditorInput = () => {
+    refreshFromEditor()
     const now = Date.now()
     if (now - lastTyping.current > 2500) { lastTyping.current = now; api.chatTyping().catch(() => {}) }
+  }
+  const insertEmojiNode = (fid: string, kind: string) => {
+    const el = taRef.current; if (!el) return
+    const k = kind === 'video' ? 'v' : kind === 'animated' ? 'a' : 'i'
+    insertAtCaret(el, buildEmojiSpan(k, fid)); refreshFromEditor()
+  }
+  const insertTextAtCaret = (s: string) => {
+    const el = taRef.current; if (!el) return
+    insertAtCaret(el, document.createTextNode(s)); refreshFromEditor()
   }
 
   const send = async () => {
@@ -531,11 +603,11 @@ export default function ChatPage() {
       if (editing) {
         const r = await api.chatEdit(editing.id, t)
         if (r.error) flash('Не удалось изменить')
-        setEditing(null); setText('')
+        setEditing(null); setComposer('')
       } else {
         const r = await api.chatSend(t, reply?.id, ttlSec || undefined)
         if (r.error === 'slow') { flash(r.message || 'Не так быстро'); setSending(false); return }
-        setText(''); setReply(null)
+        setComposer(''); setReply(null)
       }
       const fresh = await api.chat()
       setMsgs(fresh.messages); lastId.current = fresh.messages.at(-1)?.id || 0; scrollToBottom()
@@ -585,11 +657,7 @@ export default function ChatPage() {
       flash('Набор удалён')
     } catch { flash('Не удалось удалить') }
   }
-  const insertEmoji = (fid: string, kind: string) => {
-    const k = kind === 'video' ? 'v' : kind === 'animated' ? 'a' : 'i'
-    setText(t => t + `{e:${k}:${fid}}`)   // зашиваем сам file_id — рисуется всегда
-    taRef.current?.focus()
-  }
+
 
   const loadGifs = (q: string) => {
     setGifLoading(true)
@@ -659,9 +727,9 @@ export default function ChatPage() {
     setMenuFor(null)
   }
 
-  const startEdit = (m: ChatMsg) => { setEditing(m); setReply(null); setText(m.text); setMenuFor(null); taRef.current?.focus() }
+  const startEdit = (m: ChatMsg) => { setEditing(m); setReply(null); setComposer(m.text); setMenuFor(null); taRef.current?.focus() }
   const startReply = (m: ChatMsg) => { setReply(m); setEditing(null); setMenuFor(null); taRef.current?.focus() }
-  const insertMention = (un: string) => { setText(t => (t ? t + ' ' : '') + '@' + un + ' '); taRef.current?.focus() }
+  const insertMention = (un: string) => { insertTextAtCaret('@' + un + ' ') }
 
   const startRec = async () => {
     try {
@@ -732,13 +800,13 @@ export default function ChatPage() {
             <span className="text-green font-bold">{editing ? 'Редактирование' : `Ответ ${reply!.name}`}</span>
             <span className="text-[#8a8a93] truncate"> · {stripTokens((editing || reply)!.text) || '📎 вложение'}</span>
           </div>
-          <button onClick={() => { setReply(null); setEditing(null); setText('') }} className="text-[#8a8a93] text-[16px] px-1">✕</button>
+          <button onClick={() => { setReply(null); setEditing(null); setComposer('') }} className="text-[#8a8a93] text-[16px] px-1">✕</button>
         </div>
       )}
 
       {emojiOpen && (
         <div className="grid grid-cols-8 gap-1 px-3 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10' }}>
-          {PICKER.map(e => <button key={e} onClick={() => setText(t => t + e)} className="text-[22px] py-1 active:scale-125 transition-transform">{e}</button>)}
+          {PICKER.map(e => <button key={e} onClick={() => insertTextAtCaret(e)} className="text-[22px] py-1 active:scale-125 transition-transform">{e}</button>)}
         </div>
       )}
 
@@ -804,7 +872,7 @@ export default function ChatPage() {
                     </div>
                     <div className="grid grid-cols-6 gap-1">
                       {p.stickers.map((st, i) => (
-                        <button key={i} onClick={() => insertEmoji(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
+                        <button key={i} onClick={() => insertEmojiNode(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
                           <InView rootRef={stScrollRef}>
                             {st.kind === 'video'
                               ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
@@ -820,7 +888,7 @@ export default function ChatPage() {
               ) : (
                 <div className="grid grid-cols-7 gap-1">
                   {STICKERS.map(s => (
-                    <button key={s} onClick={() => { setText(t => t + s); taRef.current?.focus() }} className="text-[28px] py-1 active:scale-125 transition-transform">{s}</button>
+                    <button key={s} onClick={() => insertTextAtCaret(s)} className="text-[28px] py-1 active:scale-125 transition-transform">{s}</button>
                   ))}
                 </div>
               )
@@ -896,24 +964,21 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/\{e:[avi]:[A-Za-z0-9_#-]+\}/.test(text) && (
-        <div className="px-4 py-1.5 shrink-0 text-[15px] text-white flex items-center flex-wrap gap-y-1 leading-[1.4]" style={{ borderTop: '1px solid rgba(255,255,255,.05)', background: '#0c0c10' }}>
-          <span className="text-[9px] text-[#8a8a93] mr-2 uppercase tracking-wide shrink-0">превью</span>
-          <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(text)}</span>
-        </div>
-      )}
-
       <div className="flex items-end px-2 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 8px)' }}>
         {/* единое поле: 📎 слева, текст, справа 😊 и ➤ — как в Telegram */}
         <div className="flex-1 flex items-end rounded-[22px] min-w-0" style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)' }}>
           <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} className="shrink-0 w-10 h-10 flex items-center justify-center" style={{ color: attachOpen ? '#4AE885' : '#8a8a93' }}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
           </button>
-          <textarea ref={taRef} value={text} onChange={e => onInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-            rows={1} placeholder="Сообщение…"
-            className="flex-1 resize-none max-h-28 py-2.5 text-[16px] text-white outline-none bg-transparent min-w-0"
-            style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
+          <div className="flex-1 relative min-w-0">
+            {!text && <div className="absolute left-0 top-2.5 text-[16px] text-[#8a8a93] pointer-events-none select-none">Сообщение…</div>}
+            <div ref={taRef} contentEditable suppressContentEditableWarning
+              onInput={onEditorInput}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+              onPaste={e => { e.preventDefault(); insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
+              className="text-[16px] text-white outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
+              style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 10, paddingBottom: 10, minHeight: 24 }} />
+          </div>
           <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} className="shrink-0 w-10 h-10 flex items-center justify-center active:scale-90 transition-transform" style={{ color: stickerOpen ? '#2bd47d' : '#4AE885' }} aria-label="Эмодзи и стикеры">
             <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8" /><line x1="9" y1="9.5" x2="9.01" y2="9.5" /><line x1="15" y1="9.5" x2="15.01" y2="9.5" /></svg>
           </button>
