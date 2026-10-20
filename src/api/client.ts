@@ -224,7 +224,7 @@ export interface ChatMsg {
 export interface ChatResp { messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean }
 export interface GifItem { id: string; preview: string; send: string }
 export interface StickerDef { fid: string; emoji: string; kind: string }
-export interface StickerPack { name: string; title: string; stickers: StickerDef[] }
+export interface StickerPack { name: string; title: string; emoji?: boolean; stickers: StickerDef[] }
 export interface ChatUserCard {
   user_id: number
   name: string

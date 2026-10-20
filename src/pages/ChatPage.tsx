@@ -53,7 +53,6 @@ const MY_UN = (ME?.username || '').toLowerCase()
 const BUB_IN = '#18222d'        // входящие (чужие)
 const BUB_OUT = '#1f6f43'       // исходящие (свои) — в фирменном зелёном
 const WALL = 'radial-gradient(1100px 560px at 50% -8%, #16261e 0%, #0e1612 42%, #0a0d0b 100%)'
-const EMOJI_PACK = 'SoLo_HaMiD'   // анимированные эмодзи как основные во вкладке «Эмодзи»
 
 const QUICK = ['❤️', '🔥', '👍', '😁', '👏', '🎉']
 const PICKER = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '👍', '👎', '🔥', '❤️', '🎉', '👏', '🙏', '💯', '🚀', '⚡', '✅', '❌', '👀', '💀', '🤝', '🤯']
@@ -445,8 +444,8 @@ export default function ChatPage() {
   const stScrollRef = useRef<HTMLDivElement>(null)
 
   const byId = new Map(msgs.map(m => [m.id, m]))
-  const emojiPack = packs.find(p => p.name === EMOJI_PACK)
-  const stickerPacks = packs.filter(p => p.name !== EMOJI_PACK)
+  const emojiPacks = packs.filter(p => p.emoji)          // custom_emoji паки → вставка в текст
+  const stickerPacks = packs.filter(p => !p.emoji)       // обычные стикеры → отдельным сообщением
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), 2500) }
 
   const scrollToBottom = (smooth = true) => {
@@ -566,7 +565,7 @@ export default function ChatPage() {
     try {
       const r = await api.chatStickersAdd(l)
       if (r.error) flash(r.message || 'Пак не найден')
-      else { setAddPackLink(''); await loadPacks(); if (r.pack) setStickerTab(r.pack.name) }
+      else { setAddPackLink(''); await loadPacks(); if (r.pack) setStickerTab(r.pack.emoji ? 'emoji' : r.pack.name) }
     } catch { flash('Ошибка') } finally { setPackBusy(false) }
   }
   const removePack = async (name: string) => {
@@ -576,6 +575,11 @@ export default function ChatPage() {
       await loadPacks()
       flash('Набор удалён')
     } catch { flash('Не удалось удалить') }
+  }
+  const insertEmoji = (name: string, idx: number, kind: string) => {
+    const k = kind === 'video' ? 'v' : kind === 'animated' ? 'a' : 'i'
+    setText(t => t + `{e:${k}:${name}#${idx}}`)
+    taRef.current?.focus()
   }
 
   const loadGifs = (q: string) => {
@@ -782,28 +786,28 @@ export default function ChatPage() {
           {/* контент */}
           <div ref={stScrollRef} className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
             {stickerTab === 'emoji' ? (
-              emojiPack && emojiPack.stickers.length ? (
-                <>
-                  {isAdmin && (
+              emojiPacks.length ? (
+                emojiPacks.map(p => (
+                  <div key={p.name} id={`pk_${p.name}`} className="mb-3">
                     <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0c0c10' }}>
-                      <span className="text-[12px] font-bold text-[#cfcfd4] truncate flex-1">{emojiPack.title}</span>
-                      <button onClick={() => removePack(emojiPack.name)} className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}>Удалить</button>
+                      <span className="text-[12px] font-bold text-[#cfcfd4] truncate flex-1">{p.title}</span>
+                      <button onClick={() => removePack(p.name)} className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}>Удалить</button>
                     </div>
-                  )}
-                <div className="grid grid-cols-6 gap-1">
-                  {emojiPack.stickers.map((st, i) => (
-                    <button key={i} onClick={() => { const k = st.kind === 'video' ? 'v' : st.kind === 'animated' ? 'a' : 'i'; setText(t => t + `{e:${k}:${emojiPack.name}#${i}}`); taRef.current?.focus() }} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
-                      <InView rootRef={stScrollRef}>
-                        {st.kind === 'video'
-                          ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
-                          : st.kind === 'animated'
-                            ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={48} />
-                            : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
-                      </InView>
-                    </button>
-                  ))}
-                </div>
-                </>
+                    <div className="grid grid-cols-6 gap-1">
+                      {p.stickers.map((st, i) => (
+                        <button key={i} onClick={() => insertEmoji(p.name, i, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
+                          <InView rootRef={stScrollRef}>
+                            {st.kind === 'video'
+                              ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                              : st.kind === 'animated'
+                                ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={48} />
+                                : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
+                          </InView>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
               ) : (
                 <div className="grid grid-cols-7 gap-1">
                   {STICKERS.map(s => (
