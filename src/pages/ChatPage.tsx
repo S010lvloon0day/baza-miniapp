@@ -27,6 +27,24 @@ function LottieSticker({ url, size = 120, play = true }: { url: string; size?: n
   return <div ref={ref} style={{ width: size, height: size }} />
 }
 
+/** Монтирует тяжёлый контент (видео/Lottie) только когда ячейка в зоне видимости —
+ *  иначе webview захлёбывается на сотнях стикеров/эмодзи и ничего не рисует. */
+function InView({ children, rootRef }: { children: any; rootRef: React.RefObject<HTMLElement | null> }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [vis, setVis] = useState(false)
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const io = new IntersectionObserver(
+      (es) => { if (es[0]) setVis(es[0].isIntersecting) },
+      { root: rootRef?.current || null, rootMargin: '250px' })
+    io.observe(el)
+    return () => io.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  return <div ref={ref} className="w-full h-full flex items-center justify-center">{vis ? children : null}</div>
+}
+
 const tg = (window as any).Telegram?.WebApp
 const ME = tg?.initDataUnsafe?.user
 const MY_UN = (ME?.username || '').toLowerCase()
@@ -384,6 +402,7 @@ export default function ChatPage() {
   const photoInput = useRef<HTMLInputElement>(null)
   const videoInput = useRef<HTMLInputElement>(null)
   const taRef = useRef<HTMLTextAreaElement>(null)
+  const stScrollRef = useRef<HTMLDivElement>(null)
 
   const byId = new Map(msgs.map(m => [m.id, m]))
   const emojiPack = packs.find(p => p.name === EMOJI_PACK)
@@ -712,17 +731,19 @@ export default function ChatPage() {
           </div>
 
           {/* контент */}
-          <div className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
+          <div ref={stScrollRef} className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
             {stickerTab === 'emoji' ? (
               emojiPack && emojiPack.stickers.length ? (
                 <div className="grid grid-cols-6 gap-1">
                   {emojiPack.stickers.map((st, i) => (
-                    <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform">
-                      {st.kind === 'video'
-                        ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
-                        : st.kind === 'animated'
-                          ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={54} play={false} />
-                          : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
+                    <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
+                      <InView rootRef={stScrollRef}>
+                        {st.kind === 'video'
+                          ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                          : st.kind === 'animated'
+                            ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={48} />
+                            : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
+                      </InView>
                     </button>
                   ))}
                 </div>
@@ -743,12 +764,14 @@ export default function ChatPage() {
                   </div>
                   <div className="grid grid-cols-4 gap-1">
                     {p.stickers.map((st, i) => (
-                      <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform">
-                        {st.kind === 'video'
-                          ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
-                          : st.kind === 'animated'
-                            ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={76} />
-                            : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
+                      <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
+                        <InView rootRef={stScrollRef}>
+                          {st.kind === 'video'
+                            ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                            : st.kind === 'animated'
+                              ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={76} />
+                              : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
+                        </InView>
                       </button>
                     ))}
                   </div>
