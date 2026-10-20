@@ -131,7 +131,7 @@ function Avatar({ name, src, size = 34, anim, onClick }: { name: string; src?: s
       {show
         ? (anim
           ? <video src={src} autoPlay loop muted playsInline className="w-full h-full object-cover" onError={() => setOk(false)} />
-          : <img src={src} alt="" draggable={false} className="w-full h-full object-cover" onError={() => setOk(false)} />)
+          : <img src={src} alt="" draggable={false} loading="lazy" decoding="async" className="w-full h-full object-cover" onError={() => setOk(false)} />)
         : initials}
     </div>
   )
@@ -409,8 +409,8 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
   )
 }
 
-function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: {
-  m: ChatMsg; prev: ChatMsg | null; next: ChatMsg | null; byId: Map<number, ChatMsg>
+function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }: {
+  m: ChatMsg; prev: ChatMsg | null; next: ChatMsg | null; quoted: ChatMsg | null
   onAction: (m: ChatMsg) => void; onReact: (id: number, e: string) => void
   onProfile: (uid: number) => void; onMedia: (url: string, video: boolean, msg?: ChatMsg) => void
 }) {
@@ -420,7 +420,8 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
   const groupedNext = !!next && next.user_id === m.user_id && !next.deleted && near(next, m) // есть сообщение ниже от того же
   const tail = !groupedNext // последний в своей серии — рисуем «хвост»
   const mentionsMe = !!MY_UN && !m.mine && (m.text || '').toLowerCase().includes('@' + MY_UN)
-  const quoted = m.reply_to ? byId.get(m.reply_to) : null
+  // quoted (цитируемое сообщение) приходит из родителя — пузырь не зависит от всей карты msgs,
+  // поэтому при новом сообщении перерисовывается только он сам, а не вся лента
   const src = m.has_media ? api.chatMediaUrl(m.id) : ''
   const onlyEmoji = !!m.text && /\{e:[avi]:[A-Za-z0-9_#-]+\}/.test(m.text) && m.text.replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '').trim() === ''
   // долгое нажатие на медиа → меню (ответить/удалить), обычный тап → просмотр
@@ -501,7 +502,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
           ) : (
             <div className="relative">
               {m.type === 'photo' && src && (
-                <img src={src} draggable={false} alt=""
+                <img src={src} draggable={false} alt="" loading="lazy" decoding="async"
                   onClick={(e) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } onMedia(src, false, m) }}
                   onTouchStart={lpStart} onTouchEnd={lpEnd} onTouchMove={lpEnd}
                   onMouseDown={lpStart} onMouseUp={lpEnd} onMouseLeave={lpEnd}
@@ -662,7 +663,9 @@ export default function ChatPage() {
         const full = first || pollTick.current % 5 === 0
         const r = await api.chat(full ? undefined : (lastId.current || undefined))
         if (!alive) return
-        setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setTyping(r.typing ?? []); setGifEnabled(!!r.gif)
+        setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setGifEnabled(!!r.gif)
+        // «печатает…» обновляем только при реальном изменении — иначе лишний ре-рендер каждые 2.2с
+        setTyping(prev => { const n = r.typing ?? []; return (prev.length === n.length && prev.every((v, i) => v === n[i])) ? prev : n })
 
         if (r.gated) { setGated(true); setChannel(r.channel || ''); setReady(true); return }
         setGated(false)
@@ -691,9 +694,17 @@ export default function ChatPage() {
       if (alive) { pull(true); loadPacks() }
     }
     boot()
-    const t = window.setInterval(() => pull(false), 2200)
-    const tk = window.setInterval(() => { api.chatMtoken().then(r => alive && applyMtok(r.token)).catch(() => {}) }, 8 * 60 * 1000)
-    return () => { alive = false; window.clearInterval(t); window.clearInterval(tk) }
+    // опрос на паузе, когда чат свёрнут/неактивен (экономим сеть и батарею)
+    const t = window.setInterval(() => { if (!document.hidden) pull(false) }, 2200)
+    const tk = window.setInterval(() => { if (!document.hidden) api.chatMtoken().then(r => alive && applyMtok(r.token)).catch(() => {}) }, 8 * 60 * 1000)
+    // вернулись в чат — сразу обновляем ленту и медиа-токен (без ожидания следующего тика)
+    const onVis = () => {
+      if (document.hidden || !alive) return
+      api.chatMtoken().then(r => alive && applyMtok(r.token)).catch(() => {})
+      pull(false)
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => { alive = false; window.clearInterval(t); window.clearInterval(tk); document.removeEventListener('visibilitychange', onVis) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -1053,7 +1064,7 @@ export default function ChatPage() {
                   <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(0,0,0,.35)', color: '#d7d7dc', backdropFilter: 'blur(2px)' }}>{d}</span>
                 </div>
               )}
-              <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} byId={byId} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} />
+              <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} />
             </div>
           )
         })}
