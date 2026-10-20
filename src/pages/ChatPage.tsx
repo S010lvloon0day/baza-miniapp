@@ -118,10 +118,49 @@ function Avatar({ name, src, size = 34, anim, onClick }: { name: string; src?: s
   )
 }
 
-function renderText(text: string) {
-  const parts = text.split(/(@[A-Za-z0-9_]{3,32})/g)
-  return parts.map((p, i) =>
-    p.startsWith('@') ? <span key={i} className="font-bold" style={{ color: '#7fe0ff' }}>{p}</span> : <span key={i}>{p}</span>)
+// кэш паков для разрешения инлайн-эмодзи в тексте (name -> pack)
+const PACKCACHE: Record<string, import('../api/client').StickerPack> = {}
+const EMOJI_TOKEN = /\{e:([avi]):([A-Za-z0-9_]+)#(\d+)\}/g
+
+/** Кастом-эмодзи внутри текста (анимированное/видео/картинка). */
+function InlineEmoji({ kind, name, idx, size }: { kind: string; name: string; idx: number; size: number }) {
+  const fid = PACKCACHE[name]?.stickers[idx]?.fid
+  if (!fid) return <span className="inline-block" style={{ width: size, height: size, verticalAlign: '-0.3em' }} />
+  const url = api.chatStickerUrl(fid, kind === 'v' ? 'video' : kind === 'a' ? 'animated' : 'image')
+  return (
+    <span className="inline-block" style={{ width: size, height: size, verticalAlign: '-0.3em' }}>
+      {kind === 'a' ? <LottieSticker url={url} size={size} />
+        : kind === 'v' ? <video src={url} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+          : <img src={url} alt="" loading="lazy" className="w-full h-full object-contain" />}
+    </span>
+  )
+}
+
+/** В превью (ответы/закреп) эмодзи-токены заменяем на 🙂, чтобы не светить код. */
+function stripTokens(text: string) {
+  return (text || '').replace(/\{e:[avi]:[A-Za-z0-9_]+#\d+\}/g, '🙂')
+}
+
+function renderText(text: string, big = false) {
+  const out: any[] = []
+  const re = new RegExp(EMOJI_TOKEN.source, 'g')
+  let last = 0, mm: RegExpExecArray | null, key = 0
+  const pushText = (s: string) => {
+    if (!s) return
+    s.split(/(@[A-Za-z0-9_]{3,32})/g).forEach((p) => {
+      if (!p) return
+      out.push(p.startsWith('@')
+        ? <span key={key++} className="font-bold" style={{ color: '#7fe0ff' }}>{p}</span>
+        : <span key={key++}>{p}</span>)
+    })
+  }
+  while ((mm = re.exec(text))) {
+    pushText(text.slice(last, mm.index))
+    out.push(<InlineEmoji key={key++} kind={mm[1]} name={mm[2]} idx={parseInt(mm[3], 10)} size={big ? 44 : 20} />)
+    last = mm.index + mm[0].length
+  }
+  pushText(text.slice(last))
+  return out
 }
 
 /** Время + «изменено» + галочки, как в Telegram (встроено в хвост последней строки). */
@@ -248,6 +287,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
   const mentionsMe = !!MY_UN && !m.mine && (m.text || '').toLowerCase().includes('@' + MY_UN)
   const quoted = m.reply_to ? byId.get(m.reply_to) : null
   const src = m.has_media ? api.chatMediaUrl(m.id) : ''
+  const onlyEmoji = !!m.text && /\{e:[avi]:[A-Za-z0-9_]+#\d+\}/.test(m.text) && m.text.replace(/\{e:[avi]:[A-Za-z0-9_]+#\d+\}/g, '').trim() === ''
 
   if (m.deleted) {
     return (
@@ -305,7 +345,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
           {quoted && (
             <div className="mx-1.5 mt-1.5 px-2 py-1 rounded-md text-[12px]" style={{ background: mine ? 'rgba(0,0,0,.22)' : 'rgba(255,255,255,.06)', borderLeft: '2px solid rgba(127,224,255,.7)' }}>
               <span className="font-semibold" style={{ color: '#7fe0ff' }}>{quoted.name}</span>
-              <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.75)' : '#b9b9c2' }}>{quoted.deleted ? 'удалено' : (quoted.text || '📎 вложение')}</div>
+              <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.75)' : '#b9b9c2' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || '📎 вложение')}</div>
             </div>
           )}
 
@@ -343,7 +383,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
 
           {m.text && (
             <div className="px-2.5 py-1.5 text-[15px] leading-[1.32] text-white break-words" style={{ wordBreak: 'break-word' }}>
-              <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(m.text)}</span>
+              <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(m.text, onlyEmoji)}</span>
               {/* метаданные встроены в конец последней строки — текст обтекает, как в Telegram */}
               <span className="inline-block align-bottom ml-2" style={{ transform: 'translateY(2px)' }}><MsgMeta m={m} /></span>
             </div>
@@ -440,6 +480,7 @@ export default function ChatPage() {
       } catch { /* тихо */ }
     }
     pull(true)
+    loadPacks()  // чтобы инлайн-эмодзи в сообщениях сразу находили свой пак
     const t = window.setInterval(() => pull(false), 2200)
     return () => { alive = false; window.clearInterval(t) }
   }, [])
@@ -510,7 +551,7 @@ export default function ChatPage() {
     else doUpload(type, f, f.type || '')
   }
 
-  const loadPacks = () => api.chatStickers().then(r => { setPacks(r.packs || []) }).catch(() => {})
+  const loadPacks = () => api.chatStickers().then(r => { const ps = r.packs || []; setPacks(ps); for (const p of ps) PACKCACHE[p.name] = p }).catch(() => {})
   const openSticker = () => { setAttachOpen(false); setStickerOpen(true); loadPacks() }
   const sendStickerFile = async (fid: string, kind: string) => {
     setStickerOpen(false)
@@ -643,7 +684,7 @@ export default function ChatPage() {
           <span className="text-[14px]">📌</span>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wide text-green">Закреплено · {pinned.name}</div>
-            <div className="text-[12px] text-white truncate">{pinned.text || '📎 вложение'}</div>
+            <div className="text-[12px] text-white truncate">{stripTokens(pinned.text) || '📎 вложение'}</div>
           </div>
           {isAdmin && <button onClick={unpin} className="text-[11px] font-bold text-[#8a8a93] px-2 py-1">Открепить</button>}
         </div>
@@ -676,7 +717,7 @@ export default function ChatPage() {
         <div className="flex items-center gap-2 px-4 py-1.5 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10' }}>
           <div className="flex-1 min-w-0 text-[12px]">
             <span className="text-green font-bold">{editing ? 'Редактирование' : `Ответ ${reply!.name}`}</span>
-            <span className="text-[#8a8a93] truncate"> · {(editing || reply)!.text || '📎 вложение'}</span>
+            <span className="text-[#8a8a93] truncate"> · {stripTokens((editing || reply)!.text) || '📎 вложение'}</span>
           </div>
           <button onClick={() => { setReply(null); setEditing(null); setText('') }} className="text-[#8a8a93] text-[16px] px-1">✕</button>
         </div>
@@ -751,7 +792,7 @@ export default function ChatPage() {
                   )}
                 <div className="grid grid-cols-6 gap-1">
                   {emojiPack.stickers.map((st, i) => (
-                    <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
+                    <button key={i} onClick={() => { const k = st.kind === 'video' ? 'v' : st.kind === 'animated' ? 'a' : 'i'; setText(t => t + `{e:${k}:${emojiPack.name}#${i}}`); taRef.current?.focus() }} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
                       <InView rootRef={stScrollRef}>
                         {st.kind === 'video'
                           ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
