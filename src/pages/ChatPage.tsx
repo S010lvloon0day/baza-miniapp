@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
@@ -541,6 +541,23 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
   )
 }
 
+// мемоизированная строка сообщения — не перерисовывается, пока его пропсы те же
+const MsgRow = memo(Bubble)
+
+// компактная «подпись» ленты: меняется только при реальных изменениях
+// (новое/удалённое сообщение, правка текста, реакции) — чтобы не дёргать рендер на пустых опросах
+function chatSig(arr: ChatMsg[]): string {
+  let s = ''
+  for (const m of arr) {
+    s += m.id + '.' + (m.edited ? 1 : 0) + (m.deleted ? 1 : 0) + '.' + (m.text ? m.text.length : 0) + '.'
+    const rs = m.reactions || []
+    for (const r of rs) s += r.emoji + r.count + (r.mine ? 'x' : '')
+    s += '|'
+  }
+  return s
+}
+const maxId = (arr: ChatMsg[]) => arr.reduce((mx, m) => (m.id > mx ? m.id : mx), 0)
+
 export default function ChatPage() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
   const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
@@ -583,6 +600,8 @@ export default function ChatPage() {
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastId = useRef(0)
+  const sigRef = useRef('')      // подпись текущей ленты — чтобы пропускать рендер на пустых опросах
+  const pollTick = useRef(0)     // счётчик опросов: периодически делаем полную сверку
   const atBottom = useRef(true)
   const lastTyping = useRef(0)
   const mediaRec = useRef<MediaRecorder | null>(null)
@@ -593,7 +612,7 @@ export default function ChatPage() {
   const taRef = useRef<HTMLDivElement>(null)   // rich-поле ввода (contenteditable)
   const stScrollRef = useRef<HTMLDivElement>(null)
 
-  const byId = new Map(msgs.map(m => [m.id, m]))
+  const byId = useMemo(() => new Map(msgs.map(m => [m.id, m])), [msgs])
   const emojiPacks = packs.filter(p => p.emoji)          // custom_emoji паки → вставка в текст
   const stickerPacks = packs.filter(p => !p.emoji)       // обычные стикеры → отдельным сообщением
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), 2500) }
@@ -612,7 +631,10 @@ export default function ChatPage() {
       const map = new Map(prev.map(m => [m.id, m]))
       for (const m of incoming) map.set(m.id, m)
       const arr = [...map.values()].sort((a, b) => a.id - b.id)
-      lastId.current = arr.length ? arr[arr.length - 1].id : 0
+      const sig = chatSig(arr)
+      if (sig === sigRef.current) return prev   // ничего не изменилось — не трогаем ленту
+      sigRef.current = sig
+      lastId.current = maxId(arr)
       return arr
     })
   }, [])
@@ -621,22 +643,35 @@ export default function ChatPage() {
     let alive = true
     const pull = async (first = false) => {
       try {
-        const r = await api.chat()
+        pollTick.current++
+        // первый опрос и каждый ~5-й — полная сверка (реакции/правки/удаления),
+        // остальные — инкрементально только новые сообщения (лёгкий трафик, без рывков)
+        const full = first || pollTick.current % 5 === 0
+        const r = await api.chat(full ? undefined : (lastId.current || undefined))
         if (!alive) return
         setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setTyping(r.typing ?? []); setGifEnabled(!!r.gif)
-        const wasBottom = atBottom.current
-        setMsgs(r.messages); lastId.current = r.messages.length ? r.messages[r.messages.length - 1].id : 0
+
         if (first) {
           // открываем сразу на последнем сообщении, без видимой прокрутки
+          setMsgs(r.messages); sigRef.current = chatSig(r.messages); lastId.current = maxId(r.messages)
           requestAnimationFrame(() => { jumpBottom(); requestAnimationFrame(() => { jumpBottom(); setReady(true) }) })
           setTimeout(jumpBottom, 120); setTimeout(jumpBottom, 350); setTimeout(jumpBottom, 700)
-        } else if (wasBottom) scrollToBottom(true)
+          return
+        }
+
+        if (!r.messages.length) return            // пусто — ничего не перерисовываем
+        const wasBottom = atBottom.current
+        const prevMax = lastId.current
+        const newMax = maxId(r.messages)
+        merge(r.messages)                          // обновит ленту только при реальном изменении
+        if (newMax > prevMax && wasBottom) scrollToBottom(true)  // скроллим лишь при новом сообщении
       } catch { /* тихо */ }
     }
     pull(true)
     loadPacks()  // чтобы инлайн-эмодзи в сообщениях сразу находили свой пак
     const t = window.setInterval(() => pull(false), 2200)
     return () => { alive = false; window.clearInterval(t) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // запоминаем последнюю выбранную вкладку панели
@@ -705,8 +740,7 @@ export default function ChatPage() {
         if (r.error === 'slow') { flash(r.message || 'Не так быстро'); setSending(false); return }
         setComposer(''); setReply(null)
       }
-      const fresh = await api.chat()
-      setMsgs(fresh.messages); lastId.current = fresh.messages.at(-1)?.id || 0; scrollToBottom()
+      const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
     finally { setSending(false) }
   }
@@ -716,8 +750,7 @@ export default function ChatPage() {
     const r = await uploadMedia(type, file, mime, dur, '', ttlSec, onceOn)
     if (onceOn) setOnceOn(false)
     if (r?.error) { flash(r.message || 'Не удалось загрузить'); return }
-    const fresh = await api.chat()
-    setMsgs(fresh.messages); lastId.current = fresh.messages.at(-1)?.id || 0; scrollToBottom(); setToast('')
+    const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom(); setToast('')
   }
 
   const onPick = (type: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -733,7 +766,7 @@ export default function ChatPage() {
     setStickerOpen(false)
     try {
       await api.chatStickerFile(fid, kind, ttlSec || undefined)
-      const fresh = await api.chat(); setMsgs(fresh.messages); lastId.current = fresh.messages.at(-1)?.id || 0; scrollToBottom()
+      const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
   }
   const addPack = async () => {
@@ -764,7 +797,7 @@ export default function ChatPage() {
     setGifOpen(false)
     try {
       await api.chatGifSend(url, ttlSec || undefined)
-      const fresh = await api.chat(); setMsgs(fresh.messages); lastId.current = fresh.messages.at(-1)?.id || 0; scrollToBottom()
+      const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
   }
 
@@ -809,19 +842,27 @@ export default function ChatPage() {
   const pin = async (id: number) => { try { await api.chatPin(id); const r = await api.chat(); setPinned(r.pinned ?? null); setMenuFor(null); flash('Закреплено') } catch { /* */ } }
   const unpin = async () => { try { await api.chatUnpin(); setPinned(null) } catch { /* */ } }
 
-  const react = async (id: number, emoji: string) => {
-    setMsgs(prev => prev.map(m => {
-      if (m.id !== id) return m
-      const rs = [...(m.reactions || [])]; const i = rs.findIndex(r => r.emoji === emoji)
-      if (i >= 0) {
-        const r = rs[i]; const nc = r.count + (r.mine ? -1 : 1)
-        if (nc <= 0) rs.splice(i, 1); else rs[i] = { ...r, count: nc, mine: !r.mine }
-      } else rs.push({ emoji, count: 1, mine: true })
-      return { ...m, reactions: rs }
-    }))
+  const react = useCallback(async (id: number, emoji: string) => {
+    setMsgs(prev => {
+      const arr = prev.map(m => {
+        if (m.id !== id) return m
+        const rs = [...(m.reactions || [])]; const i = rs.findIndex(r => r.emoji === emoji)
+        if (i >= 0) {
+          const r = rs[i]; const nc = r.count + (r.mine ? -1 : 1)
+          if (nc <= 0) rs.splice(i, 1); else rs[i] = { ...r, count: nc, mine: !r.mine }
+        } else rs.push({ emoji, count: 1, mine: true })
+        return { ...m, reactions: rs }
+      })
+      sigRef.current = chatSig(arr)   // синхронизируем подпись, иначе следующий опрос лишний раз перерисует
+      return arr
+    })
     try { await api.chatReact(id, emoji) } catch { /* */ }
     setMenuFor(null)
-  }
+  }, [])
+
+  const onMedia = useCallback(
+    (url: string, video: boolean, mm?: ChatMsg) => setViewer({ url, video, id: mm?.id, mine: mm?.mine }),
+    [])
 
   const startEdit = (m: ChatMsg) => { setEditing(m); setReply(null); setComposer(m.text); setMenuFor(null); taRef.current?.focus() }
   const startReply = (m: ChatMsg) => { setReply(m); setEditing(null); setMenuFor(null); taRef.current?.focus() }
@@ -903,7 +944,7 @@ export default function ChatPage() {
                   <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(0,0,0,.35)', color: '#d7d7dc', backdropFilter: 'blur(2px)' }}>{d}</span>
                 </div>
               )}
-              <Bubble m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} byId={byId} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={(url, video, mm) => setViewer({ url, video, id: mm?.id, mine: mm?.mine })} />
+              <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} byId={byId} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} />
             </div>
           )
         })}
