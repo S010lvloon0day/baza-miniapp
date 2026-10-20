@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
@@ -75,6 +75,7 @@ function ttlLabel(s: number) { return s === 0 ? 'выкл' : s < 60 ? `${s}с` :
 function timeOf(iso: string) {
   try { return new Date(iso).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) } catch { return '' }
 }
+function fmtDur(s: number) { s = Math.max(0, Math.floor(s || 0)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}` }
 function dayLabel(iso: string) {
   try {
     const d = new Date(iso); const now = new Date()
@@ -226,6 +227,48 @@ function insertAtCaret(root: HTMLElement, node: Node) {
   } else {
     root.appendChild(node)
   }
+}
+
+/** Голосовое сообщение: play/pause + «волна» + таймер, как в Telegram. */
+function VoiceMsg({ url, mine }: { url: string; mine?: boolean }) {
+  const aRef = useRef<HTMLAudioElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [cur, setCur] = useState(0)
+  const [dur, setDur] = useState(0)
+  const bars = useMemo(() => {
+    let h = 0; for (let i = 0; i < url.length; i++) h = (h * 31 + url.charCodeAt(i)) >>> 0
+    const a: number[] = []
+    for (let i = 0; i < 32; i++) { h = (h * 1103515245 + 12345) & 0x7fffffff; a.push(0.22 + (h % 100) / 100 * 0.78) }
+    return a
+  }, [url])
+  const toggle = () => { const a = aRef.current; if (!a) return; if (a.paused) { a.play().catch(() => {}); setPlaying(true) } else { a.pause(); setPlaying(false) } }
+  const onMeta = () => {
+    const a = aRef.current; if (!a) return
+    if (!isFinite(a.duration)) { a.currentTime = 1e101; a.ontimeupdate = () => { a.ontimeupdate = null; a.currentTime = 0; setDur(a.duration) } }
+    else setDur(a.duration)
+  }
+  const frac = dur > 0 ? Math.min(1, cur / dur) : 0
+  const accent = mine ? '#d6ffe8' : '#4AE885'
+  const dim = mine ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.2)'
+  return (
+    <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 190, maxWidth: 260 }}>
+      <button onClick={toggle} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: accent, color: '#06281a' }}>
+        {playing
+          ? <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+          : <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
+      </button>
+      <div className="flex items-center gap-[2px] h-7 flex-1 cursor-pointer" onClick={(e) => { const a = aRef.current; if (!a || !dur) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur; setCur(a.currentTime) }}>
+        {bars.map((b, i) => (
+          <span key={i} style={{ width: 3, borderRadius: 3, height: `${Math.round(b * 100)}%`, background: (i / bars.length) <= frac ? accent : dim }} />
+        ))}
+      </div>
+      <span className="text-[11px] tabular-nums shrink-0" style={{ color: mine ? 'rgba(255,255,255,.8)' : '#9a9aa2' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
+      <audio ref={aRef} src={url} preload="metadata" onLoadedMetadata={onMeta}
+        onTimeUpdate={() => setCur(aRef.current?.currentTime || 0)}
+        onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
+        onEnded={() => { setPlaying(false); setCur(0) }} />
+    </div>
+  )
 }
 
 /** Время + «изменено» + галочки, как в Telegram (встроено в хвост последней строки). */
@@ -436,9 +479,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
               {m.type === 'video' && src && (
                 <video src={src} controls controlsList="nodownload noplaybackrate" disablePictureInPicture className="block max-h-[360px] w-full select-none" />
               )}
-              {m.type === 'voice' && src && (
-                <div className="px-3 py-2"><audio src={src} controls controlsList="nodownload" className="w-[210px] max-w-full h-9" /></div>
-              )}
+              {m.type === 'voice' && src && <VoiceMsg url={src} mine={mine} />}
               {/* на медиа без подписи — время поверх картинки в тёмной плашке */}
               {onlyMedia && (m.type === 'photo' || m.type === 'gif' || m.type === 'video') && (
                 <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full flex items-center" style={{ background: 'rgba(0,0,0,.5)' }}><MsgMeta m={m} light /></span>
@@ -482,6 +523,11 @@ export default function ChatPage() {
   const [photoEdit, setPhotoEdit] = useState<{ url: string; file: File } | null>(null)
   const [filterIdx, setFilterIdx] = useState(0)
   const [rec, setRec] = useState(false)
+  const [recElapsed, setRecElapsed] = useState(0)
+  const [recCancel, setRecCancel] = useState(false)
+  const recTimer = useRef<number | null>(null)
+  const recCancelRef = useRef(false)
+  const touchStartX = useRef(0)
   const [ttlSec, setTtlSec] = useState(0)
   const [onceOn, setOnceOn] = useState(false)
   const [gifOpen, setGifOpen] = useState(false)
@@ -740,12 +786,22 @@ export default function ChatPage() {
         const blob = new Blob(chunks.current, { type: mr.mimeType || 'audio/webm' })
         stream.getTracks().forEach(t => t.stop())
         const dur = (Date.now() - recStart.current) / 1000
-        if (blob.size > 1200 && dur > 0.4) doUpload('voice', blob, mr.mimeType || 'audio/webm', dur)
+        if (recCancelRef.current) { recCancelRef.current = false; return }   // отменено
+        if (blob.size > 1200 && dur > 0.5) doUpload('voice', blob, mr.mimeType || 'audio/webm', dur)
+        else flash('Слишком коротко — держи дольше')
       }
-      mediaRec.current = mr; recStart.current = Date.now(); mr.start(); setRec(true)
+      mediaRec.current = mr; recStart.current = Date.now()
+      recCancelRef.current = false; setRecCancel(false); setRecElapsed(0)
+      mr.start(); setRec(true)
+      recTimer.current = window.setInterval(() => setRecElapsed(Math.floor((Date.now() - recStart.current) / 1000)), 250)
     } catch { flash('Нет доступа к микрофону') }
   }
-  const stopRec = () => { setRec(false); try { mediaRec.current?.stop() } catch { /* */ } }
+  const stopRec = () => {
+    setRec(false); setRecCancel(false)
+    if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null }
+    try { mediaRec.current?.stop() } catch { /* */ }
+  }
+  const cancelRec = () => { recCancelRef.current = true; stopRec() }
 
   let lastDay = ''
 
@@ -924,13 +980,17 @@ export default function ChatPage() {
             <button onClick={() => setStickerTab('emoji')} className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[18px]"
               style={{ background: stickerTab === 'emoji' ? 'rgba(74,232,133,.16)' : 'transparent' }}>😀</button>
             {packs.map(p => {
-              const th = p.stickers.find(s => s.kind === 'image')
+              const th = p.stickers[0]   // первый стикер пака как иконка — понятно, что это
               const on = p.emoji ? false : stickerTab === p.name
               return (
                 <button key={p.name} onClick={() => { setStickerTab(p.emoji ? 'emoji' : p.name); setTimeout(() => document.getElementById(`pk_${p.name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}
-                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ background: on ? 'rgba(74,232,133,.16)' : 'transparent', border: '1px solid rgba(255,255,255,.05)' }}>
+                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: on ? 'rgba(74,232,133,.16)' : 'transparent', border: '1px solid rgba(255,255,255,.05)' }}>
                   {th
-                    ? <img src={api.chatStickerUrl(th.fid, 'image')} alt="" loading="lazy" className="w-7 h-7 object-contain" />
+                    ? (th.kind === 'video'
+                      ? <video src={api.chatStickerUrl(th.fid, 'video')} autoPlay loop muted playsInline className="w-7 h-7 object-contain" />
+                      : th.kind === 'animated'
+                        ? <LottieSticker url={api.chatStickerUrl(th.fid, 'animated')} size={28} />
+                        : <img src={api.chatStickerUrl(th.fid, 'image')} alt="" loading="lazy" className="w-7 h-7 object-contain" />)
                     : <span className="text-[11px] font-bold text-[#cfcfd4]">{p.title.replace('@', '').slice(0, 2).toUpperCase()}</span>}
                 </button>
               )
@@ -964,36 +1024,51 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="flex items-end px-2 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 8px)' }}>
-        {/* единое поле: 📎 слева, текст, справа 😊 и ➤ — как в Telegram */}
-        <div className="flex-1 flex items-end rounded-[22px] min-w-0" style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)' }}>
-          <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} className="shrink-0 w-10 h-10 flex items-center justify-center" style={{ color: attachOpen ? '#4AE885' : '#8a8a93' }}>
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-          </button>
-          <div className="flex-1 relative min-w-0">
-            {!text && <div className="absolute left-0 top-2.5 text-[16px] text-[#8a8a93] pointer-events-none select-none">Сообщение…</div>}
-            <div ref={taRef} contentEditable suppressContentEditableWarning
-              onInput={onEditorInput}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-              onPaste={e => { e.preventDefault(); insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
-              className="text-[16px] text-white outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
-              style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 10, paddingBottom: 10, minHeight: 24 }} />
+      <div className="flex items-end gap-2 px-2 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 8px)' }}>
+        {rec ? (
+          /* индикатор записи голосового */
+          <div className="flex-1 flex items-center gap-2.5 rounded-[22px] px-3.5" style={{ background: '#17171d', border: '1px solid rgba(255,80,80,.3)', height: 44 }}>
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full" style={{ background: '#ff5050', opacity: .55 }} />
+              <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#ff5050' }} />
+            </span>
+            <span className="text-[15px] text-white tabular-nums shrink-0">{fmtDur(recElapsed)}</span>
+            <span className="text-[12px] ml-1 truncate" style={{ color: recCancel ? '#ff8a8a' : '#8a8a93' }}>{recCancel ? 'отпусти — отмена' : '‹ смахни влево для отмены'}</span>
+            <button onClick={cancelRec} className="ml-auto text-[12px] font-bold text-[#ff8a8a] px-2 py-1 shrink-0">Отмена</button>
           </div>
-          <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} className="shrink-0 w-10 h-10 flex items-center justify-center active:scale-90 transition-transform" style={{ color: stickerOpen ? '#2bd47d' : '#4AE885' }} aria-label="Эмодзи и стикеры">
-            <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8" /><line x1="9" y1="9.5" x2="9.01" y2="9.5" /><line x1="15" y1="9.5" x2="15.01" y2="9.5" /></svg>
+        ) : (
+          /* единое поле: 📎 слева, текст, справа 😊 — как в Telegram */
+          <div className="flex-1 flex items-end rounded-[22px] min-w-0" style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)' }}>
+            <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} className="shrink-0 w-10 h-10 flex items-center justify-center" style={{ color: attachOpen ? '#4AE885' : '#8a8a93' }}>
+              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+            </button>
+            <div className="flex-1 relative min-w-0">
+              {!text && <div className="absolute left-0 top-2.5 text-[16px] text-[#8a8a93] pointer-events-none select-none">Сообщение…</div>}
+              <div ref={taRef} contentEditable suppressContentEditableWarning
+                onInput={onEditorInput}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                onPaste={e => { e.preventDefault(); insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
+                className="text-[16px] text-white outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
+                style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 10, paddingBottom: 10, minHeight: 24 }} />
+            </div>
+            <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} className="shrink-0 w-10 h-10 flex items-center justify-center active:scale-90 transition-transform" style={{ color: stickerOpen ? '#2bd47d' : '#4AE885' }} aria-label="Эмодзи и стикеры">
+              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8" /><line x1="9" y1="9.5" x2="9.01" y2="9.5" /><line x1="15" y1="9.5" x2="15.01" y2="9.5" /></svg>
+            </button>
+          </div>
+        )}
+        {text.trim() && !rec ? (
+          <button onClick={send} disabled={sending} className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform" style={{ background: 'linear-gradient(180deg,#39FF9A,#22C55E)', color: '#06281a' }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20l18-8L3 4v6l12 2-12 2z" /></svg>
           </button>
-          {text.trim() ? (
-            <button onClick={send} disabled={sending} className="shrink-0 w-10 h-10 flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform" style={{ color: '#4AE885' }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20l18-8L3 4v6l12 2-12 2z" /></svg>
-            </button>
-          ) : (
-            <button onMouseDown={startRec} onMouseUp={stopRec} onMouseLeave={() => rec && stopRec()}
-              onTouchStart={(e) => { e.preventDefault(); startRec() }} onTouchEnd={(e) => { e.preventDefault(); stopRec() }}
-              className="shrink-0 w-10 h-10 flex items-center justify-center active:scale-90 transition-transform" style={{ color: rec ? '#ff5050' : '#8a8a93' }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" /><path d="M5 11a7 7 0 0 0 14 0h-2a5 5 0 0 1-10 0H5zm6 7h2v3h-2z" /></svg>
-            </button>
-          )}
-        </div>
+        ) : (
+          <button onMouseDown={startRec} onMouseUp={stopRec} onMouseLeave={() => rec && stopRec()}
+            onTouchStart={(e) => { e.preventDefault(); touchStartX.current = e.touches[0].clientX; startRec() }}
+            onTouchMove={(e) => { const dx = e.touches[0].clientX - touchStartX.current; const c = dx < -70; recCancelRef.current = c; setRecCancel(c) }}
+            onTouchEnd={(e) => { e.preventDefault(); stopRec() }}
+            className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform" style={{ background: rec ? '#ff5050' : 'linear-gradient(180deg,#39FF9A,#22C55E)', color: rec ? '#fff' : '#06281a' }}>
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" /><path d="M5 11a7 7 0 0 0 14 0h-2a5 5 0 0 1-10 0H5zm6 7h2v3h-2z" /></svg>
+          </button>
+        )}
       </div>
 
       <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPick('photo')} />
