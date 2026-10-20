@@ -119,11 +119,17 @@ function Avatar({ name, src, size = 34, anim, onClick }: { name: string; src?: s
 
 // кэш паков для разрешения инлайн-эмодзи в тексте (name -> pack)
 const PACKCACHE: Record<string, import('../api/client').StickerPack> = {}
-const EMOJI_TOKEN = /\{e:([avi]):([A-Za-z0-9_]+)#(\d+)\}/g
+const EMOJI_TOKEN = /\{e:([avi]):([A-Za-z0-9_#-]+)\}/g
 
-/** Кастом-эмодзи внутри текста (анимированное/видео/картинка). */
-function InlineEmoji({ kind, name, idx, size }: { kind: string; name: string; idx: number; size: number }) {
-  const fid = PACKCACHE[name]?.stickers[idx]?.fid
+/** Кастом-эмодзи внутри текста. Новый формат — сам file_id (рисуется всегда),
+ *  старый формат name#idx — через кэш паков (обратная совместимость). */
+function InlineEmoji({ kind, eref, size }: { kind: string; eref: string; size: number }) {
+  let fid = eref
+  const h = eref.indexOf('#')
+  if (h >= 0) {
+    const nm = eref.slice(0, h), ix = parseInt(eref.slice(h + 1), 10)
+    fid = PACKCACHE[nm]?.stickers[ix]?.fid || ''
+  }
   if (!fid) return <span className="inline-block" style={{ width: size, height: size, verticalAlign: '-0.3em' }} />
   const url = api.chatStickerUrl(fid, kind === 'v' ? 'video' : kind === 'a' ? 'animated' : 'image')
   return (
@@ -137,7 +143,7 @@ function InlineEmoji({ kind, name, idx, size }: { kind: string; name: string; id
 
 /** В превью (ответы/закреп) эмодзи-токены заменяем на 🙂, чтобы не светить код. */
 function stripTokens(text: string) {
-  return (text || '').replace(/\{e:[avi]:[A-Za-z0-9_]+#\d+\}/g, '🙂')
+  return (text || '').replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '🙂')
 }
 
 function renderText(text: string, big = false) {
@@ -155,7 +161,7 @@ function renderText(text: string, big = false) {
   }
   while ((mm = re.exec(text))) {
     pushText(text.slice(last, mm.index))
-    out.push(<InlineEmoji key={key++} kind={mm[1]} name={mm[2]} idx={parseInt(mm[3], 10)} size={big ? 44 : 20} />)
+    out.push(<InlineEmoji key={key++} kind={mm[1]} eref={mm[2]} size={big ? 44 : 20} />)
     last = mm.index + mm[0].length
   }
   pushText(text.slice(last))
@@ -286,7 +292,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
   const mentionsMe = !!MY_UN && !m.mine && (m.text || '').toLowerCase().includes('@' + MY_UN)
   const quoted = m.reply_to ? byId.get(m.reply_to) : null
   const src = m.has_media ? api.chatMediaUrl(m.id) : ''
-  const onlyEmoji = !!m.text && /\{e:[avi]:[A-Za-z0-9_]+#\d+\}/.test(m.text) && m.text.replace(/\{e:[avi]:[A-Za-z0-9_]+#\d+\}/g, '').trim() === ''
+  const onlyEmoji = !!m.text && /\{e:[avi]:[A-Za-z0-9_#-]+\}/.test(m.text) && m.text.replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '').trim() === ''
 
   if (m.deleted) {
     return (
@@ -579,9 +585,9 @@ export default function ChatPage() {
       flash('Набор удалён')
     } catch { flash('Не удалось удалить') }
   }
-  const insertEmoji = (name: string, idx: number, kind: string) => {
+  const insertEmoji = (fid: string, kind: string) => {
     const k = kind === 'video' ? 'v' : kind === 'animated' ? 'a' : 'i'
-    setText(t => t + `{e:${k}:${name}#${idx}}`)
+    setText(t => t + `{e:${k}:${fid}}`)   // зашиваем сам file_id — рисуется всегда
     taRef.current?.focus()
   }
 
@@ -798,7 +804,7 @@ export default function ChatPage() {
                     </div>
                     <div className="grid grid-cols-6 gap-1">
                       {p.stickers.map((st, i) => (
-                        <button key={i} onClick={() => insertEmoji(p.name, i, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
+                        <button key={i} onClick={() => insertEmoji(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform overflow-hidden">
                           <InView rootRef={stScrollRef}>
                             {st.kind === 'video'
                               ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
@@ -890,7 +896,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      {/\{e:[avi]:[A-Za-z0-9_]+#\d+\}/.test(text) && (
+      {/\{e:[avi]:[A-Za-z0-9_#-]+\}/.test(text) && (
         <div className="px-4 py-1.5 shrink-0 text-[15px] text-white flex items-center flex-wrap gap-y-1 leading-[1.4]" style={{ borderTop: '1px solid rgba(255,255,255,.05)', background: '#0c0c10' }}>
           <span className="text-[9px] text-[#8a8a93] mr-2 uppercase tracking-wide shrink-0">превью</span>
           <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(text)}</span>
