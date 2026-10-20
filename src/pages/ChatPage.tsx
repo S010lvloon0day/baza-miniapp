@@ -325,27 +325,33 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
     <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)' }}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
-        className="w-full max-w-[460px] rounded-t-[26px] p-5 pb-8" style={{ background: '#101014', border: '1px solid rgba(255,255,255,.1)' }}>
+        className="w-full max-w-[460px] rounded-t-[26px] p-5 pb-8" style={{ background: '#0d0e12', border: '1px solid rgba(74,232,133,.14)', boxShadow: '0 -8px 40px rgba(0,0,0,.5)' }}>
+        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,.14)' }} />
         {!c ? (
           <div className="py-8 text-center text-[13px] text-[#8a8a93]">Загрузка…</div>
         ) : (
           <>
             <div className="flex items-center gap-3.5 mb-4">
-              <Avatar name={c.name} src={api.chatAvatarUrl(c.user_id, ver || undefined)} anim={c.avatar_anim} size={64} />
-              <div className="min-w-0">
+              <div className="shrink-0 rounded-full p-[2px]" style={{ background: 'linear-gradient(135deg,#39FF9A,#0f8a3e)' }}>
+                <Avatar name={c.name} src={api.chatAvatarUrl(c.user_id, ver || undefined)} anim={c.avatar_anim} size={60} />
+              </div>
+              <div className="min-w-0 flex-1">
                 <div className="text-[18px] font-extrabold text-white truncate flex items-center gap-2">
                   {c.name}
-                  {c.is_premium && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(34,197,94,.14)', color: '#4AE885', border: '1px solid rgba(34,197,94,.3)' }}>PREMIUM</span>}
+                  {c.is_premium && <span className="text-[9px] font-extrabold px-1.5 py-[3px] rounded-md tracking-wider shrink-0" style={{ background: 'linear-gradient(135deg,#39FF9A,#22C55E)', color: '#06281a' }}>PREMIUM</span>}
                 </div>
                 {c.username && <div className="text-[13px] text-[#8a8a93]">@{c.username}</div>}
-                <div className="text-[12px] text-green mt-0.5">{c.rank_emoji} {c.rank} · {c.xp} XP</div>
+                <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-[3px] rounded-full text-[11.5px] font-bold" style={{ background: 'rgba(74,232,133,.1)', border: '1px solid rgba(74,232,133,.28)', color: '#4AE885' }}>
+                  <span>{c.rank_emoji}</span>{c.rank}<span className="text-[#cfcfd4] font-semibold">· {c.xp} XP</span>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[['📚', c.materials_done, 'пройдено'], ['🔥', c.streak, 'дней подряд'], ['🎓', c.certificates, 'сертификатов']].map(([ic, val, lab], i) => (
-                <div key={i} className="rounded-xl py-3 text-center" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-                  <div className="text-[18px] font-extrabold text-white leading-none">{ic as string} {val as number}</div>
-                  <div className="text-[9.5px] font-bold uppercase tracking-wide text-[#9a9aa2] mt-1">{lab as string}</div>
+                <div key={i} className="rounded-2xl py-3 text-center" style={{ background: 'linear-gradient(180deg,rgba(74,232,133,.08),rgba(255,255,255,.015))', border: '1px solid rgba(74,232,133,.16)' }}>
+                  <div className="text-[15px] leading-none">{ic as string}</div>
+                  <div className="text-[20px] font-extrabold text-green leading-none mt-1">{val as number}</div>
+                  <div className="text-[9px] font-bold uppercase tracking-wide text-[#9a9aa2] mt-1">{lab as string}</div>
                 </div>
               ))}
             </div>
