@@ -385,7 +385,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
 function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: {
   m: ChatMsg; prev: ChatMsg | null; next: ChatMsg | null; byId: Map<number, ChatMsg>
   onAction: (m: ChatMsg) => void; onReact: (id: number, e: string) => void
-  onProfile: (uid: number) => void; onMedia: (url: string, video: boolean) => void
+  onProfile: (uid: number) => void; onMedia: (url: string, video: boolean, msg?: ChatMsg) => void
 }) {
   const mine = m.mine
   const near = (a: ChatMsg, b: ChatMsg) => Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) < 5 * 60000
@@ -463,7 +463,7 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
           )}
 
           {m.has_media && m.once && !mine ? (
-            <button onClick={(e) => { e.stopPropagation(); onMedia(src, m.type === 'video' || m.type === 'gif') }}
+            <button onClick={(e) => { e.stopPropagation(); onMedia(src, m.type === 'video' || m.type === 'gif', m) }}
               className="flex items-center gap-2.5 px-4 py-4 text-left">
               <span className="text-[22px]">👁</span>
               <div>
@@ -475,10 +475,12 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
             <div className="relative">
               {m.type === 'photo' && src && (
                 <img src={src} draggable={false} alt=""
-                  onClick={(e) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } onMedia(src, false) }}
+                  onClick={(e) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } onMedia(src, false, m) }}
                   onTouchStart={lpStart} onTouchEnd={lpEnd} onTouchMove={lpEnd}
                   onMouseDown={lpStart} onMouseUp={lpEnd} onMouseLeave={lpEnd}
-                  className="block max-h-[230px] max-w-[66vw] w-auto object-cover select-none" />
+                  onContextMenu={(e) => e.preventDefault()}
+                  className="block max-h-[230px] max-w-[66vw] w-auto object-cover select-none"
+                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} />
               )}
               {m.type === 'gif' && (m.media_url || src) && (
                 /\.(mp4|webm)(\?|$)/i.test(m.media_url || src)
@@ -552,7 +554,7 @@ export default function ChatPage() {
   const [packBusy, setPackBusy] = useState(false)
   const [menuFor, setMenuFor] = useState<ChatMsg | null>(null)
   const [profileFor, setProfileFor] = useState<number | null>(null)
-  const [viewer, setViewer] = useState<{ url: string; video: boolean } | null>(null)
+  const [viewer, setViewer] = useState<{ url: string; video: boolean; id?: number; mine?: boolean } | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const lastId = useRef(0)
@@ -871,7 +873,7 @@ export default function ChatPage() {
                   <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(0,0,0,.35)', color: '#d7d7dc', backdropFilter: 'blur(2px)' }}>{d}</span>
                 </div>
               )}
-              <Bubble m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} byId={byId} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={(url, video) => setViewer({ url, video })} />
+              <Bubble m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} byId={byId} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={(url, video, mm) => setViewer({ url, video, id: mm?.id, mine: mm?.mine })} />
             </div>
           )
         })}
@@ -1139,12 +1141,19 @@ export default function ChatPage() {
 
       <AnimatePresence>
         {viewer && (
-          <motion.div className="fixed inset-0 z-[90] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.92)' }}
+          <motion.div className="fixed inset-0 z-[90] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.94)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewer(null)}>
+            {/* верхняя панель: закрыть + удалить (для своих/админа) */}
+            <div className="absolute top-0 left-0 right-0 flex items-center gap-2 px-4" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 12px)' }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => setViewer(null)} className="w-10 h-10 rounded-full flex items-center justify-center text-[20px] text-white" style={{ background: 'rgba(255,255,255,.12)' }}>✕</button>
+              {(viewer.mine || isAdmin) && viewer.id != null && (
+                <button onClick={() => { del(viewer.id!); setViewer(null) }} className="ml-auto px-4 h-10 rounded-full flex items-center gap-2 text-[13px] font-bold text-white" style={{ background: 'rgba(255,80,80,.9)' }}>🗑 Удалить</button>
+              )}
+            </div>
             {viewer.video
               ? <video src={viewer.url} autoPlay loop controls playsInline className="max-w-full max-h-full" onClick={e => e.stopPropagation()}
                   onError={(e) => { (e.currentTarget.parentElement as HTMLElement).innerHTML = '<div style="color:#9a9aa2;font-size:14px">Уже просмотрено</div>' }} />
-              : <img src={viewer.url} alt="" draggable={false} className="max-w-full max-h-full object-contain"
+              : <img src={viewer.url} alt="" draggable={false} className="max-w-full max-h-full object-contain" onClick={e => e.stopPropagation()}
                   onError={(e) => { (e.currentTarget.parentElement as HTMLElement).innerHTML = '<div style="color:#9a9aa2;font-size:14px">Уже просмотрено</div>' }} />}
           </motion.div>
         )}
