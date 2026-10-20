@@ -1047,7 +1047,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      <div className="flex items-end gap-2 px-2 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 8px)' }}>
+      <div className="flex items-end gap-2 px-2 pt-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 22px)' }}>
         {rec ? (
           /* индикатор записи голосового */
           <div className="flex-1 flex items-center gap-2.5 rounded-[22px] px-3.5" style={{ background: '#17171d', border: '1px solid rgba(255,80,80,.3)', height: 44 }}>
