@@ -6,7 +6,7 @@ import { api } from '../api/client'
 import type { ChatMsg, ChatUserCard } from '../api/client'
 
 /** Анимированный стикер .tgs (gzip-Lottie): качаем, распаковываем, крутим. */
-function LottieSticker({ url, size = 120 }: { url: string; size?: number }) {
+function LottieSticker({ url, size = 120, play = true }: { url: string; size?: number; play?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
     let anim: ReturnType<typeof lottie.loadAnimation> | null = null
@@ -19,7 +19,7 @@ function LottieSticker({ url, size = 120 }: { url: string; size?: number }) {
         const raw = gz ? pakoInflate(bytes) : bytes
         const text = new TextDecoder().decode(raw)
         const data = JSON.parse(text)
-        anim = lottie.loadAnimation({ container: ref.current, renderer: 'svg', loop: true, autoplay: true, animationData: data })
+        anim = lottie.loadAnimation({ container: ref.current, renderer: 'svg', loop: play, autoplay: play, animationData: data })
       } catch { /* битый tgs — ничего */ }
     }).catch(() => {})
     return () => { cancelled = true; try { anim?.destroy() } catch { /* */ } }
@@ -35,6 +35,7 @@ const MY_UN = (ME?.username || '').toLowerCase()
 const BUB_IN = '#18222d'        // входящие (чужие)
 const BUB_OUT = '#1f6f43'       // исходящие (свои) — в фирменном зелёном
 const WALL = 'radial-gradient(1100px 560px at 50% -8%, #16261e 0%, #0e1612 42%, #0a0d0b 100%)'
+const EMOJI_PACK = 'SoLo_HaMiD'   // анимированные эмодзи как основные во вкладке «Эмодзи»
 
 const QUICK = ['❤️', '🔥', '👍', '😁', '👏', '🎉']
 const PICKER = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '👍', '👎', '🔥', '❤️', '🎉', '👏', '🙏', '💯', '🚀', '⚡', '✅', '❌', '👀', '💀', '🤝', '🤯']
@@ -385,6 +386,8 @@ export default function ChatPage() {
   const taRef = useRef<HTMLTextAreaElement>(null)
 
   const byId = new Map(msgs.map(m => [m.id, m]))
+  const emojiPack = packs.find(p => p.name === EMOJI_PACK)
+  const stickerPacks = packs.filter(p => p.name !== EMOJI_PACK)
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), 2500) }
 
   const scrollToBottom = (smooth = true) => {
@@ -687,7 +690,7 @@ export default function ChatPage() {
               return (
                 <button key={k} onClick={() => {
                   if (k === 'emoji') setStickerTab('emoji')
-                  else if (k === 'stickers') setStickerTab(packs[0]?.name || 'emoji')
+                  else if (k === 'stickers') setStickerTab(stickerPacks[0]?.name || 'emoji')
                   else { setStickerOpen(false); if (gifEnabled) openGif() }
                 }} className="relative pb-2 text-[14px] font-bold" style={{ color: active ? '#fff' : '#7a7a85' }}>
                   {lab}
@@ -711,15 +714,29 @@ export default function ChatPage() {
           {/* контент */}
           <div className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
             {stickerTab === 'emoji' ? (
-              <div className="grid grid-cols-7 gap-1">
-                {STICKERS.map(s => (
-                  <button key={s} onClick={() => { setText(t => t + s); taRef.current?.focus() }} className="text-[28px] py-1 active:scale-125 transition-transform">{s}</button>
-                ))}
-              </div>
-            ) : packs.length === 0 ? (
+              emojiPack && emojiPack.stickers.length ? (
+                <div className="grid grid-cols-6 gap-1">
+                  {emojiPack.stickers.map((st, i) => (
+                    <button key={i} onClick={() => sendStickerFile(st.fid, st.kind)} className="aspect-square flex items-center justify-center active:scale-110 transition-transform">
+                      {st.kind === 'video'
+                        ? <video src={api.chatStickerUrl(st.fid, 'video')} autoPlay loop muted playsInline className="w-full h-full object-contain" />
+                        : st.kind === 'animated'
+                          ? <LottieSticker url={api.chatStickerUrl(st.fid, 'animated')} size={54} play={false} />
+                          : <img src={api.chatStickerUrl(st.fid, 'image')} alt={st.emoji} loading="lazy" className="w-full h-full object-contain" />}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-7 gap-1">
+                  {STICKERS.map(s => (
+                    <button key={s} onClick={() => { setText(t => t + s); taRef.current?.focus() }} className="text-[28px] py-1 active:scale-125 transition-transform">{s}</button>
+                  ))}
+                </div>
+              )
+            ) : stickerPacks.length === 0 ? (
               <div className="py-8 text-center text-[12px] text-[#8a8a93] px-6">Пока нет паков. Вставь ссылку <b className="text-green">t.me/addstickers/…</b> или <b className="text-green">t.me/addemoji/…</b> сверху и жми ＋ — добавится твой стикерпак или анимированные эмодзи из Telegram.</div>
             ) : (
-              packs.map(p => (
+              stickerPacks.map(p => (
                 <div key={p.name} id={`pk_${p.name}`} className="mb-3">
                   <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0c0c10' }}>
                     <span className="text-[12px] font-bold text-[#cfcfd4] truncate">{p.title}</span>
@@ -744,7 +761,7 @@ export default function ChatPage() {
           <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
             <button onClick={() => setStickerTab('emoji')} className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[18px]"
               style={{ background: stickerTab === 'emoji' ? 'rgba(74,232,133,.16)' : 'transparent' }}>😀</button>
-            {packs.map(p => {
+            {stickerPacks.map(p => {
               const th = p.stickers.find(s => s.kind === 'image') || p.stickers[0]
               const on = stickerTab === p.name
               return (
