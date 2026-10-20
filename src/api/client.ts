@@ -224,7 +224,7 @@ export interface ChatMsg {
   once: boolean
   ttl: boolean
 }
-export interface ChatResp { messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string }
+export interface ChatResp { messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string; retention_days?: number }
 export interface GifItem { id: string; preview: string; send: string }
 export interface StickerDef { fid: string; emoji: string; kind: string }
 export interface StickerPack { name: string; title: string; emoji?: boolean; stickers: StickerDef[] }
@@ -256,6 +256,7 @@ export const api = {
   chatRecheck:    ()             => get<ChatResp>('/api/chat?recheck=1'),
   chatMtoken:     ()             => get<{ token: string; ttl: number }>('/api/chat/mtoken'),
   setMediaToken:  (t: string)    => { _mtok = t },
+  chatSetRetention: (days: number) => post<{ ok?: boolean; days?: number; error?: string }>('/api/chat/retention', { days }),
   chatOlder:      (before: number) => get<{ messages: ChatMsg[] }>(`/api/chat/older?before=${before}`),
   chatSend:       (text: string, reply_to?: number, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl }),
   chatSticker:    (sticker: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker, ttl }),

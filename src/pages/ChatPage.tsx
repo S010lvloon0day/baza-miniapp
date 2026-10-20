@@ -333,9 +333,11 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
     setBusy('Загружаю…')
     try {
       const fd = new FormData(); fd.append('file', f)
-      await fetch(api.chatAvatarUploadUrl(), { method: 'POST', headers: { 'X-Init-Data': tg?.initData || '' }, body: fd })
-      setVer(Date.now()); await reload()
-    } catch { /* */ } finally { setBusy('') }
+      const res = await fetch(api.chatAvatarUploadUrl(), { method: 'POST', headers: { 'X-Init-Data': tg?.initData || '' }, body: fd })
+      const j: any = await res.json().catch(() => ({}))
+      if (!res.ok || j?.error) { setBusy(j?.message || `Не удалось загрузить (${res.status})`); setTimeout(() => setBusy(''), 3500); return }
+      setVer(Date.now()); await reload(); setBusy('')
+    } catch { setBusy('Ошибка сети — попробуй ещё раз'); setTimeout(() => setBusy(''), 3500) }
   }
   const setMode = async (m: string) => {
     setBusy('…')
@@ -571,6 +573,8 @@ export default function ChatPage() {
   const [gated, setGated] = useState(false)   // не подписан на канал — доступ к чату закрыт
   const [channel, setChannel] = useState('')  // хэндл канала для кнопки «Подписаться»
   const [, setMtokV] = useState(0)            // триггер ре-рендера при получении медиа-токена
+  const [retDays, setRetDays] = useState<number | null>(null)  // срок хранения (виден админу)
+  const [retOpen, setRetOpen] = useState(false)                // лист настройки хранения
   const [online, setOnline] = useState(0)
   const [typing, setTyping] = useState<string[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
@@ -669,6 +673,7 @@ export default function ChatPage() {
 
         if (r.gated) { setGated(true); setChannel(r.channel || ''); setReady(true); return }
         setGated(false)
+        if (typeof r.retention_days === 'number') setRetDays(r.retention_days)
 
         if (first) {
           // открываем сразу на последнем сообщении, без видимой прокрутки
@@ -1033,12 +1038,21 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
 
-      <div className="flex items-center justify-center gap-1.5 px-4 py-1 shrink-0" style={{ background: '#0c0c10' }}>
+      <div className="relative flex items-center justify-center gap-1.5 px-4 py-1 shrink-0" style={{ background: '#0c0c10' }}>
         <span className="relative flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-60" />
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green" />
         </span>
         <span className="text-[11px]"><b className="text-green">{online}</b> <span className="text-[#8a8a93]">в сети</span></span>
+        {isAdmin && (
+          <button onClick={() => setRetOpen(true)} aria-label="Настройки чата"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8a8a93] active:text-green p-1">
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {pinned && !pinned.deleted && (
@@ -1324,6 +1338,36 @@ export default function ChatPage() {
 
       <AnimatePresence>
         {profileFor != null && <ProfileCard uid={profileFor} onClose={() => setProfileFor(null)} onMention={insertMention} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {retOpen && (
+          <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setRetOpen(false)}>
+            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
+              className="w-full max-w-[460px] rounded-t-[26px] p-5 pb-8" style={{ background: '#0d0e12', border: '1px solid rgba(74,232,133,.14)', boxShadow: '0 -8px 40px rgba(0,0,0,.5)' }}>
+              <div className="text-[15px] font-extrabold text-white mb-1">Хранение сообщений</div>
+              <div className="text-[12px] text-[#9a9aa2] mb-4 leading-relaxed">Сообщения старше выбранного срока удаляются автоматически — вместе с их медиа. Применяется ко всем участникам.</div>
+              <div className="grid grid-cols-3 gap-2">
+                {([['7', '7 дней'], ['14', '14 дней'], ['30', '30 дней'], ['90', '90 дней'], ['180', '180 дней'], ['0', 'Не удалять']] as const).map(([v, lab]) => {
+                  const n = Number(v); const on = retDays === n
+                  return (
+                    <button key={v} onClick={async () => {
+                      try { const r = await api.chatSetRetention(n); if (r.ok) { setRetDays(r.days ?? n); flash('Срок хранения обновлён') } else flash('Не удалось') }
+                      catch { flash('Не удалось') }
+                      setRetOpen(false)
+                    }}
+                      className="py-2.5 rounded-xl text-[13px] font-bold transition-colors"
+                      style={{ background: on ? 'rgba(34,197,94,.18)' : '#17171d', color: on ? '#4AE885' : '#cfcfd4', border: on ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
+                      {lab}
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={() => setRetOpen(false)} className="w-full mt-4 py-2.5 rounded-xl text-[13px] font-bold" style={{ background: '#1d1d24', color: '#cfcfd4' }}>Закрыть</button>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <AnimatePresence>
