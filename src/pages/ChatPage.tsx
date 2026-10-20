@@ -424,7 +424,7 @@ export default function ChatPage() {
   const [gifs, setGifs] = useState<import('../api/client').GifItem[]>([])
   const [gifLoading, setGifLoading] = useState(false)
   const [packs, setPacks] = useState<import('../api/client').StickerPack[]>([])
-  const [stickerTab, setStickerTab] = useState('emoji')
+  const [stickerTab, setStickerTab] = useState<string>(() => { try { return localStorage.getItem('chat_sttab') || 'emoji' } catch { return 'emoji' } })
   const [addPackLink, setAddPackLink] = useState('')
   const [packBusy, setPackBusy] = useState(false)
   const [menuFor, setMenuFor] = useState<ChatMsg | null>(null)
@@ -483,6 +483,9 @@ export default function ChatPage() {
     const t = window.setInterval(() => pull(false), 2200)
     return () => { alive = false; window.clearInterval(t) }
   }, [])
+
+  // запоминаем последнюю выбранную вкладку панели
+  useEffect(() => { try { localStorage.setItem('chat_sttab', stickerTab) } catch { /* */ } }, [stickerTab])
 
   const onScroll = () => {
     const el = scrollRef.current
@@ -762,7 +765,7 @@ export default function ChatPage() {
               return (
                 <button key={k} onClick={() => {
                   if (k === 'emoji') setStickerTab('emoji')
-                  else if (k === 'stickers') setStickerTab(stickerPacks[0]?.name || 'emoji')
+                  else if (k === 'stickers') setStickerTab(stickerPacks[0]?.name || '__st__')
                   else { setStickerOpen(false); if (gifEnabled) openGif() }
                 }} className="relative pb-2 text-[14px] font-bold" style={{ color: active ? '#fff' : '#7a7a85' }}>
                   {lab}
@@ -846,15 +849,15 @@ export default function ChatPage() {
           <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
             <button onClick={() => setStickerTab('emoji')} className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[18px]"
               style={{ background: stickerTab === 'emoji' ? 'rgba(74,232,133,.16)' : 'transparent' }}>😀</button>
-            {stickerPacks.map(p => {
-              const th = p.stickers.find(s => s.kind === 'image') || p.stickers[0]
-              const on = stickerTab === p.name
+            {packs.map(p => {
+              const th = p.stickers.find(s => s.kind === 'image')
+              const on = p.emoji ? false : stickerTab === p.name
               return (
-                <button key={p.name} onClick={() => { setStickerTab(p.name); setTimeout(() => document.getElementById(`pk_${p.name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30) }}
-                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: on ? 'rgba(74,232,133,.16)' : 'transparent' }}>
-                  {th && th.kind === 'image'
+                <button key={p.name} onClick={() => { setStickerTab(p.emoji ? 'emoji' : p.name); setTimeout(() => document.getElementById(`pk_${p.name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}
+                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style={{ background: on ? 'rgba(74,232,133,.16)' : 'transparent', border: '1px solid rgba(255,255,255,.05)' }}>
+                  {th
                     ? <img src={api.chatStickerUrl(th.fid, 'image')} alt="" loading="lazy" className="w-7 h-7 object-contain" />
-                    : <span className="text-[13px] font-bold text-[#cfcfd4]">{p.title.slice(0, 1).toUpperCase()}</span>}
+                    : <span className="text-[11px] font-bold text-[#cfcfd4]">{p.title.replace('@', '').slice(0, 2).toUpperCase()}</span>}
                 </button>
               )
             })}
