@@ -66,13 +66,19 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
   const tabs = showConstructor ? [...TABS, CTOR_TAB] : TABS
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 flex z-50"
+      className="fixed left-0 right-0 flex z-50"
       style={{
         gap: 2,
-        background: 'rgba(10,10,13,.92)',
-        backdropFilter: 'blur(10px)',
-        borderTop: '1px solid rgba(255,255,255,.08)',
-        padding: '9px 6px calc(env(safe-area-inset-bottom, 10px) + 15px)',
+        bottom: 'calc(env(safe-area-inset-bottom, 8px) + 10px)',
+        marginLeft: 12,
+        marginRight: 12,
+        padding: '8px 8px',
+        borderRadius: 26,
+        background: 'rgba(16,16,20,.55)',
+        backdropFilter: 'blur(24px) saturate(170%)',
+        WebkitBackdropFilter: 'blur(24px) saturate(170%)',
+        border: '1px solid rgba(255,255,255,.1)',
+        boxShadow: '0 12px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07)',
       }}
     >
       {tabs.map(({ id, label }) => {
@@ -84,7 +90,7 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
             onClick={() => onChange(id)}
             className="relative flex-1 flex flex-col items-center gap-1 rounded-[13px] transition-colors duration-150 active:bg-white/[.06]"
             style={{
-              padding: tabs.length > 5 ? '14px 1px' : '16px 2px',
+              padding: tabs.length > 5 ? '11px 1px' : '12px 2px',
               background: on ? 'linear-gradient(180deg,rgba(34,197,94,.22),rgba(34,197,94,.08))' : 'transparent',
               border: on ? '1px solid rgba(74,232,133,.55)' : '1px solid transparent',
               boxShadow: on ? '0 0 14px rgba(34,197,94,.3)' : 'none',

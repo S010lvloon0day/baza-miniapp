@@ -101,4 +101,4 @@ html, body, #root {
 /* Bottom clearance for scrollable pages so trailing content (buttons, list ends)
    isn't hidden behind the fixed BottomNav — kept in sync with BottomNav's own
    padding/icon/label sizing in one place instead of duplicating the calc per page. */
-.pb-navsafe { padding-bottom: calc(env(safe-area-inset-bottom, 10px) + 90px); }
+.pb-navsafe { padding-bottom: calc(env(safe-area-inset-bottom, 10px) + 104px); }
