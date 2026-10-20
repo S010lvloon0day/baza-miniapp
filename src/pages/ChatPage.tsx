@@ -883,6 +883,13 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/\{e:[avi]:[A-Za-z0-9_]+#\d+\}/.test(text) && (
+        <div className="px-4 py-1.5 shrink-0 text-[15px] text-white flex items-center flex-wrap gap-y-1 leading-[1.4]" style={{ borderTop: '1px solid rgba(255,255,255,.05)', background: '#0c0c10' }}>
+          <span className="text-[9px] text-[#8a8a93] mr-2 uppercase tracking-wide shrink-0">превью</span>
+          <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(text)}</span>
+        </div>
+      )}
+
       <div className="flex items-end px-2 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 8px)' }}>
         {/* единое поле: 📎 слева, текст, справа 😊 и ➤ — как в Telegram */}
         <div className="flex-1 flex items-end rounded-[22px] min-w-0" style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)' }}>
