@@ -23,7 +23,13 @@ const ICONS: Record<Exclude<Tab, 'search'>, ReactNode> = {
       <rect x="13" y="13" width="8" height="8" rx="2.5" />
     </>
   ),
-  favs: <path d="M6.5 3.5A1.5 1.5 0 0 1 8 2h8a1.5 1.5 0 0 1 1.5 1.5v17.1a.75.75 0 0 1-1.18.62L12 17.4l-4.32 3.82a.75.75 0 0 1-1.18-.62V3.5z" />,
+  favs: (
+    <g fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5.2A1.2 1.2 0 0 1 5.2 4H9a2.3 2.3 0 0 1 2.3 1.6A2.3 2.3 0 0 1 13.6 4h3.2A1.2 1.2 0 0 1 18 5.2v12.3a1 1 0 0 1-1 1h-3.6a2 2 0 0 0-1.8 1.1 2 2 0 0 0-1.8-1.1H5a1 1 0 0 1-1-1V5.2z" />
+      <path d="M11.3 5.8v13" />
+      <path d="M19.4 7.1l1.5.4a1 1 0 0 1 .72 1.22l-2.6 9.9" />
+    </g>
+  ),
   recent: (
     <g fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="9.2" />
@@ -42,9 +48,8 @@ const TABS: { id: Exclude<Tab, 'search'>; label: string }[] = [
   { id: 'home',   label: 'Главная'   },
   { id: 'chat',   label: 'Чат'       },
   { id: 'cats',   label: 'Разделы'   },
-  { id: 'favs',   label: 'Избранное' },
-  { id: 'recent', label: 'История'   },
-  { id: 'prof',   label: 'Профиль'   },
+  { id: 'favs',   label: 'Библиотека' },
+  { id: 'prof',   label: 'Профиль'    },
 ]
 
 const CTOR_TAB = { id: 'ctor' as const, label: 'Конструктор' }
@@ -67,7 +72,7 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
         background: 'rgba(10,10,13,.92)',
         backdropFilter: 'blur(10px)',
         borderTop: '1px solid rgba(255,255,255,.08)',
-        padding: '8px 6px calc(env(safe-area-inset-bottom, 10px) + 6px)',
+        padding: '9px 6px calc(env(safe-area-inset-bottom, 10px) + 15px)',
       }}
     >
       {tabs.map(({ id, label }) => {
@@ -79,7 +84,7 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
             onClick={() => onChange(id)}
             className="relative flex-1 flex flex-col items-center gap-1 rounded-[13px] transition-colors duration-150 active:bg-white/[.06]"
             style={{
-              padding: tabs.length > 5 ? '13px 1px' : '15px 2px',
+              padding: tabs.length > 5 ? '14px 1px' : '16px 2px',
               background: on ? 'linear-gradient(180deg,rgba(34,197,94,.22),rgba(34,197,94,.08))' : 'transparent',
               border: on ? '1px solid rgba(74,232,133,.55)' : '1px solid transparent',
               boxShadow: on ? '0 0 14px rgba(34,197,94,.3)' : 'none',

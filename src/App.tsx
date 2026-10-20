@@ -6,8 +6,7 @@ import CatsPage from './pages/CatsPage'
 import SearchPage from './pages/SearchPage'
 import SectionPage from './pages/SectionPage'
 import MaterialPage from './pages/MaterialPage'
-import FavsPage from './pages/FavsPage'
-import RecentPage from './pages/RecentPage'
+import LibraryPage from './pages/LibraryPage'
 import ProfilePage from './pages/ProfilePage'
 import CompetePage from './pages/CompetePage'
 import ChatPage from './pages/ChatPage'
@@ -235,8 +234,7 @@ export default function App() {
       if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} onCompete={openCompete} onChat={() => switchTab('chat')} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
-      if (tab === 'favs')   return <FavsPage key={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
-      if (tab === 'recent') return <RecentPage onMaterial={openMaterial} />
+      if (tab === 'favs')   return <LibraryPage bmTick={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
       if (tab === 'chat')   return <ChatPage />
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} onCompete={openCompete} />
       if (tab === 'ctor') {
@@ -319,7 +317,7 @@ export default function App() {
       if (tab === 'chat') {
         return <Header showBack onBack={() => switchTab('home')} title="Чат базы" fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
       }
-      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Избранное', recent: 'История', prof: 'Профиль', ctor: 'Конструктор', chat: 'Чат базы' }
+      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Библиотека', recent: 'История', prof: 'Профиль', ctor: 'Конструктор', chat: 'Чат базы' }
       return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
     }
     if (top.type === 'feedback') {
