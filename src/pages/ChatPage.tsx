@@ -396,6 +396,11 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
   const quoted = m.reply_to ? byId.get(m.reply_to) : null
   const src = m.has_media ? api.chatMediaUrl(m.id) : ''
   const onlyEmoji = !!m.text && /\{e:[avi]:[A-Za-z0-9_#-]+\}/.test(m.text) && m.text.replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '').trim() === ''
+  // долгое нажатие на медиа → меню (ответить/удалить), обычный тап → просмотр
+  const lpTimer = useRef<number | null>(null)
+  const lpFired = useRef(false)
+  const lpStart = () => { lpFired.current = false; lpTimer.current = window.setTimeout(() => { lpFired.current = true; onAction(m) }, 450) }
+  const lpEnd = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null } }
 
   if (m.deleted) {
     return (
@@ -469,15 +474,19 @@ function Bubble({ m, prev, next, byId, onAction, onReact, onProfile, onMedia }: 
           ) : (
             <div className="relative">
               {m.type === 'photo' && src && (
-                <img src={src} draggable={false} alt="" onClick={(e) => { e.stopPropagation(); onMedia(src, false) }} className="block max-h-[360px] w-full object-cover select-none" />
+                <img src={src} draggable={false} alt=""
+                  onClick={(e) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } onMedia(src, false) }}
+                  onTouchStart={lpStart} onTouchEnd={lpEnd} onTouchMove={lpEnd}
+                  onMouseDown={lpStart} onMouseUp={lpEnd} onMouseLeave={lpEnd}
+                  className="block max-h-[230px] max-w-[66vw] w-auto object-cover select-none" />
               )}
               {m.type === 'gif' && (m.media_url || src) && (
                 /\.(mp4|webm)(\?|$)/i.test(m.media_url || src)
-                  ? <video src={m.media_url || src} autoPlay loop muted playsInline className="block max-h-[320px] w-full object-cover select-none" />
-                  : <img src={m.media_url || src} alt="" draggable={false} className="block max-h-[320px] w-full object-cover select-none" />
+                  ? <video src={m.media_url || src} autoPlay loop muted playsInline className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none" />
+                  : <img src={m.media_url || src} alt="" draggable={false} className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none" />
               )}
               {m.type === 'video' && src && (
-                <video src={src} controls controlsList="nodownload noplaybackrate" disablePictureInPicture className="block max-h-[360px] w-full select-none" />
+                <video src={src} controls controlsList="nodownload noplaybackrate" disablePictureInPicture className="block max-h-[260px] max-w-[66vw] w-auto select-none" />
               )}
               {m.type === 'voice' && src && <VoiceMsg url={src} mine={mine} />}
               {/* на медиа без подписи — время поверх картинки в тёмной плашке */}
