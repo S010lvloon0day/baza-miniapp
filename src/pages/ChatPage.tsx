@@ -567,6 +567,8 @@ const maxId = (arr: ChatMsg[]) => arr.reduce((mx, m) => (m.id < TEMP_BASE && m.i
 export default function ChatPage() {
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
   const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
+  const [gated, setGated] = useState(false)   // не подписан на канал — доступ к чату закрыт
+  const [channel, setChannel] = useState('')  // хэндл канала для кнопки «Подписаться»
   const [online, setOnline] = useState(0)
   const [typing, setTyping] = useState<string[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
@@ -660,6 +662,9 @@ export default function ChatPage() {
         const r = await api.chat(full ? undefined : (lastId.current || undefined))
         if (!alive) return
         setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setTyping(r.typing ?? []); setGifEnabled(!!r.gif)
+
+        if (r.gated) { setGated(true); setChannel(r.channel || ''); setReady(true); return }
+        setGated(false)
 
         if (first) {
           // открываем сразу на последнем сообщении, без видимой прокрутки
@@ -965,6 +970,46 @@ export default function ChatPage() {
   const cancelRec = () => { recCancelRef.current = true; stopRec() }
 
   let lastDay = ''
+
+  // не подписан на канал — доступ к чату закрыт (приглашение подписаться)
+  if (gated) {
+    const handle = channel.replace(/^@/, '')
+    const openChannel = () => {
+      const url = `https://t.me/${handle}`
+      try { tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank') } catch { window.open(url, '_blank') }
+    }
+    return (
+      <div className="flex flex-col flex-1 items-center justify-center px-8 text-center gap-5">
+        <div className="w-[76px] h-[76px] rounded-[22px] flex items-center justify-center"
+          style={{ background: 'linear-gradient(155deg,#16331f,#0c130d)', border: '1px solid rgba(74,232,133,.35)', boxShadow: '0 0 30px rgba(34,197,94,.25)' }}>
+          <svg width={38} height={38} viewBox="0 0 24 24" fill="none" stroke="#4AE885" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" />
+            <path d="M9 11.5l2 2 4-4.5" />
+          </svg>
+        </div>
+        <div>
+          <div className="text-[18px] font-extrabold text-white">Чат — только для подписчиков</div>
+          <div className="text-[13px] text-[#9a9aa2] mt-2 leading-relaxed max-w-[280px]">
+            Подпишись на канал базы, чтобы читать и писать в общем чате. После подписки нажми «Я подписался».
+          </div>
+        </div>
+        {handle && (
+          <button onClick={openChannel} className="px-6 py-3 rounded-2xl text-[14px] font-bold text-black active:opacity-85"
+            style={{ background: 'linear-gradient(135deg,#17a34a,#0a6a2f)', boxShadow: '0 8px 24px rgba(34,197,94,.3)' }}>
+            Подписаться на канал
+          </button>
+        )}
+        <button onClick={async () => {
+          try {
+            const r = await api.chatRecheck()
+            if (!r.gated) { setGated(false); setReady(false); pollTick.current = 0 }
+          } catch { /* ещё не видно — попробуй ещё раз */ }
+        }} className="text-[13px] font-bold text-[#4AE885] active:opacity-70">
+          Я подписался — проверить
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
