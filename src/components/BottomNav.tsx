@@ -66,7 +66,7 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
   const tabs = showConstructor ? [...TABS, CTOR_TAB] : TABS
   return (
     <nav
-      className="fixed left-0 right-0 flex z-50"
+      className="glass fixed left-0 right-0 flex z-50"
       style={{
         gap: 2,
         bottom: 'calc(env(safe-area-inset-bottom, 8px) + 10px)',
@@ -74,11 +74,8 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
         marginRight: 12,
         padding: '8px 8px',
         borderRadius: 26,
-        background: 'rgba(16,16,20,.55)',
-        backdropFilter: 'blur(24px) saturate(170%)',
-        WebkitBackdropFilter: 'blur(24px) saturate(170%)',
-        border: '1px solid rgba(255,255,255,.1)',
-        boxShadow: '0 12px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07)',
+        background:
+          'linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,0) 38%), rgba(14,14,19,.42)',
       }}
     >
       {tabs.map(({ id, label }) => {
