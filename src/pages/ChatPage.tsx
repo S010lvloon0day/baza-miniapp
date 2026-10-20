@@ -528,6 +528,8 @@ export default function ChatPage() {
   const recTimer = useRef<number | null>(null)
   const recCancelRef = useRef(false)
   const touchStartX = useRef(0)
+  const micStream = useRef<MediaStream | null>(null)
+  const wantRec = useRef(false)
   const [ttlSec, setTtlSec] = useState(0)
   const [onceOn, setOnceOn] = useState(false)
   const [gifOpen, setGifOpen] = useState(false)
@@ -598,6 +600,13 @@ export default function ChatPage() {
 
   // запоминаем последнюю выбранную вкладку панели
   useEffect(() => { try { localStorage.setItem('chat_sttab', stickerTab) } catch { /* */ } }, [stickerTab])
+
+  // при закрытии чата — гарантированно выключаем микрофон и таймер
+  useEffect(() => () => {
+    wantRec.current = false
+    if (recTimer.current) clearInterval(recTimer.current)
+    if (micStream.current) { micStream.current.getTracks().forEach(t => t.stop()); micStream.current = null }
+  }, [])
 
   const onScroll = () => {
     const el = scrollRef.current
@@ -777,14 +786,21 @@ export default function ChatPage() {
   const startReply = (m: ChatMsg) => { setReply(m); setEditing(null); setMenuFor(null); taRef.current?.focus() }
   const insertMention = (un: string) => { insertTextAtCaret('@' + un + ' ') }
 
+  const stopMic = () => {
+    if (micStream.current) { micStream.current.getTracks().forEach(t => t.stop()); micStream.current = null }
+  }
   const startRec = async () => {
+    if (rec || micStream.current || wantRec.current) return   // уже идёт/готовится
+    wantRec.current = true
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      if (!wantRec.current) { stream.getTracks().forEach(t => t.stop()); return }   // палец отпустили до выдачи доступа
+      micStream.current = stream
       const mr = new MediaRecorder(stream); chunks.current = []
       mr.ondataavailable = (ev) => { if (ev.data.size) chunks.current.push(ev.data) }
       mr.onstop = () => {
         const blob = new Blob(chunks.current, { type: mr.mimeType || 'audio/webm' })
-        stream.getTracks().forEach(t => t.stop())
+        stopMic()   // микрофон выключаем сразу
         const dur = (Date.now() - recStart.current) / 1000
         if (recCancelRef.current) { recCancelRef.current = false; return }   // отменено
         if (blob.size > 1200 && dur > 0.5) doUpload('voice', blob, mr.mimeType || 'audio/webm', dur)
@@ -794,12 +810,15 @@ export default function ChatPage() {
       recCancelRef.current = false; setRecCancel(false); setRecElapsed(0)
       mr.start(); setRec(true)
       recTimer.current = window.setInterval(() => setRecElapsed(Math.floor((Date.now() - recStart.current) / 1000)), 250)
-    } catch { flash('Нет доступа к микрофону') }
+    } catch { wantRec.current = false; stopMic(); flash('Нет доступа к микрофону') }
   }
   const stopRec = () => {
+    wantRec.current = false
     setRec(false); setRecCancel(false)
     if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null }
-    try { mediaRec.current?.stop() } catch { /* */ }
+    const mr = mediaRec.current
+    if (mr && mr.state !== 'inactive') { try { mr.stop() } catch { /* */ } }   // onstop выключит микрофон
+    else { stopMic() }   // рекордер ещё не стартовал — глушим поток напрямую
   }
   const cancelRec = () => { recCancelRef.current = true; stopRec() }
 
