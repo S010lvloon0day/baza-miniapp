@@ -369,7 +369,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
             <div className="flex gap-2">
               {!isMe && c.username && (
                 <button onClick={() => { onMention(c.username); onClose() }}
-                  className="flex-1 py-3 rounded-xl font-extrabold text-[13px]" style={{ background: 'linear-gradient(180deg,#39FF9A,#22C55E)', color: '#06281a' }}>
+                  className="flex-1 py-3 rounded-xl font-extrabold text-[13px] text-white" style={{ background: 'linear-gradient(135deg,#17a34a,#0f8a3e 55%,#0a6a2f)', border: '1px solid rgba(120,255,170,.3)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.14)' }}>
                   Упомянуть @{c.username}
                 </button>
               )}
@@ -842,12 +842,12 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
 
-      <div className="flex items-center gap-2.5 px-4 py-2 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,.06)', background: '#0c0c10' }}>
-        <div className="w-8 h-8 rounded-full flex items-center justify-center text-[15px] shrink-0" style={{ background: 'linear-gradient(135deg,#2bd47d,#179a55)' }}>💬</div>
-        <div className="min-w-0 leading-tight">
-          <div className="text-[14px] font-bold text-white truncate">Общий чат базы</div>
-          <div className="text-[11.5px]"><span className="text-green font-semibold">{online}</span> <span className="text-[#8a8a93]">в сети</span></div>
-        </div>
+      <div className="flex items-center justify-center gap-1.5 px-4 py-1 shrink-0" style={{ background: '#0c0c10' }}>
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-60" />
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green" />
+        </span>
+        <span className="text-[11px]"><b className="text-green">{online}</b> <span className="text-[#8a8a93]">в сети</span></span>
       </div>
 
       {pinned && !pinned.deleted && (
@@ -1110,26 +1110,22 @@ export default function ChatPage() {
 
       <AnimatePresence>
         {menuFor && (
-          <motion.div className="fixed inset-0 z-[70] flex items-end" style={{ background: 'rgba(0,0,0,.5)' }}
+          <motion.div className="fixed inset-0 z-[70] flex items-end justify-center px-4 pb-6" style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(2px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMenuFor(null)}>
-            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
-              className="w-full rounded-t-[22px] p-3 pb-7" style={{ background: '#101014', border: '1px solid rgba(255,255,255,.1)' }}>
-              <div className="flex justify-center gap-2 mb-3">
-                {QUICK.map(e => <button key={e} onClick={() => react(menuFor.id, e)} className="text-[26px] active:scale-125 transition-transform">{e}</button>)}
+            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 24, opacity: 0, scale: .97 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 24, opacity: 0, scale: .97 }}
+              transition={{ type: 'spring', stiffness: 420, damping: 30 }} className="w-full max-w-[290px] flex flex-col gap-2">
+              {/* реакции — плавающая пилюля */}
+              <div className="flex justify-around items-center px-1 py-1 rounded-full" style={{ background: '#1a1b21', border: '1px solid rgba(255,255,255,.08)', boxShadow: '0 12px 32px rgba(0,0,0,.5)' }}>
+                {QUICK.map(e => <button key={e} onClick={() => react(menuFor.id, e)} className="text-[23px] w-9 h-9 flex items-center justify-center rounded-full active:scale-125 transition-transform">{e}</button>)}
               </div>
-              <button onClick={() => startReply(menuFor)} className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-bold text-white mb-1" style={{ background: '#17171d' }}>↩️ Ответить</button>
-              {!menuFor.mine && (
-                <button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-bold text-white mb-1" style={{ background: '#17171d' }}>👤 Профиль автора</button>
-              )}
-              {menuFor.mine && menuFor.type === 'text' && (
-                <button onClick={() => startEdit(menuFor)} className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-bold text-white mb-1" style={{ background: '#17171d' }}>✏️ Редактировать</button>
-              )}
-              {isAdmin && (
-                <button onClick={() => pin(menuFor.id)} className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-bold text-green mb-1" style={{ background: '#17171d' }}>📌 Закрепить</button>
-              )}
-              {(menuFor.mine || isAdmin) && (
-                <button onClick={() => { del(menuFor.id); setMenuFor(null) }} className="w-full text-left px-4 py-3 rounded-xl text-[14px] font-bold" style={{ background: 'rgba(255,80,80,.12)', color: '#ff8a8a' }}>🗑 Удалить</button>
-              )}
+              {/* действия — компактная карточка */}
+              <div className="rounded-[16px] overflow-hidden" style={{ background: '#15161b', border: '1px solid rgba(255,255,255,.08)', boxShadow: '0 16px 40px rgba(0,0,0,.55)' }}>
+                <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><span className="text-[15px]">↩️</span>Ответить</button>
+                {!menuFor.mine && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><span className="text-[15px]">👤</span>Профиль автора</button></>)}
+                {menuFor.mine && menuFor.type === 'text' && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><span className="text-[15px]">✏️</span>Редактировать</button></>)}
+                {isAdmin && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => pin(menuFor.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-green active:opacity-70"><span className="text-[15px]">📌</span>Закрепить</button></>)}
+                {(menuFor.mine || isAdmin) && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { del(menuFor.id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold active:opacity-70" style={{ color: '#ff6b6b' }}><span className="text-[15px]">🗑</span>Удалить</button></>)}
+              </div>
             </motion.div>
           </motion.div>
         )}

@@ -1,5 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { motion } from 'framer-motion'
+import lottie from 'lottie-web'
+import { inflate as pakoInflate } from 'pako'
 import { Crown, CaretDown } from '@phosphor-icons/react'
 import { api } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
@@ -18,6 +20,38 @@ interface Props {
   onChat?: () => void
 }
 
+/** Кастом-эмодзи в превью чата (анимация/видео/картинка). */
+function HeroEmoji({ k, fid }: { k: string; fid: string }) {
+  const ref = useRef<HTMLSpanElement>(null)
+  const url = api.chatStickerUrl(fid, k === 'v' ? 'video' : k === 'a' ? 'animated' : 'image')
+  useEffect(() => {
+    if (k !== 'a' || !ref.current) return
+    let anim: ReturnType<typeof lottie.loadAnimation> | null = null, cancelled = false
+    fetch(url).then(r => r.arrayBuffer()).then(buf => {
+      if (cancelled || !ref.current) return
+      try { const b = new Uint8Array(buf); const raw = (b[0] === 0x1f && b[1] === 0x8b) ? pakoInflate(b) : b; const data = JSON.parse(new TextDecoder().decode(raw)); anim = lottie.loadAnimation({ container: ref.current, renderer: 'svg', loop: true, autoplay: true, animationData: data }) } catch { /* */ }
+    }).catch(() => {})
+    return () => { cancelled = true; try { anim?.destroy() } catch { /* */ } }
+  }, [url, k])
+  const st = { display: 'inline-block', width: 15, height: 15, verticalAlign: '-0.2em', objectFit: 'contain' as const }
+  if (k === 'a') return <span ref={ref} style={st} />
+  if (k === 'v') return <video src={url} autoPlay loop muted playsInline style={st} />
+  return <img src={url} alt="" style={st} />
+}
+
+function renderHero(text: string) {
+  const re = /\{e:([avi]):([A-Za-z0-9_#-]+)\}/g
+  const out: any[] = []; let last = 0, m: RegExpExecArray | null, key = 0
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(<span key={key++}>{text.slice(last, m.index)}</span>)
+    if (m[2].indexOf('#') >= 0) out.push(<span key={key++}>🙂</span>)
+    else out.push(<HeroEmoji key={key++} k={m[1]} fid={m[2]} />)
+    last = m.index + m[0].length
+  }
+  if (last < text.length) out.push(<span key={key++}>{text.slice(last)}</span>)
+  return out
+}
+
 /** Живой мини-чат прямо в геро-окне: последние сообщения + онлайн, тикает каждые ~3.5с. */
 function HeroChat({ onOpen }: { onOpen?: () => void }) {
   const [state, setState] = useState<{ online: number; msgs: { id: number; name: string; text: string }[] }>({ online: 0, msgs: [] })
@@ -25,7 +59,7 @@ function HeroChat({ onOpen }: { onOpen?: () => void }) {
     let alive = true
     const load = () => api.chat().then(r => {
       if (!alive) return
-      const msgs = r.messages.filter(m => !m.deleted).slice(-3)
+      const msgs = r.messages.filter(m => !m.deleted).slice(-4)
         .map(m => ({ id: m.id, name: m.name, text: m.text || (m.has_media ? '📎 вложение' : '') }))
       setState({ online: r.online, msgs })
     }).catch(() => {})
@@ -50,20 +84,23 @@ function HeroChat({ onOpen }: { onOpen?: () => void }) {
             {state.msgs.map(m => (
               <div key={m.id} className="text-[12.5px] leading-snug truncate">
                 <span className="font-bold text-green">{m.name}:</span>{' '}
-                <span className="text-[#d4d4d8]">{m.text}</span>
+                <span className="text-[#d4d4d8]">{renderHero(m.text)}</span>
               </div>
             ))}
           </div>
         )}
       </div>
       <button onClick={onOpen}
-        className="w-full flex items-center justify-center gap-1.5 py-3.5 rounded-[13px] text-bg text-[13px] font-extrabold transition-transform duration-150 active:-translate-y-0.5"
-        style={{ background: 'linear-gradient(180deg,#39FF9A,#22C55E)', boxShadow: '0 8px 20px rgba(34,197,94,.32)' }}>
-        💬 Открыть чат
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-          <line x1="5" y1="12" x2="19" y2="12" />
-          <polyline points="12 5 19 12 12 19" />
-        </svg>
+        className="relative w-full overflow-hidden flex items-center justify-center gap-2 py-3 rounded-[14px] text-white text-[13.5px] font-extrabold transition active:scale-[.985]"
+        style={{ background: 'linear-gradient(135deg,#17a34a 0%,#0f8a3e 48%,#0a6a2f 100%)', border: '1px solid rgba(120,255,170,.3)', boxShadow: '0 10px 24px rgba(8,100,44,.45), inset 0 1px 0 rgba(255,255,255,.16)' }}>
+        <span className="pointer-events-none absolute inset-0 opacity-70" style={{ background: 'radial-gradient(140px 50px at 22% -30%, rgba(255,255,255,.3), transparent 70%)' }} />
+        <span className="relative z-10 flex items-center gap-2">
+          <span className="text-[15px]">💬</span> Открыть чат
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round">
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </span>
       </button>
     </div>
   )
@@ -176,11 +213,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             />
           </svg>
           <div className="baza-grain" />
-
-          <div className="relative inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 mb-[18px]" style={{ border: '1px solid rgba(255,255,255,.15)', background: 'rgba(255,255,255,.03)' }}>
-            <span className="w-1.5 h-1.5 rounded-full baza-dot-pulse" style={{ background: '#22C55E' }} />
-            <span className="text-[10px] font-bold tracking-wider uppercase text-[#cfcfd4]">База знаний S010lvloon</span>
-          </div>
 
           <div className="relative uppercase mb-2.5" style={{ fontFamily: "'Anton', sans-serif", fontSize: 35, lineHeight: 1.12, letterSpacing: '-1.6px' }}>
             <span
