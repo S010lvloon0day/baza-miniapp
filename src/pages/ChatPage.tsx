@@ -389,7 +389,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
                     <button onClick={() => setMode('hidden')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}><IcHide s={14} /> Скрыть</button>
                   </div>
                 </div>
-                <div className="text-[10.5px] text-[#6a6a75] mt-2">Анимация — загрузи короткое видео/GIF (до 12 МБ). Все увидят его живым в чате.</div>
+                <div className="text-[10.5px] text-[#6a6a75] mt-2">Анимация — загрузи короткое видео/GIF (до 20 МБ). Все увидят его живым в чате.</div>
                 <input ref={avInput} type="file" accept="image/*,video/*,image/gif" hidden
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) uploadAvatar(f) }} />
               </div>
@@ -1039,6 +1039,15 @@ export default function ChatPage() {
     <div className="flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
 
       <div className="relative flex items-center justify-center gap-1.5 px-4 py-1 shrink-0" style={{ background: '#0c0c10' }}>
+        {MY_ID > 0 && (
+          <button onClick={() => setProfileFor(MY_ID)} aria-label="Мой профиль и аватар"
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[#8a8a93] active:text-green p-1">
+            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="8" r="4" /><path d="M4 20.5c0-3.6 3.6-6 8-6s8 2.4 8 6" />
+            </svg>
+            <span className="text-[10px] font-bold">Профиль</span>
+          </button>
+        )}
         <span className="relative flex h-1.5 w-1.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-60" />
           <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green" />
