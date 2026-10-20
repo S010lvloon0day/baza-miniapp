@@ -2,6 +2,9 @@ import type { CourseSummary } from './courses'
 
 const tg = (window as any).Telegram?.WebApp
 
+// короткоживущий токен для загрузки медиа чата (вместо initData в URL)
+let _mtok = ''
+
 export const API_BASE =
   location.hostname === 'localhost' || location.protocol === 'file:'
     ? 'http://localhost:8080'
@@ -251,13 +254,15 @@ export const api = {
   compete:        ()             => get<Compete>('/api/compete'),
   chat:           (after?: number) => get<ChatResp>(`/api/chat${after ? `?after=${after}` : ''}`),
   chatRecheck:    ()             => get<ChatResp>('/api/chat?recheck=1'),
+  chatMtoken:     ()             => get<{ token: string; ttl: number }>('/api/chat/mtoken'),
+  setMediaToken:  (t: string)    => { _mtok = t },
   chatOlder:      (before: number) => get<{ messages: ChatMsg[] }>(`/api/chat/older?before=${before}`),
   chatSend:       (text: string, reply_to?: number, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl }),
   chatSticker:    (sticker: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker, ttl }),
   chatGif:        (q: string)    => get<{ gifs: GifItem[] }>(`/api/chat/gif${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   chatGifSend:    (url: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string }>('/api/chat/gif/send', { url, ttl }),
   chatStickers:   ()             => get<{ packs: StickerPack[]; is_admin: boolean }>('/api/chat/stickers'),
-  chatStickerUrl: (fid: string, kind: string) => `${API_BASE}/api/chat/sticker?fid=${encodeURIComponent(fid)}&k=${kind}&init_data=${encodeURIComponent(tg?.initData || '')}`,
+  chatStickerUrl: (fid: string, kind: string) => `${API_BASE}/api/chat/sticker?fid=${encodeURIComponent(fid)}&k=${kind}&${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}`,
   chatStickerFile: (fid: string, kind: string, ttl?: number) => post<{ ok?: boolean; id?: number }>('/api/chat/send', { sticker_fid: fid, sticker_kind: kind, ttl }),
   chatStickersAdd: (link: string) => post<{ ok?: boolean; pack?: StickerPack; error?: string; message?: string }>('/api/chat/stickers/add', { link }),
   chatStickersRemove: (name: string) => post<{ ok?: boolean }>('/api/chat/stickers/remove', { name }),
@@ -268,8 +273,8 @@ export const api = {
   chatEdit:       (id: number, text: string) => post<{ ok?: boolean; error?: string }>(`/api/chat/${id}/edit`, { text }),
   chatTyping:     ()             => post<{ ok?: boolean }>('/api/chat/typing'),
   chatUser:       (uid: number) => get<ChatUserCard>(`/api/chat/user/${uid}`),
-  chatMediaUrl:   (id: number)   => `${API_BASE}/api/chat/media/${id}?init_data=${encodeURIComponent(tg?.initData || '')}`,
-  chatAvatarUrl:  (uid: number, v?: string | number) => `${API_BASE}/api/chat/avatar/${uid}?init_data=${encodeURIComponent(tg?.initData || '')}${v != null ? `&v=${v}` : ''}`,
+  chatMediaUrl:   (id: number)   => `${API_BASE}/api/chat/media/${id}?${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}`,
+  chatAvatarUrl:  (uid: number, v?: string | number) => `${API_BASE}/api/chat/avatar/${uid}?${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}${v != null ? `&v=${v}` : ''}`,
   chatAvatarUploadUrl: ()        => `${API_BASE}/api/chat/avatar/upload`,
   chatAvatarMode: (mode: string) => post<{ ok?: boolean; mode?: string }>('/api/chat/avatar/mode', { mode }),
   chatUploadUrl:  (type: string, dur = 0, ttl = 0, once = false) => `${API_BASE}/api/chat/upload?type=${type}&dur=${dur}${ttl ? `&ttl=${ttl}` : ''}${once ? '&once=1' : ''}`,

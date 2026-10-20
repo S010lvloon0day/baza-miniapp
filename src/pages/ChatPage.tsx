@@ -569,6 +569,7 @@ export default function ChatPage() {
   const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
   const [gated, setGated] = useState(false)   // не подписан на канал — доступ к чату закрыт
   const [channel, setChannel] = useState('')  // хэндл канала для кнопки «Подписаться»
+  const [, setMtokV] = useState(0)            // триггер ре-рендера при получении медиа-токена
   const [online, setOnline] = useState(0)
   const [typing, setTyping] = useState<string[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
@@ -682,10 +683,17 @@ export default function ChatPage() {
         if (newMax > prevMax && wasBottom) scrollToBottom(true)  // скроллим лишь при новом сообщении
       } catch { /* тихо */ }
     }
-    pull(true)
-    loadPacks()  // чтобы инлайн-эмодзи в сообщениях сразу находили свой пак
+    // сперва берём короткоживущий токен для медиа (вместо initData в URL),
+    // потом грузим ленту — чтобы картинки/аватары сразу шли по токену
+    const applyMtok = (tk: string) => { api.setMediaToken(tk); setMtokV(v => v + 1) }
+    const boot = async () => {
+      try { const r = await api.chatMtoken(); if (alive) applyMtok(r.token) } catch { /* fallback на initData */ }
+      if (alive) { pull(true); loadPacks() }
+    }
+    boot()
     const t = window.setInterval(() => pull(false), 2200)
-    return () => { alive = false; window.clearInterval(t) }
+    const tk = window.setInterval(() => { api.chatMtoken().then(r => alive && applyMtok(r.token)).catch(() => {}) }, 8 * 60 * 1000)
+    return () => { alive = false; window.clearInterval(t); window.clearInterval(tk) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
