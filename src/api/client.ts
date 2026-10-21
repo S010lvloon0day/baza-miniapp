@@ -258,6 +258,7 @@ export const api = {
   setMediaToken:  (t: string)    => { _mtok = t },
   chatSetRetention: (days: number) => post<{ ok?: boolean; days?: number; error?: string }>('/api/chat/retention', { days }),
   chatOlder:      (before: number) => get<{ messages: ChatMsg[] }>(`/api/chat/older?before=${before}`),
+  chatAround:     (id: number)    => get<{ messages: ChatMsg[] }>(`/api/chat/around?id=${id}`),
   chatSend:       (text: string, reply_to?: number, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl }),
   chatSticker:    (sticker: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker, ttl }),
   chatGif:        (q: string)    => get<{ gifs: GifItem[] }>(`/api/chat/gif${q ? `?q=${encodeURIComponent(q)}` : ''}`),

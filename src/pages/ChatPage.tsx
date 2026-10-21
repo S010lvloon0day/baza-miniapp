@@ -659,11 +659,24 @@ export default function ChatPage() {
     })
   }
   const jumpBottom = () => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight }
-  // переход к сообщению (напр. по тапу на закреплённое) + кратковременная подсветка
-  const jumpToMsg = (id: number) => {
+  // переход к сообщению (напр. по тапу на закреплённое) + кратковременная подсветка;
+  // если его нет в ленте — подгружаем окно вокруг него с сервера и прыгаем
+  const flashMsg = (id: number) => { setHiId(id); setTimeout(() => setHiId(null), 1700) }
+  const jumpToMsg = async (id: number) => {
     const el = document.getElementById('m-' + id)
-    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setHiId(id); setTimeout(() => setHiId(null), 1700) }
-    else flash('Сообщение не загружено — прокрути чат выше')
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); flashMsg(id); return }
+    try {
+      const r = await api.chatAround(id)
+      if (r.messages && r.messages.length) {
+        merge(r.messages)
+        // ждём отрисовку, затем прыгаем к сообщению
+        setTimeout(() => {
+          const el2 = document.getElementById('m-' + id)
+          if (el2) { el2.scrollIntoView({ behavior: 'auto', block: 'center' }); flashMsg(id) }
+          else flash('Не удалось открыть сообщение')
+        }, 160)
+      } else flash('Сообщение не найдено')
+    } catch { flash('Не удалось открыть сообщение') }
   }
 
   const merge = useCallback((incoming: ChatMsg[]) => {
