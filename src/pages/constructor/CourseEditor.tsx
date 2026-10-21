@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Icon from '../../components/Icon'
 import CourseIcon from '../../components/CourseIcon'
 import { CourseButton, ErrorNote } from '../../components/course/ui'
 import QuestionEditor, { inputStyle, XButton } from './QuestionEditor'
@@ -11,7 +12,7 @@ const LESSON_TYPE_LABEL: Record<LessonType, string> = { text: 'Текст', vide
 
 function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <label className="block uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.8px', color: '#8a8a93', marginBottom: 6 }}>
+    <label className="block " style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.8px', color: '#A6B8AE', marginBottom: 6 }}>
       {children}
     </label>
   )
@@ -26,9 +27,9 @@ function SegButton({ active, onClick, children }: { active: boolean; onClick: ()
         flex: 1,
         padding: '10px 4px',
         borderRadius: 10,
-        border: `1px solid ${active ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.1)'}`,
-        background: active ? 'rgba(34,197,94,.1)' : 'transparent',
-        color: active ? '#4AE885' : '#c9c9ce',
+        border: `1px solid ${active ? 'rgba(23,229,132,.5)' : 'rgba(255,255,255,.1)'}`,
+        background: active ? 'rgba(23,229,132,.1)' : 'transparent',
+        color: active ? '#4BF5A8' : '#c9c9ce',
         fontSize: 11.5,
         fontWeight: 700,
         cursor: 'pointer',
@@ -52,9 +53,9 @@ function LessonBlock({ lesson, onChange }: { lesson: DraftLesson; onChange: (l: 
             onClick={() => patch({ type })}
             style={{
               flex: 1, padding: '6px 4px', borderRadius: 7,
-              border: `1px solid ${lesson.type === type ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.08)'}`,
-              background: lesson.type === type ? 'rgba(34,197,94,.1)' : 'transparent',
-              color: lesson.type === type ? '#4AE885' : '#8a8a93',
+              border: `1px solid ${lesson.type === type ? 'rgba(23,229,132,.5)' : 'rgba(255,255,255,.08)'}`,
+              background: lesson.type === type ? 'rgba(23,229,132,.1)' : 'transparent',
+              color: lesson.type === type ? '#4BF5A8' : '#A6B8AE',
               fontSize: 9.5, fontWeight: 700, cursor: 'pointer',
             }}
           >
@@ -108,19 +109,19 @@ function StepRow({
   const isLesson = step.kind === 'lesson'
 
   return (
-    <div style={{ border: `1px solid ${isLesson ? 'rgba(255,255,255,.07)' : 'rgba(34,197,94,.22)'}`, borderRadius: 12, background: '#0D0D11' }}>
+    <div style={{ border: `1px solid ${isLesson ? 'rgba(255,255,255,.07)' : 'rgba(23,229,132,.22)'}`, borderRadius: 12, background: '#111C17' }}>
       <div className="flex items-center" style={{ gap: 8, padding: '9px 10px 0' }}>
         <span
           className="font-mono flex items-center justify-center shrink-0"
           style={{
             width: 22, height: 22, borderRadius: 7, fontSize: 10, fontWeight: 800,
-            background: isLesson ? 'rgba(255,255,255,.06)' : 'rgba(34,197,94,.14)',
-            color: isLesson ? '#8a8a93' : '#4AE885',
+            background: isLesson ? 'rgba(255,255,255,.06)' : 'rgba(23,229,132,.14)',
+            color: isLesson ? '#A6B8AE' : '#4BF5A8',
           }}
         >
           {index + 1}
         </span>
-        <span className="uppercase" style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.8px', color: isLesson ? '#8a8a93' : '#4AE885' }}>
+        <span className="" style={{ fontSize: 9.5, fontWeight: 800, letterSpacing: '.8px', color: isLesson ? '#A6B8AE' : '#4BF5A8' }}>
           {isLesson ? 'Теория' : 'Задача'}
         </span>
         <span className="flex-1" />
@@ -129,18 +130,18 @@ function StepRow({
           onClick={() => onMove(-1)}
           disabled={index === 0}
           aria-label="Выше"
-          style={{ border: 'none', background: 'transparent', color: index === 0 ? '#3a3a44' : '#8a8a93', cursor: index === 0 ? 'default' : 'pointer', padding: 2, lineHeight: 0 }}
+          style={{ border: 'none', background: 'transparent', color: index === 0 ? '#3a3a44' : '#A6B8AE', cursor: index === 0 ? 'default' : 'pointer', padding: 2, lineHeight: 0 }}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15" /></svg>
+          <Icon name="arrowU" size={13} />
         </button>
         <button
           type="button"
           onClick={() => onMove(1)}
           disabled={index === total - 1}
           aria-label="Ниже"
-          style={{ border: 'none', background: 'transparent', color: index === total - 1 ? '#3a3a44' : '#8a8a93', cursor: index === total - 1 ? 'default' : 'pointer', padding: 2, lineHeight: 0 }}
+          style={{ border: 'none', background: 'transparent', color: index === total - 1 ? '#3a3a44' : '#A6B8AE', cursor: index === total - 1 ? 'default' : 'pointer', padding: 2, lineHeight: 0 }}
         >
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
+          <Icon name="arrowD" size={13} />
         </button>
         <XButton onClick={onRemove} />
       </div>
@@ -187,19 +188,13 @@ function ChapterBlock({
   const tasks = chapter.steps.length - lessons
 
   return (
-    <div style={{ border: '1px solid rgba(255,255,255,.08)', borderRadius: 16, background: '#101014', overflow: 'hidden' }}>
+    <div style={{ border: '1px solid rgba(255,255,255,.08)', borderRadius: 16, background: '#111C17', overflow: 'hidden' }}>
       <div
         onClick={() => patch({ expanded: !chapter.expanded })}
         className="flex items-center"
         style={{ gap: 10, padding: '13px 14px', cursor: 'pointer' }}
       >
-        <svg
-          width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8a8a93"
-          strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round"
-          style={{ transform: chapter.expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform .2s ease', flex: 'none' }}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <Icon name="chevD" size={13} style={{ transform: chapter.expanded ? 'rotate(0deg)' : 'rotate(-90deg)', transition: 'transform .2s ease', flex: 'none', color: '#A6B8AE' }} />
         <input
           value={chapter.title}
           onChange={e => patch({ title: e.target.value })}
@@ -207,7 +202,7 @@ function ChapterBlock({
           placeholder={`Глава ${index + 1}`}
           style={{ flex: 1, minWidth: 0, border: 'none', background: 'transparent', color: '#fff', fontSize: 13.5, fontWeight: 700, outline: 'none', fontFamily: 'inherit' }}
         />
-        <span className="font-mono" style={{ fontSize: 10, color: '#6a6a75', flex: 'none' }}>
+        <span className="font-mono" style={{ fontSize: 10, color: '#6E8478', flex: 'none' }}>
           {lessons} теор · {tasks} зад
         </span>
         <XButton size={14} onClick={onRemove} />
@@ -228,9 +223,9 @@ function ChapterBlock({
                   className="flex items-center justify-center"
                   style={{
                     flex: 1, height: 34, borderRadius: 9,
-                    border: `1px solid ${chapter.icon === icon ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.08)'}`,
-                    background: chapter.icon === icon ? 'rgba(34,197,94,.1)' : 'transparent',
-                    color: chapter.icon === icon ? '#4AE885' : '#6a6a75',
+                    border: `1px solid ${chapter.icon === icon ? 'rgba(23,229,132,.5)' : 'rgba(255,255,255,.08)'}`,
+                    background: chapter.icon === icon ? 'rgba(23,229,132,.1)' : 'transparent',
+                    color: chapter.icon === icon ? '#4BF5A8' : '#6E8478',
                     cursor: 'pointer',
                   }}
                 >
@@ -241,7 +236,7 @@ function ChapterBlock({
           </div>
 
           <div className="flex items-center justify-between" style={{ marginBottom: 10 }}>
-            <span className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', color: '#7a7a83' }}>Шаги главы</span>
+            <span className="" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', color: '#8FA398' }}>Шаги главы</span>
             <span className="flex" style={{ gap: 6 }}>
               <button
                 type="button"
@@ -253,7 +248,7 @@ function ChapterBlock({
               <button
                 type="button"
                 onClick={() => patch({ steps: [...chapter.steps, emptyQuestionStep()] })}
-                style={{ border: 'none', background: 'rgba(34,197,94,.12)', color: '#4AE885', fontSize: 10.5, fontWeight: 700, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
+                style={{ border: 'none', background: 'rgba(23,229,132,.12)', color: '#4BF5A8', fontSize: 10.5, fontWeight: 700, borderRadius: 7, padding: '5px 9px', cursor: 'pointer' }}
               >
                 + Задача
               </button>
@@ -352,7 +347,7 @@ export default function CourseEditor({ course, sections, onChange, onSave }: Pro
         style={{ ...inputStyle, padding: '12px 14px', borderRadius: 12, fontSize: 13, marginBottom: 14, border: '1px solid rgba(255,255,255,.1)' }}
       >
         {sections.map(s => (
-          <option key={s.id} value={s.id} style={{ background: '#101014' }}>
+          <option key={s.id} value={s.id} style={{ background: '#111C17' }}>
             {s.parent_title ? `${s.parent_title} → ${s.title}` : s.title}
           </option>
         ))}
@@ -377,9 +372,9 @@ export default function CourseEditor({ course, sections, onChange, onSave }: Pro
             className="flex items-center justify-center"
             style={{
               flex: 1, height: 40, borderRadius: 10,
-              border: `1px solid ${course.icon === icon ? 'rgba(34,197,94,.5)' : 'rgba(255,255,255,.1)'}`,
-              background: course.icon === icon ? 'rgba(34,197,94,.1)' : 'transparent',
-              color: course.icon === icon ? '#4AE885' : '#6a6a75',
+              border: `1px solid ${course.icon === icon ? 'rgba(23,229,132,.5)' : 'rgba(255,255,255,.1)'}`,
+              background: course.icon === icon ? 'rgba(23,229,132,.1)' : 'transparent',
+              color: course.icon === icon ? '#4BF5A8' : '#6E8478',
               cursor: 'pointer',
             }}
           >
@@ -398,7 +393,7 @@ export default function CourseEditor({ course, sections, onChange, onSave }: Pro
         style={{ ...inputStyle, padding: '12px 14px', borderRadius: 12, fontSize: 13.5, marginBottom: 14, border: '1px solid rgba(255,255,255,.1)' }}
       />
 
-      <label className="flex items-center" style={{ gap: 8, fontSize: 12, color: '#9a9aa2', marginBottom: 22, cursor: 'pointer' }}>
+      <label className="flex items-center" style={{ gap: 8, fontSize: 12, color: '#A6B8AE', marginBottom: 22, cursor: 'pointer' }}>
         <input
           type="checkbox"
           checked={!!course.is_active}
@@ -408,11 +403,11 @@ export default function CourseEditor({ course, sections, onChange, onSave }: Pro
       </label>
 
       <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-        <span className="uppercase" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', color: '#9a9aa2' }}>Главы</span>
+        <span className="" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', color: '#A6B8AE' }}>Главы</span>
         <button
           type="button"
           onClick={() => patch({ chapters: [...course.chapters, emptyChapter()] })}
-          style={{ border: 'none', background: 'rgba(34,197,94,.12)', color: '#4AE885', fontSize: 11, fontWeight: 700, borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}
+          style={{ border: 'none', background: 'rgba(23,229,132,.12)', color: '#4BF5A8', fontSize: 11, fontWeight: 700, borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}
         >
           + Глава
         </button>
@@ -431,11 +426,11 @@ export default function CourseEditor({ course, sections, onChange, onSave }: Pro
       </div>
 
       <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-        <span className="uppercase" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', color: '#9a9aa2' }}>Финальный экзамен</span>
+        <span className="" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '1.2px', color: '#A6B8AE' }}>Финальный экзамен</span>
         <button
           type="button"
           onClick={() => patch({ final_exam: [...course.final_exam, emptyQuestion()] })}
-          style={{ border: 'none', background: 'rgba(34,197,94,.12)', color: '#4AE885', fontSize: 11, fontWeight: 700, borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}
+          style={{ border: 'none', background: 'rgba(23,229,132,.12)', color: '#4BF5A8', fontSize: 11, fontWeight: 700, borderRadius: 8, padding: '6px 10px', cursor: 'pointer' }}
         >
           + Вопрос
         </button>

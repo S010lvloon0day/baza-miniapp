@@ -131,7 +131,7 @@ export default function GrantSheet({ open, courseId, courseTitle, onClose }: Pro
                   autoComplete="off" autoCapitalize="off" spellCheck={false}
                   style={{
                     flex: 1, minWidth: 0, padding: '13px 14px', borderRadius: 12,
-                    border: '1px solid rgba(255,255,255,.12)', background: '#101014',
+                    border: '1px solid rgba(255,255,255,.12)', background: '#111C17',
                     color: '#fff', fontSize: 13.5, fontWeight: 600, outline: 'none',
                   }}
                 />
@@ -142,7 +142,7 @@ export default function GrantSheet({ open, courseId, courseTitle, onClose }: Pro
                   className="active:scale-[.99] flex items-center justify-center"
                   style={{
                     flex: 'none', padding: '0 18px', borderRadius: 12, border: 'none',
-                    background: granting ? 'rgba(34,197,94,.4)' : 'linear-gradient(180deg,#4AE885,#22C55E)',
+                    background: granting ? 'rgba(23,229,132,.4)' : 'linear-gradient(180deg,#4BF5A8,#17E584)',
                     color: '#04120A', fontSize: 13, fontWeight: 800,
                     cursor: granting ? 'default' : 'pointer',
                   }}
@@ -155,12 +155,12 @@ export default function GrantSheet({ open, courseId, courseTitle, onClose }: Pro
                 <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: '#ff9a9a' }}>{error}</div>
               )}
               {notice && (
-                <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: '#4AE885' }}>{notice}</div>
+                <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: '#4BF5A8' }}>{notice}</div>
               )}
             </div>
 
             {/* Members list */}
-            <div className="font-mono px-4" style={{ fontSize: 10.5, color: '#6a6a75', margin: '18px 0 10px' }}>
+            <div className="font-mono px-4" style={{ fontSize: 10.5, color: '#6E8478', margin: '18px 0 10px' }}>
               доступ есть у {members.length}
             </div>
             <div className="overflow-y-auto px-4" style={{ flex: 1 }}>
@@ -174,11 +174,11 @@ export default function GrantSheet({ open, courseId, courseTitle, onClose }: Pro
                     <div
                       key={m.user_id}
                       className="flex items-center"
-                      style={{ gap: 10, padding: '11px 13px', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, background: '#101014' }}
+                      style={{ gap: 10, padding: '11px 13px', border: '1px solid rgba(255,255,255,.08)', borderRadius: 12, background: '#111C17' }}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="truncate" style={{ fontSize: 13, fontWeight: 700 }}>{memberName(m)}</div>
-                        <div className="font-mono truncate" style={{ fontSize: 9.5, color: '#6a6a75', marginTop: 2 }}>
+                        <div className="font-mono truncate" style={{ fontSize: 9.5, color: '#6E8478', marginTop: 2 }}>
                           ID {m.user_id}
                           {m.username ? ` · @${m.username}` : ''}
                           {m.manual ? ' · выдан вручную' : ' · оплачен'}

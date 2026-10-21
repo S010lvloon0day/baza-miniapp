@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import Icon from './Icon'
 import { api } from '../api/client'
 import type { CertInfo } from '../api/client'
 
@@ -206,23 +207,21 @@ export default function Certificate({ parentId, language }: Props) {
   // Не сдан — показываем прогресс к сертификату
   if (!info.eligible) {
     return (
-      <div className="mx-4 mb-5 rounded-2xl p-4"
-        style={{ border: '1px solid rgba(212,175,55,.25)', background: 'radial-gradient(120% 120% at 0% 0%, rgba(212,175,55,.08), transparent 60%), #0d0c0a' }}>
+      <div className="mx-4 mb-5 card-gold p-4">
         <div className="flex items-center gap-3 mb-3">
-          <div className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-[20px]"
-            style={{ background: 'rgba(212,175,55,.12)', border: '1px solid rgba(212,175,55,.4)' }}>🎓</div>
+          <span className="gold-metal sheen w-10 h-10 rounded-[12px] grid place-items-center shrink-0">
+            <Icon name="cert" size={19} accent="#3A2300" className="relative z-[1]" />
+          </span>
           <div className="flex-1 min-w-0">
-            <div className="text-[14px] font-bold text-white">Сертификат по «{language}»</div>
-            <div className="text-[11px] leading-snug" style={{ color: '#b8a97a' }}>
-              Пройди все {info.total} уроков курса — и получишь именной диплом.
-            </div>
+            <div className="text-[14.5px] font-semibold">Сертификат по «{language}»</div>
+            <div className="text-[12.5px] leading-snug text-[#CDBB8E]">Пройдите все {info.total} уроков курса — и получите именной диплом.</div>
           </div>
         </div>
-        <div className="flex items-center justify-between text-[11px] mb-1.5" style={{ color: '#b8a97a' }}>
+        <div className="flex items-center justify-between text-[12px] mb-1.5 text-[#CDBB8E] tabular-nums">
           <span>Прогресс</span><span>{info.done} / {info.total}</span>
         </div>
-        <div className="h-[6px] rounded-full overflow-hidden" style={{ background: 'rgba(212,175,55,.12)' }}>
-          <div className="h-full rounded-full" style={{ width: pct + '%', background: 'linear-gradient(90deg,#b8860b,#f3e3a3)' }} />
+        <div className="h-1.5 rounded-full overflow-hidden bg-white/[.08]">
+          <div className="h-full rounded-full" style={{ width: pct + '%', background: 'linear-gradient(90deg,#C8861C,#FFE08A)' }} />
         </div>
       </div>
     )
@@ -249,7 +248,7 @@ export default function Certificate({ parentId, language }: Props) {
       const base64 = data.split(',')[1] || ''
       const r = await api.certificateSend(parentId, base64)
       if (r.ok) {
-        setMsg('✅ Сертификат отправлен тебе в чат с ботом!')
+        setMsg('Сертификат отправлен вам в чат с ботом.')
         tg?.HapticFeedback?.notificationOccurred?.('success')
       } else {
         setMsg('Не удалось отправить: ' + (r.error || 'ошибка'))
@@ -271,62 +270,53 @@ export default function Certificate({ parentId, language }: Props) {
 
   // Сдан — диплом доступен
   return (
-    <div className="mx-4 mb-5 rounded-2xl p-4"
-      style={{ border: '1px solid rgba(212,175,55,.4)', background: 'radial-gradient(130% 130% at 0% 0%, rgba(212,175,55,.14), transparent 55%), #0d0c0a' }}>
+    <div className="mx-4 mb-5 card-gold p-4">
       <div className="flex items-center gap-3">
-        <div className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center text-[22px]"
-          style={{ background: 'rgba(212,175,55,.15)', border: '1px solid rgba(212,175,55,.5)', boxShadow: '0 0 18px rgba(212,175,55,.3)' }}>🏆</div>
+        <span className="gold-metal sheen w-11 h-11 rounded-[13px] grid place-items-center shrink-0">
+          <Icon name="trophy" size={21} accent="#3A2300" className="relative z-[1]" />
+        </span>
         <div className="flex-1 min-w-0">
-          <div className="text-[14px] font-bold" style={{ color: '#f3e3a3' }}>Курс пройден — диплом готов!</div>
-          <div className="text-[11px] leading-snug" style={{ color: '#b8a97a' }}>
-            Все {info.total} уроков по «{language}» освоены. Забирай именной сертификат.
-          </div>
+          <div className="font-display font-semibold text-[14.5px] text-[#FFE7A8]">Курс пройден — диплом готов</div>
+          <div className="text-[12.5px] leading-snug text-[#CDBB8E]">Все {info.total} уроков по «{language}» освоены. Заберите именной сертификат.</div>
         </div>
       </div>
 
       {!open ? (
-        <button onClick={() => setOpen(true)}
-          className="mt-3 w-full py-3 rounded-xl font-extrabold text-[14px] active:-translate-y-0.5 transition-transform"
-          style={{ background: 'linear-gradient(180deg,#f3e3a3,#d4af37)', color: '#2a2200', boxShadow: '0 4px 14px rgba(212,175,55,.35)' }}>
-          🎓 Показать мой сертификат
+        <button onClick={() => setOpen(true)} className="btn-gold gold-metal sheen sheen-d1 mt-3.5 w-full !h-12 active:scale-[.99] transition-transform">
+          <b className="!text-[14px]">Показать сертификат</b>
         </button>
       ) : (
-        <div className="mt-3 flex flex-col gap-3">
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(212,175,55,.3)' }}>
+        <div className="mt-3.5 flex flex-col gap-2.5">
+          <div className="rounded-[14px] overflow-hidden border border-gold/30">
             <canvas ref={canvasRef} style={{ width: '100%', height: 'auto', display: 'block' }} />
           </div>
           <div className="flex gap-2">
-            <button onClick={sendToChat} disabled={sending}
-              className="flex-1 py-3 rounded-xl font-extrabold text-[13px] active:-translate-y-0.5 transition-transform disabled:opacity-50"
-              style={{ background: 'linear-gradient(180deg,#f3e3a3,#d4af37)', color: '#2a2200' }}>
-              {sending ? 'Отправляю…' : '📩 Получить в Telegram'}
+            <button onClick={sendToChat} disabled={sending} className="btn-gold gold-metal flex-1 !h-11 !flex-row gap-1.5 disabled:opacity-50">
+              <Icon name="send" size={15} accent="#3A2300" className="relative z-[1]" />
+              <b className="!text-[13px]">{sending ? 'Отправляю…' : 'В Telegram'}</b>
             </button>
-            <button onClick={download}
-              className="flex-1 py-3 rounded-xl font-bold text-[13px] text-white active:-translate-y-0.5 transition-transform"
-              style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(212,175,55,.35)' }}>
-              ⬇️ Скачать PNG
+            <button onClick={download} className="btn-secondary flex-1">
+              <Icon name="download" size={17} /> Скачать PNG
             </button>
           </div>
-          {msg && <div className="text-[12px] leading-snug" style={{ color: '#d4af37' }}>{msg}</div>}
-          <button onClick={verifySelf} disabled={vLoading}
-            className="w-full py-2.5 rounded-xl font-bold text-[13px] text-white active:-translate-y-0.5 transition-transform disabled:opacity-50"
-            style={{ background: 'rgba(255,255,255,.06)', border: '1px solid rgba(212,175,55,.3)' }}>
-            {vLoading ? 'Проверяю…' : '🔎 Проверить подлинность'}
+          {msg && <div className="text-[12.5px] leading-snug text-gold">{msg}</div>}
+          <button onClick={verifySelf} disabled={vLoading} className="btn-secondary w-full disabled:opacity-50">
+            <Icon name="seal" size={17} /> {vLoading ? 'Проверяю…' : 'Проверить подлинность'}
           </button>
           {vr && (
             vr.valid ? (
-              <div className="rounded-xl p-3 text-[12px]" style={{ background: 'rgba(40,200,64,.08)', border: '1px solid rgba(40,200,64,.4)', color: '#4AE885' }}>
-                ✅ Сертификат подлинный. Владелец: <b>{vr.username}</b> · {vr.language} · {vr.date}. Код: {vr.code}.
+              <div className="rounded-[14px] p-3 text-[13px] leading-snug flex gap-2.5 bg-green/10 text-[#9FF0C6]">
+                <Icon name="checkCircle" size={18} className="text-green shrink-0" accent="current" />
+                <div>Сертификат подлинный. Владелец: <b className="text-fg">{vr.username}</b> · {vr.language} · {vr.date}. Код: {vr.code}.</div>
               </div>
             ) : (
-              <div className="rounded-xl p-3 text-[12px]" style={{ background: 'rgba(255,80,80,.08)', border: '1px solid rgba(255,80,80,.4)', color: '#ff8a8a' }}>
-                ⚠️ Не подтверждён ({vr.reason === 'not_found' ? 'нет в реестре — возможно, подделка' : vr.revoked ? 'отозван' : 'ошибка проверки'}).
+              <div className="rounded-[14px] p-3 text-[13px] leading-snug flex gap-2.5 bg-[#FF6B6B]/10 text-[#FFB0B0]">
+                <Icon name="warn" size={18} className="text-[#FF8A8A] shrink-0" accent="#FF8A8A" />
+                <div>Не подтверждён ({vr.reason === 'not_found' ? 'нет в реестре — возможно, подделка' : vr.revoked ? 'отозван' : 'ошибка проверки'}).</div>
               </div>
             )
           )}
-          <div className="text-[10px] text-center leading-relaxed" style={{ color: '#6a6250' }}>
-            ID: {info.cert_id}{info.code ? ' · код: ' + info.code : ''}
-          </div>
+          <div className="text-[11px] text-center text-gray2 font-mono">ID: {info.cert_id}{info.code ? ' · код: ' + info.code : ''}</div>
         </div>
       )}
     </div>

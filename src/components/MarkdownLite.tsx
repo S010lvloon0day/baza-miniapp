@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import CodeTask from './CodeTask'
 import RunTask from './RunTask'
@@ -104,10 +105,10 @@ function inline(s: string): ReactNode[] {
   let last = 0, m: RegExpExecArray | null, k = 0
   while ((m = re.exec(s))) {
     if (m.index > last) parts.push(s.slice(last, m.index))
-    if (m[1]) parts.push(<code key={k++} className="px-1 py-0.5 rounded bg-white/10 text-[.88em] text-green font-mono">{m[1]}</code>)
-    else if (m[2]) parts.push(<b key={k++} className="text-white">{m[2]}</b>)
-    else if (m[3]) parts.push(<a key={k++} href={m[4]} target="_blank" rel="noreferrer" className="text-green underline break-all">{m[3]}</a>)
-    else if (m[5]) parts.push(<a key={k++} href={m[5]} target="_blank" rel="noreferrer" className="text-green underline break-all">{m[5]}</a>)
+    if (m[1]) parts.push(<code key={k++} className="px-1.5 py-0.5 rounded-md bg-white/[.08] text-[.86em] text-greenLight font-mono">{m[1]}</code>)
+    else if (m[2]) parts.push(<b key={k++} className="text-fg font-semibold">{m[2]}</b>)
+    else if (m[3]) parts.push(<a key={k++} href={m[4]} target="_blank" rel="noreferrer" className="text-green underline underline-offset-2 decoration-green/40 break-all">{m[3]}</a>)
+    else if (m[5]) parts.push(<a key={k++} href={m[5]} target="_blank" rel="noreferrer" className="text-green underline underline-offset-2 decoration-green/40 break-all">{m[5]}</a>)
     last = re.lastIndex
   }
   if (last < s.length) parts.push(s.slice(last))
@@ -124,12 +125,14 @@ function Code({ text }: { text: string }) {
     } catch { /* */ }
   }
   return (
-    <div className="relative my-2.5 group">
-      <button onClick={copy}
-        className="absolute top-2 right-2 px-2 py-0.5 rounded-md bg-white/10 text-[11px] text-white/70 active:bg-green/20">
-        {copied ? '✓ скопировано' : 'копировать'}
-      </button>
-      <pre className="p-3 pr-24 rounded-xl bg-[#0d0f13] border border-white/[.08] overflow-x-auto text-[12.5px] leading-[1.6] text-white/90 font-mono">{text}</pre>
+    <div className="my-3 rounded-[16px] bg-[#060B09] border border-white/[.07] overflow-hidden">
+      <div className="flex items-center justify-between px-3.5 h-9 border-b border-white/[.06]">
+        <span className="text-[12px] text-gray2">Код</span>
+        <button onClick={copy} className={`inline-flex items-center gap-1.5 h-7 px-2.5 -mr-1.5 rounded-[9px] text-[12.5px] font-medium active:bg-white/[.08] ${copied ? 'text-green' : 'text-gray'}`}>
+          <Icon name={copied ? 'check' : 'copy'} size={14} />{copied ? 'Скопировано' : 'Копировать'}
+        </button>
+      </div>
+      <pre className="p-3.5 overflow-x-auto text-[12.5px] leading-[1.65] text-fg/90 font-mono">{text}</pre>
     </div>
   )
 }
@@ -144,22 +147,22 @@ function Blocks({ blocks, onSolve }: { blocks: Block[]; onSolve?: (tid: number) 
         if (b.t === 'runtask') return <RunTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
         if (b.t === 'mongotask') return <MongoTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
         if (b.t === 'hacklab') return <HackLab key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
-        if (b.t === 'h') return <div key={i} className="mt-3 mb-1 text-[15px] font-bold text-white">{inline(b.text)}</div>
-        if (b.t === 'p') return <p key={i} className="my-1.5 text-[14px] leading-[1.8] text-white/80 whitespace-pre-wrap break-words">{inline(b.text)}</p>
+        if (b.t === 'h') return <h3 key={i} className="mt-4 mb-1.5 font-display font-semibold text-[16px] leading-snug text-fg">{inline(b.text)}</h3>
+        if (b.t === 'p') return <p key={i} className="my-2 text-[15px] leading-[1.7] text-fg/85 whitespace-pre-wrap break-words">{inline(b.text)}</p>
         if (b.t === 'quote') return (
-          <div key={i} className="my-2 p-3 rounded-xl border-l-2 border-green bg-green/[.06] text-[13.5px] leading-[1.7] text-white/80 whitespace-pre-wrap break-words">{inline(b.text)}</div>
+          <div key={i} className="my-3 py-3 px-3.5 rounded-[14px] border-l-[3px] border-purple bg-purple/[.10] text-[14.5px] leading-[1.65] text-fg/85 whitespace-pre-wrap break-words">{inline(b.text)}</div>
         )
-        if (b.t === 'ul') return <ul key={i} className="my-1.5 pl-1 flex flex-col gap-1">{b.items.map((it, k) => <li key={k} className="flex gap-2 text-[14px] leading-[1.7] text-white/80"><span className="text-green shrink-0">•</span><span className="break-words">{inline(it)}</span></li>)}</ul>
-        if (b.t === 'ol') return <ol key={i} className="my-1.5 pl-1 flex flex-col gap-1">{b.items.map((it, k) => <li key={k} className="flex gap-2 text-[14px] leading-[1.7] text-white/80"><span className="text-green shrink-0 font-semibold">{k + 1}.</span><span className="break-words">{inline(it)}</span></li>)}</ol>
+        if (b.t === 'ul') return <ul key={i} className="my-1.5 pl-1 flex flex-col gap-1">{b.items.map((it, k) => <li key={k} className="flex gap-2.5 text-[15px] leading-[1.65] text-fg/85"><span className="shrink-0 mt-[9px] w-[6px] h-[6px] rotate-45 bg-green" /><span className="break-words">{inline(it)}</span></li>)}</ul>
+        if (b.t === 'ol') return <ol key={i} className="my-1.5 pl-1 flex flex-col gap-1">{b.items.map((it, k) => <li key={k} className="flex gap-2.5 text-[15px] leading-[1.65] text-fg/85"><span className="text-green shrink-0 font-semibold tabular-nums">{k + 1}.</span><span className="break-words">{inline(it)}</span></li>)}</ol>
         if (b.t === 'table') return (
-          <div key={i} className="my-2.5 overflow-x-auto rounded-xl border border-white/[.08]">
+          <div key={i} className="my-3 overflow-x-auto rounded-[14px] border border-white/[.07]">
             <table className="w-full text-[13px] border-collapse">
               <tbody>
                 {b.rows.map((r, ri) => (
-                  <tr key={ri} className={ri === 0 && b.head ? 'bg-white/[.06]' : 'border-t border-white/[.06]'}>
+                  <tr key={ri} className={ri === 0 && b.head ? 'bg-white/[.06]' : 'border-t border-white/[.07]'}>
                     {r.map((c, ci) => (ri === 0 && b.head)
-                      ? <th key={ci} className="text-left p-2 font-semibold text-white">{inline(c)}</th>
-                      : <td key={ci} className="p-2 text-white/80 align-top">{inline(c)}</td>)}
+                      ? <th key={ci} className="text-left px-3 py-2 font-semibold text-fg">{inline(c)}</th>
+                      : <td key={ci} className="px-3 py-2 text-fg/80 align-top">{inline(c)}</td>)}
                   </tr>
                 ))}
               </tbody>
@@ -175,13 +178,13 @@ function Blocks({ blocks, onSolve }: { blocks: Block[]; onSolve?: (tid: number) 
 function Accordion({ title, blocks, defOpen, onSolve }: { title: string; blocks: Block[]; defOpen: boolean; onSolve?: (tid: number) => void }) {
   const [open, setOpen] = useState(defOpen)
   return (
-    <div className="my-2 rounded-xl border border-white/[.1] overflow-hidden">
+    <div className={`my-2.5 rounded-[18px] border overflow-hidden transition-colors ${open ? 'bg-s1 border-white/[.09]' : 'bg-s1/60 border-white/[.06]'}`}>
       <button onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between gap-3 px-3.5 py-3 text-left active:bg-white/[.04]">
-        <span className="text-[14px] font-semibold text-white break-words">{inline(title)}</span>
-        <span className={`shrink-0 text-green transition-transform ${open ? 'rotate-180' : ''}`}>▾</span>
+        className="w-full flex items-center justify-between gap-3 px-4 py-3.5 text-left active:bg-white/[.04]">
+        <span className="font-display font-semibold text-[14.5px] leading-snug text-fg break-words">{inline(title)}</span>
+        <span className={`shrink-0 w-7 h-7 rounded-full grid place-items-center transition-transform ${open ? 'rotate-180 bg-green/15 text-green' : 'bg-white/[.06] text-gray'}`}><Icon name="chevD" size={16} /></span>
       </button>
-      {open && <div className="px-3.5 pb-3 pt-0 border-t border-white/[.06]"><Blocks blocks={blocks} onSolve={onSolve} /></div>}
+      {open && <div className="px-4 pb-3.5 pt-1 border-t border-white/[.06]"><Blocks blocks={blocks} onSolve={onSolve} /></div>}
     </div>
   )
 }

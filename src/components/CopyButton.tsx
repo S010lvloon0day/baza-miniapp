@@ -63,7 +63,7 @@ async function writeClipboard(text: string): Promise<boolean> {
 type State = 'idle' | 'done' | 'fail'
 
 const FACE: Record<State, { label: string; color: string }> = {
-  idle: { label: 'Копировать',  color: 'text-green/75' },
+  idle: { label: 'Копировать',  color: 'text-gray' },
   done: { label: 'Скопировано', color: 'text-greenLight' },
   fail: { label: 'Не удалось',  color: 'text-gold' },
 }
@@ -94,7 +94,7 @@ export default function CopyButton({ text, className = '' }: { text: string; cla
       // нажатия у соседних элементов.
       className={`group flex items-center justify-center gap-1.5 shrink-0
                   min-h-[44px] -my-2 px-2 -mr-2 rounded-lg
-                  transition-colors active:bg-[rgba(34,197,94,.10)] ${face.color} ${className}`}
+                  transition-colors active:bg-white/[.06] ${face.color} ${className}`}
     >
       <span className="relative w-[15px] h-[15px]">
         <AnimatePresence initial={false} mode="wait">
@@ -115,7 +115,7 @@ export default function CopyButton({ text, className = '' }: { text: string; cla
 
       <span className="relative">
         {/* Ширину держит самое длинное состояние — надпись не дёргает заголовок. */}
-        <span aria-hidden className="invisible text-[11px] font-semibold tracking-[1.5px] uppercase">
+        <span aria-hidden className="invisible text-[13px] font-medium">
           Скопировано
         </span>
         <AnimatePresence initial={false} mode="wait">
@@ -126,7 +126,7 @@ export default function CopyButton({ text, className = '' }: { text: string; cla
             exit={{ opacity: 0, y: -3 }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 flex items-center justify-start whitespace-nowrap
-                       text-[11px] font-semibold tracking-[1.5px] uppercase"
+                       text-[13px] font-medium"
           >
             {face.label}
           </motion.span>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
-import { Star, Lock, Check, Bell, BellRinging } from '../components/icons'
-import { ICON_PATHS, resolveIcon } from '../components/CategoryIcon'
+import Icon from '../components/Icon'
+import PremiumBadge from '../components/PremiumBadge'
+import { iconNameFor } from '../components/CategoryIcon'
+import { coverClass } from '../components/sectionCover'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import { CardSocial } from '../components/MaterialSocial'
 import { api } from '../api/client'
@@ -32,62 +33,56 @@ interface Props {
   onUpgrade: () => void
 }
 
-const typeLabel = (t: string) => ({ photo:'ФОТО', video:'ВИДЕО', document:'ДОКУМЕНТ', text:'ТЕКСТ' }[t] ?? t.toUpperCase())
+const typeLabel = (t: string) => ({ photo: 'Фото', video: 'Видео', document: 'Файл', text: 'Урок', doc: 'Урок', quiz: 'Тест', task: 'Задание' }[t] ?? 'Материал')
+type Filter = 'all' | 'video' | 'lesson' | 'test' | 'file'
+const FILTERS: { id: Filter; label: string; match: (t: string) => boolean }[] = [
+  { id: 'all', label: 'Все', match: () => true },
+  { id: 'video', label: 'Видео', match: t => t === 'video' },
+  { id: 'lesson', label: 'Уроки', match: t => t === 'text' || t === 'doc' },
+  { id: 'test', label: 'Тесты', match: t => t === 'quiz' || t === 'task' },
+  { id: 'file', label: 'Файлы', match: t => t === 'document' || t === 'photo' },
+]
+
+/** Крупная шапка-обложка раздела. */
+function Cover({ section, children }: { section: Section; children?: React.ReactNode }) {
+  return (
+    <div className={`${coverClass(section)} relative overflow-hidden px-[18px] pt-10 pb-5 min-h-[178px] flex flex-col justify-end`}>
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,16,13,0) 25%, #08100D 100%)' }} />
+      <Icon name={iconNameFor(section.title)} size={150} className="absolute -right-5 top-1 opacity-[.14] text-white" accent="#fff" strokeWidth={1.3} />
+      <div className="relative">{children}</div>
+    </div>
+  )
+}
 
 const BENEFITS = [
   'Полный доступ ко всем закрытым разделам и материалам',
   'Новые материалы раньше всех остальных',
-  'Подписка на 1, 3 или 12 месяцев — крипта или Telegram Stars',
+  'Оплата картой через СБП, криптой или Telegram Stars',
 ]
 
 function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: () => void }) {
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
-      <div className="flex flex-col items-center px-5 py-10 text-center gap-6">
-        <div className="relative">
-          <div className="w-24 h-24 bg-[rgba(157,92,255,.10)] border border-[rgba(199,166,255,.25)] rounded-2xl flex items-center justify-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ color: '#C7A6FF' }}>
-              {ICON_PATHS[resolveIcon(section.title)]}
-            </svg>
-          </div>
-          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-violet rounded-full flex items-center justify-center shadow-lg">
-            <Lock size={16} weight="fill" className="text-white" />
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-2">
-          <div className="font-display text-[18px] tracking-[2px] uppercase leading-snug text-white max-w-[260px]">
-            {section.title}
-          </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(157,92,255,.15)] border border-[rgba(157,92,255,.3)]">
-            <Star size={11} weight="fill" className="text-violet" />
-            <span className="text-[10px] font-bold tracking-[1.5px] text-violet uppercase">Premium раздел</span>
-          </div>
-        </div>
-
-        {section.description && (
-          <div className="text-[13px] text-gray leading-relaxed max-w-[280px]">
-            {section.description}
-          </div>
-        )}
-
-        <div className="w-full premium-surface border border-bd rounded-xl p-4 flex flex-col gap-3 text-left">
-          <div className="text-[11px] font-bold tracking-[2px] uppercase text-gray mb-1">Что даёт Premium</div>
-          {BENEFITS.map(b => (
-            <div key={b} className="flex items-center gap-3">
-              <div className="w-5 h-5 bg-[rgba(157,92,255,.2)] rounded-full flex items-center justify-center shrink-0">
-                <Check size={11} weight="bold" className="text-violet" />
+      <Cover section={section}>
+        <PremiumBadge />
+        <h1 className="font-display font-semibold text-[25px] leading-tight mt-2.5" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
+        {section.description && <p className="text-[14px] text-[#CFDAD4] mt-1">{section.description}</p>}
+      </Cover>
+      <div className="px-3.5 flex flex-col gap-3">
+        <div className="card-gold px-4 py-4">
+          <div className="font-display font-semibold text-[15px] mb-3">Что даёт Premium</div>
+          <div className="flex flex-col gap-2.5">
+            {BENEFITS.map(b => (
+              <div key={b} className="flex items-start gap-2.5">
+                <span className="w-5 h-5 rounded-full bg-gold/20 text-gold grid place-items-center shrink-0 mt-px"><Icon name="check" size={12} strokeWidth={2.2} /></span>
+                <span className="text-[14px] text-[#E4E9E6] leading-snug">{b}</span>
               </div>
-              <span className="text-[13px] text-white/80">{b}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-
-        <button
-          onClick={onUpgrade}
-          className="w-full py-4 bg-violet rounded-xl font-bold text-[15px] text-white tracking-wide active:opacity-80 transition-opacity"
-        >
-          💎 Получить Premium доступ
+        <button onClick={onUpgrade} className="btn-gold gold-metal sheen w-full">
+          <b>Открыть Premium</b>
+          <small>Подписка на 1, 3 или 12 месяцев</small>
         </button>
       </div>
     </div>
@@ -124,55 +119,27 @@ function CoursePaywall({ section, onPurchased }: { section: Section; onPurchased
 
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
-      <div className="flex flex-col items-center px-5 py-10 text-center gap-6">
-        <div className="relative">
-          <div className="w-24 h-24 bg-[rgba(40,200,64,.08)] border border-[rgba(40,200,64,.25)] rounded-2xl flex items-center justify-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" style={{ color: '#4AE885' }}>
-              {ICON_PATHS[resolveIcon(section.title)]}
-            </svg>
-          </div>
-          <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-green rounded-full flex items-center justify-center shadow-lg">
-            <Lock size={16} weight="fill" className="text-bg" />
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center gap-2">
-          <div className="font-display text-[18px] tracking-[2px] uppercase leading-snug text-white max-w-[260px]">
-            {section.title}
-          </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[rgba(40,200,64,.12)] border border-[rgba(40,200,64,.3)]">
-            <span className="text-[11px] font-bold tracking-[1px] text-green uppercase">💰 Платный курс</span>
-          </div>
-        </div>
-
-        {section.description && (
-          <div className="text-[13px] text-gray leading-relaxed max-w-[280px]">{section.description}</div>
-        )}
-
-        <div className="w-full border border-bd rounded-xl p-4 flex flex-col gap-2 text-left" style={{ background: 'rgba(40,200,64,.04)' }}>
+      <Cover section={section}>
+        <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-black/35 text-[12px] font-semibold text-[#CFDAD4]"><Icon name="lock" size={13} />Платный курс</span>
+        <h1 className="font-display font-semibold text-[25px] leading-tight mt-2.5" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
+        {section.description && <p className="text-[14px] text-[#CFDAD4] mt-1">{section.description}</p>}
+      </Cover>
+      <div className="px-3.5 flex flex-col gap-3">
+        <div className="card px-4 py-4">
           <div className="flex items-baseline justify-between">
-            <span className="text-[12px] text-gray uppercase tracking-[1px]">Стоимость</span>
-            <span className="text-[22px] font-bold text-white">{price} USDT</span>
+            <span className="text-[13px] text-gray">Стоимость</span>
+            <span className="font-display font-semibold text-[22px] tabular-nums">{price} USDT</span>
           </div>
-          <div className="text-[12px] text-white/70">Разовая покупка — доступ к курсу навсегда. Оплата криптовалютой (USDT) через CryptoBot.</div>
+          <p className="text-[13px] text-gray leading-relaxed mt-2">Разовая покупка: доступ к курсу навсегда. Оплата в USDT через CryptoBot.</p>
         </div>
-
         {!invoice ? (
-          <button
-            onClick={buy} disabled={busy}
-            className="w-full py-4 bg-green rounded-xl font-bold text-[15px] text-bg tracking-wide active:opacity-80 transition-opacity disabled:opacity-50"
-          >
-            💰 Купить за {price} USDT
+          <button onClick={buy} disabled={busy} className="btn-gold gold-metal sheen w-full disabled:opacity-60">
+            <b>Купить за {price} USDT</b><small>Откроется CryptoBot</small>
           </button>
         ) : (
-          <button
-            onClick={check} disabled={busy}
-            className="w-full py-4 bg-white rounded-xl font-bold text-[15px] text-bg tracking-wide active:opacity-80 transition-opacity disabled:opacity-50"
-          >
-            ✅ Я оплатил — проверить
-          </button>
+          <button onClick={check} disabled={busy} className="btn-primary w-full">Я оплатил, проверить</button>
         )}
-        {msg && <div className="text-[12px] text-gray2 leading-relaxed">{msg}</div>}
+        {msg && <div className="text-[13px] text-gray leading-relaxed px-1">{msg}</div>}
       </div>
     </div>
   )
@@ -189,6 +156,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [subscribed, setSubscribed] = useState(false)
   const [subBusy, setSubBusy] = useState(false)
   const [subMsg, setSubMsg] = useState<string | null>(null)
+  const [filter, setFilter] = useState<Filter>('all')
 
   useEffect(() => {
     api.sectionSub(section.id).then(r => setSubscribed(r.subscribed)).catch(() => {})
@@ -200,7 +168,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
     setSubBusy(true)
     try {
       await api.setSectionSub(section.id, next)
-      setSubMsg(next ? '🔔 Пришлём в Telegram, когда здесь появятся новые материалы'
+      setSubMsg(next ? 'Пришлём в Telegram, когда здесь появятся новые материалы'
                      : 'Уведомления по разделу выключены')
       tg?.HapticFeedback?.notificationOccurred?.('success')
       setTimeout(() => setSubMsg(null), 3500)
@@ -261,225 +229,157 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const showUpsell = lockedPreview && !loading && total === 0 && subs.length === 0
   if (showUpsell) return <PremiumUpsell section={section} onUpgrade={onUpgrade} />
 
+  const present = FILTERS.filter(f => f.id !== 'all' && mats.some(m => f.match(m.media_type)))
+  const shown = filter === 'all' ? mats : mats.filter(m => FILTERS.find(f => f.id === filter)!.match(m.media_type))
+  const anyViewed = mats.some(m => m.viewed)
+  let lastViewed = -1
+  mats.forEach((m, i) => { if (m.viewed) lastViewed = i })
+  const currentId = anyViewed ? (mats.slice(lastViewed + 1).find(m => !m.viewed && !m.locked) ?? mats.find(m => !m.viewed && !m.locked))?.id : undefined
+  const doneCount = Math.max(viewedCount, mats.filter(m => m.viewed).length)
+  const pct = total > 0 ? Math.min(100, (doneCount / total) * 100) : 0
+
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
-      {/* Section header */}
-      <div className="relative overflow-hidden mx-4 mt-3 mb-6 flex items-center gap-3.5"
-        style={{
-          padding: 18,
-          border: '1px solid rgba(34,197,94,.25)',
-          borderRadius: 18,
-          background: 'radial-gradient(120% 100% at 0% 0%, rgba(34,197,94,.1), transparent 60%), #0D0D11',
-        }}>
-        <div className="absolute top-0 left-0 right-0 h-px" style={{ background: 'linear-gradient(90deg,transparent,rgba(34,197,94,.5),transparent)' }} />
-        <div className="shrink-0 flex items-center justify-center" style={{
-          width: 52, height: 52, borderRadius: 15,
-          border: '1px solid rgba(34,197,94,.4)',
-          background: 'radial-gradient(circle,rgba(34,197,94,.35),rgba(34,197,94,.06) 68%,transparent)',
-          boxShadow: '0 0 20px rgba(34,197,94,.4)', color: '#4AE885',
-        }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
-            {ICON_PATHS[resolveIcon(section.title)]}
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-mono text-[10px] mb-1 truncate" style={{ color: '#5c8a6e' }}>$ ls -la ~/{section.title}/</div>
-          <div className="text-[19px] font-extrabold truncate" style={{ letterSpacing: '-.2px' }}>{section.title}</div>
-          {section.description && (
-            <div className="text-[11.5px] mt-1 line-clamp-2" style={{ color: '#8a8a93' }}>{section.description}</div>
-          )}
-        </div>
-        <button onClick={toggleSub} disabled={subBusy} aria-label="Уведомления о новых материалах"
-          className={`relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center border transition-colors active:opacity-70
-            ${subscribed ? 'border-green/50 text-green bg-[rgba(34,197,94,.1)]' : 'border-white/[.12] text-gray'}`}>
-          {subscribed ? <BellRinging size={18} weight="fill" /> : <Bell size={18} />}
-        </button>
-      </div>
-      {subMsg && <div className="mx-4 -mt-3 mb-4 text-[12px] text-green">{subMsg}</div>}
-
-      {/* Диплом по языку программирования (разделы-языки под "Языки программирования", parent 303) */}
-      {section.parent_id === 303 && (
-        <Certificate parentId={section.id} language={section.title} />
-      )}
-
-      {/* Premium-баннер: раздел виден как превью, материалы откроются по подписке */}
-      {lockedPreview && (
-        <div className="mx-4 -mt-2 mb-5 flex items-center gap-3 rounded-2xl p-3.5"
-          style={{ border: '1px solid rgba(199,166,255,.3)', background: 'radial-gradient(120% 120% at 0% 0%, rgba(157,92,255,.14), transparent 60%), #0F0D16' }}>
-          <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: 'rgba(157,92,255,.18)', border: '1px solid rgba(199,166,255,.35)', color: '#C7A6FF' }}>
-            <Lock size={16} weight="fill" />
-          </div>
+      <Cover section={section}>
+        <div className="flex items-end gap-3">
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold text-white">Premium-раздел</div>
-            <div className="text-[11px] leading-snug" style={{ color: '#9a93ad' }}>Смотри, что внутри. Материалы откроются по подписке.</div>
+            <h1 className="font-display font-semibold text-[26px] leading-tight break-words" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
+            {section.description && <p className="text-[14px] text-[#CFDAD4] mt-1 line-clamp-2">{section.description}</p>}
           </div>
-          <button onClick={onUpgrade}
-            className="shrink-0 rounded-xl text-[12px] font-extrabold text-white px-3.5 py-2 active:-translate-y-0.5 transition-transform"
-            style={{ background: 'linear-gradient(180deg,#B98CFF,#9D5CFF)', boxShadow: '0 4px 14px rgba(157,92,255,.35)' }}>
-            Открыть
+          <button onClick={toggleSub} disabled={subBusy} aria-label={subscribed ? 'Отключить уведомления раздела' : 'Уведомлять о новых материалах'}
+            className={`shrink-0 w-11 h-11 rounded-full grid place-items-center transition-colors active:opacity-80 ${subscribed ? 'bg-green text-ink' : 'bg-black/35 text-white border border-white/15'}`}>
+            <Icon name={subscribed ? 'bellRing' : 'bell'} size={20} accent={subscribed ? '#03200F' : 'brand'} />
           </button>
         </div>
-      )}
+      </Cover>
+      {subMsg && <div className="mx-[18px] -mt-2 mb-3 text-[13px] text-green">{subMsg}</div>}
 
-      {/* Subsections */}
-      {subs.length > 0 && (
-        <section>
-          <div className="px-4 pt-4 pb-2 text-[11px] font-mono tracking-[1px] text-green/70">ПОДРАЗДЕЛЫ</div>
-          <div className="grid grid-cols-3 px-4 pb-2" style={{ gap: 9 }}>
-            {subs.map((s, i) => (
-              <motion.div key={s.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => onSubsection(s)}
-                className="relative overflow-hidden flex flex-col items-center cursor-pointer transition-transform duration-150 active:-translate-y-0.5"
-                style={{
-                  gap: 10,
-                  padding: '16px 6px 13px',
-                  borderRadius: 16,
-                  border: s.locked ? '1px solid rgba(157,92,255,.2)' : '1px solid rgba(255,255,255,.09)',
-                  background: s.locked ? 'rgba(157,92,255,.04)' : 'radial-gradient(120% 100% at 50% 0%, rgba(255,255,255,.05), transparent 60%), #101014',
-                }}>
-                <div className="absolute top-0 left-0 right-0 h-px" style={{
-                  background: s.locked
-                    ? 'linear-gradient(90deg, transparent, rgba(157,92,255,.4), transparent)'
-                    : 'linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent)'
-                }} />
-                <span className="absolute font-mono" style={{ top: 7, left: 9, fontSize: 8, color: '#52525b' }}>
-                  {String(i + 1).padStart(2, '0')}
-                </span>
-                <div className={`relative flex items-center justify-center ${s.locked ? 'opacity-50' : ''}`} style={{
-                  width: 34, height: 34, borderRadius: '50%',
-                  border: '1px solid rgba(34,197,94,.4)',
-                  background: 'radial-gradient(circle,rgba(34,197,94,.3),rgba(34,197,94,.05) 68%,transparent)',
-                  boxShadow: '0 0 12px rgba(34,197,94,.4)', color: '#4AE885',
-                }}>
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
-                    {ICON_PATHS.icon_folder}
-                  </svg>
-                  {s.locked && (
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-[#9D5CFF] rounded-full flex items-center justify-center">
-                      <Lock size={8} weight="fill" className="text-white" />
-                    </div>
-                  )}
-                </div>
-                <span className="relative font-bold uppercase text-center leading-[1.3] line-clamp-2" style={{
-                  fontSize: 9, letterSpacing: '.3px',
-                  color: s.locked ? 'rgba(157,92,255,.5)' : '#d4d4d8',
-                }}>{s.title}</span>
-              </motion.div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Materials */}
-      {loading ? (
-        <div className="flex justify-center py-10">
-          <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
-        </div>
-      ) : mats.length > 0 ? (
-        <section className="px-4">
-          <div className="pt-4 pb-3.5">
-            <div className="flex items-center justify-between font-mono text-[11px] tracking-[1.5px]" style={{ color: '#8a8a93' }}>
-              <span>{total} файлов</span>
-              {viewedCount > 0 && (
-                <span className="text-green">просмотрено {Math.min(viewedCount, total)} из {total}</span>
-              )}
+      <div className="px-3.5 flex flex-col gap-4">
+        {total > 0 && (
+          <div className="flex items-center gap-3 px-1">
+            <div className="flex-1 h-1.5 rounded-full bg-white/[.08] overflow-hidden">
+              <div className="h-full rounded-full bg-green" style={{ width: `${pct}%` }} />
             </div>
-            {viewedCount > 0 && total > 0 && (
-              <div className="mt-2 h-[3px] rounded-full bg-white/[.08] overflow-hidden">
-                <div className="h-full bg-green" style={{ width: `${Math.min(100, (viewedCount / total) * 100)}%` }} />
+            <span className="text-[12.5px] text-gray tabular-nums shrink-0">{Math.min(doneCount, total)} из {total} пройдено</span>
+          </div>
+        )}
+
+        {section.parent_id === 303 && (
+          <Certificate parentId={section.id} language={section.title} />
+        )}
+
+        {lockedPreview && (
+          <div className="flex items-center gap-3 rounded-[20px] px-4 py-3.5 border border-white/[.11]"
+            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.20),rgba(245,194,90,.03) 60%),#111C17' }}>
+            <div className="flex-1 min-w-0">
+              <PremiumBadge small />
+              <div className="text-[13.5px] text-[#E4E9E6] leading-snug mt-1.5">Посмотрите, что внутри. Материалы откроются по подписке.</div>
+            </div>
+            <button onClick={onUpgrade} className="gold-metal shrink-0 h-9 px-4 rounded-[12px] font-display font-semibold text-[12.5px]">Открыть</button>
+          </div>
+        )}
+
+        {subs.length > 0 && (
+          <section>
+            <h3 className="px-1 pb-2 text-[17px] font-bold">Подразделы</h3>
+            <div className="grid grid-cols-2 gap-2.5">
+              {subs.map(s => (
+                <button key={s.id} onClick={() => onSubsection(s)}
+                  className={`${coverClass(s)} relative h-[92px] rounded-[18px] p-3 flex flex-col justify-between text-left border border-white/[.07] overflow-hidden active:scale-[.98] transition-transform`}>
+                  <Icon name={iconNameFor(s.title)} size={22} style={{ color: 'var(--cv)' }} accent="var(--cv)" />
+                  <b className="text-[14px] font-semibold leading-tight line-clamp-2 break-words">{s.title}</b>
+                  {s.locked && <span className="absolute top-3 right-3 opacity-80"><Icon name="lock" size={14} accent="var(--cv)" style={{ color: 'var(--cv)' }} /></span>}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+          </div>
+        ) : mats.length > 0 ? (
+          <section className="flex flex-col gap-2.5">
+            {present.length > 1 && (
+              <div className="-mx-3.5 px-3.5 flex gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                {[FILTERS[0], ...present].map(f => (
+                  <button key={f.id} onClick={() => setFilter(f.id)} className={`chip ${filter === f.id ? 'on' : ''}`}>{f.label}</button>
+                ))}
               </div>
             )}
-          </div>
-          <div className="flex flex-col" style={{ gap: 9 }}>
-            {mats.map((m, i) => (
-              <motion.div
-                key={m.id}
-                initial={{ opacity: 0, x: -6 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.04 }}
-                onClick={() => onMaterial(m.id, section.id, page)}
-                className={`flex items-center gap-3 cursor-pointer border transition-transform duration-150 active:translate-x-0.5
-                  ${m.locked ? 'border-[rgba(157,92,255,.2)] active:border-violet/40' : 'border-white/[.08] active:border-green/40'}`}
-                style={{ padding: 12, borderRadius: 14, background: m.locked ? 'rgba(157,92,255,.04)' : '#101014' }}
-              >
-                <MediaTypeIcon type={m.media_type} size={38} radius={11} iconSize={16} glow="0 0 12px rgba(34,197,94,.3)" />
-                <div className="flex-1 min-w-0">
-                  <div className={`text-[14px] font-semibold truncate ${m.locked ? 'text-white/35' : ''}`}>
-                    {m.title}
-                  </div>
-                  {m.locked ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="inline-flex items-center gap-1 px-2 py-0.5 border border-[rgba(157,92,255,.3)]" style={{ background: 'rgba(157,92,255,.08)' }}>
-                        <Star size={9} weight="fill" className="text-violet" />
-                        <span className="text-[9px] font-mono tracking-[1px] text-violet uppercase">premium</span>
-                      </div>
-                      <CardSocial rating={m.rating} ratingCount={m.rating_count} comments={m.comments_count} />
-                    </div>
-                  ) : (
-                    <div className="text-[10px] mt-0.5 flex items-center gap-1.5" style={{ color: '#6a6a75', letterSpacing: '.5px' }}>
-                      <span>{m.is_archive ? 'АРХИВ' : typeLabel(m.media_type)}</span>
-                      {(m.files_count ?? 0) > 1 && (
-                        <span className="px-1.5 py-px rounded-sm text-green"
-                              style={{ background: 'rgba(34,197,94,.12)', fontSize: 9 }}>
-                          ×{m.files_count}
-                        </span>
-                      )}
-                      <CardSocial rating={m.rating} ratingCount={m.rating_count} comments={m.comments_count} />
-                    </div>
-                  )}
-                </div>
-                {!m.locked && (m.viewed ? (
-                  <Check size={14} weight="bold" className="shrink-0 text-green" aria-label="просмотрено" />
-                ) : (
-                  <span className="shrink-0" style={{ width: 6, height: 6, borderRadius: '50%', background: '#4AE885', boxShadow: '0 0 6px #4AE885' }} />
-                ))}
-              </motion.div>
-            ))}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 py-4">
-              <button disabled={page === 0} onClick={() => loadPage(page - 1)}
-                className="w-9 h-9 bg-s2 border border-white/15 rounded text-white text-lg flex items-center justify-center disabled:opacity-30">‹</button>
-              {editingPage ? (
-                <span className="flex items-center gap-1.5">
-                  <input
-                    type="number" inputMode="numeric" min={1} max={totalPages} autoFocus
-                    value={pageInput}
-                    onChange={e => setPageInput(e.target.value)}
-                    onFocus={e => e.currentTarget.select()}
-                    onBlur={commitPageJump}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
-                      if (e.key === 'Escape') setEditingPage(false)
-                    }}
-                    className="w-11 py-1 bg-s1 border border-green/50 rounded text-[13px] text-white text-center tracking-wider outline-none"
-                  />
-                  <span className="text-[13px] text-gray tracking-wider">/ {totalPages}</span>
-                </span>
-              ) : (
-                <span
-                  onClick={() => { setPageInput(String(page + 1)); setEditingPage(true) }}
-                  className="text-[13px] text-gray tracking-wider min-w-[48px] text-center cursor-pointer px-2.5 py-1.5 rounded-lg border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] active:border-green/40 active:text-white transition-colors"
-                >
-                  {page + 1} / {totalPages}
-                </span>
-              )}
-              <button disabled={page >= totalPages - 1} onClick={() => loadPage(page + 1)}
-                className="w-9 h-9 bg-s2 border border-white/15 rounded text-white text-lg flex items-center justify-center disabled:opacity-30">›</button>
+            <div className="flex items-baseline justify-between px-1">
+              <h3 className="text-[17px] font-bold">Материалы</h3>
+              <span className="text-[13px] text-gray tabular-nums">{total}</span>
             </div>
-          )}
-        </section>
-      ) : !subs.length && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 text-gray">
-          <span className="text-4xl opacity-30">📂</span>
-          <span className="text-[12px] tracking-[2px] uppercase">Раздел пуст</span>
-        </div>
-      )}
+            <div className="list-group">
+              {shown.map(m => {
+                const n = page * ITEMS_PER_PAGE + mats.indexOf(m) + 1
+                const isCur = m.id === currentId
+                return (
+                  <button key={m.id} onClick={() => onMaterial(m.id, section.id, page)}
+                    className="w-full flex items-center gap-3 px-3.5 py-[11px] text-left active:bg-white/[.04] transition-colors"
+                    style={isCur ? { background: 'linear-gradient(90deg,rgba(23,229,132,.14),transparent 70%)' } : undefined}>
+                    <span className={`w-[38px] h-[38px] rounded-full grid place-items-center shrink-0 text-[13px] font-semibold tabular-nums
+                      ${isCur ? 'bg-green text-ink' : m.viewed ? 'bg-green/15 text-green' : 'bg-white/[.06] text-gray'}`}>
+                      {m.viewed && !isCur ? <Icon name="check" size={16} strokeWidth={2.3} /> : n}
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <b className={`block text-[14.5px] font-medium leading-snug line-clamp-2 ${m.locked ? 'text-fg/60' : ''}`}>{m.title}</b>
+                      <span className="flex items-center gap-2 mt-1 text-[12px] text-gray2 min-w-0">
+                        {m.locked && <PremiumBadge small />}
+                        {isCur
+                          ? <span className="text-green">Продолжите здесь</span>
+                          : <span className="truncate">{m.is_archive ? 'Архив' : typeLabel(m.media_type)}{(m.files_count ?? 0) > 1 ? ` · ${m.files_count} файла` : ''}</span>}
+                        <CardSocial rating={m.rating} ratingCount={m.rating_count} comments={m.comments_count} />
+                      </span>
+                    </span>
+                    <MediaTypeIcon type={m.media_type} size={30} radius={9} iconSize={15} />
+                  </button>
+                )
+              })}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 py-3">
+                <button disabled={page === 0} onClick={() => loadPage(page - 1)} aria-label="Предыдущая страница"
+                  className="w-10 h-10 rounded-full bg-s1 border border-white/[.08] grid place-items-center text-fg disabled:opacity-30"><Icon name="chevL" size={18} /></button>
+                {editingPage ? (
+                  <span className="flex items-center gap-1.5">
+                    <input
+                      type="number" inputMode="numeric" min={1} max={totalPages} autoFocus
+                      id="section-page"
+                      value={pageInput}
+                      onChange={e => setPageInput(e.target.value)}
+                      onFocus={e => e.currentTarget.select()}
+                      onBlur={commitPageJump}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
+                        if (e.key === 'Escape') setEditingPage(false)
+                      }}
+                      className="w-12 h-10 bg-s1 border border-green/50 rounded-[12px] text-[14px] text-fg text-center outline-none tabular-nums"
+                    />
+                    <span className="text-[13.5px] text-gray tabular-nums">/ {totalPages}</span>
+                  </span>
+                ) : (
+                  <button onClick={() => { setPageInput(String(page + 1)); setEditingPage(true) }}
+                    className="h-10 min-w-[64px] px-3 rounded-full bg-s1 border border-white/[.08] text-[13.5px] text-gray tabular-nums active:text-fg">
+                    {page + 1} / {totalPages}
+                  </button>
+                )}
+                <button disabled={page >= totalPages - 1} onClick={() => loadPage(page + 1)} aria-label="Следующая страница"
+                  className="w-10 h-10 rounded-full bg-s1 border border-white/[.08] grid place-items-center text-fg disabled:opacity-30"><Icon name="chevR" size={18} /></button>
+              </div>
+            )}
+          </section>
+        ) : !subs.length && (
+          <div className="flex flex-col items-center text-center gap-3 py-14">
+            <span className="w-14 h-14 rounded-[18px] bg-s1 border border-white/[.07] grid place-items-center text-[#CFDAD4]"><Icon name="folder" size={26} /></span>
+            <div className="font-display font-semibold text-[15px]">Раздел пока пуст</div>
+            <div className="text-[13.5px] text-gray">Скоро здесь появятся материалы.</div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import Icon from '../../components/Icon'
 import { CenterLoader, ErrorNote } from '../../components/course/ui'
 import CourseEditor from './CourseEditor'
 import GrantSheet from './GrantSheet'
@@ -55,19 +56,16 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
         className="w-full flex items-center justify-center"
         style={{
           gap: 8, padding: 14,
-          border: '1px dashed rgba(34,197,94,.4)', borderRadius: 14,
-          background: 'rgba(34,197,94,.06)', color: '#4AE885',
+          border: '1px dashed rgba(23,229,132,.4)', borderRadius: 14,
+          background: 'rgba(23,229,132,.06)', color: '#4BF5A8',
           fontSize: 13, fontWeight: 800, cursor: 'pointer', marginBottom: 18,
         }}
       >
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19" />
-          <line x1="5" y1="12" x2="19" y2="12" />
-        </svg>
+        <Icon name="plus" size={15} />
         Новый курс
       </button>
 
-      <div className="font-mono" style={{ fontSize: 11, color: '#8a8a93', marginBottom: 14 }}>
+      <div className="font-mono" style={{ fontSize: 11, color: '#A6B8AE', marginBottom: 14 }}>
         {courses.length} курсов в конструкторе
       </div>
 
@@ -76,13 +74,13 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
           <div
             key={c.id}
             className="flex items-center"
-            style={{ gap: 12, padding: '14px 16px', border: '1px solid rgba(255,255,255,.08)', borderRadius: 15, background: '#101014' }}
+            style={{ gap: 12, padding: '14px 16px', border: '1px solid rgba(255,255,255,.08)', borderRadius: 15, background: '#111C17' }}
           >
             <div className="flex-1 min-w-0">
               <div className="truncate" style={{ fontSize: 14, fontWeight: 800, marginBottom: 3 }}>
-                {c.title}{!c.is_active && <span style={{ color: '#6a6a75', fontWeight: 600 }}> · скрыт</span>}
+                {c.title}{!c.is_active && <span style={{ color: '#6E8478', fontWeight: 600 }}> · скрыт</span>}
               </div>
-              <div style={{ fontSize: 10.5, color: '#6a6a75' }}>
+              <div style={{ fontSize: 10.5, color: '#6E8478' }}>
                 {c.chapters_count} глав · {c.level}{c.price > 0 ? ` · ${c.price} USDT` : ' · бесплатно'}
               </div>
               <div className="font-mono" style={{ fontSize: 9.5, color: '#4a4a52', marginTop: 3 }}>
@@ -115,15 +113,9 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
                     onClick={() => onGrant(c.id)}
                     aria-label="Подарить курс"
                     className="flex items-center justify-center"
-                    style={{ border: '1px solid rgba(34,197,94,.35)', background: 'rgba(34,197,94,.08)', color: '#4AE885', width: 32, height: 32, borderRadius: 9, cursor: 'pointer', flex: 'none' }}
+                    style={{ border: '1px solid rgba(23,229,132,.35)', background: 'rgba(23,229,132,.08)', color: '#4BF5A8', width: 32, height: 32, borderRadius: 9, cursor: 'pointer', flex: 'none' }}
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 12 20 22 4 22 4 12" />
-                      <rect x="2" y="7" width="20" height="5" />
-                      <line x1="12" y1="22" x2="12" y2="7" />
-                      <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z" />
-                      <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z" />
-                    </svg>
+                    <Icon name="gift" size={15} />
                   </button>
                 )}
                 <button
@@ -140,9 +132,7 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
                   className="flex items-center justify-center"
                   style={{ border: 'none', background: 'rgba(255,103,103,.1)', color: '#ff8080', width: 32, height: 32, borderRadius: 9, cursor: 'pointer', flex: 'none' }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" />
-                  </svg>
+                  <Icon name="trash" size={14} />
                 </button>
               </>
             )}
@@ -239,7 +229,7 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
       <div className="flex gap-1 p-1 rounded-xl border border-white/[.08] bg-s2/40">
         {([['material', 'Материал'], ['course', 'Курсы']] as const).map(([id, label]) => (
           <button key={id} onClick={() => setMode(id)}
-            className={`flex-1 h-9 rounded-lg text-[11px] font-semibold tracking-[1.5px] uppercase
+            className={`flex-1 h-9 rounded-lg text-[11px] font-semibold 
                         transition-colors ${mode === id
                           ? 'bg-green text-bg'
                           : 'text-white/60 active:bg-bd2'}`}>

@@ -1,69 +1,40 @@
 import { motion } from 'framer-motion'
 import BazaMark from '../components/BazaMark'
+import Icon from '../components/Icon'
 
 export default function SplashPage({ onStart }: { onStart: () => void }) {
   return (
-    <div className="relative flex flex-col items-center justify-center flex-1 px-8 text-center gap-0 bg-bg overflow-hidden">
-      {/* Top gradient fade */}
-      <div className="absolute inset-x-0 top-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(to bottom, rgba(6,6,12,1), transparent)' }} />
-      {/* Bottom gradient fade */}
-      <div className="absolute inset-x-0 bottom-0 h-32 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(6,6,12,1), transparent)' }} />
-      {/* Center radial glow */}
-      <div className="absolute inset-x-[-60px] top-[-100px] h-[280px] rounded-full blur-3xl pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(34,197,94,.18), transparent 65%)' }} />
-      {/* Bottom separator */}
-      <div className="absolute inset-x-8 bottom-16 h-px pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent)' }} />
-
+    <div className="relative flex flex-col items-center justify-center flex-1 px-8 text-center bg-bg overflow-hidden"
+      style={{ background: 'radial-gradient(80% 45% at 50% 32%, rgba(23,229,132,.16), transparent 70%), radial-gradient(70% 40% at 50% 85%, rgba(118,87,255,.12), transparent 70%), #08100D' }}>
       <motion.div
-        initial={{ scale: 0.7, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.34, 1.56, 0.64, 1] }}
-        className="relative mb-8"
+        initial={{ scale: 0.85, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.5, ease: [0.2, 0.8, 0.2, 1] }}
+        className="w-[96px] h-[96px] rounded-[28px] flex items-center justify-center mb-7"
+        style={{ background: 'linear-gradient(160deg, #0F2A1E, #0B1712)', border: '1px solid rgba(255,255,255,.11)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08), 0 18px 40px rgba(0,0,0,.45)' }}
       >
-        <div
-          className="w-[104px] h-[104px] rounded-full flex items-center justify-center"
-          style={{ background: 'radial-gradient(circle, rgba(34,197,94,.22), rgba(34,197,94,.03) 65%, transparent)', boxShadow: '0 0 40px rgba(34,197,94,.35)' }}
-        >
-          <BazaMark size={52} color="#4AE885" glow />
-        </div>
+        <BazaMark size={50} />
       </motion.div>
 
       <motion.h1
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25, duration: 0.4 }}
-        className="relative text-[32px] font-bold tracking-widest mb-1"
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.4 }}
+        className="font-display font-semibold text-[28px] leading-tight"
       >
-        <span className="text-white">S010</span><span className="text-gold">lvloon</span>
+        База знаний
       </motion.h1>
-
       <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.35 }}
-        className="relative text-[10px] font-mono tracking-[2px] text-gray2 mb-8"
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
+        className="text-[14.5px] text-gray leading-relaxed mt-2.5 max-w-[280px]"
+        style={{ textWrap: 'balance' } as React.CSSProperties}
       >
-        ИНФОРМАЦИОННАЯ БЕЗОПАСНОСТЬ
-      </motion.p>
-
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.45 }}
-        className="relative text-[13px] text-gray leading-relaxed mb-12 max-w-[260px]"
-      >
-        Обучаем. Повышаем осведомлённость.<br />Укрепляем защиту систем.
+        Курсы и материалы по информационной безопасности от S010lvloon
       </motion.p>
 
       <motion.button
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.55 }}
-        whileTap={{ scale: 0.97 }}
+        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}
         onClick={onStart}
-        className="relative w-full max-w-[280px] py-4 bg-white text-bg font-bold text-[13px] font-mono tracking-[3px] uppercase rounded-sm flex items-center justify-center gap-2 active:bg-gold"
-        style={{ boxShadow: '0 0 24px rgba(255,255,255,.2), 0 0 60px rgba(255,255,255,.06)' }}
+        className="btn-primary w-full max-w-[300px] mt-10 h-[52px]"
       >
-        ВОЙТИ В СИСТЕМУ <span className="blink text-[16px] font-light">_</span>
+        Начать <Icon name="arrowR" size={18} strokeWidth={2} />
       </motion.button>
     </div>
   )

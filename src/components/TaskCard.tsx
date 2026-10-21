@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { useMemo, useState } from 'react'
 import MarkdownLite from './MarkdownLite'
 
@@ -58,16 +59,17 @@ function shuffled<T>(a: T[], seed: number) {
   return r.sort((x, y) => x.k - y.k).map(x => x.v)
 }
 
-const box = 'p-3.5 rounded-2xl border'
-const btn = 'px-4 py-2 rounded-xl text-[13px] font-semibold active:opacity-70'
+const box = 'p-4 rounded-[18px] border'
+const btn = 'h-11 px-5 rounded-[14px] text-[14px] font-semibold active:opacity-80'
 const Intro = ({ t }: { t?: string }) => t
-  ? <div className="text-[14px] leading-[1.8] text-white/80 whitespace-pre-wrap break-words">{t}</div> : null
+  ? <div className="text-[15px] leading-[1.7] text-fg/85 whitespace-pre-wrap break-words">{t}</div> : null
 
 function Result({ ok, total, good }: { ok: boolean; total: number; good: number }) {
   return (
-    <div className={`${box} ${ok ? 'border-green/50 bg-green/[.06]' : 'border-red-500/40 bg-red-500/[.06]'}`}>
-      <div className={`text-[13px] font-bold ${ok ? 'text-green' : 'text-red-400'}`}>
-        {ok ? '✅ Всё верно!' : `Верно ${good} из ${total}. Исправьте отмеченное и проверьте ещё раз.`}
+    <div className={`${box} ${ok ? 'border-green/35 bg-green/[.07]' : 'border-[#FF6B6B]/30 bg-[#FF6B6B]/[.07]'}`}>
+      <div className={`flex items-center gap-2 text-[14px] font-semibold ${ok ? 'text-green' : 'text-[#FF9A9A]'}`}>
+        <Icon name={ok ? 'checkCircle' : 'warnCircle'} size={18} accent="current" className="shrink-0" />
+        {ok ? 'Всё верно' : `Верно ${good} из ${total}. Исправьте отмеченное и проверьте ещё раз.`}
       </div>
     </div>
   )
@@ -100,25 +102,25 @@ function Fill({ d, seed }: { d: TaskData; seed: number }) {
   const check = () => { const c = vals.map((v, i) => okAt(i, v)); setChecked(c); haptic(c.every(Boolean)) }
   return (
     <>
-      <div className="text-[11.5px] text-white/50">Нажмите на пропуск, затем выберите слово ниже — или впишите ответ сами.</div>
-      <div className="p-3.5 rounded-2xl border border-white/[.08] text-[14px] leading-[2.3] text-white/85 break-words">
+      <div className="text-[13px] text-gray">Нажмите на пропуск, затем выберите слово ниже — или впишите ответ сами.</div>
+      <div className="card p-4 text-[15px] leading-[2.3] text-fg/85 break-words">
         {parts.map((p, i) => (
           <span key={i}>
             <span className="whitespace-pre-wrap">{p}</span>
             {i < n && (
               <span className="inline-flex flex-col align-middle mx-1">
                 <span className="inline-flex items-center gap-1">
-                  <span className="text-green text-[13px] font-bold">{CIRCLED[i] ?? `(${i + 1})`}</span>
+                  <span className="text-green text-[14px] font-bold">{CIRCLED[i] ?? `(${i + 1})`}</span>
                   <input value={shown ? (answers[i] ?? '') : vals[i]} readOnly={shown}
                     onFocus={() => setActive(i)}
                     onChange={e => setAt(i, e.target.value)}
                     placeholder="______"
-                    className={`px-2 py-0.5 w-[11em] max-w-[70vw] rounded-md bg-white/[.07] border-2 text-[13px] text-white outline-none placeholder:text-white/30
-                      ${checked ? (checked[i] ? 'border-green' : 'border-red-400')
-                        : shown ? 'border-green/60' : active === i ? 'border-green/80' : 'border-white/25'}`} />
+                    className={`px-2.5 py-0.5 w-[11em] max-w-[70vw] rounded-[9px] bg-white/[.07] border-[1.5px] text-[14px] text-fg outline-none placeholder:text-gray2
+                      ${checked ? (checked[i] ? 'border-green bg-green/[.08]' : 'border-[#FF6B6B] bg-[#FF6B6B]/[.08]')
+                        : shown ? 'border-green/60' : active === i ? 'border-green/80' : 'border-white/15'}`} />
                 </span>
                 {checked && !checked[i] && !shown && (
-                  <span className="text-[11px] leading-[1.4] text-green/90 pl-5">✓ {answers[i]}</span>
+                  <span className="text-[12px] leading-[1.4] text-green pl-5">Ответ: {answers[i]}</span>
                 )}
               </span>
             )}
@@ -127,22 +129,22 @@ function Fill({ d, seed }: { d: TaskData; seed: number }) {
       </div>
       {!shown && bank.length > 0 && (
         <div>
-          <div className="text-[11px] font-bold tracking-[2px] uppercase text-green mb-1.5">Варианты</div>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="font-display font-semibold text-[13px] mb-2">Варианты</div>
+          <div className="flex flex-wrap gap-2">
             {bank.map(({ a, i }) => {
               const k = norm(a)
               seenCnt[k] = (seenCnt[k] || 0) + 1
               const isUsed = seenCnt[k] <= (usedCnt[k] || 0)
               return (
                 <button key={i} onClick={() => pick(a)} disabled={isUsed}
-                  className={`px-2.5 py-1 rounded-lg border text-[12.5px] ${isUsed ? 'border-white/[.06] text-white/25' : 'border-green/50 text-white/90 active:bg-green/10'}`}>
+                  className={`h-9 px-3.5 rounded-[11px] text-[14px] transition-colors ${isUsed ? 'bg-white/[.03] text-gray2/60' : 'bg-s2 border border-white/[.08] text-fg active:bg-green/15'}`}>
                   {a}
                 </button>
               )
             })}
             {vals.some(v => v) && (
               <button onClick={() => { setVals(Array(n).fill('')); setChecked(null); setActive(0) }}
-                className="px-2.5 py-1 rounded-lg text-[12px] text-white/50 active:opacity-70">↺ Очистить</button>
+                className="h-9 px-3 rounded-[11px] inline-flex items-center gap-1.5 text-[13px] text-gray active:opacity-70"><Icon name="undo" size={15} /> Очистить</button>
             )}
           </div>
         </div>
@@ -165,14 +167,14 @@ function Match({ d, seed }: { d: TaskData; seed: number }) {
       <div className="flex flex-col gap-2.5">
         {pairs.map((p, i) => {
           const val = shown ? p.definition : sel[i]
-          const st = checked ? (checked[i] ? 'border-green' : 'border-red-400') : shown ? 'border-green/60' : 'border-white/[.1]'
+          const st = checked ? (checked[i] ? 'border-green/60 bg-green/[.06]' : 'border-[#FF6B6B]/50 bg-[#FF6B6B]/[.06]') : shown ? 'border-green/50' : 'border-white/[.07] bg-s1'
           return (
-            <div key={i} className={`p-3 rounded-xl border ${st}`}>
-              <div className="text-[13.5px] font-semibold text-white mb-2 break-words">{i + 1}. {p.term}</div>
+            <div key={i} className={`p-3.5 rounded-[16px] border ${st}`}>
+              <div className="text-[14.5px] font-semibold text-fg mb-2.5 break-words">{i + 1}. {p.term}</div>
               <select value={val} disabled={shown}
                 onChange={e => { const s = sel.slice(); s[i] = e.target.value; setSel(s); setChecked(null) }}
-                className="w-full p-2 rounded-lg bg-[#15171c] border border-white/15 text-[13px] text-white/90 outline-none">
-                <option value="">— выберите —</option>
+                className="w-full h-10 px-3 rounded-[11px] bg-s2 border border-white/[.10] text-[14px] text-fg outline-none focus:border-green/60">
+                <option value="">Выберите определение</option>
                 {defs.map((x, k) => <option key={k} value={x}>{x}</option>)}
               </select>
             </div>
@@ -201,14 +203,14 @@ function Order({ d }: { d: TaskData }) {
     <>
       <div className="flex flex-col gap-2">
         {cur.map((x, i) => (
-          <div key={x} className={`flex items-center gap-2 p-2.5 rounded-xl border
-            ${checked ? (checked[i] ? 'border-green' : 'border-red-400') : shown ? 'border-green/60' : 'border-white/[.1]'}`}>
-            <span className="shrink-0 w-6 text-center text-[12px] font-bold text-green">{i + 1}</span>
-            <span className="flex-1 text-[13.5px] leading-[1.5] text-white/85 break-words">{items[x]}</span>
+          <div key={x} className={`flex items-center gap-3 py-2 pl-2.5 pr-1.5 rounded-[16px] border
+            ${checked ? (checked[i] ? 'border-green/60 bg-green/[.06]' : 'border-[#FF6B6B]/50 bg-[#FF6B6B]/[.06]') : shown ? 'border-green/50' : 'border-white/[.07] bg-s1'}`}>
+            <span className="shrink-0 w-7 h-7 rounded-[9px] grid place-items-center bg-white/[.07] text-[13px] font-bold text-fg tabular-nums">{i + 1}</span>
+            <span className="flex-1 text-[14.5px] leading-[1.45] text-fg/90 break-words">{items[x]}</span>
             {!shown && (
               <span className="shrink-0 flex flex-col">
-                <button onClick={() => move(i, -1)} className="px-2 text-white/60 active:text-green">▲</button>
-                <button onClick={() => move(i, 1)} className="px-2 text-white/60 active:text-green">▼</button>
+                <button onClick={() => move(i, -1)} aria-label="Выше" className="w-9 h-7 grid place-items-center text-gray active:text-green"><Icon name="chevD" size={16} className="rotate-180" /></button>
+                <button onClick={() => move(i, 1)} aria-label="Ниже" className="w-9 h-7 grid place-items-center text-gray active:text-green"><Icon name="chevD" size={16} /></button>
               </span>
             )}
           </div>
@@ -225,26 +227,26 @@ function Reveal({ d }: { d: TaskData }) {
   const [mine, setMine] = useState('')
   return (
     <>
-      {d.template && <pre className="p-3 rounded-xl bg-white/[.05] text-[12px] leading-[1.6] text-white/80 overflow-x-auto">{d.template}</pre>}
+      {d.template && <pre className="p-3.5 rounded-[14px] bg-[#060B09] border border-white/[.07] text-[12.5px] leading-[1.6] text-fg/85 font-mono overflow-x-auto">{d.template}</pre>}
       {(d.sub === 'short' || d.sub === 'reveal' || d.sub === 'hotspot') && (
         <textarea value={mine} onChange={e => setMine(e.target.value)} rows={4}
           placeholder="Ваш ответ — для себя, никуда не отправляется"
-          className="w-full p-3 rounded-xl bg-white/[.05] border border-white/15 text-[13px] text-white outline-none focus:border-green" />
+          className="w-full p-3.5 rounded-[16px] bg-white/[.04] border border-white/[.08] text-[14.5px] text-fg outline-none placeholder:text-gray2 focus:border-green/60" />
       )}
       {shown && (
-        <div className={`${box} border-green/40 bg-green/[.05]`}>
-          <div className="text-[11px] font-bold tracking-[2px] uppercase text-green mb-2">
+        <div className={`${box} border-green/30 bg-green/[.06]`}>
+          <div className="font-display font-semibold text-[13.5px] text-green mb-2">
             {d.sub === 'short' ? 'Пример ответа' : 'Ответ'}
           </div>
           {d.answer_md
             ? <div className="-mx-4"><MarkdownLite content={d.answer_md} /></div>
             : d.answer_is_code
-              ? <pre className="text-[12px] leading-[1.6] text-white/85 overflow-x-auto">{d.answer}</pre>
-              : <div className="text-[13.5px] leading-[1.75] text-white/85 whitespace-pre-wrap break-words">{d.answer}</div>}
+              ? <pre className="text-[12.5px] leading-[1.6] text-fg/85 font-mono overflow-x-auto">{d.answer}</pre>
+              : <div className="text-[14.5px] leading-[1.65] text-fg/85 whitespace-pre-wrap break-words">{d.answer}</div>}
           {d.keys && d.keys.length > 0 && (
             <div className="mt-3">
-              <div className="text-[12px] font-bold text-white/70 mb-1">Что должно быть в ответе:</div>
-              {d.keys.map((k, i) => <div key={i} className="text-[13px] text-white/80">✓ {k}</div>)}
+              <div className="text-[13px] font-semibold text-fg mb-1.5">Что должно быть в ответе</div>
+              {d.keys.map((k, i) => <div key={i} className="flex gap-2 text-[14px] text-fg/85"><Icon name="check" size={16} className="text-green shrink-0 mt-0.5" />{k}</div>)}
             </div>
           )}
         </div>
@@ -257,8 +259,8 @@ function Reveal({ d }: { d: TaskData }) {
 function Buttons({ onCheck, shown, onShow }: { onCheck?: () => void; shown: boolean; onShow: () => void }) {
   return (
     <div className="flex flex-wrap gap-2">
-      {onCheck && <button onClick={onCheck} className={`${btn} bg-green text-black`}>Проверить</button>}
-      <button onClick={onShow} className={`${btn} border border-white/15 text-white/80`}>
+      {onCheck && <button onClick={onCheck} className={`${btn} bg-green text-ink`}>Проверить</button>}
+      <button onClick={onShow} className={`${btn} bg-white/[.07] text-fg font-medium`}>
         {shown ? 'Скрыть ответ' : 'Показать ответ'}
       </button>
     </div>

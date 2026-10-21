@@ -22,7 +22,7 @@ const FILTERS: { id: FeedKind; label: string }[] = [
 ]
 
 function NewDot() {
-  return <span className="shrink-0 w-[7px] h-[7px] rounded-full bg-green" style={{ boxShadow: '0 0 8px #4AE885' }} aria-label="новое" />
+  return <span className="shrink-0 w-[7px] h-[7px] rounded-full bg-green" style={{ boxShadow: '0 0 8px #4BF5A8' }} aria-label="новое" />
 }
 
 function MaterialLink({ item, onOpen }: { item: FeedItem; onOpen: (id: number) => void }) {
@@ -39,7 +39,7 @@ function MaterialLink({ item, onOpen }: { item: FeedItem; onOpen: (id: number) =
 function RatingCard({ r, onOpen }: { r: FeedRating; onOpen: (id: number) => void }) {
   const low = r.rating <= 2
   return (
-    <div className={`rounded-2xl border px-3.5 py-3 ${low ? 'border-[#FF8A5C]/30 bg-[rgba(255,138,92,.05)]' : 'border-white/[.07] bg-[#101014]'}`}>
+    <div className={`rounded-2xl border px-3.5 py-3 ${low ? 'border-[#FF8A5C]/30 bg-[rgba(255,138,92,.05)]' : 'border-white/[.07] bg-[#111C17]'}`}>
       <div className="flex items-center gap-2 mb-1.5">
         {r.new && <NewDot />}
         <span className="inline-flex items-center gap-0.5">
@@ -90,7 +90,7 @@ function CommentCard({ c, onOpen, onChanged, onToast }: {
   }
 
   return (
-    <div className={`rounded-2xl border px-3.5 py-3 ${c.hidden ? 'border-[#FF5C7A]/30 bg-[rgba(255,92,122,.05)]' : 'border-white/[.07] bg-[#101014]'}`}>
+    <div className={`rounded-2xl border px-3.5 py-3 ${c.hidden ? 'border-[#FF5C7A]/30 bg-[rgba(255,92,122,.05)]' : 'border-white/[.07] bg-[#111C17]'}`}>
       <div className="flex items-center gap-2 mb-1.5">
         {c.new && <NewDot />}
         <span className="text-[12.5px] font-semibold text-white/90 truncate">{c.author}</span>
@@ -216,7 +216,7 @@ export default function FeedbackPage({ onOpenMaterial, onSeen }: {
     <div className="flex-1 overflow-y-auto pb-navsafe">
       <div className="px-4 pt-3">
         {counts && (counts.comments > 0 || counts.ratings > 0) && (
-          <div className="mb-3 rounded-xl border border-green/25 bg-[rgba(34,197,94,.06)] px-3.5 py-2.5 text-[12px] text-white/80">
+          <div className="mb-3 rounded-xl border border-green/25 bg-[rgba(23,229,132,.06)] px-3.5 py-2.5 text-[12px] text-white/80">
             Новое с прошлого раза: <b className="text-green">{counts.comments}</b> {plural(counts.comments, 'комментарий', 'комментария', 'комментариев')} · <b className="text-green">{counts.ratings}</b> {plural(counts.ratings, 'оценка', 'оценки', 'оценок')}
           </div>
         )}
@@ -227,7 +227,7 @@ export default function FeedbackPage({ onOpenMaterial, onSeen }: {
             return (
               <button key={f.id} onClick={() => { setItems(null); setKind(f.id) }}
                 className={`shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full border text-[12px] transition-colors
-                  ${on ? 'border-green/50 bg-[rgba(34,197,94,.14)] text-green' : 'border-white/[.1] text-gray'}`}>
+                  ${on ? 'border-green/50 bg-[rgba(23,229,132,.14)] text-green' : 'border-white/[.1] text-gray'}`}>
                 {f.label}
                 {n > 0 && (
                   <span className={`min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold flex items-center justify-center
@@ -245,7 +245,7 @@ export default function FeedbackPage({ onOpenMaterial, onSeen }: {
         <div className="flex justify-center py-12"><div className="w-2 h-2 bg-green rounded-full animate-pulse" /></div>
       ) : items.length === 0 ? (
         <div className="mx-4 mt-4 text-center text-[13px] text-gray py-10 border border-dashed border-white/[.08] rounded-2xl">
-          {kind === 'unanswered' ? 'Все вопросы отвечены 👌' : kind === 'hidden' ? 'Скрытых комментариев нет' : 'Пока пусто'}
+          {kind === 'unanswered' ? 'Все вопросы отвечены' : kind === 'hidden' ? 'Скрытых комментариев нет' : 'Пока пусто'}
         </div>
       ) : (
         <div className="px-4 flex flex-col gap-2.5">
@@ -262,7 +262,7 @@ export default function FeedbackPage({ onOpenMaterial, onSeen }: {
           </AnimatePresence>
           {hasMore && (
             <button onClick={more} disabled={loadingMore}
-              className="h-10 mb-2 rounded-xl border border-white/[.1] text-[11.5px] tracking-[1.5px] uppercase text-gray active:border-green/40">
+              className="h-10 mb-2 rounded-xl border border-white/[.1] text-[11.5px] text-gray active:border-green/40">
               {loadingMore ? 'Загрузка…' : 'Показать ещё'}
             </button>
           )}

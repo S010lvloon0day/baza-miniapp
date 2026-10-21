@@ -4,26 +4,26 @@ import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
 import { api } from '../api/client'
 import type { ChatMsg, ChatUserCard } from '../api/client'
+import Icon from '../components/Icon'
+import PremiumBadge from '../components/PremiumBadge'
 
-// ── контурные иконки в стиле приложения (вместо обычных эмодзи в UI) ──
+// ── иконки — только фирменный набор «База» ──
 type IcP = { s?: number }
-const _ic = { fill: 'none', stroke: 'currentColor', strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
-function IcEye({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" /><circle cx="12" cy="12" r="3" /></svg> }
-function IcTimer({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><circle cx="12" cy="13" r="8" /><path d="M12 9.5V13l2.5 2" /><path d="M9 2.5h6" /></svg> }
-function IcPhoto({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="9" r="1.6" /><path d="M21 15l-5-5L5 21" /></svg> }
-function IcVideo({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><rect x="2.5" y="6" width="13" height="12" rx="3" /><path d="M15.5 10l6-3v10l-6-3" /></svg> }
-function IcReply({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><polyline points="9 14 4 9 9 4" /><path d="M4 9h11a5 5 0 0 1 5 5v2" /></svg> }
-function IcUser({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 4-6 8-6s8 2 8 6" /></svg> }
-function IcEdit({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M4 20h4L19 9l-4-4L4 16z" /><path d="M14 6l4 4" /></svg> }
-function IcPin({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M12 17v5" /><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3z" /></svg> }
-function IcTrash({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M3 6h18" /><path d="M8 6V4h8v2" /><path d="M6 6l1 14h10l1-14" /></svg> }
-function IcHide({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M17.9 17.9A10.4 10.4 0 0 1 12 19C5 19 1 12 1 12a18 18 0 0 1 5-5.9M9.9 4.2A10.4 10.4 0 0 1 12 4c7 0 11 7 11 7a18 18 0 0 1-2.2 3.2M1 1l22 22" /></svg> }
-function IcCamera({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M4 7h3l2-2h6l2 2h3v12H4z" /><circle cx="12" cy="13" r="3.5" /></svg> }
-function IcBook({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M5 4a1 1 0 0 1 1-1h12v16H6a2 2 0 0 0-2 2V5z" /><path d="M4 19a2 2 0 0 1 2-2h12" /></svg> }
-function IcFlame({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><path d="M12 3c1 3-2 4-2 7a3 3 0 0 0 6 0c0-1-.3-2-1-3 2 1 4 3 4 7a7 7 0 1 1-14 0c0-5 5-6 7-11z" /></svg> }
-function IcCert({ s = 16 }: IcP) { return <svg width={s} height={s} viewBox="0 0 24 24" {..._ic}><circle cx="12" cy="9" r="5" /><path d="M9 13l-1 8 4-2 4 2-1-8" /></svg> }
+function IcEye({ s = 16 }: IcP) { return <Icon name="eye" size={s} accent="current" /> }
+function IcTimer({ s = 16 }: IcP) { return <Icon name="clock" size={s} /> }
+function IcPhoto({ s = 16 }: IcP) { return <Icon name="photo" size={s} /> }
+function IcVideo({ s = 16 }: IcP) { return <Icon name="video" size={s} /> }
+function IcReply({ s = 16 }: IcP) { return <Icon name="reply" size={s} /> }
+function IcUser({ s = 16 }: IcP) { return <Icon name="user" size={s} /> }
+function IcEdit({ s = 16 }: IcP) { return <Icon name="edit" size={s} /> }
+function IcPin({ s = 16 }: IcP) { return <Icon name="pin" size={s} /> }
+function IcTrash({ s = 16 }: IcP) { return <Icon name="trash" size={s} /> }
+function IcHide({ s = 16 }: IcP) { return <Icon name="close" size={s} /> }
+function IcCamera({ s = 16 }: IcP) { return <Icon name="photo" size={s} /> }
+function IcBook({ s = 16 }: IcP) { return <Icon name="book" size={s} /> }
+function IcFlame({ s = 16 }: IcP) { return <Icon name="streak" size={s} accent="current" /> }
+function IcCert({ s = 16 }: IcP) { return <Icon name="cert" size={s} /> }
 
-/** Анимированный стикер .tgs (gzip-Lottie): качаем, распаковываем, крутим. */
 function LottieSticker({ url, size = 120, play = true }: { url: string; size?: number; play?: boolean }) {
   const ref = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -69,9 +69,18 @@ const MY_UN = (ME?.username || '').toLowerCase()
 const MY_ID = Number(ME?.id || 0)
 
 /** Цвета пузырей — как в тёмной теме Telegram. */
-const BUB_IN = '#18222d'        // входящие (чужие)
-const BUB_OUT = '#1f6f43'       // исходящие (свои) — в фирменном зелёном
-const WALL = 'radial-gradient(1100px 560px at 50% -8%, #16261e 0%, #0e1612 42%, #0a0d0b 100%)'
+const BUB_IN = '#16211C'                                          // входящие (чужие)
+const BUB_OUT = 'linear-gradient(180deg,#127A49,#0D5C37)'          // исходящие (свои) — изумруд
+const BUB_SHADOW = 'inset 0 1px 0 rgba(255,255,255,.05)'
+const BUB_SHADOW_OUT = 'inset 0 1px 0 rgba(255,255,255,.12)'
+// обои ленты: мягкий фиолетовый и изумрудный свет + едва заметный узор фирменных ромбов
+const WALL = [
+  'radial-gradient(70% 40% at 100% 10%, rgba(118,87,255,.14), transparent 70%)',
+  'radial-gradient(60% 40% at 0% 70%, rgba(23,229,132,.08), transparent 70%)',
+  `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M28 22l4 4-4 4-4-4z' fill='%23ffffff' fill-opacity='.035'/%3E%3C/svg%3E")`,
+  '#08100D',
+].join(',')
+const VIOLET = '#B9A8FF'
 
 const QUICK = ['❤️', '🔥', '👍', '😂', '🥳', '🤩']
 const PICKER = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '👍', '👎', '🔥', '❤️', '🎉', '👏', '🙏', '💯', '🚀', '⚡', '✅', '❌', '👀', '💀', '🤝', '🤯']
@@ -105,11 +114,14 @@ function dayLabel(iso: string) {
     return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })
   } catch { return '' }
 }
-const PAL = ['#4AE885', '#38E1FF', '#FFB648', '#FF6B9D', '#A78BFA', '#60D394', '#F97316', '#22D3EE']
-function colorFor(name: string) {
+// приглушённая палитра имён и подложек аватаров: [цвет имени, фон аватара, цвет инициалов]
+const PAL = ['#7EE0AE', '#AE9BFF', '#F5C25A', '#7FD3F5', '#FF9DB7', '#F0A868', '#9BE3D0', '#C9B6FF']
+const PAL_BG = ['#1F4A37', '#2A2170', '#5A4630', '#123F52', '#4A1F2E', '#4F3318', '#174641', '#33285E']
+function palIdx(name: string) {
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  return PAL[h % PAL.length]
+  return h % PAL.length
 }
+function colorFor(name: string) { return PAL[palIdx(name)] }
 
 async function uploadMedia(type: string, file: Blob, mime: string, dur: number, caption: string, ttl = 0, once = false) {
   const fd = new FormData()
@@ -120,14 +132,14 @@ async function uploadMedia(type: string, file: Blob, mime: string, dur: number, 
   return res.json().catch(() => ({ error: 'bad' }))
 }
 
-function Avatar({ name, src, size = 34, anim, onClick }: { name: string; src?: string; size?: number; anim?: boolean; onClick?: () => void }) {
+function Avatar({ name, src, size = 32, anim, onClick }: { name: string; src?: string; size?: number; anim?: boolean; onClick?: () => void }) {
   const [ok, setOk] = useState(true)
   useEffect(() => { setOk(true) }, [src])
-  const initials = (name || '?').replace('@', '').slice(0, 2).toUpperCase()
+  const initials = (name || '?').replace('@', '').slice(0, size < 28 ? 1 : 2).toUpperCase()
   const show = !!src && ok
   return (
-    <div onClick={onClick} className="shrink-0 rounded-full overflow-hidden flex items-center justify-center font-extrabold"
-      style={{ width: size, height: size, background: show ? '#000' : colorFor(name), color: '#fff', fontSize: size * 0.4 }}>
+    <div onClick={onClick} className="shrink-0 rounded-full overflow-hidden flex items-center justify-center font-bold"
+      style={{ width: size, height: size, background: show ? '#000' : PAL_BG[palIdx(name)], color: PAL[palIdx(name)], fontSize: size * 0.36 }}>
       {show
         ? (anim
           ? <video src={src} autoPlay loop muted playsInline className="w-full h-full object-cover" onError={() => setOk(false)} />
@@ -175,7 +187,7 @@ function renderText(text: string, big = false) {
     s.split(/(@[A-Za-z0-9_]{3,32})/g).forEach((p) => {
       if (!p) return
       out.push(p.startsWith('@')
-        ? <span key={key++} className="font-bold" style={{ color: '#7fe0ff' }}>{p}</span>
+        ? <span key={key++} className="font-semibold" style={{ color: VIOLET }}>{p}</span>
         : <span key={key++}>{p}</span>)
     })
   }
@@ -267,21 +279,19 @@ function VoiceMsg({ url, mine }: { url: string; mine?: boolean }) {
     else setDur(a.duration)
   }
   const frac = dur > 0 ? Math.min(1, cur / dur) : 0
-  const accent = mine ? '#d6ffe8' : '#4AE885'
-  const dim = mine ? 'rgba(255,255,255,.3)' : 'rgba(255,255,255,.2)'
+  const accent = mine ? '#C8F7DD' : '#17E584'
+  const dim = mine ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.18)'
   return (
     <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 190, maxWidth: 260 }}>
-      <button onClick={toggle} className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center" style={{ background: accent, color: '#06281a' }}>
-        {playing
-          ? <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
-          : <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>}
+      <button onClick={toggle} aria-label={playing ? 'Пауза' : 'Слушать'} className="shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: accent, color: '#03200F' }}>
+        <Icon name={playing ? 'pause' : 'play'} size={15} accent="current" style={playing ? undefined : { marginLeft: 2 }} />
       </button>
       <div className="flex items-center gap-[2px] h-7 flex-1 cursor-pointer" onClick={(e) => { const a = aRef.current; if (!a || !dur) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur; setCur(a.currentTime) }}>
         {bars.map((b, i) => (
-          <span key={i} style={{ width: 3, borderRadius: 3, height: `${Math.round(b * 100)}%`, background: (i / bars.length) <= frac ? accent : dim }} />
+          <span key={i} style={{ width: 3, borderRadius: 2, height: `${Math.round(b * 100)}%`, background: (i / bars.length) <= frac ? accent : dim }} />
         ))}
       </div>
-      <span className="text-[11px] tabular-nums shrink-0" style={{ color: mine ? 'rgba(255,255,255,.8)' : '#9a9aa2' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
+      <span className="text-[12px] tabular-nums shrink-0" style={{ color: mine ? 'rgba(220,255,236,.8)' : '#A6B8AE' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
       <audio ref={aRef} src={url} preload="metadata" onLoadedMetadata={onMeta}
         onTimeUpdate={() => setCur(aRef.current?.currentTime || 0)}
         onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
@@ -293,14 +303,14 @@ function VoiceMsg({ url, mine }: { url: string; mine?: boolean }) {
 /** Время + «изменено» + галочки, как в Telegram (встроено в хвост последней строки). */
 function MsgMeta({ m, light }: { m: ChatMsg; light?: boolean }) {
   return (
-    <span className="select-none whitespace-nowrap" style={{ fontSize: 11, color: light ? 'rgba(255,255,255,.95)' : m.mine ? 'rgba(215,255,232,.65)' : '#7a8893' }}>
-      {m.edited && <span className="italic mr-1">ред.</span>}
-      {m.once && <span className="mr-1">👁</span>}
-      {!!m.ttl && <span className="mr-1">⏱</span>}
+    <span className="select-none whitespace-nowrap inline-flex items-center gap-1 tabular-nums" style={{ fontSize: 11, color: light ? 'rgba(255,255,255,.95)' : m.mine ? '#A5EBC6' : '#7E978A' }}>
+      {m.edited && <span>ред.</span>}
+      {m.once && <Icon name="eye" size={11} accent="current" />}
+      {!!m.ttl && <Icon name="clock" size={11} />}
       {timeOf(m.created_at)}
       {m.mine && ((m as any).pending
-        ? <span className="ml-1 opacity-70">🕐</span>
-        : <span className="ml-1" style={{ color: light ? '#fff' : '#8fe6c0' }}>✓✓</span>)}
+        ? <span className="opacity-70"><Icon name="clock" size={11} /></span>
+        : <span style={{ color: light ? '#fff' : '#A5EBC6', letterSpacing: '-.12em' }}>✓✓</span>)}
     </span>
   )
 }
@@ -327,12 +337,12 @@ function Emo({ e, size = 20 }: { e: string; size?: number }) {
 function Reactions({ m, onToggle }: { m: ChatMsg; onToggle: (id: number, e: string) => void }) {
   if (!m.reactions?.length) return null
   return (
-    <div className={`flex flex-wrap gap-1 mt-1 ${m.mine ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex flex-wrap gap-1.5 mt-1 ${m.mine ? 'justify-end' : 'justify-start'}`}>
       {m.reactions.map(r => (
         <button key={r.emoji} onClick={(e) => { e.stopPropagation(); onToggle(m.id, r.emoji) }}
-          className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] active:scale-95 transition-transform"
-          style={{ background: r.mine ? 'rgba(74,232,133,.22)' : 'rgba(255,255,255,.08)', border: `1px solid ${r.mine ? 'rgba(74,232,133,.55)' : 'transparent'}` }}>
-          <Emo e={r.emoji} size={15} /><span className="text-[12px] font-bold" style={{ color: r.mine ? '#4AE885' : '#cfcfd4' }}>{r.count}</span>
+          className="flex items-center gap-1 h-[26px] px-2.5 rounded-full active:scale-95 transition-transform"
+          style={{ background: r.mine ? 'rgba(23,229,132,.18)' : 'rgba(255,255,255,.08)' }}>
+          <Emo e={r.emoji} size={15} /><span className="text-[12.5px] font-semibold tabular-nums" style={{ color: r.mine ? '#7DF0B6' : '#CFDAD4' }}>{r.count}</span>
         </button>
       ))}
     </div>
@@ -364,51 +374,52 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
   }
 
   return (
-    <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)' }}
+    <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)', backdropFilter: 'blur(3px)' }}
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
-        className="w-full max-w-[460px] rounded-t-[26px] p-5 pb-8" style={{ background: '#0d0e12', border: '1px solid rgba(74,232,133,.14)', boxShadow: '0 -8px 40px rgba(0,0,0,.5)' }}>
-        <div className="w-10 h-1 rounded-full mx-auto mb-4" style={{ background: 'rgba(255,255,255,.14)' }} />
+        className="w-full max-w-[460px] rounded-t-[28px] p-5 pb-8 bg-s1 border-t border-white/[.08]"
+        style={{ background: 'radial-gradient(80% 60% at 50% 0%, rgba(118,87,255,.14), transparent 70%), #111C17', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 28px)' }}>
+        <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-white/15" />
         {!c ? (
-          <div className="py-8 text-center text-[13px] text-[#8a8a93]">Загрузка…</div>
+          <div className="py-8 text-center text-[13px] text-gray">Загрузка…</div>
         ) : (
           <>
             <div className="flex items-center gap-3.5 mb-4">
-              <div className="shrink-0 rounded-full p-[2px]" style={{ background: 'linear-gradient(135deg,#39FF9A,#0f8a3e)' }}>
-                <Avatar name={c.name} src={api.chatAvatarUrl(c.user_id, ver || undefined)} anim={c.avatar_anim} size={60} />
+              <div className="shrink-0 rounded-full p-[3px]" style={{ background: c.is_premium ? 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)' : 'rgba(255,255,255,.12)' }}>
+                <div className="rounded-full p-[2px] bg-s1"><Avatar name={c.name} src={api.chatAvatarUrl(c.user_id, ver || undefined)} anim={c.avatar_anim} size={60} /></div>
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[18px] font-extrabold text-white truncate flex items-center gap-2">
-                  {c.name}
-                  {c.is_premium && <span className="text-[9px] font-extrabold px-1.5 py-[3px] rounded-md tracking-wider shrink-0" style={{ background: 'linear-gradient(135deg,#39FF9A,#22C55E)', color: '#06281a' }}>PREMIUM</span>}
-                </div>
-                {c.username && <div className="text-[13px] text-[#8a8a93]">@{c.username}</div>}
-                <div className="inline-flex items-center gap-1.5 mt-1.5 px-2.5 py-[3px] rounded-full text-[11.5px] font-bold" style={{ background: 'rgba(74,232,133,.1)', border: '1px solid rgba(74,232,133,.28)', color: '#4AE885' }}>
-                  <span>{c.rank_emoji}</span>{c.rank}<span className="text-[#cfcfd4] font-semibold">· {c.xp} XP</span>
+                <div className="font-display font-semibold text-[18px] text-fg truncate">{c.name}</div>
+                {c.username && <div className="text-[13px] text-gray">@{c.username}</div>}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  {c.is_premium && <PremiumBadge small />}
+                  <span className="inline-flex items-center gap-1.5 h-[22px] px-2.5 rounded-full text-[11.5px] font-semibold" style={{ background: 'rgba(118,87,255,.18)', color: VIOLET }}>
+                    {c.rank}<span className="text-gray font-medium tabular-nums">· {c.xp} XP</span>
+                  </span>
                 </div>
               </div>
             </div>
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[['book', c.materials_done, 'пройдено'], ['flame', c.streak, 'дней подряд'], ['cert', c.certificates, 'сертификатов']].map(([ic, val, lab], i) => (
-                <div key={i} className="rounded-2xl py-3 text-center" style={{ background: 'linear-gradient(180deg,rgba(74,232,133,.08),rgba(255,255,255,.015))', border: '1px solid rgba(74,232,133,.16)' }}>
-                  <div className="flex justify-center" style={{ color: '#4AE885' }}>{ic === 'book' ? <IcBook s={18} /> : ic === 'flame' ? <IcFlame s={18} /> : <IcCert s={18} />}</div>
-                  <div className="text-[20px] font-extrabold text-green leading-none mt-1">{val as number}</div>
-                  <div className="text-[9px] font-bold uppercase tracking-wide text-[#9a9aa2] mt-1">{lab as string}</div>
+                <div key={i} className="rounded-[16px] py-3 text-center bg-white/[.05] border border-white/[.06]">
+                  <div className="flex justify-center" style={{ color: ic === 'flame' ? '#FFB25B' : ic === 'cert' ? '#F5C25A' : '#CFDAD4' }}>{ic === 'book' ? <IcBook s={18} /> : ic === 'flame' ? <IcFlame s={18} /> : <IcCert s={18} />}</div>
+                  <div className="font-display font-semibold text-[18px] text-fg leading-none mt-1.5 tabular-nums">{val as number}</div>
+                  <div className="text-[11px] text-gray mt-1">{lab as string}</div>
                 </div>
               ))}
             </div>
 
             {isMe && (
               <div className="mb-4">
-                <div className="text-[11px] font-bold uppercase tracking-wide text-[#9a9aa2] mb-2">Аватар в чате {busy && <span className="text-green normal-case">· {busy}</span>}</div>
+                <div className="text-[13px] font-semibold text-fg mb-2">Аватар в чате {busy && <span className="text-green font-normal">· {busy}</span>}</div>
                 <div className="flex flex-col gap-2">
-                  <button onClick={() => avInput.current?.click()} className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold text-white" style={{ background: '#17171d' }}><IcCamera s={15} /> Поставить своё фото / анимацию</button>
+                  <button onClick={() => avInput.current?.click()} className="btn-secondary w-full !justify-start px-4 text-[13.5px]"><IcCamera s={17} /> Поставить своё фото или анимацию</button>
                   <div className="flex gap-2">
-                    <button onClick={() => setMode('tg')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-white" style={{ background: '#17171d' }}><IcReply s={14} /> Из Telegram</button>
-                    <button onClick={() => setMode('hidden')} className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-[12px] font-bold text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}><IcHide s={14} /> Скрыть</button>
+                    <button onClick={() => setMode('tg')} className="btn-secondary flex-1 text-[13px]"><IcUser s={15} /> Из Telegram</button>
+                    <button onClick={() => setMode('hidden')} className="btn-secondary flex-1 text-[13px] !text-[#FF8A8A]"><IcHide s={15} /> Скрыть</button>
                   </div>
                 </div>
-                <div className="text-[10.5px] text-[#6a6a75] mt-2">Анимация — загрузи короткое видео/GIF (до 20 МБ). Все увидят его живым в чате.</div>
+                <div className="text-[11.5px] text-gray2 mt-2">Анимация — загрузи короткое видео/GIF (до 20 МБ). Все увидят его живым в чате.</div>
                 <input ref={avInput} type="file" accept="image/*,video/*,image/gif" hidden
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) uploadAvatar(f) }} />
               </div>
@@ -417,11 +428,11 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
             <div className="flex gap-2">
               {!isMe && c.username && (
                 <button onClick={() => { onMention(c.username); onClose() }}
-                  className="flex-1 py-3 rounded-xl font-extrabold text-[13px] text-white" style={{ background: 'linear-gradient(135deg,#17a34a,#0f8a3e 55%,#0a6a2f)', border: '1px solid rgba(120,255,170,.3)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.14)' }}>
+                  className="btn-violet flex-1 text-[13.5px]">
                   Упомянуть @{c.username}
                 </button>
               )}
-              <button onClick={onClose} className={`${isMe || !c.username ? 'flex-1' : 'px-5'} py-3 rounded-xl font-bold text-[13px]`} style={{ background: '#1d1d24', color: '#cfcfd4' }}>Закрыть</button>
+              <button onClick={onClose} className={`btn-secondary ${isMe || !c.username ? 'flex-1' : 'px-5'} text-[13.5px]`}>Закрыть</button>
             </div>
           </>
         )}
@@ -454,22 +465,22 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
   if (m.deleted) {
     return (
       <div className={`flex ${mine ? 'justify-end' : 'justify-start'} px-3 my-0.5`}>
-        <div className="px-3 py-1.5 rounded-2xl text-[12px] italic" style={{ background: 'rgba(255,255,255,.05)', color: '#6a6a75' }}>сообщение удалено</div>
+        <div className="px-3 py-1.5 rounded-[14px] text-[12.5px] italic bg-white/[.05] text-gray2">сообщение удалено</div>
       </div>
     )
   }
 
   // радиусы углов — хвост у края снизу делаем острым, как в Telegram
   const radius = mine
-    ? { borderRadius: 18, borderBottomRightRadius: tail ? 5 : 18 }
-    : { borderRadius: 18, borderBottomLeftRadius: tail ? 5 : 18 }
+    ? { borderRadius: 18, borderBottomRightRadius: tail ? 6 : 18 }
+    : { borderRadius: 18, borderBottomLeftRadius: tail ? 6 : 18 }
 
   if (m.type === 'sticker') {
     return (
       <div className={`flex gap-2 px-2 ${grouped ? 'mt-0.5' : 'mt-2'} ${mine ? 'flex-row-reverse' : ''}`}>
-        {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[34px] shrink-0" />)}
+        {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
         <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-          {!grouped && !mine && <div className="text-[12px] font-semibold mb-0.5 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}</div>}
+          {!grouped && !mine && <div className="text-[13px] font-semibold mb-0.5 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}</div>}
           <div onClick={() => onAction(m)} className="relative px-1 active:scale-105 transition-transform cursor-pointer">
             {m.has_media
               ? ((m.mime || '').includes('tgs')
@@ -489,35 +500,34 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
   const onlyMedia = m.has_media && !m.text && !(m.once && !mine)
 
   return (
-    <div className={`flex gap-2 px-2 ${grouped ? 'mt-0.5' : 'mt-2'} ${mine ? 'flex-row-reverse' : ''}`} style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease' }}>
-      {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[34px] shrink-0" />)}
-      <div className={`max-w-[80%] min-w-0 ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
-        <div onClick={() => onAction(m)} className="relative overflow-hidden active:opacity-90 max-w-full shadow-sm"
+    <div className={`flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''}`} style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease' }}>
+      {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
+      <div className={`max-w-[82%] min-w-0 ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
+        <div onClick={() => onAction(m)} className="relative overflow-hidden active:opacity-90 max-w-full"
           style={{
             ...radius,
             background: mine ? BUB_OUT : BUB_IN,
-            border: mentionsMe ? '1.5px solid #4AE885' : 'none',
-            boxShadow: mentionsMe ? '0 0 14px rgba(74,232,133,.25)' : '0 1px 1px rgba(0,0,0,.25)',
+            boxShadow: mentionsMe ? `inset 0 0 0 1.5px rgba(185,168,255,.7), ${BUB_SHADOW}` : (mine ? BUB_SHADOW_OUT : BUB_SHADOW),
           }}>
           {!grouped && !mine && (
-            <div className="px-2.5 pt-1.5 text-[13px] font-semibold flex items-center gap-1.5 leading-none" style={{ color: colorFor(m.name) }} onClick={(e) => { e.stopPropagation(); onProfile(m.user_id) }}>
-              {m.name}{m.username ? <span className="text-[#6a7582] font-normal text-[11px]">@{m.username}</span> : null}
+            <div className="px-3 pt-[7px] text-[13px] font-semibold leading-none" style={{ color: colorFor(m.name) }} onClick={(e) => { e.stopPropagation(); onProfile(m.user_id) }}>
+              {m.name}
             </div>
           )}
           {quoted && (
-            <div className="mx-1.5 mt-1.5 px-2 py-1 rounded-md text-[12px]" style={{ background: mine ? 'rgba(0,0,0,.22)' : 'rgba(255,255,255,.06)', borderLeft: '2px solid rgba(127,224,255,.7)' }}>
-              <span className="font-semibold" style={{ color: '#7fe0ff' }}>{quoted.name}</span>
-              <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.75)' : '#b9b9c2' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || '📎 вложение')}</div>
+            <div className="mx-2 mt-2 px-2 py-1.5 rounded-[8px] text-[12.5px]" style={{ background: mine ? 'rgba(0,0,0,.2)' : 'rgba(23,229,132,.08)', borderLeft: '3px solid #17E584' }}>
+              <span className="font-semibold text-[12px]" style={{ color: mine ? '#C8F7DD' : '#17E584' }}>{quoted.name}</span>
+              <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.78)' : '#A6B8AE' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || 'Вложение')}</div>
             </div>
           )}
 
           {m.has_media && m.once && !mine ? (
             <button onClick={(e) => { e.stopPropagation(); onMedia(src, m.type === 'video' || m.type === 'gif', m) }}
-              className="flex items-center gap-2.5 px-4 py-4 text-left">
-              <span className="text-[22px]">👁</span>
+              className="flex items-center gap-3 px-3.5 py-3 text-left">
+              <span className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 text-fg"><Icon name="eye" size={20} /></span>
               <div>
-                <div className="text-[13px] font-bold text-white">Посмотреть 1 раз</div>
-                <div className="text-[11px] text-[#9a9aa2]">Нажми, чтобы открыть</div>
+                <div className="text-[13.5px] font-semibold text-fg">Посмотреть 1 раз</div>
+                <div className="text-[12px] text-gray">Нажми, чтобы открыть</div>
               </div>
             </button>
           ) : (
@@ -548,7 +558,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
           )}
 
           {m.text && (
-            <div className="px-2.5 py-1.5 text-[15px] leading-[1.32] text-white break-words" style={{ wordBreak: 'break-word' }}>
+            <div className="px-3 pt-[6px] pb-[6px] text-[15px] leading-[1.38] text-fg break-words" style={{ wordBreak: 'break-word' }}>
               <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(m.text, onlyEmoji)}</span>
               {/* метаданные встроены в конец последней строки — текст обтекает, как в Telegram */}
               <span className="inline-block align-bottom ml-2" style={{ transform: 'translateY(2px)' }}><MsgMeta m={m} /></span>
@@ -557,7 +567,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
 
           {/* если текста нет и это не только-медиа (напр. голос) — метаданные отдельной строкой */}
           {!m.text && !onlyMedia && m.type !== 'photo' && m.type !== 'gif' && m.type !== 'video' && (
-            <div className={`px-2.5 pb-1 flex ${mine ? 'justify-end' : 'justify-start'}`}><MsgMeta m={m} /></div>
+            <div className="px-3 pb-1.5 flex justify-end"><MsgMeta m={m} /></div>
           )}
         </div>
         <Reactions m={m} onToggle={onReact} />
@@ -586,7 +596,7 @@ function chatSig(arr: ChatMsg[]): string {
 const TEMP_BASE = 1e15
 const maxId = (arr: ChatMsg[]) => arr.reduce((mx, m) => (m.id < TEMP_BASE && m.id > mx ? m.id : mx), 0)
 
-export default function ChatPage() {
+export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
   const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
   const [gated, setGated] = useState(false)   // не подписан на канал — доступ к чату закрыт
@@ -646,8 +656,25 @@ export default function ChatPage() {
   const videoInput = useRef<HTMLInputElement>(null)
   const taRef = useRef<HTMLDivElement>(null)   // rich-поле ввода (contenteditable)
   const stScrollRef = useRef<HTMLDivElement>(null)
+  const dockRef = useRef<HTMLDivElement>(null)   // плавающая нижняя панель (поле ввода + листы)
+  const [dockH, setDockH] = useState(84)
+  useEffect(() => {
+    const el = dockRef.current; if (!el || typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(() => setDockH(el.offsetHeight))
+    ro.observe(el); setDockH(el.offsetHeight)
+    return () => ro.disconnect()
+  })
 
   const byId = useMemo(() => new Map(msgs.map(m => [m.id, m])), [msgs])
+  // последние разные авторы (для аватаров в шапке)
+  const recentAuthors = useMemo(() => {
+    const seen = new Set<number>(); const out: ChatMsg[] = []
+    for (let k = msgs.length - 1; k >= 0 && out.length < 3; k--) {
+      const m = msgs[k]; if (m.deleted || m.mine || seen.has(m.user_id)) continue
+      seen.add(m.user_id); out.push(m)
+    }
+    return out
+  }, [msgs])
   const emojiPacks = packs.filter(p => p.emoji)          // custom_emoji паки → вставка в текст
   const stickerPacks = packs.filter(p => !p.emoji)       // обычные стикеры → отдельным сообщением
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), 2500) }
@@ -1055,22 +1082,15 @@ export default function ChatPage() {
     }
     return (
       <div className="flex flex-col flex-1 items-center justify-center px-8 text-center gap-5">
-        <div className="w-[76px] h-[76px] rounded-[22px] flex items-center justify-center"
-          style={{ background: 'linear-gradient(155deg,#16331f,#0c130d)', border: '1px solid rgba(74,232,133,.35)', boxShadow: '0 0 30px rgba(34,197,94,.25)' }}>
-          <svg width={38} height={38} viewBox="0 0 24 24" fill="none" stroke="#4AE885" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" />
-            <path d="M9 11.5l2 2 4-4.5" />
-          </svg>
-        </div>
+        <span className="tile-violet w-[72px] h-[72px] rounded-[22px]"><Icon name="chat" size={34} accent="#fff" /></span>
         <div>
-          <div className="text-[18px] font-extrabold text-white">Чат — только для подписчиков</div>
-          <div className="text-[13px] text-[#9a9aa2] mt-2 leading-relaxed max-w-[280px]">
-            Подпишись на канал базы, чтобы читать и писать в общем чате. После подписки нажми «Я подписался».
+          <div className="font-display font-semibold text-[18px] text-fg">Чат для подписчиков канала</div>
+          <div className="text-[14px] text-gray mt-2 leading-relaxed max-w-[290px]">
+            Подпишитесь на канал базы, чтобы читать и писать в общем чате. После подписки нажмите «Я подписался».
           </div>
         </div>
         {handle && (
-          <button onClick={openChannel} className="px-6 py-3 rounded-2xl text-[14px] font-bold text-black active:opacity-85"
-            style={{ background: 'linear-gradient(135deg,#17a34a,#0a6a2f)', boxShadow: '0 8px 24px rgba(34,197,94,.3)' }}>
+          <button onClick={openChannel} className="btn-primary px-7 w-full max-w-[280px]">
             Подписаться на канал
           </button>
         )}
@@ -1079,7 +1099,7 @@ export default function ChatPage() {
             const r = await api.chatRecheck()
             if (!r.gated) { setGated(false); setReady(false); pollTick.current = 0 }
           } catch { /* ещё не видно — попробуй ещё раз */ }
-        }} className="text-[13px] font-bold text-[#4AE885] active:opacity-70">
+        }} className="text-[14px] font-medium text-green active:opacity-70">
           Я подписался — проверить
         </button>
       </div>
@@ -1087,108 +1107,130 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
+    <div className="relative flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
 
-      <div className="relative flex items-center justify-center gap-1.5 px-4 py-1 shrink-0" style={{ background: '#0c0c10' }}>
-        {MY_ID > 0 && (
-          <button onClick={() => setProfileFor(MY_ID)} aria-label="Мой профиль и аватар"
-            className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[#8a8a93] active:text-green p-1">
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="8" r="4" /><path d="M4 20.5c0-3.6 3.6-6 8-6s8 2.4 8 6" />
-            </svg>
-            <span className="text-[10px] font-bold">Профиль</span>
+      {/* шапка чата: плитка, название, онлайн, «печатает», последние участники */}
+      <div className="relative flex items-center gap-2.5 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06]">
+        {onBack && (
+          <button onClick={onBack} aria-label="Назад" className="w-9 h-10 -mr-1 flex items-center justify-center rounded-full text-fg active:bg-white/10 shrink-0">
+            <Icon name="back" size={22} />
           </button>
         )}
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-60" />
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green" />
-        </span>
-        <span className="text-[11px]"><b className="text-green">{online}</b> <span className="text-[#8a8a93]">в сети</span></span>
+        <button onClick={() => MY_ID > 0 && setProfileFor(MY_ID)} aria-label="Мой профиль в чате"
+          className={`tile-violet w-10 h-10 rounded-[13px] shrink-0 ${onBack ? '' : 'ml-1.5'}`}>
+          <Icon name="chat" size={19} accent="#fff" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="font-display font-semibold text-[15px] leading-tight truncate">Чат базы</div>
+          <div className="flex items-center gap-1.5 mt-1 text-[12px] text-gray whitespace-nowrap overflow-hidden">
+            <span className="pulse-dot" style={{ width: 6, height: 6 }} />
+            <span className="tabular-nums">{online} в сети</span>
+            {typing.length > 0 && (
+              <>
+                <span className="w-[3px] h-[3px] rounded-full bg-gray2 shrink-0" />
+                <span className="flex items-center gap-1.5 truncate" style={{ color: VIOLET }}>
+                  <span className="typing-dots"><i /><i /><i /></span>
+                  <span className="truncate">{typing.length > 1 ? `${typing.length} печатают` : `${typing[0]} печатает`}</span>
+                </span>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0">
+          {recentAuthors.map((a, k) => (
+            <div key={a.user_id} className="rounded-full" style={{ marginLeft: k ? -7 : 0, boxShadow: '0 0 0 2px #08100D' }}>
+              <Avatar name={a.name} src={api.chatAvatarUrl(a.user_id)} size={26} />
+            </div>
+          ))}
+        </div>
         {isAdmin && (
           <button onClick={() => setRetOpen(true)} aria-label="Настройки чата"
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8a8a93] active:text-green p-1">
-            <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
+            className="w-9 h-9 -mr-1 flex items-center justify-center rounded-full text-gray active:bg-white/10 shrink-0">
+            <Icon name="settings" size={19} />
           </button>
         )}
       </div>
 
       {pinned && !pinned.deleted && (
-        <div onClick={() => jumpToMsg(pinned.id)} className="flex items-center gap-2 px-4 py-2 shrink-0 cursor-pointer active:opacity-80" style={{ borderBottom: '1px solid rgba(74,232,133,.22)', background: 'rgba(34,197,94,.06)' }}>
-          <span className="text-green"><IcPin s={14} /></span>
+        <div onClick={() => jumpToMsg(pinned.id)} className="flex items-center gap-2.5 px-3.5 py-2 shrink-0 cursor-pointer active:bg-white/[.03] border-b border-white/[.06]" style={{ background: 'rgba(17,28,23,.92)' }}>
+          <span className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style={{ background: 'rgba(118,87,255,.18)', color: VIOLET }}><Icon name="pin" size={15} /></span>
           <div className="flex-1 min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-wide text-green">Закреплено · {pinned.name}</div>
-            <div className="text-[12px] text-white truncate">{stripTokens(pinned.text) || '📎 вложение'}</div>
+            <div className="text-[12px] font-semibold truncate" style={{ color: VIOLET }}>Закреплено · {pinned.name}</div>
+            <div className="text-[13.5px] text-fg truncate">{stripTokens(pinned.text) || 'Вложение'}</div>
           </div>
-          {isAdmin && <button onClick={(e) => { e.stopPropagation(); unpin() }} className="text-[11px] font-bold text-[#8a8a93] px-2 py-1">Открепить</button>}
+          {isAdmin && <button onClick={(e) => { e.stopPropagation(); unpin() }} className="text-[12px] font-medium text-gray px-2 py-1 rounded-full active:bg-white/10 shrink-0">Открепить</button>}
         </div>
       )}
 
-      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ overscrollBehavior: 'contain', background: WALL, opacity: ready ? 1 : 0, transition: 'opacity .12s' }}>
+      <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden pt-2" style={{ overscrollBehavior: 'contain', background: WALL, opacity: ready ? 1 : 0, transition: 'opacity .12s', paddingBottom: dockH + 12 }}>
         {msgs.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-[13px] text-[#8a8a93] px-8 text-center">Пока тихо. Напиши первым — поздоровайся с базой 👋</div>
+          <div className="h-full flex flex-col items-center justify-center gap-3 text-[14px] text-gray px-8 text-center">
+            <span className="tile-violet w-14 h-14 rounded-[18px]"><Icon name="chat" size={26} accent="#fff" /></span>
+            Пока тихо. Напишите первым и поздоровайтесь с базой.
+          </div>
         ) : msgs.map((m, i) => {
           const d = dayLabel(m.created_at); const sep = d !== lastDay; lastDay = d
           return (
-            <div key={m.id} id={`m-${m.id}`} style={hiId === m.id ? { background: 'rgba(74,232,133,.13)', borderRadius: 12, transition: 'background .5s' } : { transition: 'background .8s' }}>
+            <div key={m.id} id={`m-${m.id}`} style={hiId === m.id ? { background: 'rgba(118,87,255,.16)', borderRadius: 14, transition: 'background .5s' } : { transition: 'background .8s' }}>
               {sep && (
-                <div className="flex justify-center my-2.5">
-                  <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(0,0,0,.35)', color: '#d7d7dc', backdropFilter: 'blur(2px)' }}>{d}</span>
+                <div className="flex justify-center my-3">
+                  <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#CFDAD4]" style={{ background: 'rgba(17,28,23,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
                 </div>
               )}
               <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} />
             </div>
           )
         })}
-        {typing.length > 0 && (
-          <div className="px-4 py-1.5 text-[12px] text-[#9fe9c0] italic">{typing.join(', ')} печата{typing.length > 1 ? 'ют' : 'ет'}…</div>
-        )}
       </div>
 
-      {toast && <div className="mx-auto mb-1 px-3 py-1.5 rounded-full text-[12px]" style={{ background: '#1d1d24', color: '#e4e4e8' }}>{toast}</div>}
+      {/* плавающая нижняя панель: листы + стеклянная капсула ввода */}
+      <div ref={dockRef} className="absolute left-0 right-0 bottom-0 z-20 px-2.5 flex flex-col pointer-events-none [&>*]:pointer-events-auto"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 12px)' }}>
+        {toast && <div className="self-center mb-2 px-3.5 py-1.5 rounded-full text-[12.5px] text-fg glass">{toast}</div>}
 
-      {(reply || editing) && (
-        <div className="flex items-center gap-2 px-4 py-1.5 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10' }}>
-          <div className="flex-1 min-w-0 text-[12px]">
-            <span className="text-green font-bold">{editing ? 'Редактирование' : `Ответ ${reply!.name}`}</span>
-            <span className="text-[#8a8a93] truncate"> · {stripTokens((editing || reply)!.text) || '📎 вложение'}</span>
+        {(reply || editing) && (
+          <div className="glass rounded-[18px] mb-2 flex items-center gap-2.5 pl-3 pr-1.5 py-1.5" style={{ background: 'rgba(13,21,17,.95)' }}>
+            <span className="text-green shrink-0"><Icon name={editing ? 'edit' : 'reply'} size={17} /></span>
+            <div className="flex-1 min-w-0 pl-2.5 border-l-[3px] border-green">
+              <div className="text-[12px] font-semibold text-green">{editing ? 'Редактирование' : `Ответ ${reply!.name}`}</div>
+              <div className="text-[12.5px] text-gray truncate">{stripTokens((editing || reply)!.text) || 'Вложение'}</div>
+            </div>
+            <button onClick={() => { setReply(null); setEditing(null); setComposer('') }} aria-label="Отменить" className="w-9 h-9 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={17} /></button>
           </div>
-          <button onClick={() => { setReply(null); setEditing(null); setComposer('') }} className="text-[#8a8a93] text-[16px] px-1">✕</button>
-        </div>
-      )}
+        )}
 
-      {emojiOpen && (
-        <div className="grid grid-cols-8 gap-1 px-3 py-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10' }}>
+        {emojiOpen && (
+          <div className="glass rounded-[22px] mb-2 grid grid-cols-8 gap-1 px-3 py-2" style={{ background: 'rgba(13,21,17,.97)' }}>
           {PICKER.map(e => <button key={e} onClick={() => insertTextAtCaret(e)} className="text-[22px] py-1 active:scale-125 transition-transform">{e}</button>)}
         </div>
       )}
 
-      {attachOpen && (
-        <div className="shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10' }}>
-          <div className="flex gap-2 px-4 pt-2">
-            <button onClick={() => setOnceOn(v => !v)} className="flex-1 py-2 rounded-xl text-[12px] font-bold"
-              style={{ background: onceOn ? 'rgba(34,197,94,.18)' : '#17171d', color: onceOn ? '#4AE885' : '#9a9aa2', border: onceOn ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
-              <span className="inline-flex items-center gap-1.5"><IcEye s={15} /> 1 раз {onceOn ? '✓' : ''}</span>
-            </button>
-            <button onClick={() => setTtlSec(s => { const i = TTL_STEPS.indexOf(s); return TTL_STEPS[(i + 1) % TTL_STEPS.length] })}
-              className="flex-1 py-2 rounded-xl text-[12px] font-bold"
-              style={{ background: ttlSec ? 'rgba(34,197,94,.18)' : '#17171d', color: ttlSec ? '#4AE885' : '#9a9aa2', border: ttlSec ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
-              <span className="inline-flex items-center gap-1.5"><IcTimer s={15} /> Таймер: {ttlLabel(ttlSec)}</span>
-            </button>
+        {attachOpen && (
+          <div className="glass rounded-[22px] mb-2 p-2.5 flex flex-col gap-2" style={{ background: 'rgba(13,21,17,.97)' }}>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => photoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(23,229,132,.16)', color: '#17E584' }}><IcPhoto s={19} /></span>Фото
+              </button>
+              <button onClick={() => videoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(118,87,255,.18)', color: VIOLET }}><IcVideo s={19} /></span>Видео
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setOnceOn(v => !v)} className={`flex-1 h-9 rounded-full text-[12.5px] font-medium inline-flex items-center justify-center gap-1.5 ${onceOn ? 'bg-green/[.18] text-[#7DF0B6]' : 'bg-white/[.06] text-gray'}`}>
+                <IcEye s={15} /> Просмотр 1 раз{onceOn ? ' · вкл' : ''}
+              </button>
+              <button onClick={() => setTtlSec(s => { const i = TTL_STEPS.indexOf(s); return TTL_STEPS[(i + 1) % TTL_STEPS.length] })}
+                className={`flex-1 h-9 rounded-full text-[12.5px] font-medium inline-flex items-center justify-center gap-1.5 ${ttlSec ? 'bg-green/[.18] text-[#7DF0B6]' : 'bg-white/[.06] text-gray'}`}>
+                <IcTimer s={15} /> Таймер: {ttlLabel(ttlSec)}
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2 px-4 py-2">
-            <button onClick={() => photoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}><span className="inline-flex items-center gap-1.5"><IcPhoto s={15} /> Фото</span></button>
-            <button onClick={() => videoInput.current?.click()} className="flex-1 py-2 rounded-xl text-[12px] font-bold" style={{ background: '#17171d', color: '#cfcfd4' }}><span className="inline-flex items-center gap-1.5"><IcVideo s={15} /> Видео</span></button>
-          </div>
-        </div>
-      )}
+        )}
 
-      {stickerOpen && (
-        <div className="shrink-0 flex flex-col" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10', height: '48vh' }}>
+        {stickerOpen && (
+          <div className="glass rounded-[22px] mb-2 flex flex-col overflow-hidden" style={{ height: '46vh', background: 'rgba(13,21,17,.97)' }}>
           {/* верхние вкладки: Эмодзи / Стикеры / GIF — как в Telegram */}
-          <div className="flex items-center gap-5 px-4 pt-2 shrink-0" style={{ borderBottom: '1px solid rgba(255,255,255,.06)' }}>
+          <div className="flex items-center gap-1 px-2 pt-2 pb-1.5 shrink-0 border-b border-white/[.06]">
             {([['emoji', 'Эмодзи'], ['stickers', 'Стикеры'], ['gif', 'GIF']] as const).map(([k, lab]) => {
               const active = k === 'emoji' ? stickerTab === 'emoji' : k === 'stickers' ? stickerTab !== 'emoji' : false
               return (
@@ -1196,22 +1238,21 @@ export default function ChatPage() {
                   if (k === 'emoji') setStickerTab('emoji')
                   else if (k === 'stickers') setStickerTab(stickerPacks[0]?.name || '__st__')
                   else { setStickerOpen(false); if (gifEnabled) openGif() }
-                }} className="relative pb-2 text-[14px] font-bold" style={{ color: active ? '#fff' : '#7a7a85' }}>
+                }} className={`h-8 px-3.5 rounded-full text-[13.5px] font-semibold transition-colors ${active ? 'bg-white/10 text-fg' : 'text-gray'}`}>
                   {lab}
-                  {active && <span className="absolute left-0 right-0 bottom-0 h-[2px] rounded-full" style={{ background: '#4AE885' }} />}
                 </button>
               )
             })}
-            <button onClick={() => setStickerOpen(false)} className="ml-auto text-[#8a8a93] text-[16px]">✕</button>
+            <button onClick={() => setStickerOpen(false)} aria-label="Закрыть" className="ml-auto w-8 h-8 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={16} /></button>
           </div>
 
           {/* строка добавления своего пака */}
           <div className="flex gap-2 px-2 py-1.5 shrink-0">
-            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="🔍 Пак или эмодзи: t.me/addstickers/… · t.me/addemoji/…"
-              className="flex-1 px-3 py-1.5 rounded-full text-[16px] text-white outline-none"
-              style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)', WebkitUserSelect: 'text', userSelect: 'text' }} />
-            <button onClick={addPack} disabled={packBusy} className="px-3.5 py-1.5 rounded-full text-[13px] font-bold disabled:opacity-50" style={{ background: 'rgba(34,197,94,.18)', color: '#4AE885' }}>
-              {packBusy ? '…' : '＋'}
+            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="Ссылка на пак: t.me/addstickers/… или t.me/addemoji/…"
+              className="flex-1 min-w-0 h-9 px-3.5 rounded-full text-[16px] text-fg placeholder:text-gray2 outline-none bg-white/[.06] border border-white/[.08]"
+              style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
+            <button onClick={addPack} disabled={packBusy} aria-label="Добавить пак" className="w-9 h-9 rounded-full flex items-center justify-center disabled:opacity-50 bg-green/[.18] text-green shrink-0">
+              {packBusy ? '…' : <Icon name="plus" size={17} />}
             </button>
           </div>
 
@@ -1221,9 +1262,9 @@ export default function ChatPage() {
               emojiPacks.length ? (
                 emojiPacks.map(p => (
                   <div key={p.name} id={`pk_${p.name}`} className="mb-3">
-                    <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0c0c10' }}>
-                      <span className="text-[12px] font-bold text-[#cfcfd4] truncate flex-1">{p.title}</span>
-                      <button onClick={() => removePack(p.name)} className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}>Удалить</button>
+                    <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0E1612' }}>
+                      <span className="text-[12.5px] font-semibold text-[#CFDAD4] truncate flex-1">{p.title}</span>
+                      <button onClick={() => removePack(p.name)} className="shrink-0 text-[11.5px] font-medium px-2.5 py-0.5 rounded-full text-[#FF8A8A] bg-[#FF5050]/10">Удалить</button>
                     </div>
                     <div className="grid grid-cols-6 gap-1">
                       {p.stickers.map((st, i) => (
@@ -1248,13 +1289,13 @@ export default function ChatPage() {
                 </div>
               )
             ) : stickerPacks.length === 0 ? (
-              <div className="py-8 text-center text-[12px] text-[#8a8a93] px-6">Пока нет паков. Вставь ссылку <b className="text-green">t.me/addstickers/…</b> или <b className="text-green">t.me/addemoji/…</b> сверху и жми ＋ — добавится твой стикерпак или анимированные эмодзи из Telegram.</div>
+              <div className="py-8 text-center text-[13px] text-gray px-6 leading-relaxed">Паков пока нет. Вставьте сверху ссылку <b className="text-green font-semibold">t.me/addstickers/…</b> или <b className="text-green font-semibold">t.me/addemoji/…</b> и нажмите «+»: добавится стикерпак или анимированные эмодзи из Telegram.</div>
             ) : (
               stickerPacks.map(p => (
                 <div key={p.name} id={`pk_${p.name}`} className="mb-3">
-                  <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0c0c10' }}>
-                    <span className="text-[12px] font-bold text-[#cfcfd4] truncate flex-1">{p.title}</span>
-                    <button onClick={() => removePack(p.name)} className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-md text-[#ff8a8a]" style={{ background: 'rgba(255,80,80,.1)' }}>Удалить</button>
+                  <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0E1612' }}>
+                    <span className="text-[12.5px] font-semibold text-[#CFDAD4] truncate flex-1">{p.title}</span>
+                    <button onClick={() => removePack(p.name)} className="shrink-0 text-[11.5px] font-medium px-2.5 py-0.5 rounded-full text-[#FF8A8A] bg-[#FF5050]/10">Удалить</button>
                   </div>
                   <div className="grid grid-cols-4 gap-1">
                     {p.stickers.map((st, i) => (
@@ -1275,22 +1316,22 @@ export default function ChatPage() {
           </div>
 
           {/* нижний ряд иконок-паков, как в Telegram */}
-          <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
-            <button onClick={() => setStickerTab('emoji')} className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center text-[18px]"
-              style={{ background: stickerTab === 'emoji' ? 'rgba(74,232,133,.16)' : 'transparent' }}>😀</button>
+          <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0 border-t border-white/[.06]">
+            <button onClick={() => setStickerTab('emoji')} aria-label="Эмодзи" className={`shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center ${stickerTab === 'emoji' ? 'bg-white/10 text-fg' : 'text-gray'}`}>
+              <Icon name="emoji" size={19} /></button>
             {packs.map(p => {
               const th = p.stickers[0]   // первый стикер пака как иконка — понятно, что это
               const on = p.emoji ? false : stickerTab === p.name
               return (
                 <button key={p.name} onClick={() => { setStickerTab(p.emoji ? 'emoji' : p.name); setTimeout(() => document.getElementById(`pk_${p.name}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50) }}
-                  className="shrink-0 w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" style={{ background: on ? 'rgba(74,232,133,.16)' : 'transparent', border: '1px solid rgba(255,255,255,.05)' }}>
+                  className={`shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center overflow-hidden ${on ? 'bg-white/10' : ''}`}>
                   {th
                     ? (th.kind === 'video'
                       ? <video src={api.chatStickerUrl(th.fid, 'video')} autoPlay loop muted playsInline className="w-7 h-7 object-contain" />
                       : th.kind === 'animated'
                         ? <LottieSticker url={api.chatStickerUrl(th.fid, 'animated')} size={28} />
                         : <img src={api.chatStickerUrl(th.fid, 'image')} alt="" loading="lazy" className="w-7 h-7 object-contain" />)
-                    : <span className="text-[11px] font-bold text-[#cfcfd4]">{p.title.replace('@', '').slice(0, 2).toUpperCase()}</span>}
+                    : <span className="text-[11px] font-semibold text-[#CFDAD4]">{p.title.replace('@', '').slice(0, 2).toUpperCase()}</span>}
                 </button>
               )
             })}
@@ -1298,82 +1339,97 @@ export default function ChatPage() {
         </div>
       )}
 
-      {gifOpen && (
-        <div className="px-3 py-2 shrink-0 max-h-60 overflow-y-auto" style={{ borderTop: '1px solid rgba(255,255,255,.07)', background: '#0c0c10' }}>
-          <div className="flex items-center gap-2 mb-2">
-            <input value={gifQuery} onChange={e => setGifQuery(e.target.value)} placeholder="Поиск GIF…" autoFocus
-              className="flex-1 px-3 py-2 rounded-xl text-[16px] text-white outline-none"
-              style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.1)', WebkitUserSelect: 'text', userSelect: 'text' }} />
-            <button onClick={() => setGifOpen(false)} className="text-[#8a8a93] text-[14px] px-2">✕</button>
-          </div>
-          {gifLoading && gifs.length === 0 ? (
-            <div className="py-6 text-center text-[12px] text-[#8a8a93]">Загрузка…</div>
-          ) : gifs.length === 0 ? (
-            <div className="py-6 text-center text-[12px] text-[#8a8a93]">Ничего не найдено</div>
-          ) : (
-            <div className="grid grid-cols-3 gap-1">
-              {gifs.map(g => (
-                <button key={g.id} onClick={() => sendGif(g.send)} className="rounded-lg overflow-hidden active:opacity-70" style={{ background: '#17171d' }}>
+        {gifOpen && (
+          <div className="glass rounded-[22px] mb-2 px-2.5 py-2.5 max-h-72 overflow-y-auto" style={{ background: 'rgba(13,21,17,.97)' }}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex-1 min-w-0 flex items-center gap-2 h-10 px-3.5 rounded-full bg-white/[.06] border border-white/[.08] text-gray">
+                <Icon name="search" size={17} />
+                <input value={gifQuery} onChange={e => setGifQuery(e.target.value)} placeholder="Поиск GIF" autoFocus
+                  className="flex-1 min-w-0 bg-transparent text-[16px] text-fg placeholder:text-gray2 outline-none"
+                  style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
+              </div>
+              <button onClick={() => setGifOpen(false)} aria-label="Закрыть" className="w-9 h-9 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={16} /></button>
+            </div>
+            {gifLoading && gifs.length === 0 ? (
+              <div className="py-6 text-center text-[13px] text-gray">Загрузка…</div>
+            ) : gifs.length === 0 ? (
+              <div className="py-6 text-center text-[13px] text-gray">Ничего не найдено</div>
+            ) : (
+              <div className="grid grid-cols-3 gap-1.5">
+                {gifs.map(g => (
+                  <button key={g.id} onClick={() => sendGif(g.send)} className="rounded-[12px] overflow-hidden active:opacity-70 bg-white/[.05]">
                   <img src={g.preview} alt="" className="w-full h-24 object-cover" loading="lazy" />
                 </button>
               ))}
             </div>
           )}
-          <div className="text-[9px] text-[#5a5a63] text-center mt-2">Powered by GIPHY</div>
+            <div className="text-[10px] text-gray2 text-center mt-2">Powered by GIPHY</div>
         </div>
       )}
 
-      <div className="flex items-end gap-2 px-2 pt-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 22px)' }}>
-        {rec ? (
-          /* индикатор записи голосового */
-          <div className="flex-1 flex items-center gap-2.5 rounded-[22px] px-3.5" style={{ background: recCancel ? 'rgba(255,80,80,.1)' : '#17171d', border: `1px solid ${recCancel ? 'rgba(255,80,80,.55)' : 'rgba(255,80,80,.3)'}`, height: 44, transition: 'background .2s, border-color .2s' }}>
-            <span className="relative flex h-3 w-3 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full" style={{ background: '#ff5050', opacity: .55 }} />
-              <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#ff5050' }} />
-            </span>
-            <span className="text-[15px] text-white tabular-nums shrink-0">{fmtDur(recElapsed)}</span>
-            {/* живая волна записи */}
-            <div className="flex-1 flex items-center justify-center gap-[3px] h-5 overflow-hidden min-w-0 mx-1">
-              {Array.from({ length: 28 }).map((_, i) => (
-                <span key={i} className="vbar" style={{ width: 2.5, borderRadius: 3, background: recCancel ? '#ff8a8a' : '#4AE885', animationDelay: `${((i * 7) % 28) * 0.045}s` }} />
-              ))}
+        <div className="relative flex items-end gap-1.5 p-[6px] rounded-[30px] glass"
+          style={{
+            background: 'radial-gradient(60% 120% at 100% 50%, rgba(23,229,132,.10), transparent 70%), radial-gradient(50% 120% at 0% 50%, rgba(118,87,255,.10), transparent 70%), linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.02)), rgba(13,21,17,.93)',
+            border: '1px solid rgba(255,255,255,.14)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.16), 0 14px 34px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35)',
+          }}>
+          {rec ? (
+            /* индикатор записи голосового */
+            <div className="flex-1 min-w-0 flex items-center gap-2.5 rounded-[24px] px-3" style={{ background: recCancel ? 'rgba(255,80,80,.12)' : 'transparent', height: 46, transition: 'background .2s' }}>
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full" style={{ background: '#ff5050', opacity: .55 }} />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: '#ff5050' }} />
+              </span>
+              <span className="text-[15px] text-fg tabular-nums shrink-0">{fmtDur(recElapsed)}</span>
+              <div className="flex-1 flex items-center justify-center gap-[3px] h-5 overflow-hidden min-w-0 mx-1">
+                {Array.from({ length: 24 }).map((_, i) => (
+                  <span key={i} className="vbar" style={{ width: 2.5, borderRadius: 2, background: recCancel ? '#FF8A8A' : '#17E584', animationDelay: `${((i * 7) % 24) * 0.045}s` }} />
+                ))}
+              </div>
+              <span className="text-[12px] shrink-0" style={{ color: recCancel ? '#FF8A8A' : '#A6B8AE' }}>{recCancel ? 'отпустите — отмена' : 'отпустите — отправить'}</span>
+              <button onClick={cancelRec} className="w-8 h-8 rounded-full flex items-center justify-center text-[#FF8A8A] active:bg-white/10 shrink-0" aria-label="Отмена"><Icon name="close" size={16} /></button>
             </div>
-            <span className="text-[11.5px] shrink-0" style={{ color: recCancel ? '#ff8a8a' : '#8a8a93' }}>{recCancel ? 'отпусти — отмена' : 'отпусти — отправить'}</span>
-            <button onClick={cancelRec} className="text-[12px] font-bold text-[#ff8a8a] px-1.5 py-1 shrink-0" aria-label="Отмена">✕</button>
-          </div>
-        ) : (
-          /* единое поле: 📎 слева, текст, справа 😊 — как в Telegram */
-          <div className="flex-1 flex items-end rounded-[22px] min-w-0" style={{ background: '#17171d', border: '1px solid rgba(255,255,255,.08)' }}>
-            <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} className="shrink-0 w-10 h-10 flex items-center justify-center" style={{ color: attachOpen ? '#4AE885' : '#8a8a93' }}>
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
-            </button>
-            <div className="flex-1 relative min-w-0">
-              {!text && <div className="absolute left-0 top-2.5 text-[16px] text-[#8a8a93] pointer-events-none select-none">Сообщение…</div>}
-              <div ref={taRef} contentEditable suppressContentEditableWarning
-                onInput={onEditorInput}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-                onPaste={e => { e.preventDefault(); insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
-                className="text-[16px] text-white outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
-                style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 10, paddingBottom: 10, minHeight: 24 }} />
+          ) : (
+            /* скрепка · текст · смайлик — как в Telegram */
+            <div className="flex-1 flex items-end min-w-0 px-1">
+              <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} aria-label="Вложение"
+                className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:opacity-70" style={{ color: attachOpen ? '#17E584' : '#CFDAD4' }}>
+                <Icon name="attach" size={23} style={{ transform: 'rotate(40deg)' }} />
+              </button>
+              <div className="flex-1 relative min-w-0 px-1">
+                {!text && <div className="absolute left-1 top-[12px] text-[16px] text-[#8FA398] pointer-events-none select-none">Сообщение</div>}
+                <div ref={taRef} contentEditable suppressContentEditableWarning
+                  onInput={onEditorInput}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
+                  onPaste={e => { e.preventDefault(); insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
+                  className="text-[16px] text-fg outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
+                  style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 12, paddingBottom: 12, minHeight: 22 }} />
+              </div>
+              <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} aria-label="Эмодзи и стикеры"
+                className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform" style={{ color: stickerOpen ? '#17E584' : '#CFDAD4' }}>
+                <Icon name="emoji" size={23} />
+              </button>
             </div>
-            <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} className="shrink-0 w-10 h-10 flex items-center justify-center active:scale-90 transition-transform" style={{ color: stickerOpen ? '#2bd47d' : '#4AE885' }} aria-label="Эмодзи и стикеры">
-              <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><path d="M8.5 14.5s1.3 1.8 3.5 1.8 3.5-1.8 3.5-1.8" /><line x1="9" y1="9.5" x2="9.01" y2="9.5" /><line x1="15" y1="9.5" x2="15.01" y2="9.5" /></svg>
+          )}
+          {text.trim() && !rec ? (
+            <button onClick={send} disabled={sending} aria-label="Отправить" className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform"
+              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #0FB866 45%, #088A4A 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#021A0C' }}>
+              <Icon name="send" size={20} accent="#021A0C" style={{ transform: 'translate(-1px,1px)' }} />
             </button>
-          </div>
-        )}
-        {text.trim() && !rec ? (
-          <button onClick={send} disabled={sending} className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform" style={{ background: 'linear-gradient(180deg,#39FF9A,#22C55E)', color: '#06281a' }}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M3 20l18-8L3 4v6l12 2-12 2z" /></svg>
-          </button>
-        ) : (
-          <button onMouseDown={startRec} onMouseUp={stopRec} onMouseLeave={() => rec && stopRec()}
-            onTouchStart={(e) => { e.preventDefault(); touchStartX.current = e.touches[0].clientX; startRec() }}
-            onTouchMove={(e) => { const dx = e.touches[0].clientX - touchStartX.current; const c = dx < -70; recCancelRef.current = c; setRecCancel(c) }}
-            onTouchEnd={(e) => { e.preventDefault(); stopRec() }}
-            className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center active:scale-90 transition-transform" style={{ background: rec ? '#ff5050' : 'linear-gradient(180deg,#39FF9A,#22C55E)', color: rec ? '#fff' : '#06281a' }}>
-            <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3z" /><path d="M5 11a7 7 0 0 0 14 0h-2a5 5 0 0 1-10 0H5zm6 7h2v3h-2z" /></svg>
-          </button>
-        )}
+          ) : (
+            <button onMouseDown={startRec} onMouseUp={stopRec} onMouseLeave={() => rec && stopRec()}
+              onTouchStart={(e) => { e.preventDefault(); touchStartX.current = e.touches[0].clientX; startRec() }}
+              onTouchMove={(e) => { const dx = e.touches[0].clientX - touchStartX.current; const c = dx < -70; recCancelRef.current = c; setRecCancel(c) }}
+              onTouchEnd={(e) => { e.preventDefault(); stopRec() }}
+              aria-label="Голосовое сообщение"
+              className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center active:scale-90 transition-transform"
+              style={rec
+                ? { background: '#ff5050', color: '#fff' }
+                : { background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #0FB866 45%, #088A4A 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#021A0C' }}>
+              <Icon name="mic" size={21} accent={rec ? '#fff' : '#021A0C'} />
+            </button>
+          )}
+        </div>
       </div>
 
       <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPick('photo')} />
@@ -1381,21 +1437,21 @@ export default function ChatPage() {
 
       <AnimatePresence>
         {menuFor && (
-          <motion.div className="fixed inset-0 z-[70] flex items-end justify-center px-4 pb-6" style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(2px)' }}
+          <motion.div className="fixed inset-0 z-[70] flex items-end justify-center px-4" style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(3px)', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMenuFor(null)}>
             <motion.div onClick={e => e.stopPropagation()} initial={{ y: 24, opacity: 0, scale: .97 }} animate={{ y: 0, opacity: 1, scale: 1 }} exit={{ y: 24, opacity: 0, scale: .97 }}
               transition={{ type: 'spring', stiffness: 420, damping: 30 }} className="w-full max-w-[290px] flex flex-col gap-2">
               {/* реакции — плавающая пилюля */}
-              <div className="flex justify-around items-center px-1 py-1 rounded-full" style={{ background: '#1a1b21', border: '1px solid rgba(255,255,255,.08)', boxShadow: '0 12px 32px rgba(0,0,0,.5)' }}>
+              <div className="glass flex justify-around items-center px-1 py-1 rounded-full">
                 {QUICK.map(e => <button key={e} onClick={() => react(menuFor.id, e)} className="w-9 h-9 flex items-center justify-center rounded-full active:scale-125 transition-transform"><Emo e={e} size={26} /></button>)}
               </div>
               {/* действия — компактная карточка */}
-              <div className="rounded-[16px] overflow-hidden" style={{ background: '#15161b', border: '1px solid rgba(255,255,255,.08)', boxShadow: '0 16px 40px rgba(0,0,0,.55)' }}>
-                <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><IcReply s={16} />Ответить</button>
-                {!menuFor.mine && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><IcUser s={16} />Профиль автора</button></>)}
-                {menuFor.mine && menuFor.type === 'text' && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-white active:opacity-70"><IcEdit s={16} />Редактировать</button></>)}
-                {isAdmin && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => pin(menuFor.id)} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold text-green active:opacity-70"><IcPin s={16} />Закрепить</button></>)}
-                {(menuFor.mine || isAdmin) && (<><div style={{ height: 1, background: 'rgba(255,255,255,.06)' }} /><button onClick={() => { del(menuFor.id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-2.5 text-[13.5px] font-semibold active:opacity-70" style={{ color: '#ff6b6b' }}><IcTrash s={16} />Удалить</button></>)}
+              <div className="glass rounded-[18px] overflow-hidden" style={{ background: 'rgba(17,28,23,.94)' }}>
+                <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcReply s={16} />Ответить</button>
+                {!menuFor.mine && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcUser s={16} />Профиль автора</button></>)}
+                {menuFor.mine && menuFor.type === 'text' && (<><div className="h-px bg-white/[.06]" /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcEdit s={16} />Редактировать</button></>)}
+                {isAdmin && (<><div className="h-px bg-white/[.06]" /><button onClick={() => pin(menuFor.id)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium active:bg-white/[.06]" style={{ color: VIOLET }}><IcPin s={16} />Закрепить</button></>)}
+                {(menuFor.mine || isAdmin) && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { del(menuFor.id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium active:bg-white/[.06]" style={{ color: '#FF7A7A' }}><IcTrash s={16} />Удалить</button></>)}
               </div>
             </motion.div>
           </motion.div>
@@ -1411,9 +1467,10 @@ export default function ChatPage() {
           <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setRetOpen(false)}>
             <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
-              className="w-full max-w-[460px] rounded-t-[26px] p-5 pb-8" style={{ background: '#0d0e12', border: '1px solid rgba(74,232,133,.14)', boxShadow: '0 -8px 40px rgba(0,0,0,.5)' }}>
-              <div className="text-[15px] font-extrabold text-white mb-1">Хранение сообщений</div>
-              <div className="text-[12px] text-[#9a9aa2] mb-4 leading-relaxed">Сообщения старше выбранного срока удаляются автоматически — вместе с их медиа. Применяется ко всем участникам.</div>
+              className="w-full max-w-[460px] rounded-t-[28px] p-5 bg-s1 border-t border-white/[.08]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 28px)' }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-white/15" />
+              <div className="font-display font-semibold text-[16px] text-fg mb-1">Хранение сообщений</div>
+              <div className="text-[13px] text-gray mb-4 leading-relaxed">Сообщения старше выбранного срока удаляются автоматически — вместе с их медиа. Применяется ко всем участникам.</div>
               <div className="grid grid-cols-3 gap-2">
                 {([['7', '7 дней'], ['14', '14 дней'], ['30', '30 дней'], ['90', '90 дней'], ['180', '180 дней'], ['0', 'Не удалять']] as const).map(([v, lab]) => {
                   const n = Number(v); const on = retDays === n
@@ -1423,14 +1480,13 @@ export default function ChatPage() {
                       catch { flash('Не удалось') }
                       setRetOpen(false)
                     }}
-                      className="py-2.5 rounded-xl text-[13px] font-bold transition-colors"
-                      style={{ background: on ? 'rgba(34,197,94,.18)' : '#17171d', color: on ? '#4AE885' : '#cfcfd4', border: on ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
+                      className={`h-11 rounded-[14px] text-[13.5px] font-medium transition-colors ${on ? 'bg-green/[.18] text-[#7DF0B6]' : 'bg-white/[.06] text-[#CFDAD4]'}`}>
                       {lab}
                     </button>
                   )
                 })}
               </div>
-              <button onClick={() => setRetOpen(false)} className="w-full mt-4 py-2.5 rounded-xl text-[13px] font-bold" style={{ background: '#1d1d24', color: '#cfcfd4' }}>Закрыть</button>
+              <button onClick={() => setRetOpen(false)} className="btn-secondary w-full mt-4 text-[14px]">Закрыть</button>
             </motion.div>
           </motion.div>
         )}
@@ -1442,9 +1498,9 @@ export default function ChatPage() {
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewer(null)}>
             {/* верхняя панель: закрыть + удалить (для своих/админа) */}
             <div className="absolute top-0 left-0 right-0 flex items-center gap-2 px-4" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 12px)' }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setViewer(null)} className="w-10 h-10 rounded-full flex items-center justify-center text-[20px] text-white" style={{ background: 'rgba(255,255,255,.12)' }}>✕</button>
+              <button onClick={() => setViewer(null)} aria-label="Закрыть" className="w-10 h-10 rounded-full flex items-center justify-center text-white glass"><Icon name="close" size={18} /></button>
               {(viewer.mine || isAdmin) && viewer.id != null && (
-                <button onClick={() => { del(viewer.id!); setViewer(null) }} className="ml-auto px-4 h-10 rounded-full flex items-center gap-2 text-[13px] font-bold text-white" style={{ background: 'rgba(255,80,80,.9)' }}>🗑 Удалить</button>
+                <button onClick={() => { del(viewer.id!); setViewer(null) }} className="ml-auto px-4 h-10 rounded-full flex items-center gap-2 text-[13.5px] font-medium text-white" style={{ background: 'rgba(220,60,60,.9)' }}><Icon name="trash" size={17} /> Удалить</button>
               )}
             </div>
             {viewer.video
@@ -1465,17 +1521,16 @@ export default function ChatPage() {
               <img src={photoEdit.url} alt="" draggable={false}
                 style={{ filter: FILTERS[filterIdx].css === 'none' ? undefined : FILTERS[filterIdx].css, maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 12 }} />
             </div>
-            <div className="px-3 py-2 flex gap-2 overflow-x-auto" style={{ borderTop: '1px solid rgba(255,255,255,.1)' }}>
+            <div className="px-3 py-2 flex gap-2 overflow-x-auto border-t border-white/[.08]">
               {FILTERS.map((f, i) => (
-                <button key={f.name} onClick={() => setFilterIdx(i)} className="shrink-0 px-3 py-2 rounded-xl text-[12px] font-bold"
-                  style={{ background: filterIdx === i ? 'linear-gradient(180deg,rgba(34,197,94,.24),rgba(34,197,94,.08))' : '#17171d', color: filterIdx === i ? '#4AE885' : '#cfcfd4', border: filterIdx === i ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent' }}>
+                <button key={f.name} onClick={() => setFilterIdx(i)} className={`chip ${filterIdx === i ? 'on' : ''}`}>
                   {f.name}
                 </button>
               ))}
             </div>
             <div className="flex gap-2 px-3 py-3" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,10px) + 12px)' }}>
-              <button onClick={() => { URL.revokeObjectURL(photoEdit.url); setPhotoEdit(null) }} className="px-5 py-3 rounded-xl font-bold text-[14px]" style={{ background: '#1d1d24', color: '#cfcfd4' }}>Отмена</button>
-              <button onClick={sendEditedPhoto} className="flex-1 py-3 rounded-xl font-extrabold text-[14px]" style={{ background: 'linear-gradient(180deg,#39FF9A,#22C55E)', color: '#06281a' }}>Отправить</button>
+              <button onClick={() => { URL.revokeObjectURL(photoEdit.url); setPhotoEdit(null) }} className="btn-secondary px-5 text-[14px]">Отмена</button>
+              <button onClick={sendEditedPhoto} className="btn-primary flex-1">Отправить</button>
             </div>
           </motion.div>
         )}

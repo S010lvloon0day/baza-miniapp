@@ -1,4 +1,5 @@
 import { useState, useEffect, type ReactNode } from 'react'
+import Icon from '../components/Icon'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api, giveawayAssetUrl } from '../api/client'
 
@@ -43,7 +44,7 @@ type Stage = {
   link?: StageLink
 }
 
-const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#22C55E' }
+const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#17E584' }
 
 // Этапы Case002 (индекс 0 = этап 1). Серверный номер этапа = индекс + 1.
 const STAGES: Stage[] = [
@@ -118,10 +119,10 @@ function TermCard({ filename, children }: { filename: string; children: ReactNod
   return (
     <div className="terminal-glow overflow-hidden" style={{ background: '#04040C', border: '1px solid rgba(255,255,255,.09)' }}>
       <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.06)' }}>
-        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: '0 0 5px rgba(255,95,87,.6)' }} />
-        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FFBC2E', boxShadow: '0 0 5px rgba(255,188,46,.6)' }} />
-        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#22C55E', boxShadow: '0 0 5px rgba(34,197,94,.6)' }} />
-        <span className="font-mono text-[10px] text-gray2 flex-1 text-center">{filename}</span>
+        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: 'none' }} />
+        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FFBC2E', boxShadow: 'none' }} />
+        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#17E584', boxShadow: 'none' }} />
+        <span className="text-[10px] text-gray2 flex-1 text-center">{filename}</span>
       </div>
       {children}
     </div>
@@ -130,9 +131,9 @@ function TermCard({ filename, children }: { filename: string; children: ReactNod
 
 function Steps({ step }: { step: number }) {
   return (
-    <div className="flex items-center gap-1 font-mono text-[10px] text-gray2">
+    <div className="flex items-center gap-1 text-[10px] text-gray2">
       {Array.from({ length: TOTAL }, (_, i) => i + 1).map(n => (
-        <span key={n} style={{ color: n <= step ? '#22C55E' : undefined }}>
+        <span key={n} style={{ color: n <= step ? '#17E584' : undefined }}>
           {n < step ? '●' : n === step ? '◉' : '○'}
         </span>
       ))}
@@ -210,9 +211,9 @@ function HintsPanel({ serverStage }: { serverStage: number }) {
     <div className="border border-bd2 bg-s1">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-3 py-2.5 font-mono text-[11px] text-white active:bg-s2 transition-colors"
+        className="w-full flex items-center justify-between px-3 py-2.5 text-[11px] text-white active:bg-s2 transition-colors"
       >
-        <span>💡 Подсказки · {hints[0]?.price ?? 1} USDT за шт.</span>
+        <span>Подсказки · {hints[0]?.price ?? 1} USDT за шт.</span>
         <span className="text-gray2">{open ? '▾' : '▸'}</span>
       </button>
       {open && (
@@ -220,18 +221,18 @@ function HintsPanel({ serverStage }: { serverStage: number }) {
           {hints.map(h => (
             <div key={h.idx} className="border border-bd2 bg-bg px-3 py-2.5">
               {h.unlocked ? (
-                <div className="font-mono text-[11px]" style={{ color: '#22C55E' }}>
+                <div className="text-[11px]" style={{ color: '#17E584' }}>
                   <span className="text-gray2">Подсказка #{h.idx + 1}:</span>
                   <div className="text-white mt-1 font-sans text-[13px] leading-snug">{h.text}</div>
                 </div>
               ) : pending[h.idx] ? (
                 <div className="flex flex-col gap-2">
-                  <div className="font-mono text-[10px] text-gray2">Подсказка #{h.idx + 1} · ожидает оплаты</div>
+                  <div className="text-[10px] text-gray2">Подсказка #{h.idx + 1} · ожидает оплаты</div>
                   <button
                     onClick={() => check(h.idx)} disabled={busy === h.idx}
-                    className="w-full py-2.5 bg-white text-bg font-mono font-bold text-[11px] tracking-[1px] uppercase disabled:opacity-40 active:bg-white/80"
+                    className="w-full py-2.5 bg-white text-bg font-bold text-[11px] disabled:opacity-40 active:bg-white/80"
                   >
-                    {busy === h.idx ? <span className="blink">ПРОВЕРКА...</span> : '✅ Я ОПЛАТИЛ — ПРОВЕРИТЬ'}
+                    {busy === h.idx ? 'Проверяю…' : 'Я оплатил — проверить'}
                   </button>
                 </div>
               ) : (
@@ -239,15 +240,15 @@ function HintsPanel({ serverStage }: { serverStage: number }) {
                   onClick={() => buy(h.idx)} disabled={busy === h.idx}
                   className="w-full flex items-center justify-between gap-2 disabled:opacity-40"
                 >
-                  <span className="font-mono text-[11px] text-gray2">🔒 Подсказка #{h.idx + 1}</span>
-                  <span className="font-mono text-[11px] px-2.5 py-1 border border-bd2 text-white" style={{ background: 'rgba(157,92,255,.12)' }}>
+                  <span className="text-[11px] text-gray2 inline-flex items-center gap-1"><Icon name="lock" size={12} accent="current" /> Подсказка #{h.idx + 1}</span>
+                  <span className="text-[11px] px-2.5 py-1 border border-bd2 text-white" style={{ background: 'rgba(118,87,255,.12)' }}>
                     {busy === h.idx ? '...' : `Открыть · ${h.price} USDT`}
                   </span>
                 </button>
               )}
             </div>
           ))}
-          {msg && <div className="font-mono text-[10px]" style={{ color: '#FBBF24' }}>{msg}</div>}
+          {msg && <div className="text-[10px]" style={{ color: '#FBBF24' }}>{msg}</div>}
         </div>
       )}
     </div>
@@ -260,11 +261,11 @@ function CodeInput({ value, onChange, onEnter, error, shake, placeholder, errorT
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="font-mono text-[10px] text-gray2">$ unlock_code --phrase=&quot;...&quot;</div>
+      <div className="text-[10px] text-gray2">$ unlock_code --phrase=&quot;...&quot;</div>
       <motion.div
         animate={shake ? { x: [0, -9, 9, -6, 6, -3, 3, 0] } : {}}
         transition={{ duration: 0.4 }}
-        className="flex items-center gap-2 px-3 h-11 font-mono text-[13px] border bg-s1 transition-colors"
+        className="flex items-center gap-2 px-3 h-11 text-[13px] border bg-s1 transition-colors"
         style={{ borderColor: error ? 'rgba(255,80,80,.6)' : 'rgba(42,42,64,1)' }}
       >
         <span className="text-gray2 shrink-0">&gt;</span>
@@ -284,9 +285,9 @@ function CodeInput({ value, onChange, onEnter, error, shake, placeholder, errorT
         {error && (
           <motion.div
             initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-            className="font-mono text-[10px]" style={{ color: errorText ? '#FBBF24' : '#FF5050' }}
+            className="text-[10px]" style={{ color: errorText ? '#FBBF24' : '#FF5050' }}
           >
-            {errorText || '✗ ACCESS DENIED — неверный код'}
+            {errorText || 'Неверный код, попробуйте ещё раз'}
           </motion.div>
         )}
       </AnimatePresence>
@@ -298,9 +299,9 @@ function SubmitBtn({ onClick, disabled, checking }: { onClick: () => void; disab
   return (
     <button
       onClick={onClick} disabled={disabled || checking}
-      className="w-full py-3.5 bg-white text-bg font-mono font-bold text-[12px] tracking-[2px] uppercase disabled:opacity-30 active:bg-white/80 transition-opacity"
+      className="w-full py-3.5 bg-white text-bg font-bold text-[12px] disabled:opacity-30 active:bg-white/80 transition-opacity"
     >
-      {checking ? <span className="blink">ПРОВЕРКА...</span> : 'ПОДТВЕРДИТЬ →'}
+      {checking ? 'Проверяю…' : 'Подтвердить'}
     </button>
   )
 }
@@ -322,7 +323,7 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
       className="px-4 py-4 flex flex-col gap-4"
     >
       <div className="flex items-center justify-between">
-        <div className="font-display text-[22px] tracking-[3px] uppercase">🕵️ {CASE_TITLE}</div>
+        <div className="font-display text-[22px] ">{CASE_TITLE}</div>
         <Steps step={level + 1} />
       </div>
 
@@ -330,13 +331,13 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
         <div className="flex items-center gap-2">
           <button
             onClick={onBack} disabled={!canBack}
-            className="flex-1 py-2.5 border border-bd2 bg-s1 font-mono text-[11px] tracking-[1px] text-white disabled:opacity-25 active:bg-s2 transition-colors"
+            className="flex-1 py-2.5 border border-bd2 bg-s1 text-[11px] text-white disabled:opacity-25 active:bg-s2 transition-colors"
           >
             ‹ ПРЕД. ЭТАП
           </button>
           <button
             onClick={onForward} disabled={!passed}
-            className="flex-1 py-2.5 border border-bd2 bg-s1 font-mono text-[11px] tracking-[1px] text-white disabled:opacity-25 active:bg-s2 transition-colors"
+            className="flex-1 py-2.5 border border-bd2 bg-s1 text-[11px] text-white disabled:opacity-25 active:bg-s2 transition-colors"
           >
             СЛЕД. ЭТАП ›
           </button>
@@ -345,15 +346,15 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
 
       {!passed && level > 0 && (
         <div
-          className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
-          style={{ borderColor: 'rgba(34,197,94,.3)', background: 'rgba(34,197,94,.05)', color: '#22C55E' }}
+          className="flex items-center gap-2 px-3 py-2.5 border text-[11px]"
+          style={{ borderColor: 'rgba(23,229,132,.3)', background: 'rgba(23,229,132,.05)', color: '#17E584' }}
         >
-          ✓ &nbsp;Этап {level} пройден — след принят
+          Этап {level} пройден — след принят
         </div>
       )}
 
       <TermCard filename={stage.file}>
-        <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-0.5">
+        <div className="p-4 text-[11px] leading-[1.9] space-y-0.5">
           {stage.lines.map((l, i) => (
             <div key={i}>
               <span style={{ color: l.color }}>[{l.tag}]</span>
@@ -378,7 +379,7 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
           </div>
           <div className="flex-1 text-left">
             <div className="text-[13px] font-semibold text-white">{stage.link.title}</div>
-            <div className="text-[10px] text-gray font-mono">{stage.link.hint}</div>
+            <div className="text-[10px] text-gray ">{stage.link.hint}</div>
           </div>
           <span className="text-gray2 text-[16px]">›</span>
         </button>
@@ -389,14 +390,14 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
       {passed ? (
         <>
           <div
-            className="flex items-center gap-2 px-3 py-2.5 border font-mono text-[11px]"
-            style={{ borderColor: 'rgba(34,197,94,.3)', background: 'rgba(34,197,94,.05)', color: '#22C55E' }}
+            className="flex items-center gap-2 px-3 py-2.5 border text-[11px]"
+            style={{ borderColor: 'rgba(23,229,132,.3)', background: 'rgba(23,229,132,.05)', color: '#17E584' }}
           >
-            ✓ &nbsp;Этап пройден — ответ принят
+            Этап пройден — ответ принят
           </div>
           <button
             onClick={onForward}
-            className="w-full py-3.5 bg-white text-bg font-mono font-bold text-[12px] tracking-[2px] uppercase active:bg-white/80 transition-opacity"
+            className="w-full py-3.5 bg-white text-bg font-bold text-[12px] active:bg-white/80 transition-opacity"
           >
             ДАЛЬШЕ →
           </button>
@@ -425,7 +426,7 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
     >
       <button
         onClick={onBack}
-        className="w-full py-2.5 border border-bd2 bg-s1 font-mono text-[11px] tracking-[1px] text-white active:bg-s2 transition-colors"
+        className="w-full py-2.5 border border-bd2 bg-s1 text-[11px] text-white active:bg-s2 transition-colors"
       >
         ‹ ПОСМОТРЕТЬ ПРОЙДЕННЫЕ ЭТАПЫ
       </button>
@@ -435,11 +436,11 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
           transition={{ type: 'spring', delay: 0.15, stiffness: 180 }}
           className="text-[56px]"
         >
-          🕵️
+          <Icon name="osint" size={36} className="text-gray" />
         </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="font-display text-[26px] tracking-[4px] uppercase text-white"
+          className="font-display text-[26px] text-white"
         >
           {CASE_TITLE} COMPLETED
         </motion.div>
@@ -450,7 +451,7 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
       {hasWinner ? (
         <motion.div
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="font-mono text-[11px] text-gray2 text-center leading-relaxed"
+          className="text-[11px] text-gray2 text-center leading-relaxed"
         >
           расследование пройдено<br />приз уже выдан победителю — квест открыт для всех
         </motion.div>
@@ -458,8 +459,8 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
         <>
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
             <TermCard filename="case_002/prize.txt">
-              <div className="p-4 font-mono text-[11px] leading-[1.9] space-y-2">
-                <div><span style={{ color: '#22C55E' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
+              <div className="p-4 text-[11px] leading-[1.9] space-y-2">
+                <div><span style={{ color: '#17E584' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
                 <div
                   className="px-3 py-2.5 text-[13px] text-white leading-snug font-sans border-l-2"
                   style={{ borderLeftColor: 'rgba(40,200,64,.6)', background: 'rgba(40,200,64,.05)' }}
@@ -473,15 +474,15 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
           <motion.button
             initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
             onClick={onAdmin}
-            className="w-full py-3.5 bg-white text-bg font-mono font-bold text-[12px] tracking-[2px] uppercase active:bg-white/80 transition-opacity"
-            style={{ boxShadow: '0 0 24px rgba(255,255,255,.15)' }}
+            className="w-full py-3.5 bg-white text-bg font-bold text-[12px] active:bg-white/80 transition-opacity"
+            style={{ boxShadow: 'none' }}
           >
-            ✉ НАПИСАТЬ @{ADMIN_TG}
+            Написать @{ADMIN_TG}
           </motion.button>
 
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
-            className="font-mono text-[10px] text-gray2/60 text-center"
+            className="text-[10px] text-gray2/60 text-center"
           >
             Напиши секретное предложение — получишь приз
           </motion.div>
@@ -490,7 +491,7 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
 
       <button
         onClick={onReplay}
-        className="w-full py-3 border border-bd2 bg-s1 font-mono text-[12px] tracking-[2px] uppercase text-white active:bg-s2 transition-colors"
+        className="w-full py-3 border border-bd2 bg-s1 text-[12px] text-white active:bg-s2 transition-colors"
       >
         ↻ Пройти заново
       </button>
@@ -502,9 +503,9 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
 function SetupScreen() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
-      <div className="text-4xl">🛠️</div>
-      <div className="font-display text-[20px] tracking-[2px] uppercase text-white">{CASE_TITLE}</div>
-      <div className="font-mono text-[11px] text-gray2 leading-relaxed">
+      <Icon name="tool" size={40} className="text-gray" />
+      <div className="font-display text-[20px] text-white">{CASE_TITLE}</div>
+      <div className="text-[11px] text-gray2 leading-relaxed">
         расследование готовится<br />этапы ещё не загружены
       </div>
     </div>
@@ -600,9 +601,9 @@ export default function GiveawayPage() {
 
   if (blocked) return (
     <div className="flex-1 flex flex-col items-center justify-center px-8 gap-4 text-center">
-      <div className="text-4xl">🚫</div>
-      <div className="font-display text-[20px] tracking-[2px] uppercase text-white">ДОСТУП ЗАКРЫТ</div>
-      <div className="font-mono text-[11px] text-gray2 leading-relaxed">
+      <Icon name="lock" size={40} className="text-gray" />
+      <div className="font-display text-[20px] text-white">Доступ закрыт</div>
+      <div className="text-[11px] text-gray2 leading-relaxed">
         превышен лимит попыток<br />попробуй снова через 1 час
       </div>
     </div>
@@ -612,7 +613,7 @@ export default function GiveawayPage() {
     <div className="flex-1 overflow-y-auto pb-navsafe">
       {completedOnce && view < TOTAL && (
         <div
-          className="mx-4 mt-3 flex items-center gap-2 px-3 py-2.5 border font-mono text-[10px]"
+          className="mx-4 mt-3 flex items-center gap-2 px-3 py-2.5 border text-[10px]"
           style={{ borderColor: 'rgba(255,188,46,.3)', background: 'rgba(255,188,46,.05)', color: 'rgba(255,188,46,.85)' }}
         >
           ↻ &nbsp;повторное прохождение{winner ? <> · победитель: @{winner}</> : null}

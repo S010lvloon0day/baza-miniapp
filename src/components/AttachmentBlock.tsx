@@ -12,7 +12,7 @@ const PdfViewer = lazy(() => import('./PdfViewer'))
 const tg = (window as any).Telegram?.WebApp
 
 const KIND_LABEL: Record<string, string> = {
-  photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ',
+  photo: 'Фото', video: 'Видео', document: 'Документ', text: 'Текст',
 }
 
 /**
@@ -70,12 +70,12 @@ export default function AttachmentBlock({
     return (
       <div className="mb-4">
         <div className="px-4 pb-2.5 flex items-center justify-between gap-3">
-          <div className="text-[11px] font-bold tracking-[3px] uppercase text-green">
-            {total > 1 ? `Текст ${index + 1}/${total}` : 'Текст'}
-          </div>
+          <h3 className="font-display font-semibold text-[14px]">
+            {total > 1 ? <>Текст <span className="text-gray font-sans font-normal tabular-nums">{index + 1} из {total}</span></> : 'Текст'}
+          </h3>
           <CopyButton text={att.text || ''} />
         </div>
-        <div className="px-4 text-[14px] leading-[1.85] text-white/80 whitespace-pre-wrap break-words">
+        <div className="px-4 text-[15px] leading-[1.75] text-fg/85 whitespace-pre-wrap break-words">
           {renderWithLinks(att.text || '')}
         </div>
       </div>
@@ -83,35 +83,35 @@ export default function AttachmentBlock({
   }
 
   // ─── Файловое вложение ────────────────────────────────────────────────────
-  const label = att.name || KIND_LABEL[att.kind] || 'ФАЙЛ'
+  const label = att.name || KIND_LABEL[att.kind] || 'Файл'
 
   return (
-    <div className="mx-4 mb-4 rounded-2xl border border-white/[.08] bg-s2/40 overflow-hidden">
-      <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[.06]">
-        <MediaTypeIcon type={att.kind} size={26} iconSize={13} radius={8} />
+    <div className="card mx-4 mb-4 overflow-hidden">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/[.07]">
+        <MediaTypeIcon type={att.kind} size={34} iconSize={17} radius={10} />
         <div className="flex-1 min-w-0">
-          <div className="text-[12px] text-white/85 font-semibold truncate">{label}</div>
+          <div className="text-[14px] text-fg font-medium truncate">{label}</div>
           {att.caption && (
-            <div className="text-[11px] text-gray truncate">{att.caption}</div>
+            <div className="text-[12.5px] text-gray truncate">{att.caption}</div>
           )}
         </div>
-        <div className="text-[10px] font-mono text-gray2 shrink-0">{index + 1}/{total}</div>
+        <div className="text-[12.5px] text-gray2 shrink-0 tabular-nums">{index + 1} из {total}</div>
       </div>
 
       <div className="p-3">
         {att.kind === 'photo' && url && (
-          <img src={url} alt={label} className="w-full rounded-xl"
+          <img src={url} alt={label} className="w-full rounded-[14px]"
                onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
         )}
 
         {att.kind === 'video' && url && (
           videoError ? (
-            <div className="py-4 text-center text-[13px] text-white/60">
+            <div className="py-4 text-center text-[13.5px] text-gray">
               Видео не проигрывается здесь — получите его в Telegram
             </div>
           ) : (
             <>
-              <video ref={setVideoEl} src={url} controls playsInline className="w-full rounded-xl"
+              <video ref={setVideoEl} src={url} controls playsInline className="w-full rounded-[14px]"
                      onError={() => setVideoError(true)} />
               <div className="pt-1.5"><ResumeHint resume={resume} /></div>
             </>
@@ -122,19 +122,19 @@ export default function AttachmentBlock({
           <>
             {preview === 'loading' && (
               <div className="h-20 flex items-center justify-center">
-                <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+                <div className="w-1.5 h-1.5 bg-green/70 rounded-full animate-pulse" />
               </div>
             )}
             {preview === 'text' && docText !== null && (
-              <div className="rounded-xl border border-white/[.08] bg-bg/70 p-3">
-                <div className="flex justify-end pb-2 mb-2 border-b border-white/[.06]">
+              <div className="rounded-[14px] border border-white/[.07] bg-black/25 p-3">
+                <div className="flex justify-end pb-2 mb-2 border-b border-white/[.07]">
                   <CopyButton text={docText} />
                 </div>
-                <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-[1.7] text-white/85">
+                <pre className="whitespace-pre-wrap break-words font-mono text-[12px] leading-[1.7] text-fg/85">
                   {renderWithLinks(docText)}
                 </pre>
                 {docTruncated && (
-                  <div className="mt-3 pt-3 border-t border-bd2 text-[12px] text-white/60 text-center">
+                  <div className="mt-3 pt-3 border-t border-white/[.07] text-[12.5px] text-gray text-center">
                     Файл большой — показана только часть
                   </div>
                 )}
@@ -142,15 +142,15 @@ export default function AttachmentBlock({
             )}
             {preview === 'pdf' && url && (
               <Suspense fallback={
-                <div className="h-40 rounded-xl flex items-center justify-center" style={{ background: '#fff' }}>
-                  <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+                <div className="h-40 rounded-[14px] flex items-center justify-center bg-white">
+                  <div className="w-1.5 h-1.5 bg-green/70 rounded-full animate-pulse" />
                 </div>
               }>
                 <PdfViewer file={url} />
               </Suspense>
             )}
             {preview === 'error' && (
-              <div className="py-3 text-center text-[12px] text-white/55">
+              <div className="py-3 text-center text-[13px] text-gray">
                 Предпросмотр недоступен — скачайте файл
               </div>
             )}
@@ -159,17 +159,13 @@ export default function AttachmentBlock({
 
         <div className="flex gap-2 mt-3">
           <button onClick={openExternal} disabled={!url}
-            className="flex-1 h-10 border border-green flex items-center justify-center gap-1.5
-                       text-green text-[11px] font-semibold tracking-[1.5px] uppercase rounded-xl
-                       active:bg-[rgba(34,197,94,.10)] disabled:opacity-30">
-            <DownloadSimple size={16} />
+            className="btn-primary flex-1 !h-11 !text-[13px] disabled:opacity-30">
+            <DownloadSimple size={17} weight="fill" />
             Скачать
           </button>
           <button onClick={sendToTelegram} disabled={sending || sent}
-            className="flex-1 h-10 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02]
-                       flex items-center justify-center gap-1.5 text-white/85 text-[11px] font-semibold
-                       tracking-[1.5px] uppercase rounded-xl active:opacity-70 disabled:opacity-40">
-            <PaperPlaneTilt size={16} />
+            className="btn-secondary flex-1 text-[13.5px] disabled:opacity-40">
+            <PaperPlaneTilt size={16} weight="fill" />
             {sent ? 'Отправлено' : sending ? 'Отправка…' : 'В Telegram'}
           </button>
         </div>

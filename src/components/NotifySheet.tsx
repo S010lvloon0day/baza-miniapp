@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Bell, BellSlash } from './icons'
+import Icon from './Icon'
 import { api } from '../api/client'
 
 interface Props {
@@ -47,65 +47,51 @@ export default function NotifySheet({ open, onClose }: Props) {
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 inset-x-0 z-50 bg-s1 rounded-t-2xl border-t border-bd2 pb-8"
+            className="fixed bottom-0 inset-x-0 z-50 bg-s1 rounded-t-[26px] border-t border-white/[.08]"
+            style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
           >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-bd2" />
+            <div className="flex justify-center pt-2.5 pb-1">
+              <div className="w-10 h-1 rounded-full bg-white/15" />
             </div>
 
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-3 pb-5">
+            <div className="flex items-center justify-between px-5 pt-2 pb-4">
               <div className="flex items-center gap-2.5">
-                <Bell size={20} weight="fill" className="text-green" />
-                <span className="text-[15px] font-bold tracking-wide">Уведомления</span>
+                <span className="w-[34px] h-[34px] rounded-[11px] bg-green/15 text-green grid place-items-center"><Icon name="bell" size={18} /></span>
+                <span className="font-display font-semibold text-[16px]">Уведомления</span>
               </div>
-              <button onClick={onClose} className="text-gray2 p-1 active:opacity-60">
-                <X size={20} weight="bold" />
+              <button onClick={onClose} aria-label="Закрыть" className="w-9 h-9 rounded-full bg-white/[.07] grid place-items-center text-gray active:bg-white/10">
+                <Icon name="close" size={16} />
               </button>
             </div>
 
-            {/* Toggle row */}
-            <div className="mx-4 rounded-xl border border-bd2 bg-s2 overflow-hidden">
+            <div className="mx-4 list-group">
               <div
-                className="flex items-center justify-between px-4 py-4 cursor-pointer active:bg-s1"
+                className="flex items-center justify-between gap-3 px-4 py-3.5 cursor-pointer active:bg-white/[.04]"
                 onClick={loading || saving ? undefined : toggle}
               >
-                <div className="flex items-center gap-3">
-                  {enabled
-                    ? <Bell size={20} weight="fill" className="text-green" />
-                    : <BellSlash size={20} weight="fill" className="text-gray2" />
-                  }
-                  <div>
-                    <div className="text-[13px] font-semibold text-white">Новые материалы</div>
-                    <div className="text-[11px] text-gray mt-0.5">
-                      {enabled ? 'Уведомления включены' : 'Уведомления выключены'}
-                    </div>
+                <div className="flex items-center gap-3 min-w-0">
+                  <span className={`w-[38px] h-[38px] rounded-[11px] grid place-items-center shrink-0 ${enabled ? 'bg-green/15 text-green' : 'bg-white/[.06] text-gray'}`}>
+                    <Icon name={enabled ? 'bellRing' : 'bellOff'} size={19} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-[14.5px] font-medium">Новые материалы</div>
+                    <div className="text-[12.5px] text-gray mt-0.5">{enabled ? 'Уведомления включены' : 'Уведомления выключены'}</div>
                   </div>
                 </div>
-
-                {/* Toggle switch */}
-                <div
-                  className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
-                    enabled ? 'bg-green' : 'bg-bd2'
-                  } ${loading || saving ? 'opacity-50' : ''}`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all duration-200 ${
-                    enabled ? 'left-7' : 'left-1'
-                  }`} />
+                <div className={`relative w-[44px] h-[26px] rounded-full shrink-0 transition-colors duration-200 ${enabled ? 'bg-green' : 'bg-s3'} ${loading || saving ? 'opacity-50' : ''}`}>
+                  <div className={`absolute top-[3px] w-5 h-5 rounded-full bg-white transition-all duration-200 ${enabled ? 'left-[21px]' : 'left-[3px]'}`} />
                 </div>
               </div>
             </div>
 
-            <p className="px-5 pt-3 text-[11px] text-gray leading-relaxed">
+            <p className="px-5 pt-3 text-[13px] text-gray leading-relaxed">
               {enabled
-                ? 'Бот пришлёт сообщение когда администратор добавит новые материалы в базу знаний.'
-                : 'Включите, чтобы получать уведомления о новых материалах прямо в Telegram.'
-              }
+                ? 'Бот напишет вам в Telegram, когда в базе появятся новые материалы.'
+                : 'Включите, чтобы узнавать о новых материалах прямо в Telegram.'}
             </p>
           </motion.div>
         </>

@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Query, Aggregator } from 'mingo'
 
@@ -68,7 +69,7 @@ export default function MongoTask({ content, onSolve }: { content: string; onSol
       else setStatus('idle')
     } catch (e: any) {
       const msg = String(e?.message || e)
-      setOut('⚠ ' + (msg.includes('JSON') ? 'Неверный JSON в запросе. Проверь скобки и кавычки.' : msg))
+      setOut( (msg.includes('JSON') ? 'Неверный JSON в запросе. Проверь скобки и кавычки.' : msg))
       if (check) setStatus('fail'); else setStatus('idle')
     }
   }
@@ -89,23 +90,23 @@ export default function MongoTask({ content, onSolve }: { content: string; onSol
     : `db.${coll}.find( ФИЛЬТР${task.projection ? ', проекция' : ''} )${task.sort ? '.sort(...)' : ''}${task.limit ? '.limit(' + task.limit + ')' : ''}`
 
   return (
-    <div className="my-3 rounded-2xl border border-green/25 overflow-hidden" style={{ background: '#0d0f13' }}>
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[.08]">
-        <span className="text-[12px] font-bold text-green">🍃 Задача MongoDB</span>
-        <span className="text-[11px] text-white/40">{op === 'aggregate' ? 'агрегация' : 'выборка'} · решай прямо здесь</span>
+    <div className="my-4 rounded-[18px] border border-white/[.08] overflow-hidden bg-[#060B09]">
+      <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[.07] bg-s1">
+        <span className="w-7 h-7 rounded-[9px] bg-green/15 text-green grid place-items-center"><Icon name="box" size={15} /></span><span className="font-display font-semibold text-[13.5px] text-fg">Задача MongoDB</span>
+        <span className="text-[12px] text-gray2">{op === 'aggregate' ? 'агрегация' : 'выборка'} · решай прямо здесь</span>
       </div>
 
       <div className="px-3 pt-2">
         <button onClick={() => setShowData(s => !s)}
-          className="text-[11.5px] text-white/55 active:text-white/80">
-          {showData ? '▾ Коллекция ' : '▸ Коллекция '}<span className="font-mono text-green/80">{coll}</span> ({data.length} док.)
+          className="inline-flex items-center gap-1 text-[12.5px] text-gray active:text-fg">
+          <Icon name={showData ? 'chevD' : 'chevR'} size={14} />{'Коллекция '}<span className="font-mono text-greenLight">{coll}</span> ({data.length} док.)
         </button>
         {showData && (
-          <pre className="mt-1.5 p-2.5 rounded-lg bg-black/40 border border-white/[.08] overflow-x-auto text-[11.5px] leading-[1.5] text-white/70 font-mono">{JSON.stringify(data, null, 2)}</pre>
+          <pre className="mt-1.5 p-3 rounded-[12px] bg-black/40 border border-white/[.06] overflow-x-auto text-[11.5px] leading-[1.5] text-fg/70 font-mono">{JSON.stringify(data, null, 2)}</pre>
         )}
       </div>
 
-      <div className="px-3 pt-2 text-[11.5px] text-white/50 font-mono">{callSig}</div>
+      <div className="px-3.5 pt-2 text-[12px] text-gray font-mono">{callSig}</div>
 
       <textarea
         ref={taRef}
@@ -114,41 +115,41 @@ export default function MongoTask({ content, onSolve }: { content: string; onSol
         onKeyDown={onKey}
         spellCheck={false}
         rows={Math.min(16, Math.max(3, code.split('\n').length + 1))}
-        className="w-full resize-y bg-transparent px-3 py-2.5 text-[12.5px] leading-[1.6] text-white/90 font-mono outline-none"
+        className="w-full resize-y bg-transparent px-3 py-2.5 text-[12.5px] leading-[1.65] text-fg/90 font-mono outline-none"
       />
-      <div className="flex flex-wrap items-center gap-2 px-3 py-2 border-t border-white/[.08]">
+      <div className="flex flex-wrap items-center gap-2 px-3 py-2.5 border-t border-white/[.07] bg-s1/60">
         {task.expected !== undefined && (
           <button onClick={() => exec(true)}
-            className="px-3 py-1.5 rounded-lg bg-green text-black text-[12.5px] font-bold active:opacity-80">
+            className="h-9 px-3.5 rounded-[11px] bg-green text-ink text-[13px] font-semibold active:opacity-85">
             Проверить
           </button>
         )}
         <button onClick={() => exec(false)}
-          className="px-3 py-1.5 rounded-lg bg-white/[.08] text-white text-[12.5px] font-semibold active:bg-white/[.16]">
+          className="h-9 px-3.5 rounded-[11px] bg-white/[.08] text-fg text-[13px] font-medium active:bg-white/[.14]">
           Выполнить
         </button>
         <button onClick={() => { setCode(task.starter ?? ''); setOut(''); setStatus('idle') }}
-          className="px-3 py-1.5 rounded-lg bg-white/[.06] text-white/70 text-[12.5px] active:bg-white/[.14]">
+          className="h-9 px-3 rounded-[11px] text-gray text-[13px] active:bg-white/[.08]">
           Сброс
         </button>
         {task.hint && (
           <button onClick={() => setShowHint(h => !h)}
-            className="ml-auto px-3 py-1.5 rounded-lg bg-white/[.06] text-white/70 text-[12.5px] active:bg-white/[.14]">
+            className="ml-auto h-9 px-3 rounded-[11px] text-violet text-[13px] font-medium active:bg-white/[.08]">
             {showHint ? 'Скрыть подсказку' : 'Подсказка'}
           </button>
         )}
       </div>
       {showHint && task.hint && (
-        <div className="mx-3 mb-2 p-2.5 rounded-lg bg-white/[.05] text-[12.5px] text-white/75 leading-[1.6]">💡 {task.hint}</div>
+        <div className="mx-3 mb-2.5 p-3 rounded-[12px] bg-purple/[.10] border border-purple/25 text-[13px] text-fg/85 leading-[1.55] flex gap-2"><Icon name="question" size={16} className="text-violet shrink-0 mt-0.5" accent="#B9A8FF" /><span>{task.hint}</span></div>
       )}
       {status === 'ok' && (
-        <div className="mx-3 mb-2 p-2.5 rounded-lg bg-green/15 border border-green/30 text-[12.5px] text-green font-semibold">✅ Верно — результат совпал с ожидаемым!</div>
+        <div className="mx-3 mb-2.5 p-3 rounded-[12px] bg-green/[.10] border border-green/30 text-[13px] text-green font-semibold flex items-center gap-2"><Icon name="checkCircle" size={17} accent="current" />Верно — результат совпал с ожидаемым!</div>
       )}
       {status === 'fail' && (
-        <div className="mx-3 mb-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-[12.5px] text-red-300">❌ Пока не то. Сверь результат с условием.</div>
+        <div className="mx-3 mb-2.5 p-3 rounded-[12px] bg-[#FF6B6B]/[.10] border border-[#FF6B6B]/30 text-[13px] text-[#FF9A9A] flex items-center gap-2"><Icon name="warnCircle" size={17} accent="current" />Пока не то. Сверь результат с условием.</div>
       )}
       {out && (
-        <pre className="mx-3 mb-3 p-2.5 rounded-lg bg-black/40 border border-white/[.08] overflow-x-auto text-[12px] leading-[1.6] text-white/80 font-mono whitespace-pre-wrap">{out}</pre>
+        <pre className="mx-3 mb-3 p-3 rounded-[12px] bg-black/40 border border-white/[.06] overflow-x-auto text-[12px] leading-[1.6] text-fg/80 font-mono whitespace-pre-wrap">{out}</pre>
       )}
     </div>
   )

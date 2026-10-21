@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
+import Icon from './Icon'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 
@@ -18,7 +19,7 @@ export default function PdfViewer({ file }: { file: string }) {
 
   return (
     <div className="mb-3">
-      <div className="rounded-2xl border border-white/[.08] overflow-hidden flex justify-center" style={{ background: '#fff' }}>
+      <div className="rounded-[18px] border border-white/[.07] overflow-hidden flex justify-center bg-white">
         <Document
           file={file}
           loading={
@@ -39,12 +40,14 @@ export default function PdfViewer({ file }: { file: string }) {
       {pageCount > 1 && (
         <div className="flex items-center justify-center gap-2 py-3">
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="w-9 h-9 bg-s1 border border-[rgba(255,255,255,.14)] rounded text-white text-lg flex items-center justify-center disabled:opacity-30">‹</button>
-          <span className="text-[13px] text-gray tracking-wider min-w-[64px] text-center px-2.5 py-1.5 rounded-lg border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02]">
-            {page} / {pageCount}
+            aria-label="Предыдущая страница"
+            className="w-10 h-10 rounded-full bg-white/[.07] text-fg flex items-center justify-center disabled:opacity-30 active:bg-white/[.12]"><Icon name="chevL" size={20} /></button>
+          <span className="text-[14px] text-gray min-w-[72px] text-center tabular-nums">
+            <b className="text-fg font-semibold">{page}</b> из {pageCount}
           </span>
           <button disabled={page >= pageCount} onClick={() => setPage(p => p + 1)}
-            className="w-9 h-9 bg-s1 border border-[rgba(255,255,255,.14)] rounded text-white text-lg flex items-center justify-center disabled:opacity-30">›</button>
+            aria-label="Следующая страница"
+            className="w-10 h-10 rounded-full bg-white/[.07] text-fg flex items-center justify-center disabled:opacity-30 active:bg-white/[.12]"><Icon name="chevR" size={20} /></button>
         </div>
       )}
     </div>

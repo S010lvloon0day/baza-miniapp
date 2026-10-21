@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight } from './icons'
+import Icon from './Icon'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Banner } from '../api/client'
 import { API_BASE } from '../api/client'
@@ -21,7 +21,7 @@ function BannerItem({ banner, index }: { banner: Banner; index: number }) {
   return hasImage ? (
     <div
       onClick={() => openUrl(banner.link)}
-      className={`relative overflow-hidden ${banner.link ? 'cursor-pointer active:opacity-80' : ''}`}
+      className={`relative overflow-hidden rounded-[20px] border border-white/[.07] ${banner.link ? 'cursor-pointer active:opacity-90' : ''}`}
       style={{ minHeight: 140 }}
     >
       {/* Skeleton */}
@@ -48,58 +48,47 @@ function BannerItem({ banner, index }: { banner: Banner; index: number }) {
 
       {(banner.title || banner.text) && (
         <div className="absolute inset-x-0 bottom-0"
-          style={{ background: 'linear-gradient(to top, rgba(6,6,12,.95) 0%, transparent 100%)' }}>
+          style={{ background: 'linear-gradient(to top, rgba(8,16,13,.95) 0%, transparent 100%)' }}>
           <div className="flex items-end justify-between px-4 py-3 gap-2">
             <div className="flex-1 min-w-0">
               {banner.title && (
-                <div className="text-[13px] font-bold text-white leading-snug">
-                  {banner.emoji} {banner.title}
-                </div>
+                <div className="font-display font-semibold text-[14px] text-white leading-snug">{banner.title}</div>
               )}
               {banner.text && (
-                <div className="text-[11px] text-gray leading-snug mt-0.5 line-clamp-1">{banner.text}</div>
+                <div className="text-[12.5px] text-[#CFDAD4] leading-snug mt-0.5 line-clamp-1">{banner.text}</div>
               )}
             </div>
             {banner.link && (
-              <div className="w-7 h-7 border border-white/20 flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,.1)' }}>
-                <ArrowRight size={14} weight="bold" className="text-white" />
+              <div className="w-8 h-8 rounded-full bg-white/15 flex items-center justify-center shrink-0 text-white">
+                <Icon name="arrowR" size={15} />
               </div>
             )}
           </div>
         </div>
       )}
       {!banner.title && !banner.text && banner.link && (
-        <div className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center" style={{ background: 'rgba(6,6,12,.6)' }}>
-          <ArrowRight size={14} weight="bold" className="text-white" />
+        <div className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center bg-black/50 text-white">
+          <Icon name="arrowR" size={15} />
         </div>
       )}
     </div>
   ) : (
     <div
       onClick={() => openUrl(banner.link)}
-      className={`relative overflow-hidden ${banner.link ? 'cursor-pointer active:opacity-80' : ''}`}
+      className={`relative overflow-hidden rounded-[20px] border border-white/[.11] ${banner.link ? 'cursor-pointer active:opacity-90' : ''}`}
+      style={{ background: 'radial-gradient(110% 120% at 100% 0%, rgba(108,76,255,.28), transparent 62%), linear-gradient(180deg,#15123A,#0F1220)' }}
     >
-      <div className="absolute inset-0 bg-s1" />
-      <div className="absolute inset-0"
-        style={{ background: 'radial-gradient(ellipse at 90% 50%, rgba(255,255,255,.06) 0%, transparent 60%), radial-gradient(ellipse at 10% 80%, rgba(157,92,255,.12) 0%, transparent 50%)' }} />
-      <div className="absolute inset-0"
-        style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px)', backgroundSize: '20px 20px' }} />
-      <div className="absolute inset-x-0 top-0 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent)' }} />
-      <div className="relative z-10 flex items-center gap-3 px-4 py-3.5">
-        {banner.emoji && (
-          <div className="w-10 h-10 border border-white/10 flex items-center justify-center text-[20px] shrink-0" style={{ background: 'rgba(255,255,255,.05)' }}>
-            {banner.emoji}
-          </div>
-        )}
+      <div className="relative flex items-center gap-3 px-4 py-3.5">
+        <span className="tile-violet w-10 h-10 shrink-0"><Icon name="star" size={18} accent="#fff" /></span>
         <div className="flex-1 min-w-0">
-          <div className="text-[13px] font-bold text-white leading-snug">{banner.title}</div>
+          <div className="font-display font-semibold text-[14px] text-white leading-snug">{banner.title}</div>
           {banner.text && (
-            <div className="text-[11px] text-gray leading-snug mt-0.5 line-clamp-2">{banner.text}</div>
+            <div className="text-[12.5px] text-[#B9B0E6] leading-snug mt-0.5 line-clamp-2">{banner.text}</div>
           )}
         </div>
         {banner.link && (
-          <div className="w-7 h-7 border border-white/15 flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,.06)' }}>
-            <ArrowRight size={14} weight="bold" className="text-gold" />
+          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-white">
+            <Icon name="arrowR" size={15} />
           </div>
         )}
       </div>
@@ -160,16 +149,16 @@ export default function BannerCard({ banners }: Props) {
 
   if (banners.length === 1) {
     return (
-      <div className="mx-4 mt-3">
+      <div>
         <BannerItem banner={banners[0]} index={0} />
       </div>
     )
   }
 
   return (
-    <div className="mx-4 mt-3 select-none" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className="select-none" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
       {/* mode="popLayout" — exiting element goes position:absolute, no layout collapse */}
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden rounded-[20px]">
         <AnimatePresence mode="popLayout" custom={dir}>
           <motion.div
             key={current}
@@ -192,7 +181,7 @@ export default function BannerCard({ banners }: Props) {
             key={i}
             onClick={() => goTo(i, i > current ? 1 : -1)}
             className={`transition-all duration-300 ${
-              i === current ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/20'
+              i === current ? 'w-4 h-1.5 rounded-full bg-green' : 'w-1.5 h-1.5 rounded-full bg-white/20'
             }`}
           />
         ))}

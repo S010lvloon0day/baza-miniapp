@@ -1,4 +1,5 @@
 import { emptyOption } from './types'
+import Icon from '../../components/Icon'
 import type { DraftQuestion } from './types'
 
 const inputStyle = {
@@ -7,7 +8,7 @@ const inputStyle = {
   padding: '9px 10px',
   border: '1px solid rgba(255,255,255,.08)',
   borderRadius: 9,
-  background: '#101014',
+  background: '#111C17',
   color: '#fff',
   fontSize: 12.5,
   outline: 'none',
@@ -20,12 +21,9 @@ function XButton({ onClick, size = 13 }: { onClick: () => void; size?: number })
       type="button"
       onClick={onClick}
       aria-label="Удалить"
-      style={{ flex: 'none', border: 'none', background: 'transparent', color: '#6a6a75', cursor: 'pointer', padding: 2, lineHeight: 0 }}
+      style={{ flex: 'none', border: 'none', background: 'transparent', color: '#6E8478', cursor: 'pointer', padding: 2, lineHeight: 0 }}
     >
-      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round">
-        <line x1="18" y1="6" x2="6" y2="18" />
-        <line x1="6" y1="6" x2="18" y2="18" />
-      </svg>
+      <Icon name="close" size={size} />
     </button>
   )
 }
@@ -59,7 +57,7 @@ export default function QuestionEditor({ question, onChange, onRemove, bare }: P
 
   const frame = bare
     ? undefined
-    : { border: '1px solid rgba(255,255,255,.07)', borderRadius: 11, padding: 10, background: '#0D0D11' }
+    : { border: '1px solid rgba(255,255,255,.07)', borderRadius: 11, padding: 10, background: '#111C17' }
 
   return (
     <div style={frame}>
@@ -73,7 +71,7 @@ export default function QuestionEditor({ question, onChange, onRemove, bare }: P
         {!bare && <XButton onClick={onRemove} />}
       </div>
 
-      <label className="flex items-center" style={{ gap: 6, fontSize: 10.5, color: '#8a8a93', marginBottom: 8, cursor: 'pointer' }}>
+      <label className="flex items-center" style={{ gap: 6, fontSize: 10.5, color: '#A6B8AE', marginBottom: 8, cursor: 'pointer' }}>
         <input
           type="checkbox"
           checked={question.multi}
@@ -107,15 +105,13 @@ export default function QuestionEditor({ question, onChange, onRemove, bare }: P
               className="flex items-center justify-center"
               style={{
                 flex: 'none', width: 20, height: 20, borderRadius: 6,
-                border: `1.5px solid ${option.correct ? '#4AE885' : 'rgba(255,255,255,.25)'}`,
-                background: option.correct ? '#4AE885' : 'transparent',
+                border: `1.5px solid ${option.correct ? '#4BF5A8' : 'rgba(255,255,255,.25)'}`,
+                background: option.correct ? '#4BF5A8' : 'transparent',
                 cursor: 'pointer',
               }}
             >
               {option.correct && (
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#0A0A0D" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
+                <Icon name="check" size={11} strokeWidth={2.6} style={{ color: '#03200F' }} />
               )}
             </button>
             <input
@@ -132,7 +128,7 @@ export default function QuestionEditor({ question, onChange, onRemove, bare }: P
       <button
         type="button"
         onClick={() => patch({ options: [...question.options, emptyOption()] })}
-        style={{ border: 'none', background: 'transparent', color: '#4AE885', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', padding: '2px 0' }}
+        style={{ border: 'none', background: 'transparent', color: '#4BF5A8', fontSize: 10.5, fontWeight: 700, cursor: 'pointer', padding: '2px 0' }}
       >
         + вариант ответа
       </button>

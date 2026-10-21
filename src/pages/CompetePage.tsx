@@ -1,48 +1,77 @@
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
 import { api } from '../api/client'
 import type { Compete, BoardRow } from '../api/client'
+import Icon from '../components/Icon'
+import type { IconName } from '../components/Icon'
 
-function Medal({ rank }: { rank: number }) {
-  const m = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : null
-  if (m) return <span className="text-[18px] w-7 text-center">{m}</span>
-  return <span className="w-7 text-center text-[13px] font-bold font-mono text-[#8a8a93]">{rank}</span>
+const AV = [['#1F3B30', '#9FF0C6'], ['#2A2170', '#CFC4FF'], ['#5A4630', '#F0D29A'], ['#123F52', '#9BE3FF'], ['#4A1F2E', '#FFB3C7']]
+function avColor(name: string) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV[h % AV.length] }
+const RING: Record<number, string> = {
+  1: 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)',
+  2: 'conic-gradient(from 200deg,#F4F7FD,#AEB9CF,#7C88A3,#DDE4F2,#F4F7FD)',
+  3: 'conic-gradient(from 200deg,#FFD2A8,#D88B4E,#9A5424,#F0B07A,#FFD2A8)',
+}
+const MEDAL: Record<number, string> = {
+  1: 'linear-gradient(115deg,#E9AE3C,#FFE9A8 45%,#F6C453)',
+  2: 'linear-gradient(180deg,#E3E9F5,#9AA6BF)',
+  3: 'linear-gradient(180deg,#EDB07D,#A8622E)',
+}
+
+function Avatar({ name, size }: { name: string; size: number }) {
+  const [bg, fg] = avColor(name)
+  return (
+    <div className="rounded-full flex items-center justify-center font-semibold shrink-0" style={{ width: size, height: size, background: bg, color: fg, fontSize: size * 0.34 }}>
+      {name.slice(0, 1).toUpperCase()}
+    </div>
+  )
+}
+
+function Leaders({ rows }: { rows: BoardRow[] }) {
+  const top = [rows[1], rows[0], rows[2]]
+  return (
+    <div className="grid grid-cols-[1fr_1.15fr_1fr] items-end mt-4 mb-1">
+      {top.map((r, i) => {
+        if (!r) return <div key={i} />
+        const first = r.rank === 1
+        return (
+          <div key={r.rank} className="flex flex-col items-center gap-[3px] text-center min-w-0 px-1">
+            {first && <Icon name="crown" size={20} accent="#F5C25A" className="text-gold mb-0.5" />}
+            <div className="relative rounded-full p-[3px]" style={{ background: RING[r.rank] }}>
+              <div className="rounded-full border-2 border-[#14120A]"><Avatar name={r.name} size={first ? 62 : 48} /></div>
+              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 min-w-[22px] h-[22px] rounded-full grid place-items-center text-[11.5px] font-bold border-2 border-[#14120A]"
+                style={{ background: MEDAL[r.rank], color: r.rank === 1 ? '#2B1A02' : r.rank === 2 ? '#141A28' : '#2A1404' }}>{r.rank}</span>
+            </div>
+            <b className={`mt-1.5 font-semibold truncate max-w-full ${first ? 'text-[15px]' : 'text-[13.5px]'}`}>{r.name}{r.is_me ? ' · вы' : ''}</b>
+            <small className={`text-[12px] tabular-nums ${first ? 'text-gold font-semibold' : 'text-gray'}`}>{r.xp.toLocaleString('ru-RU')} XP</small>
+          </div>
+        )
+      })}
+    </div>
+  )
 }
 
 function Board({ rows }: { rows: BoardRow[] }) {
+  const rest = rows.slice(3)
   if (!rows.length) return (
-    <div className="px-5 py-10 text-center text-[13px] text-[#8a8a93]">
-      Пока пусто. Реши первый материал — и ты в топе 🚀
-    </div>
+    <div className="px-5 py-10 text-center text-[13.5px] text-gray">Пока пусто. Пройдите первый урок — и вы в рейтинге.</div>
   )
+  if (!rest.length) return null
   return (
-    <div className="flex flex-col">
-      {rows.map((r, i) => (
-        <motion.div
-          key={`${r.rank}-${r.name}`}
-          initial={{ opacity: 0, x: 8 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: Math.min(i, 12) * 0.02 }}
-          className="flex items-center gap-3 px-4 py-2.5"
-          style={{
-            borderBottom: '1px solid rgba(255,255,255,.05)',
-            background: r.is_me
-              ? 'linear-gradient(90deg, rgba(34,197,94,.14), transparent 70%)'
-              : 'transparent',
-          }}
-        >
-          <Medal rank={r.rank} />
-          <span className={`flex-1 min-w-0 truncate text-[14px] ${r.is_me ? 'font-extrabold text-green' : 'font-semibold text-white'}`}>
-            {r.name}{r.is_me ? ' · ты' : ''}
-          </span>
-          <span className="shrink-0 text-[13px] font-bold tabular-nums" style={{ color: r.is_me ? '#4AE885' : '#cfcfd4' }}>
-            {r.xp} XP
-          </span>
-        </motion.div>
+    <div className="list-group">
+      {rest.map(r => (
+        <div key={`${r.rank}-${r.name}`} className="flex items-center gap-3 px-3.5 py-2.5"
+          style={r.is_me ? { background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.24), transparent 70%)' } : undefined}>
+          <span className={`w-7 text-center font-display font-semibold text-[13px] tabular-nums ${r.is_me ? 'text-violet' : 'text-gray2'}`}>{r.rank}</span>
+          <Avatar name={r.name} size={32} />
+          <span className={`flex-1 min-w-0 truncate text-[14.5px] ${r.is_me ? 'font-semibold' : 'font-medium'}`}>{r.name}{r.is_me ? ' · вы' : ''}</span>
+          <span className={`shrink-0 text-[13px] font-semibold tabular-nums ${r.is_me ? 'text-violet' : 'text-gray'}`}>{r.xp.toLocaleString('ru-RU')} XP</span>
+        </div>
       ))}
     </div>
   )
 }
+
+const FEED_ICON: Record<string, IconName> = { certificate: 'cert', exam: 'test', chapter: 'book' }
 
 export default function CompetePage() {
   const [data, setData] = useState<Compete | null>(null)
@@ -63,132 +92,118 @@ export default function CompetePage() {
     </div>
   )
   if (!data) return (
-    <div className="flex-1 flex items-center justify-center text-[13px] text-[#8a8a93]">
-      Не удалось загрузить рейтинг
-    </div>
+    <div className="flex-1 flex items-center justify-center text-[13.5px] text-gray">Не удалось загрузить рейтинг</div>
   )
 
   const pos = scope === 'week' ? data.pos_week : data.pos_all
   const posXp = scope === 'week' ? data.week_xp : data.xp
   const rows = scope === 'week' ? data.board_week : data.board_all
+  const above = pos ? rows.find(r => r.rank === pos - 1) : undefined
+  const gap = above ? Math.max(0, above.xp - posXp) : 0
+  const raw = data.rank.progress > 1 ? data.rank.progress : data.rank.progress * 100
+  const rankPct = Math.round(Math.max(0, Math.min(100, raw)))
+  const toAbovePct = above && above.xp > 0 ? Math.round(Math.min(100, (posXp / above.xp) * 100)) : 100
 
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
-      <div className="px-4 pt-3">
+      <div className="px-4 pt-3 flex flex-col gap-3">
 
-        {/* Моя карточка: ранг + XP + прогресс + стрик */}
-        <div className="relative overflow-hidden rounded-[20px] px-5 pt-5 pb-5 mb-4"
-          style={{ border: '1px solid rgba(74,232,133,.35)', background: 'radial-gradient(130% 120% at 0% 0%, rgba(34,197,94,.18), transparent 60%), #0D0D11' }}>
-          <div className="flex items-center gap-3">
-            <div className="text-[40px] leading-none">{data.rank.emoji}</div>
+        {/* Рейтинг */}
+        <section className="card-gold px-3.5 pt-4 pb-3.5">
+          <div className="flex items-center gap-2.5">
+            <span className="gold-metal sheen sheen-d2 w-[34px] h-[34px] rounded-[11px] grid place-items-center shrink-0">
+              <Icon name="crown" size={17} accent="#3A2300" className="relative z-[1]" />
+            </span>
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-bold tracking-[1.5px] uppercase text-[#9a9aa2]">Твой ранг</div>
-              <div className="text-[22px] font-extrabold text-white leading-tight">{data.rank.name}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-[24px] font-extrabold text-green leading-none tabular-nums">{data.xp}</div>
-              <div className="text-[10px] font-bold tracking-wider uppercase text-[#9a9aa2] mt-0.5">XP</div>
+              <div className="font-display font-semibold text-[15px] leading-tight">Рейтинг</div>
+              <div className="text-[12.5px] text-[#CDBB8E] mt-0.5 flex items-center gap-1.5">
+                <span className="pulse-dot" />сегодня учатся {data.today_active}
+              </div>
             </div>
           </div>
 
-          {data.rank.next_name && (
-            <div className="mt-4">
-              <div className="flex justify-between text-[11px] mb-1.5">
-                <span className="text-[#9a9aa2]">До ранга «{data.rank.next_name}»</span>
-                <span className="font-bold text-white">ещё {data.rank.to_next} XP</span>
-              </div>
-              <div className="h-[8px] rounded-full bg-white/[.08] overflow-hidden">
-                <motion.div className="h-full rounded-full"
-                  initial={{ width: 0 }} animate={{ width: `${data.rank.progress}%` }}
-                  transition={{ duration: 0.6 }}
-                  style={{ background: 'linear-gradient(90deg,#22C55E,#4AE885)' }} />
+          <div className="flex gap-1.5 mt-3.5">
+            {(['week', 'all'] as const).map(s => (
+              <button key={s} onClick={() => setScope(s)} className={`chip ${scope === s ? 'on' : ''}`}>
+                {s === 'week' ? 'Неделя' : 'Всё время'}
+              </button>
+            ))}
+          </div>
+
+          {rows.length > 0 && <Leaders rows={rows} />}
+
+          {pos && (
+            <div className="mt-3.5 rounded-2xl px-3 py-2.5"
+              style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.28), transparent 70%), rgba(255,255,255,.03)', border: '1px solid rgba(160,135,255,.45)' }}>
+              <div className="flex items-center gap-3">
+                <span className="w-7 h-7 rounded-full grid place-items-center font-display font-semibold text-[13px] bg-[rgba(139,107,255,.16)] text-violet shrink-0">{pos}</span>
+                <div className="flex-1 min-w-0">
+                  <b className="text-[14px] font-semibold">Вы · {posXp.toLocaleString('ru-RU')} XP</b>
+                  <div className="mt-1.5 h-1.5 rounded-full bg-white/[.08] overflow-hidden">
+                    <div className="h-full rounded-full" style={{ width: `${toAbovePct}%`, background: 'linear-gradient(90deg,#6E4CF5,#A58BFF)' }} />
+                  </div>
+                </div>
+                {above && (
+                  <div className="text-right leading-tight shrink-0">
+                    <b className="text-[14px] text-gold tabular-nums">{gap} XP</b>
+                    <div className="text-[11.5px] text-gray">до {pos - 1}-го</div>
+                  </div>
+                )}
               </div>
             </div>
           )}
+        </section>
 
-          <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="rounded-xl py-2.5 text-center" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-              <div className="text-[18px] font-extrabold text-white leading-none">🔥 {data.streak}</div>
-              <div className="text-[9.5px] font-bold uppercase tracking-wide text-[#9a9aa2] mt-1">дней подряд</div>
+        <Board rows={rows} />
+
+        {/* Ваш ранг */}
+        <section className="card px-3.5 py-3" style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.24), transparent 70%), #111C17', borderColor: 'rgba(160,135,255,.3)' }}>
+          <div className="flex items-center gap-2.5">
+            <span className="tile-violet w-[34px] h-[34px] shrink-0"><Icon name="shield" size={17} accent="#fff" /></span>
+            <div className="flex-1 min-w-0">
+              <div className="font-display font-semibold text-[14px] truncate">{data.rank.name}</div>
+              <div className="text-[12px] text-gray truncate">{data.rank.next_name ? `Следующий ранг — ${data.rank.next_name}` : 'Высший ранг'}</div>
             </div>
-            <div className="rounded-xl py-2.5 text-center" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-              <div className="text-[18px] font-extrabold text-white leading-none">#{data.pos_all ?? '—'}</div>
-              <div className="text-[9.5px] font-bold uppercase tracking-wide text-[#9a9aa2] mt-1">за всё время</div>
-            </div>
-            <div className="rounded-xl py-2.5 text-center" style={{ background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.07)' }}>
-              <div className="text-[18px] font-extrabold text-white leading-none">#{data.pos_week ?? '—'}</div>
-              <div className="text-[9.5px] font-bold uppercase tracking-wide text-[#9a9aa2] mt-1">за неделю</div>
-            </div>
+            {data.rank.next_name && <span className="text-[12.5px] font-semibold text-violet tabular-nums">ещё {data.rank.to_next} XP</span>}
           </div>
-        </div>
-
-        {/* Сколько учатся сегодня */}
-        <div className="flex items-center gap-2.5 mb-4 px-4 py-3 rounded-2xl"
-          style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014' }}>
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green opacity-60" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green" />
-          </span>
-          <span className="text-[13px] text-white">
-            Сегодня в базе учатся <b className="text-green">{data.today_active}</b> {plural(data.today_active, 'человек', 'человека', 'человек')}
-          </span>
-        </div>
-
-        {/* Переключатель недели/всё время */}
-        <div className="flex gap-1 p-1 rounded-2xl mb-3" style={{ background: '#101014', border: '1px solid rgba(255,255,255,.08)' }}>
-          {(['week', 'all'] as const).map(s => (
-            <button key={s} onClick={() => setScope(s)}
-              className="flex-1 py-2.5 rounded-xl text-[13px] font-bold transition-colors"
-              style={{
-                background: scope === s ? 'linear-gradient(180deg,rgba(34,197,94,.24),rgba(34,197,94,.08))' : 'transparent',
-                color: scope === s ? '#4AE885' : '#8a8a93',
-                border: scope === s ? '1px solid rgba(74,232,133,.5)' : '1px solid transparent',
-              }}>
-              {s === 'week' ? 'За неделю' : 'За всё время'}
-            </button>
-          ))}
-        </div>
-
-        {pos && (
-          <div className="text-[12px] text-[#9a9aa2] mb-2 px-1">
-            Ты на <b className="text-white">{pos}-м</b> месте · {posXp} XP
+          <div className="mt-2.5 h-1.5 rounded-full bg-white/[.08] overflow-hidden">
+            <div className="h-full rounded-full" style={{ width: `${rankPct}%`, background: 'linear-gradient(90deg,#6E4CF5,#A58BFF)' }} />
           </div>
-        )}
-
-        {/* Таблица лидеров */}
-        <div className="rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014' }}>
-          <Board rows={rows} />
-        </div>
+          <div className="grid grid-cols-3 gap-2 mt-3">
+            {[
+              { v: data.xp.toLocaleString('ru-RU'), l: 'опыта', c: 'text-violet' },
+              { v: String(data.streak), l: 'дней подряд', c: 'text-[#FFB25B]', streak: true },
+              { v: String(data.best_streak), l: 'рекорд серии', c: 'text-fg' },
+            ].map(x => (
+              <div key={x.l} className="rounded-xl bg-white/[.05] px-2.5 py-2">
+                <div className={`font-display font-semibold text-[15px] tabular-nums flex items-center gap-0.5 ${x.c}`}>{x.v}{x.streak && <Icon name="streak" size={12} accent="#FFB25B" />}</div>
+                <div className="text-[11px] text-gray">{x.l}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
         {/* Живая лента */}
-        <div className="text-[11px] font-bold tracking-[1.5px] uppercase text-[#9a9aa2] font-mono mb-3">
-          Живая лента
+        <div className="flex items-baseline justify-between px-0.5 mt-3">
+          <h2 className="text-[17px] font-bold">Живая лента</h2>
         </div>
-        <div className="rounded-2xl overflow-hidden mb-6" style={{ border: '1px solid rgba(255,255,255,.08)', background: '#101014' }}>
+        <div className="list-group mb-2">
           {data.feed.length === 0 ? (
-            <div className="px-5 py-8 text-center text-[13px] text-[#8a8a93]">Пока тихо. Будь первым!</div>
+            <div className="px-5 py-8 text-center text-[13.5px] text-gray">Пока тихо. Будьте первым!</div>
           ) : data.feed.map((f, i) => (
-            <div key={i} className="flex items-center gap-3 px-4 py-2.5"
-              style={{ borderBottom: '1px solid rgba(255,255,255,.05)' }}>
-              <span className="text-[16px]">{f.kind === 'certificate' ? '🎓' : f.kind === 'exam' ? '📝' : f.kind === 'chapter' ? '📘' : '⚡'}</span>
+            <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
+              <span className="w-[34px] h-[34px] rounded-[10px] bg-white/[.06] grid place-items-center text-[#CFDAD4] shrink-0">
+                <Icon name={FEED_ICON[f.kind] ?? 'streak'} size={17} accent={FEED_ICON[f.kind] ? 'brand' : '#F5C25A'} />
+              </span>
               <div className="flex-1 min-w-0">
-                <div className="text-[13px] text-white truncate">
-                  <b className="text-green">{f.name}</b> {f.text}
-                </div>
-                <div className="text-[10.5px] text-[#8a8a93]">{f.ago}</div>
+                <div className="text-[13.5px] truncate"><b className="font-semibold">{f.name}</b> <span className="text-gray">{f.text}</span></div>
+                <div className="text-[11.5px] text-gray2">{f.ago}</div>
               </div>
-              <span className="shrink-0 text-[12px] font-bold text-[#cfcfd4]">+{f.amount}</span>
+              <span className="shrink-0 text-[11.5px] font-bold text-green bg-green/15 px-2 py-[3px] rounded-full tabular-nums">+{f.amount} XP</span>
             </div>
           ))}
         </div>
       </div>
     </div>
   )
-}
-
-function plural(n: number, one: string, few: string, many: string) {
-  const m10 = n % 10, m100 = n % 100
-  if (m10 === 1 && m100 !== 11) return one
-  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few
-  return many
 }

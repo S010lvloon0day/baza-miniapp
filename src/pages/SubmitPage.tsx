@@ -9,7 +9,7 @@ import MediaTypeIcon from '../components/MediaTypeIcon'
 
 const tg = (window as any).Telegram?.WebApp
 
-const LABEL = 'text-[11px] font-bold tracking-[3px] uppercase text-green'
+const LABEL = 'text-[11px] font-bold text-green'
 const FIELD =
   'w-full bg-bg/70 border border-white/[.10] rounded-xl px-3.5 py-3 text-[14px] text-white ' +
   'placeholder:text-gray2 outline-none focus:border-green/60 transition-colors'
@@ -132,7 +132,7 @@ export default function SubmitPage({ onDone }: { onDone?: () => void }) {
           transition={{ duration: .25, ease: [0.16, 1, 0.3, 1] }}>
           <CheckCircle size={56} weight="fill" className="text-greenLight" />
         </motion.div>
-        <div className="text-[22px] font-display font-extrabold uppercase tracking-[1px] mt-4">
+        <div className="text-[22px] font-display font-bold mt-4">
           Отправлено
         </div>
         <p className="text-[14px] text-white/70 mt-2 max-w-[30ch] leading-relaxed">
@@ -146,7 +146,7 @@ export default function SubmitPage({ onDone }: { onDone?: () => void }) {
         </div>
         <button onClick={() => onDone?.()}
           className="mt-8 w-full h-12 rounded-xl bg-gradient-to-r from-green to-greenLight
-                     text-bg text-[13px] font-bold tracking-[2px] uppercase active:opacity-80">
+                     text-bg text-[13px] font-bold active:opacity-80">
           Готово
         </button>
       </div>
@@ -159,7 +159,7 @@ export default function SubmitPage({ onDone }: { onDone?: () => void }) {
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
       <div className="px-4 pt-4">
-        <div className="text-[22px] font-display font-extrabold tracking-[1px] uppercase text-white">
+        <div className="text-[22px] font-display font-bold text-white">
           Предложить материал
         </div>
         <p className="text-[13px] text-gray mt-1.5 leading-relaxed">
@@ -240,8 +240,8 @@ export default function SubmitPage({ onDone }: { onDone?: () => void }) {
           <button onClick={() => input.current?.click()}
             disabled={files.length >= (status?.files_max ?? 10)}
             className="w-full h-11 border border-green flex items-center justify-center gap-1.5
-                       text-green text-[12px] font-semibold tracking-[1.5px] uppercase rounded-xl
-                       active:bg-[rgba(34,197,94,.10)] disabled:opacity-30">
+                       text-green text-[12px] font-semibold rounded-xl
+                       active:bg-[rgba(23,229,132,.10)] disabled:opacity-30">
             <Plus size={16} weight="bold" /> Добавить файлы
           </button>
         </div>
@@ -293,7 +293,7 @@ export default function SubmitPage({ onDone }: { onDone?: () => void }) {
         <div className="px-4 pt-5">
           <button onClick={submit} disabled={!canSend}
             className="w-full h-12 rounded-xl bg-gradient-to-r from-green to-greenLight
-                       text-bg text-[13px] font-bold tracking-[2px] uppercase
+                       text-bg text-[13px] font-bold 
                        flex items-center justify-center gap-2
                        disabled:opacity-30 active:opacity-80">
             <PaperPlaneTilt size={17} weight="fill" />

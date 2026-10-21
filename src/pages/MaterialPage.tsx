@@ -442,7 +442,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
             <Icon name="chevR" size={22} strokeWidth={2.2} />
           </button>
         </div>
-      )
+      )}
     </div>
   )
 }

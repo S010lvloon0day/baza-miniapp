@@ -10,7 +10,7 @@ import type { AdminSection, DraftAttachment } from '../../api/upload'
 
 const tg = (window as any).Telegram?.WebApp
 
-const LABEL = 'text-[11px] font-bold tracking-[3px] uppercase text-green'
+const LABEL = 'text-[11px] font-bold text-green'
 const FIELD =
   'w-full bg-bg/70 border border-white/[.10] rounded-xl px-3.5 py-3 text-[14px] text-white ' +
   'placeholder:text-gray2 outline-none focus:border-green/60 transition-colors'
@@ -228,7 +228,7 @@ export default function UploadPage() {
   return (
     <div className="flex-1 overflow-y-auto pb-28">
       <div className="px-4 pt-4 pb-2">
-        <div className="text-[22px] font-display font-extrabold tracking-[1px] uppercase text-white">
+        <div className="text-[22px] font-display font-bold text-white">
           Загрузка материала
         </div>
         <div className="text-[12px] text-gray mt-1">
@@ -275,7 +275,7 @@ export default function UploadPage() {
                 if (o.v) setItems(prev => sortByNumber(prev.filter(i => i.kind !== 'text')))
               }}
               className={`rounded-xl border px-3 py-2.5 text-left transition-colors
-                          ${perFile === o.v ? 'border-green bg-[rgba(34,197,94,.08)]' : 'border-white/[.10]'}`}>
+                          ${perFile === o.v ? 'border-green bg-[rgba(23,229,132,.08)]' : 'border-white/[.10]'}`}>
               <div className={`text-[13px] font-semibold ${perFile === o.v ? 'text-green' : 'text-white/85'}`}>
                 {o.t}
               </div>
@@ -339,14 +339,14 @@ export default function UploadPage() {
           onChange={e => { addFiles(e.target.files); e.currentTarget.value = '' }} />
         <button onClick={() => fileInput.current?.click()}
           className="flex-1 h-11 border border-green flex items-center justify-center gap-1.5
-                     text-green text-[12px] font-semibold tracking-[1.5px] uppercase rounded-xl
-                     active:bg-[rgba(34,197,94,.10)]">
+                     text-green text-[12px] font-semibold rounded-xl
+                     active:bg-[rgba(23,229,132,.10)]">
           <Plus size={16} weight="bold" /> Файлы
         </button>
         {!perFile && <button onClick={addText}
           className="flex-1 h-11 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02]
                      flex items-center justify-center gap-1.5 text-white/85 text-[12px] font-semibold
-                     tracking-[1.5px] uppercase rounded-xl active:opacity-70">
+                     rounded-xl active:opacity-70">
           <TextT size={16} weight="bold" /> Текст
         </button>}
       </div>
@@ -422,7 +422,7 @@ export default function UploadPage() {
               <div className="px-3 pb-3">
                 <button onClick={() => startUpload(it.uid, it.file!)}
                   className="w-full h-9 border border-gold text-gold text-[11px] font-semibold
-                             tracking-[1.5px] uppercase rounded-lg active:opacity-70">
+                             rounded-lg active:opacity-70">
                   Повторить
                 </button>
               </div>
@@ -452,7 +452,7 @@ export default function UploadPage() {
       <div className="px-4 pt-5">
         <button onClick={save} disabled={!canSave}
           className="w-full h-12 rounded-xl bg-gradient-to-r from-green to-greenLight
-                     text-bg text-[13px] font-bold tracking-[2px] uppercase
+                     text-bg text-[13px] font-bold 
                      disabled:opacity-30 active:opacity-80">
           {saving ? (batchInfo || 'Создаю…')
             : uploading ? 'Файлы ещё грузятся…'

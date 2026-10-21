@@ -33,7 +33,7 @@ function Stars({ value, size = 14, onPick, busy }: {
         const filled = n <= Math.round(shown)
         const el = (
           <Star size={size} weight={filled ? 'fill' : 'regular'}
-            className={filled ? 'text-[#FFC94D]' : 'text-white/25'} />
+            className={filled ? 'text-gold' : 'text-white/25'} />
         )
         return onPick ? (
           <button key={n} type="button" disabled={busy} aria-label={`Оценка ${n}`}
@@ -51,8 +51,8 @@ function Stars({ value, size = 14, onPick, busy }: {
 function RatingBadge({ rating, count }: { rating: number; count: number }) {
   if (!count) return null
   return (
-    <span className="inline-flex items-center gap-1 text-[12px] text-white/80">
-      <Star size={13} weight="fill" className="text-[#FFC94D]" />
+    <span className="inline-flex items-center gap-1 text-[13px] text-fg/90">
+      <Star size={14} weight="fill" className="text-gold" />
       <b className="font-semibold">{rating.toFixed(1)}</b>
       <span className="text-gray">· {count} {plural(count, 'оценка', 'оценки', 'оценок')}</span>
     </span>
@@ -76,28 +76,28 @@ export function Composer({ placeholder, sending, onSend, onCancel, autoFocus, co
     if (await onSend(t)) setText('')
   }
   return (
-    <div className={`rounded-2xl border border-white/[.1] bg-[#0D0D11] focus-within:border-green/40 transition-colors ${compact ? '' : 'mb-4'}`}>
+    <div className={`rounded-[18px] border border-white/[.08] bg-white/[.04] focus-within:border-purple/50 transition-colors ${compact ? '' : 'mb-4'}`}>
       <textarea
         value={text}
         autoFocus={autoFocus}
         onChange={e => setText(e.target.value.slice(0, MAX_LEN))}
         placeholder={placeholder}
         rows={2}
-        className="w-full bg-transparent resize-none px-3.5 pt-3 pb-1 text-[13.5px] leading-[1.55] text-white placeholder:text-white/30 outline-none"
+        className="w-full bg-transparent resize-none px-4 pt-3 pb-1 text-[14.5px] leading-[1.55] text-fg placeholder:text-gray2 outline-none"
       />
-      <div className="flex items-center justify-between gap-2 px-3.5 pb-2.5">
-        <span className="text-[10.5px] text-gray">
+      <div className="flex items-center justify-between gap-2 px-4 pb-2.5">
+        <span className="text-[12px] text-gray2">
           {text.length > MAX_LEN - 150 ? `${text.length}/${MAX_LEN}` : 'Без ссылок и контактов'}
         </span>
         <div className="flex items-center gap-2">
           {onCancel && (
-            <button onClick={onCancel} className="h-8 px-3 rounded-lg text-[11.5px] text-gray active:text-white">
+            <button onClick={onCancel} className="h-9 px-3 rounded-[12px] text-[13px] text-gray active:text-fg">
               Отмена
             </button>
           )}
           <button onClick={send} disabled={!text.trim() || sending}
-            className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-lg bg-green text-black text-[11.5px] font-bold tracking-wide disabled:opacity-35 active:opacity-80">
-            {sending ? '…' : <>Отправить <PaperPlaneRight size={13} weight="bold" /></>}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-[12px] bg-purple text-white text-[13px] font-semibold disabled:opacity-35 active:opacity-85">
+            {sending ? '…' : <>Отправить <PaperPlaneRight size={15} weight="fill" /></>}
           </button>
         </div>
       </div>
@@ -149,45 +149,45 @@ function CommentItem({ c, canInteract, isAdmin, preview, reply, onReply, onChang
   return (
     <motion.div layout initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, height: 0 }}
       className={reply
-        ? `rounded-xl border px-3 py-2.5 ${c.team ? 'border-green/25 bg-[rgba(34,197,94,.05)]' : 'border-white/[.06] bg-[#0E0E12]'}`
-        : 'rounded-2xl border border-white/[.07] bg-[#101014] px-3.5 py-3'}>
+        ? `rounded-[16px] border px-3.5 py-3 ${c.team ? 'border-green/25 bg-green/[.06]' : 'border-white/[.06] bg-white/[.03]'}`
+        : 'rounded-[18px] border border-white/[.07] bg-s1 px-4 py-3.5'}>
       <div className="flex items-center gap-2 mb-1.5">
-        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0"
-          style={{ background: c.team ? 'rgba(34,197,94,.18)' : 'rgba(255,255,255,.07)', color: c.team ? '#4AE885' : '#c9c9d1' }}>
+        <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11.5px] font-bold shrink-0"
+          style={{ background: c.team ? 'rgba(23,229,132,.18)' : '#2A2170', color: c.team ? '#4BF5A8' : '#CFC4FF' }}>
           {(c.author || '?').slice(0, 1).toUpperCase()}
         </div>
-        <span className="text-[12.5px] font-semibold text-white/90 truncate">{c.author}</span>
+        <span className="text-[13.5px] font-semibold text-fg truncate">{c.author}</span>
         {c.team && (
-          <span className="inline-flex items-center gap-0.5 text-[10px] text-green font-semibold tracking-wide">
-            <SealCheck size={12} weight="fill" /> команда
+          <span className="inline-flex items-center gap-1 text-[11.5px] text-green font-semibold">
+            <SealCheck size={13} /> команда
           </span>
         )}
-        <span className="ml-auto text-[10.5px] text-gray shrink-0">{timeAgo(c.created_at)}</span>
+        <span className="ml-auto text-[12px] text-gray2 shrink-0">{timeAgo(c.created_at)}</span>
       </div>
 
-      <div className="text-[13.5px] leading-[1.6] text-white/80 whitespace-pre-wrap break-words">{c.text}</div>
+      <div className="text-[14.5px] leading-[1.55] text-fg/85 whitespace-pre-wrap break-words">{c.text}</div>
 
       {!preview && (
         <div className="flex items-center gap-4 mt-2 -mb-0.5">
           <button onClick={like} disabled={!canInteract || busy}
-            className={`inline-flex items-center gap-1 text-[11.5px] active:scale-95 transition-transform ${c.liked ? 'text-[#FF5C7A]' : 'text-gray'}`}>
-            <Heart size={14} weight={c.liked ? 'fill' : 'regular'} />
+            className={`inline-flex items-center gap-1.5 text-[12.5px] active:scale-95 transition-transform ${c.liked ? 'text-[#FF6B8A]' : 'text-gray'}`}>
+            <Heart size={16} weight={c.liked ? 'fill' : 'regular'} />
             {c.likes > 0 ? c.likes : 'Полезно'}
           </button>
           {onReply && canInteract && (
-            <button onClick={onReply} className="inline-flex items-center gap-1 text-[11.5px] text-gray active:text-white">
-              <ArrowBendDownRight size={14} /> Ответить
+            <button onClick={onReply} className="inline-flex items-center gap-1.5 text-[12.5px] text-gray active:text-fg">
+              <ArrowBendDownRight size={16} /> Ответить
             </button>
           )}
           <div className="ml-auto flex items-center gap-3">
             {canInteract && !c.mine && (
-              <button onClick={report} aria-label="Пожаловаться" className="text-gray/70 active:text-white">
-                <Flag size={14} />
+              <button onClick={report} aria-label="Пожаловаться" className="text-gray2 active:text-fg">
+                <Flag size={16} />
               </button>
             )}
             {(c.mine || isAdmin) && (
-              <button onClick={remove} aria-label="Удалить" className="text-gray/70 active:text-[#FF5C7A]">
-                <Trash size={14} />
+              <button onClick={remove} aria-label="Удалить" className="text-gray2 active:text-[#FF6B8A]">
+                <Trash size={16} />
               </button>
             )}
           </div>
@@ -288,19 +288,16 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
 
   return (
     <section className="mx-4 mt-6 mb-4">
-      <div className="h-px mb-5" style={{ background: 'linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)' }} />
-
       {/* Оценка */}
-      <div className="rounded-2xl border border-white/[.08] px-4 py-3.5 mb-5"
-        style={{ background: 'radial-gradient(120% 120% at 0% 0%, rgba(255,201,77,.07), transparent 60%), #0D0D11' }}>
+      <div className="card-gold px-4 py-4 mb-6">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[11px] font-bold tracking-[2.5px] uppercase text-white/50 mb-1">
+            <div className="font-display font-semibold text-[14px] mb-1">
               {data.my_rating ? 'Ваша оценка' : 'Оцените материал'}
             </div>
             {data.rating_count > 0
               ? <RatingBadge rating={data.rating} count={data.rating_count} />
-              : <span className="text-[12px] text-gray">Будьте первым</span>}
+              : <span className="text-[13px] text-gray">Будьте первым</span>}
           </div>
           {data.can_interact && <Stars value={data.my_rating} size={24} onPick={pick} busy={rating} />}
         </div>
@@ -308,15 +305,16 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
 
       {/* Заголовок комментариев */}
       <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 text-[11px] font-bold tracking-[2.5px] uppercase text-green">
-          <ChatCircle size={14} weight="bold" />
-          Обсуждение{data.comments_count > 0 && <span className="text-white/40">· {data.comments_count}</span>}
+        <div className="flex items-center gap-2.5">
+          <span className="tile-violet w-8 h-8"><ChatCircle size={17} weight="fill" /></span>
+          <h2 className="font-display font-semibold text-[15px]">Обсуждение</h2>
+          {data.comments_count > 0 && <span className="text-[13px] text-gray tabular-nums">{data.comments_count}</span>}
         </div>
         {data.comments_count > 1 && (
-          <div className="flex rounded-lg border border-white/[.1] overflow-hidden text-[10.5px]">
+          <div className="flex p-[3px] rounded-[12px] bg-white/[.05] text-[12px]">
             {(['top', 'new'] as const).map(s => (
               <button key={s} onClick={() => setSort(s)}
-                className={`px-2.5 py-1 ${sort === s ? 'bg-white/[.09] text-white' : 'text-gray'}`}>
+                className={`px-2.5 h-7 rounded-[9px] ${sort === s ? 'bg-white/[.10] text-fg font-medium' : 'text-gray'}`}>
                 {s === 'top' ? 'Лучшие' : 'Новые'}
               </button>
             ))}
@@ -332,7 +330,7 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
 
       {/* Список */}
       {data.comments.length === 0 ? (
-        <div className="text-center text-[12.5px] text-gray py-5 border border-dashed border-white/[.08] rounded-2xl">
+        <div className="text-center text-[13.5px] text-gray py-6 rounded-[18px] bg-white/[.03] border border-white/[.06]">
           Пока нет комментариев{data.can_interact ? ' — начните обсуждение' : ''}
         </div>
       ) : (
@@ -344,7 +342,7 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
                   onReply={() => setReplyTo(replyTo === c.id ? null : c.id)}
                   onChange={update} onRemoved={removed} onToast={showToast} />
                 {((c.replies?.length ?? 0) > 0 || replyTo === c.id) && (
-                  <div className="ml-4 pl-3 border-l border-white/[.08] flex flex-col gap-2">
+                  <div className="ml-4 pl-3 border-l-2 border-purple/30 flex flex-col gap-2">
                     {c.replies?.map(r => (
                       <CommentItem key={r.id} c={r} reply canInteract={data.can_interact} isAdmin={data.is_admin}
                         onChange={update} onRemoved={removed} onToast={showToast} />
@@ -360,7 +358,7 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
           </AnimatePresence>
           {data.has_more && (
             <button onClick={more} disabled={loadingMore}
-              className="h-10 rounded-xl border border-white/[.1] text-[11.5px] tracking-[1.5px] uppercase text-gray active:border-green/40">
+              className="btn-secondary w-full text-[13.5px]">
               {loadingMore ? 'Загрузка…' : 'Показать ещё'}
             </button>
           )}
@@ -370,8 +368,8 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 12 }}
-            className="fixed left-4 right-4 z-[60] mx-auto max-w-sm rounded-xl px-4 py-2.5 text-center text-[12.5px] text-white border border-white/10 bg-[#1a1a22]/95 backdrop-blur"
-            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)', boxShadow: '0 8px 24px rgba(0,0,0,.45)' }}>
+            className="glass fixed left-4 right-4 z-[60] mx-auto max-w-sm rounded-[16px] px-4 py-3 text-center text-[13.5px] text-fg"
+            style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)' }}>
             {toast}
           </motion.div>
         )}
@@ -392,41 +390,41 @@ export function SocialProof({ materialId }: { materialId: number }) {
 
   if (!data || (!data.rating_count && !data.comments_count)) return null
   return (
-    <div className="mb-5 rounded-xl border border-white/[.08] bg-black/20 px-3.5 py-3">
+    <div className="rounded-[16px] border border-white/[.07] bg-black/20 px-4 py-3 text-left">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-1">
         <RatingBadge rating={data.rating} count={data.rating_count} />
         {data.comments_count > 0 && (
-          <span className="inline-flex items-center gap-1 text-[12px] text-gray">
-            <ChatCircle size={13} /> {data.comments_count} {plural(data.comments_count, 'комментарий', 'комментария', 'комментариев')}
+          <span className="inline-flex items-center gap-1 text-[13px] text-gray">
+            <ChatCircle size={15} /> {data.comments_count} {plural(data.comments_count, 'комментарий', 'комментария', 'комментариев')}
           </span>
         )}
       </div>
       {data.comments.length > 0 && (
         <div className="flex flex-col gap-2 mt-2.5">
           {data.comments.map(c => (
-            <div key={c.id} className="text-[12px] leading-[1.5] text-white/65">
-              <span className="text-white/85 font-semibold">{c.author}: </span>{c.text}
+            <div key={c.id} className="text-[13px] leading-[1.5] text-gray">
+              <span className="text-fg font-semibold">{c.author}: </span>{c.text}
             </div>
           ))}
-          <div className="text-[11px] text-violet/80 mt-0.5">Полное обсуждение — с Premium</div>
+          <div className="text-[12px] text-gold mt-0.5">Полное обсуждение — с Premium</div>
         </div>
       )}
     </div>
   )
 }
 
-/** Строка «★4.8 · 💬3» для карточек материалов в списке раздела. */
+/** Строка «рейтинг · комментарии» для карточек материалов в списке раздела. */
 export function CardSocial({ rating, ratingCount, comments }: { rating?: number; ratingCount?: number; comments?: number }) {
   if (!ratingCount && !comments) return null
   return (
-    <span className="inline-flex items-center gap-2 text-[10px]" style={{ color: '#8a8a93' }}>
+    <span className="inline-flex items-center gap-2 text-[12px] text-gray2">
       {!!ratingCount && (
         <span className="inline-flex items-center gap-0.5">
-          <Star size={10} weight="fill" className="text-[#FFC94D]" />{(rating ?? 0).toFixed(1)}
+          <Star size={12} weight="fill" className="text-gold" />{(rating ?? 0).toFixed(1)}
         </span>
       )}
       {!!comments && (
-        <span className="inline-flex items-center gap-0.5"><ChatCircle size={10} />{comments}</span>
+        <span className="inline-flex items-center gap-0.5"><ChatCircle size={12} />{comments}</span>
       )}
     </span>
   )
