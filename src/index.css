@@ -124,7 +124,8 @@ html, body, #root {
 @keyframes bazaIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
 .anim-in { animation: bazaIn .45s cubic-bezier(.2,.8,.2,1) both; }
 
-:focus-visible { outline: 2px solid #17E584; outline-offset: 2px; }
+/* Без рамки фокуса: в Telegram она вылезает на полях и кнопках при каждом нажатии. */
+*:focus, *:focus-visible { outline: none !important; }
 @media (prefers-reduced-motion: reduce) {
   .sheen::after, .pulse-dot::after, .typing-dots i, .anim-in { animation: none !important; }
 }
