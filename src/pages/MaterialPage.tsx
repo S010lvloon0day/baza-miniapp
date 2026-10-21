@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CaretLeft, CaretRight, ArrowSquareOut, DownloadSimple } from '../components/icons'
 import { api, API_BASE } from '../api/client'
-import { PaperPlaneTilt, Star, Crown } from '../components/icons'
+import Icon from '../components/Icon'
+import PremiumBadge from '../components/PremiumBadge'
 import type { Material } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import CopyButton from '../components/CopyButton'
@@ -20,7 +20,7 @@ import MaterialSocial, { SocialProof } from '../components/MaterialSocial'
 const PdfViewer = lazy(() => import('../components/PdfViewer'))
 
 const tg = (window as any).Telegram?.WebApp
-const typeLabel = (t: string) => ({ photo: 'ФОТО', video: 'ВИДЕО', document: 'ДОКУМЕНТ', text: 'ТЕКСТ', quiz: 'ТЕСТ', task: 'ЗАДАНИЕ', doc: 'УРОК' }[t] ?? t.toUpperCase())
+const typeLabel = (t: string) => ({ photo: 'Фото', video: 'Видео', document: 'Документ', text: 'Текст', quiz: 'Тест', task: 'Задание', doc: 'Урок' }[t] ?? t)
 
 interface Props {
   materialId: number
@@ -153,14 +153,10 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
     <button
       onClick={openInTelegram}
       disabled={sending}
-      className={`w-full flex items-center justify-center gap-2 text-[12px] font-semibold tracking-[2px] uppercase rounded-xl active:opacity-70 disabled:opacity-50 transition-colors ${
-        prominent
-          ? 'h-12 bg-gradient-to-r from-[#2D7BF0] to-[#54A0FF] text-white'
-          : 'h-10 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] text-gray shadow-[0_4px_14px_rgba(0,0,0,.25)] active:border-green/40'
-      }`}
+      className={prominent ? 'btn-primary w-full' : 'btn-secondary w-full'}
     >
-      <PaperPlaneTilt size={prominent ? 18 : 16} />
-      {sent ? 'Отправлено ✓' : sending ? 'Отправка...' : 'Получить в Telegram'}
+      <Icon name={sent ? 'check' : 'send'} size={prominent ? 18 : 17} accent="current" />
+      {sent ? 'Отправлено в Telegram' : sending ? 'Отправка…' : 'Получить в Telegram'}
     </button>
   )
 
@@ -171,68 +167,59 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
           {loading ? (
             <motion.div key="spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex justify-center py-16">
-              <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+              <div className="w-1.5 h-1.5 bg-green/70 rounded-full animate-pulse" />
             </motion.div>
           ) : mat?.premium_required ? (
             <motion.div key="lock" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-              className="mx-4 mt-4 rounded-2xl overflow-hidden border border-[rgba(157,92,255,.3)]">
-              {/* Header strip */}
-              <div className="bg-gradient-to-r from-[#7B3DFF] to-[#9D5CFF] px-5 py-4 flex items-center gap-3">
-                <Crown size={24} weight="fill" className="text-white/90 shrink-0" />
-                <div>
-                  <div className="font-bold text-[14px] text-white tracking-wide">Premium-контент</div>
-                  <div className="text-[11px] text-white/70">Доступно только по подписке</div>
-                </div>
+              className="card-gold mx-4 mt-4 px-5 pt-7 pb-5 flex flex-col items-center text-center">
+              <div className="gold-metal sheen w-16 h-16 rounded-[20px] grid place-items-center mb-4">
+                <Icon name="crown" size={30} accent="#3A2300" className="relative z-[1] text-[#3A2300]" />
               </div>
-              {/* Body */}
-              <div className="bg-[rgba(157,92,255,.07)] px-5 py-5">
-                <p className="text-[13px] text-white/70 leading-relaxed mb-4">
-                  Этот материал входит в Premium-библиотеку. Оформите подписку, чтобы получить доступ ко всем закрытым материалам.
-                </p>
-                <div className="flex flex-col gap-2 mb-5">
-                  {[
-                    { label: 'Доступ ко всем Premium-материалам' },
-                    { label: 'Оплата криптовалютой или звёздами Telegram' },
-                    { label: 'Мгновенная активация после оплаты' },
-                  ].map(b => (
-                    <div key={b.label} className="flex items-center gap-2">
-                      <Star size={12} weight="fill" className="text-violet shrink-0" />
-                      <span className="text-[12px] text-white/60">{b.label}</span>
-                    </div>
-                  ))}
-                </div>
-                <SocialProof key={materialId} materialId={materialId} />
-                <button
-                  onClick={onUpgrade}
-                  className="w-full py-3 bg-gradient-to-r from-[#7B3DFF] to-[#C7A6FF] text-white font-bold text-[12px] tracking-[2px] uppercase rounded-xl active:opacity-80">
-                  Оформить подписку →
-                </button>
+              <PremiumBadge small className="mb-3" />
+              <h2 className="font-display font-semibold text-[19px] leading-tight mb-2" style={{ textWrap: 'balance' } as React.CSSProperties}>
+                Материал открыт по подписке
+              </h2>
+              <p className="text-[14px] text-gray leading-relaxed mb-5 max-w-[300px]">
+                Оформите Premium, чтобы открыть этот и все остальные материалы базы.
+              </p>
+              <div className="w-full list-group text-left mb-4">
+                {[
+                  { i: 'library' as const, label: 'Все материалы и курсы базы' },
+                  { i: 'stars' as const, label: 'Оплата картой, Stars или криптой' },
+                  { i: 'check' as const, label: 'Доступ сразу после оплаты' },
+                ].map(b => (
+                  <div key={b.label} className="flex items-center gap-3 px-4 py-3">
+                    <Icon name={b.i} size={18} className="text-gold" accent="#F5C25A" />
+                    <span className="text-[14px] text-fg/90">{b.label}</span>
+                  </div>
+                ))}
               </div>
+              <div className="w-full mb-4"><SocialProof key={materialId} materialId={materialId} /></div>
+              <button onClick={onUpgrade} className="btn-gold gold-metal sheen w-full">
+                <b>Открыть Premium</b>
+                <small>от 990 ₽ в месяц</small>
+              </button>
             </motion.div>
           ) : mat ? (
             <motion.div key={`mat-${materialId}`} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }} className="pb-2">
 
-              {mat.section_title && (
-                <div className="inline-flex mx-4 mt-3 mb-2 px-2.5 py-1 border border-green text-green text-[10px] font-bold tracking-[2px] uppercase rounded-sm">
-                  {mat.section_title}
+              <div className="px-4 pt-4 pb-4">
+                <div className="flex items-center gap-2 mb-2.5 text-[13px] text-gray">
+                  <MediaTypeIcon type={mat.is_archive ? 'document' : mat.media_type} size={26} radius={8} iconSize={15} tone="green" />
+                  <span>{mat.is_archive ? 'Архив' : typeLabel(mat.media_type)}</span>
+                  {mat.section_title && <><span className="w-1 h-1 rounded-full bg-gray2" /><span className="truncate">{mat.section_title}</span></>}
                 </div>
-              )}
-
-              <h1 className="font-display text-[28px] tracking-[2px] uppercase leading-tight px-4 mb-2">
-                {mat.title}
-              </h1>
-
-              <div className="flex items-center gap-2 px-4 pb-4 text-[12px] tracking-[.5px] text-gray">
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4AE885', boxShadow: '0 0 6px #4AE885' }} />
-                <span>{mat.is_archive ? 'АРХИВ' : typeLabel(mat.media_type)}</span>
+                <h1 className="font-display font-semibold text-[22px] leading-[1.25]" style={{ textWrap: 'balance' } as React.CSSProperties}>
+                  {mat.title}
+                </h1>
               </div>
 
               {/* ── PHOTO ── */}
               {!multi && mat.media_type === 'photo' && furl && (
                 <div className="mx-4 mb-4">
                   <img src={furl} alt={mat.title} loading="lazy"
-                    className="w-full rounded-2xl border border-white/[.08] block"
+                    className="w-full rounded-[18px] border border-white/[.07] block"
                     onError={e => (e.currentTarget.style.display = 'none')} />
                 </div>
               )}
@@ -241,9 +228,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {!multi && mat.media_type === 'video' && furl && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
                   {videoError ? (
-                    <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 text-center">
+                    <div className="card flex flex-col items-center justify-center gap-3 px-5 py-6 text-center">
                       <MediaTypeIcon type="video" size={56} iconSize={24} radius={16} />
-                      <div className="text-[13px] text-white/70 leading-snug">
+                      <div className="text-[13px] text-gray leading-snug">
                         Не удалось загрузить — попробуйте открыть в Telegram
                       </div>
                       <TgButton prominent />
@@ -256,14 +243,13 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                         controls
                         playsInline
                         preload="metadata"
-                        className="w-full rounded-2xl border border-white/[.08] block bg-black"
+                        className="w-full rounded-[18px] border border-white/[.07] block bg-black"
                         onError={() => setVideoError(true)}
                       />
                       <ResumeHint resume={resume} />
                       <TgButton />
-                      <button onClick={openExternal}
-                        className="w-full h-9 border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] shadow-[0_4px_14px_rgba(0,0,0,.25)] active:border-green/40 flex items-center justify-center gap-2 text-gray text-[11px] tracking-[2px] uppercase rounded-xl transition-colors active:opacity-70">
-                        <ArrowSquareOut size={15} />
+                      <button onClick={openExternal} className="w-full h-10 flex items-center justify-center gap-2 text-gray text-[13.5px] font-medium rounded-[14px] active:bg-white/5">
+                        <Icon name="external" size={16} />
                         Открыть в браузере
                       </button>
                     </>
@@ -276,22 +262,22 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                 <div className="mx-4 mb-4">
                   {/* Loading spinner */}
                   {docPreview === 'loading' && (
-                    <div className="h-32 border border-white/[.08] rounded-2xl bg-s2/70 flex items-center justify-center mb-3">
-                      <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+                    <div className="h-32 card flex items-center justify-center mb-3">
+                      <div className="w-1.5 h-1.5 bg-green/70 rounded-full animate-pulse" />
                     </div>
                   )}
 
                   {/* Plain-text / markdown / csv */}
                   {docPreview === 'text' && docText !== null && (
-                    <div className="rounded-2xl border border-white/[.08] bg-bg/70 p-4 mb-3">
-                      <div className="flex justify-end pb-3 mb-3 border-b border-white/[.06]">
+                    <div className="card p-4 mb-3">
+                      <div className="flex justify-end pb-3 mb-3 border-b border-white/[.07]">
                         <CopyButton text={docText} />
                       </div>
-                      <pre className="whitespace-pre-wrap break-words font-mono text-[13px] leading-[1.7] text-white/85">
+                      <pre className="whitespace-pre-wrap break-words font-mono text-[12.5px] leading-[1.7] text-fg/85">
                         {renderWithLinks(docText)}
                       </pre>
                       {docTruncated && (
-                        <div className="mt-4 pt-4 border-t border-bd2 flex flex-col items-center gap-3">
+                        <div className="mt-4 pt-4 border-t border-white/[.07] flex flex-col items-center gap-3">
                           <div className="text-[13px] text-white/70 text-center leading-snug">
                             Файл слишком большой — открыть в мини-аппе невозможно
                           </div>
@@ -307,8 +293,8 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                       page 1 with no way to scroll further). */}
                   {docPreview === 'pdf' && furl && (
                     <Suspense fallback={
-                      <div className="mb-3 h-64 rounded-2xl border border-white/[.08] flex items-center justify-center" style={{ background: '#fff' }}>
-                        <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
+                      <div className="mb-3 h-64 rounded-[18px] border border-white/[.07] flex items-center justify-center" style={{ background: '#fff' }}>
+                        <div className="w-1.5 h-1.5 bg-green/70 rounded-full animate-pulse" />
                       </div>
                     }>
                       <PdfViewer file={furl} />
@@ -317,9 +303,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
                   {/* Fallback: genuinely unreadable document */}
                   {docPreview === 'error' && (
-                    <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
+                    <div className="card flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
                       <MediaTypeIcon type="document" size={56} iconSize={24} radius={16} />
-                      <div className="text-[13px] text-white/70 leading-snug">
+                      <div className="text-[13px] text-gray leading-snug">
                         Не удалось загрузить — попробуйте открыть в Telegram
                       </div>
                       <TgButton prominent />
@@ -328,21 +314,20 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
                   {/* Архив/бинарник — без превью, только скачивание */}
                   {docPreview === 'download' && (
-                    <div className="border border-white/[.08] rounded-2xl bg-s2/70 flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
+                    <div className="card flex flex-col items-center justify-center gap-3 px-5 py-6 mb-3 text-center">
                       <MediaTypeIcon type="document" size={56} iconSize={24} radius={16} />
-                      <div className="text-[13px] text-white/80 leading-snug">
+                      <div className="text-[14px] text-fg leading-snug font-medium">
                         {(mat.attachments && mat.attachments[0] && mat.attachments[0].name) || 'Архив'}
                       </div>
-                      <div className="text-[11px] text-gray leading-snug">Архив — скачайте файл, чтобы открыть его на устройстве.</div>
+                      <div className="text-[12.5px] text-gray leading-snug">Архив — скачайте файл, чтобы открыть его на устройстве.</div>
                     </div>
                   )}
 
                   {/* Open / download + Telegram buttons */}
                   {docPreview !== 'loading' && (
                     <div className="flex flex-col gap-2">
-                      <button onClick={openExternal}
-                        className="w-full h-11 border border-green flex items-center justify-center gap-2 text-green text-[12px] font-semibold tracking-[2px] uppercase rounded-xl active:bg-[rgba(34,197,94,.10)]">
-                        <DownloadSimple size={18} />
+                      <button onClick={openExternal} className="btn-primary w-full">
+                        <Icon name="download" size={18} accent="current" />
                         {docPreview === 'download' ? 'Скачать' : 'Открыть / скачать'}
                       </button>
                       <TgButton />
@@ -354,7 +339,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {/* No media attached — offer Telegram delivery */}
               {!multi && !furl && mat.can_send && mat.media_type !== 'text' && mat.media_type !== 'quiz' && mat.media_type !== 'task' && mat.media_type !== 'doc' && (
                 <div className="mx-4 mb-4 flex flex-col gap-2">
-                  <div className="p-3 border border-white/[.08] rounded-2xl text-[12px] text-gray text-center">
+                  <div className="card p-4 text-[13.5px] text-gray text-center leading-snug">
                     Файл хранится в Telegram — получите его прямо в чат с ботом
                   </div>
                   <TgButton prominent />
@@ -382,12 +367,12 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {mat.content && mat.media_type !== 'quiz' && mat.media_type !== 'task' && mat.media_type !== 'doc' && (
                 <>
                   <div className="px-4 pb-2.5 flex items-center justify-between gap-3">
-                    <div className="text-[11px] font-bold tracking-[3px] uppercase text-green">
+                    <h2 className="font-display font-semibold text-[15px]">
                       {mat.media_type === 'text' ? 'Содержание' : 'Описание'}
-                    </div>
+                    </h2>
                     <CopyButton text={mat.content} />
                   </div>
-                  <div className="px-4 text-[14px] leading-[1.85] text-white/80 whitespace-pre-wrap break-words">
+                  <div className="px-4 text-[15px] leading-[1.75] text-fg/85 whitespace-pre-wrap break-words">
                     {renderWithLinks(mat.content)}
                   </div>
                 </>
@@ -396,8 +381,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               {/* Несколько вложений — каждое своим блоком, в порядке загрузки */}
               {multi && (
                 <>
-                  <div className="px-4 pt-5 pb-2.5 text-[11px] font-bold tracking-[3px] uppercase text-green">
-                    Вложения · {atts.length}
+                  <div className="px-4 pt-5 pb-2.5 flex items-baseline gap-2">
+                    <h2 className="font-display font-semibold text-[15px]">Вложения</h2>
+                    <span className="text-[13px] text-gray tabular-nums">{atts.length}</span>
                   </div>
                   {atts.map((a, i) => (
                     <AttachmentBlock
@@ -419,11 +405,11 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
       </div>
 
       {sectionMats.length > 1 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-s1/95 backdrop-blur-md border-t border-white/10 flex items-center justify-between px-4 z-50"
-          style={{ boxShadow: '0 -8px 24px rgba(0,0,0,.4)', paddingTop: 10, paddingBottom: 'calc(env(safe-area-inset-bottom, 10px) + 10px)' }}>
-          <button disabled={!prevId} onClick={() => prevId && navigate(prevId)}
-            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-white/15 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
-            <CaretLeft size={20} weight="bold" />
+        <div className="glass fixed z-50 flex items-center justify-between p-[5px] rounded-[30px]"
+          style={{ left: 10, right: 10, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}>
+          <button disabled={!prevId} onClick={() => prevId && navigate(prevId)} aria-label="Предыдущий материал"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-fg disabled:opacity-25 active:bg-white/10 transition-colors">
+            <Icon name="chevL" size={22} />
           </button>
           {editingIdx ? (
             <span className="flex items-center gap-1.5">
@@ -437,25 +423,26 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   if (e.key === 'Enter') (e.target as HTMLInputElement).blur()
                   if (e.key === 'Escape') setEditingIdx(false)
                 }}
-                className="w-11 py-1 bg-s2 border border-green/50 rounded text-[13px] text-white text-center tracking-widest outline-none"
+                className="w-12 h-8 bg-white/[.08] border border-green/50 rounded-[10px] text-[14px] text-fg text-center tabular-nums outline-none"
               />
-              <span className="text-[13px] text-gray tracking-widest">/ {sectionMats.length}</span>
+              <span className="text-[14px] text-gray tabular-nums">из {sectionMats.length}</span>
             </span>
           ) : (
-            <span
+            <button
               onClick={() => { setIdxInput(String(idx >= 0 ? idx + 1 : 1)); setEditingIdx(true) }}
-              className="text-[13px] tracking-widest cursor-pointer px-2.5 py-1.5 rounded-lg border border-[rgba(255,255,255,.14)] bg-gradient-to-b from-white/[.06] to-white/[.02] active:border-green/40 transition-colors"
+              className="h-9 px-4 rounded-full text-[14px] tabular-nums active:bg-white/10 transition-colors"
+              aria-label="Перейти к номеру"
             >
-              <span className="font-semibold text-white">{idx >= 0 ? idx + 1 : '—'}</span>
-              <span className="text-gray"> / {sectionMats.length}</span>
-            </span>
+              <span className="font-display font-semibold text-fg">{idx >= 0 ? idx + 1 : '—'}</span>
+              <span className="text-gray"> из {sectionMats.length}</span>
+            </button>
           )}
-          <button disabled={!nextId} onClick={() => nextId && navigate(nextId)}
-            className="w-11 h-11 bg-gradient-to-b from-s2 to-s1 border border-white/15 rounded-xl flex items-center justify-center text-white disabled:opacity-25 active:bg-bd2 transition-colors">
-            <CaretRight size={20} weight="bold" />
+          <button disabled={!nextId} onClick={() => nextId && navigate(nextId)} aria-label="Следующий материал"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-ink disabled:opacity-25 bg-green active:scale-95 transition-transform">
+            <Icon name="chevR" size={22} strokeWidth={2.2} />
           </button>
         </div>
-      )}
+      )
     </div>
   )
 }
