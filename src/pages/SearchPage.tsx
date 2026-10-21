@@ -90,7 +90,7 @@ export default function SearchPage({ onMaterial }: Props) {
             onChange={e => setQuery(e.target.value)}
             placeholder="Поиск по базе"
             enterKeyHint="search"
-            className="flex-1 min-w-0 bg-transparent text-[15px] text-fg placeholder:text-gray2 outline-none"
+            className="flex-1 min-w-0 bg-transparent text-[15px] text-fg placeholder:text-gray2 outline-none focus-visible:outline-none"
           />
           {query && (
             <button onClick={() => setQuery('')} aria-label="Очистить" className="w-7 h-7 -mr-1.5 rounded-full bg-white/10 grid place-items-center text-gray shrink-0 active:bg-white/15">

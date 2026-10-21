@@ -1,3 +1,4 @@
+import Icon from './Icon'
 import { useMemo, useState, useEffect } from 'react'
 
 /**
@@ -158,57 +159,56 @@ export default function HackLab({ content, onSolve }: { content: string; onSolve
   const checkFlag = () => setSolved(submitted.trim() === flag)
 
   return (
-    <div className="my-3 rounded-2xl overflow-hidden border" style={{ borderColor: 'rgba(255,60,60,.35)', background: '#0b0c10' }}>
-      <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,.08)' }}>
-        <span className="text-[12px] font-bold" style={{ color: '#ff5c5c' }}>🎯 Лаборатория</span>
-        <span className="text-[11px] text-white/45 truncate">{lab.title || 'взлом'}</span>
-        <span className="ml-auto text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'rgba(255,60,60,.12)', color: '#ff8a8a' }}>SANDBOX</span>
+    <div className="my-4 rounded-[18px] overflow-hidden border border-white/[.08] bg-[#060B09]">
+      <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[.07] bg-s1">
+        <span className="w-7 h-7 rounded-[9px] bg-[#FF6B6B]/15 text-[#FF8A8A] grid place-items-center shrink-0"><Icon name="shield" size={15} accent="#FF8A8A" /></span>
+        <span className="font-display font-semibold text-[13.5px] text-fg shrink-0">Лаборатория</span>
+        <span className="text-[12px] text-gray2 truncate">{lab.title || 'взлом'}</span>
+        <span className="ml-auto text-[11px] font-medium px-2 py-0.5 rounded-full bg-white/[.06] text-gray shrink-0">песочница</span>
       </div>
       {lab.goal && (
-        <div className="px-3 py-2 text-[12.5px] text-white/80 border-b" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
-          <b style={{ color: '#ffb84a' }}>🎯 Цель:</b> {lab.goal}
+        <div className="px-3.5 py-2.5 text-[13.5px] leading-[1.5] text-fg/85 border-b border-white/[.06]">
+          <b className="text-gold font-semibold">Цель:</b> {lab.goal}
         </div>
       )}
 
-      <div className="p-3">
+      <div className="p-3.5">
         <LabBody lab={lab} onReveal={(f: string) => setRevealed(f)} />
       </div>
 
       {revealed && (
-        <div className="mx-3 mb-2 p-2.5 rounded-lg text-[12.5px] font-mono" style={{ background: 'rgba(40,200,64,.1)', border: '1px solid rgba(40,200,64,.4)', color: '#6effa0' }}>
-          🚩 Цель скомпрометирована! Флаг: <b>{revealed}</b> — скопируй его в поле ниже.
+        <div className="mx-3 mb-2.5 p-3 rounded-[12px] text-[13px] bg-green/[.10] border border-green/30 text-greenLight flex gap-2">
+          <Icon name="flag" size={16} className="shrink-0 mt-0.5" />
+          <span>Цель скомпрометирована. Флаг: <b className="font-mono">{revealed}</b> — вставьте его в поле ниже.</span>
         </div>
       )}
 
-      <div className="px-3 pb-3 pt-1 border-t" style={{ borderColor: 'rgba(255,255,255,.06)' }}>
-        <div className="text-[11px] text-white/45 mb-1.5">🚩 Отправить флаг:</div>
+      <div className="px-3 pb-3 pt-2.5 border-t border-white/[.07] bg-s1/60">
+        <div className="text-[12.5px] text-gray mb-2">Отправить флаг</div>
         <div className="flex gap-2">
           <input value={submitted} onChange={e => setSubmitted(e.target.value)} placeholder="FLAG{...}"
-            className="flex-1 px-3 py-2 rounded-lg text-[12.5px] font-mono text-white outline-none"
-            style={{ background: '#121318', border: '1px solid rgba(255,255,255,.14)' }} />
-          <button onClick={checkFlag}
-            className="px-4 py-2 rounded-lg font-extrabold text-[12.5px]"
-            style={{ background: 'linear-gradient(180deg,#ff7a7a,#ff4d4d)', color: '#2a0000' }}>
+            className="flex-1 min-w-0 h-10 px-3 rounded-[11px] text-[13px] font-mono text-fg outline-none bg-white/[.05] border border-white/[.10] placeholder:text-gray2 focus:border-green/60" />
+          <button onClick={checkFlag} className="h-10 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13.5px] active:opacity-85">
             Сдать
           </button>
           {lab.hint && (
-            <button onClick={() => setShowHint(h => !h)} className="px-3 py-2 rounded-lg text-[12.5px] text-white/70" style={{ background: 'rgba(255,255,255,.06)' }}>
-              {showHint ? '×' : '💡'}
+            <button onClick={() => setShowHint(h => !h)} aria-label="Подсказка" className={`w-10 h-10 rounded-[11px] grid place-items-center ${showHint ? 'bg-purple text-white' : 'bg-white/[.07] text-violet'}`}>
+              <Icon name={showHint ? 'close' : 'question'} size={17} accent="current" />
             </button>
           )}
         </div>
-        {showHint && lab.hint && <div className="mt-2 p-2.5 rounded-lg text-[12.5px] text-white/75" style={{ background: 'rgba(255,255,255,.05)' }}>💡 {lab.hint}</div>}
-        {solved && <div className="mt-2 p-2.5 rounded-lg text-[12.5px] font-semibold" style={{ background: 'rgba(40,200,64,.15)', border: '1px solid rgba(40,200,64,.4)', color: '#6effa0' }}>✅ Лаборатория пройдена! Флаг верный.</div>}
+        {showHint && lab.hint && <div className="mt-2.5 p-3 rounded-[12px] bg-purple/[.10] border border-purple/25 text-[13px] text-fg/85 leading-[1.55]">{lab.hint}</div>}
+        {solved && <div className="mt-2.5 p-3 rounded-[12px] bg-green/[.10] border border-green/30 text-[13px] text-green font-semibold flex items-center gap-2"><Icon name="checkCircle" size={17} accent="current" />Лаборатория пройдена, флаг верный</div>}
         {!solved && submitted && submitted.trim() !== flag && submitted.trim().length > 3 && (
-          <div className="mt-2 p-2.5 rounded-lg text-[12.5px]" style={{ background: 'rgba(255,80,80,.1)', border: '1px solid rgba(255,80,80,.35)', color: '#ff9a9a' }}>❌ Неверный флаг. Проэксплуатируй цель и получи настоящий.</div>
+          <div className="mt-2.5 p-3 rounded-[12px] bg-[#FF6B6B]/[.10] border border-[#FF6B6B]/30 text-[13px] text-[#FF9A9A] flex items-center gap-2"><Icon name="warnCircle" size={17} accent="current" />Неверный флаг. Проэксплуатируйте цель и получите настоящий.</div>
         )}
       </div>
     </div>
   )
 }
 
-const inp = { background: '#121318', border: '1px solid rgba(255,255,255,.14)', color: '#e6e6e6' } as const
-const btn = { background: 'rgba(255,255,255,.1)', color: '#fff' } as const
+const inp = { background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.10)', color: '#F2F4F3', borderRadius: 11 } as const
+const btn = { background: 'rgba(255,255,255,.08)', color: '#F2F4F3', borderRadius: 11 } as const
 const mono = 'font-mono text-[12.5px]'
 
 function LabBody({ lab, onReveal }: { lab: Lab; onReveal: (f: string) => void }) {
@@ -227,7 +227,7 @@ function LabBody({ lab, onReveal }: { lab: Lab; onReveal: (f: string) => void })
     case 'ssrf': return <SsrfLab lab={lab} onReveal={onReveal} />
     case 'xxe': return <XxeLab lab={lab} onReveal={onReveal} />
     case 'brute': return <BruteLab lab={lab} onReveal={onReveal} />
-    default: return <div className="text-white/50 text-[12px]">Неизвестный тип лаборатории.</div>
+    default: return <div className="text-gray text-[13px]">Неизвестный тип лаборатории.</div>
   }
 }
 
@@ -240,11 +240,11 @@ function SqliLogin({ lab, onReveal }: any) {
   }
   return (
     <div>
-      <div className="rounded-lg p-3 mb-2" style={{ background: '#121318', border: '1px solid rgba(255,255,255,.08)' }}>
-        <div className="text-[12px] text-white/60 mb-2">🔐 Форма входа (vuln-app)</div>
-        <input value={u} onChange={e => setU(e.target.value)} placeholder="логин" className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
-        <input value={p} onChange={e => setP(e.target.value)} placeholder="пароль" className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
-        <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Войти</button>
+      <div className="rounded-[14px] p-3.5 mb-2 bg-s1 border border-white/[.07]">
+        <div className="text-[13px] text-gray mb-2">Форма входа (уязвимое приложение)</div>
+        <input value={u} onChange={e => setU(e.target.value)} placeholder="логин" className={`w-full mb-2 px-2.5 py-2 ${mono}`} style={inp} />
+        <input value={p} onChange={e => setP(e.target.value)} placeholder="пароль" className={`w-full mb-2 px-2.5 py-2 ${mono}`} style={inp} />
+        <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Войти</button>
       </div>
       {msg && (
         <div className={`${mono} p-2.5 rounded-lg`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9aa' }}>
@@ -265,11 +265,11 @@ function SqliUnion({ lab, onReveal }: any) {
   }
   return (
     <div>
-      <div className="rounded-lg p-3 mb-2" style={{ background: '#121318', border: '1px solid rgba(255,255,255,.08)' }}>
-        <div className="text-[12px] text-white/60 mb-2">🔎 Поиск статей</div>
+      <div className="rounded-[14px] p-3.5 mb-2 bg-s1 border border-white/[.07]">
+        <div className="text-[13px] text-gray mb-2">Поиск статей</div>
         <div className="flex gap-2">
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder="поиск по названию" className={`flex-1 px-2.5 py-2 rounded ${mono}`} style={inp} />
-          <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Искать</button>
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder="поиск по названию" className={`flex-1 px-2.5 py-2 ${mono}`} style={inp} />
+          <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Искать</button>
         </div>
       </div>
       {res && (
@@ -305,10 +305,10 @@ function XssLab({ lab, onReveal }: any) {
   }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Поле комментария отражается на странице без экранирования. Внедри скрипт, который отправит <code className="text-amber-300">window.__FLAG__</code> родителю: <code className="text-amber-300">parent.postMessage(window.__FLAG__,'*')</code></div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Поле комментария отражается на странице без экранирования. Внедри скрипт, который отправит <code className="text-amber-300">window.__FLAG__</code> родителю: <code className="text-amber-300">parent.postMessage(window.__FLAG__,'*')</code></div>
       <textarea value={payload} onChange={e => setPayload(e.target.value)} rows={2} placeholder='&lt;img src=x onerror="..."&gt;'
-        className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
-      <button onClick={render} className="px-4 py-2 rounded font-bold text-[12.5px] mb-2" style={{ background: '#2d7bf0', color: '#fff' }}>Отправить комментарий</button>
+        className={`w-full mb-2 px-2.5 py-2 ${mono}`} style={inp} />
+      <button onClick={render} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px] mb-2">Отправить комментарий</button>
       {srcdoc && (
         <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(255,255,255,.1)' }}>
           <iframe title="vuln" sandbox="allow-scripts" srcDoc={srcdoc} style={{ width: '100%', height: 140, background: '#fff', border: 0 }} />
@@ -328,10 +328,10 @@ function IdorLab({ lab, onReveal }: any) {
   }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Страница аккаунта: <code className="text-amber-300">/account?id={id || '???'}</code>. Твой ID — <b>{lab.yourId}</b>. Попробуй чужой.</div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Страница аккаунта: <code className="text-amber-300">/account?id={id || '???'}</code>. Твой ID — <b>{lab.yourId}</b>. Попробуй чужой.</div>
       <div className="flex gap-2 mb-2">
-        <input value={id} onChange={e => setId(e.target.value)} className={`w-36 px-2.5 py-2 rounded ${mono}`} style={inp} />
-        <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Открыть</button>
+        <input value={id} onChange={e => setId(e.target.value)} className={`w-36 px-2.5 py-2 ${mono}`} style={inp} />
+        <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Открыть</button>
       </div>
       {rec !== null && (<pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{rec ? JSON.stringify(rec, null, 2) : 'Аккаунт не найден (404)'}</pre>)}
     </div>
@@ -347,11 +347,11 @@ function AuthBypass({ lab, onReveal }: any) {
   }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Доступ к <code className="text-amber-300">/admin</code> проверяется по cookie <code className="text-amber-300">{lab.cookieName || 'role'}</code>. Измени её значение.</div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Доступ к <code className="text-amber-300">/admin</code> проверяется по cookie <code className="text-amber-300">{lab.cookieName || 'role'}</code>. Измени её значение.</div>
       <div className="flex gap-2 mb-2 items-center">
         <span className={`${mono} text-white/50`}>{lab.cookieName || 'role'}=</span>
-        <input value={cookie} onChange={e => setCookie(e.target.value)} className={`w-40 px-2.5 py-2 rounded ${mono}`} style={inp} />
-        <button onClick={open} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Открыть /admin</button>
+        <input value={cookie} onChange={e => setCookie(e.target.value)} className={`w-40 px-2.5 py-2 ${mono}`} style={inp} />
+        <button onClick={open} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Открыть /admin</button>
       </div>
       {out && (out.ok
         ? <pre className={`${mono} p-2.5 rounded-lg`} style={{ background: '#0d0f13', border: '1px solid rgba(40,200,64,.3)', color: '#6effa0' }}>{lab.adminPage || 'Admin panel'}\n{lab.flag}</pre>
@@ -365,10 +365,10 @@ function CmdiLab({ lab, onReveal }: any) {
   const go = () => { const r = cmdInjection(host, lab.fs || {}); setOut(r.out); if (r.flag) onReveal(r.flag) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Утилита проверки хоста выполняет <code className="text-amber-300">ping -c1 &lt;host&gt;</code> без фильтрации ввода.</div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Утилита проверки хоста выполняет <code className="text-amber-300">ping -c1 &lt;host&gt;</code> без фильтрации ввода.</div>
       <div className="flex gap-2 mb-2">
-        <input value={host} onChange={e => setHost(e.target.value)} placeholder="127.0.0.1" className={`flex-1 px-2.5 py-2 rounded ${mono}`} style={inp} />
-        <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Ping</button>
+        <input value={host} onChange={e => setHost(e.target.value)} placeholder="127.0.0.1" className={`flex-1 px-2.5 py-2 ${mono}`} style={inp} />
+        <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Ping</button>
       </div>
       {out && <pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{out}</pre>}
     </div>
@@ -380,10 +380,10 @@ function PathLab({ lab, onReveal }: any) {
   const go = () => { const r = pathTraversal(file, lab.fs || {}); setOut(r.content); if (r.flag) onReveal(r.flag) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Просмотр файла: <code className="text-amber-300">/download?file={file || '...'}</code>. Выберись за пределы папки.</div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Просмотр файла: <code className="text-amber-300">/download?file={file || '...'}</code>. Выберись за пределы папки.</div>
       <div className="flex gap-2 mb-2">
-        <input value={file} onChange={e => setFile(e.target.value)} className={`flex-1 px-2.5 py-2 rounded ${mono}`} style={inp} />
-        <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Открыть</button>
+        <input value={file} onChange={e => setFile(e.target.value)} className={`flex-1 px-2.5 py-2 ${mono}`} style={inp} />
+        <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Открыть</button>
       </div>
       {out && <pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{out}</pre>}
     </div>
@@ -396,11 +396,11 @@ function JwtLab({ lab, onReveal }: any) {
   const send = () => { const r = jwtVerifyVuln(token, lab.flag); if (r.ok && r.flag) onReveal(r.flag); setOut({ decode: false, ok: r.ok, reason: r.reason }) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Сервер доверяет JWT и принимает <code className="text-amber-300">alg:none</code>. Подделай токен с <code className="text-amber-300">role:admin</code>.</div>
-      <textarea value={token} onChange={e => setToken(e.target.value)} rows={3} className={`w-full mb-2 px-2.5 py-2 rounded ${mono} break-all`} style={inp} />
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Сервер доверяет JWT и принимает <code className="text-amber-300">alg:none</code>. Подделай токен с <code className="text-amber-300">role:admin</code>.</div>
+      <textarea value={token} onChange={e => setToken(e.target.value)} rows={3} className={`w-full mb-2 px-2.5 py-2 ${mono} break-all`} style={inp} />
       <div className="flex gap-2 mb-2">
-        <button onClick={decode} className="px-3 py-2 rounded font-bold text-[12.5px]" style={btn}>Декодировать</button>
-        <button onClick={send} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Отправить на сервер</button>
+        <button onClick={decode} className="h-9 px-3.5 font-medium text-[13px]" style={btn}>Декодировать</button>
+        <button onClick={send} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Отправить на сервер</button>
       </div>
       {out && (out.decode
         ? <pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>header: {out.h}{'\n'}payload: {out.pl}</pre>
@@ -414,11 +414,11 @@ function ReconLab({ lab, onReveal }: any) {
   useEffect(() => { if (showSrc) { const f = String(lab.source || '').match(/FLAG\{[^}]*\}/); if (f) onReveal(f[0]) } }, [showSrc])
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Иногда секрет спрятан прямо в коде страницы. Открой исходный код и осмотри его.</div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Иногда секрет спрятан прямо в коде страницы. Открой исходный код и осмотри его.</div>
       <div className="rounded-lg overflow-hidden mb-2" style={{ border: '1px solid rgba(255,255,255,.1)' }}>
         <iframe title="recon" sandbox="" srcDoc={lab.render || lab.source || ''} style={{ width: '100%', height: 120, background: '#fff', border: 0 }} />
       </div>
-      <button onClick={() => setShowSrc(s => !s)} className="px-3 py-2 rounded font-bold text-[12.5px] mb-2" style={btn}>{showSrc ? 'Скрыть' : 'Посмотреть исходный код'}</button>
+      <button onClick={() => setShowSrc(s => !s)} className="h-9 px-3.5 font-medium text-[13px] mb-2" style={btn}>{showSrc ? 'Скрыть' : 'Посмотреть исходный код'}</button>
       {showSrc && <pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap break-all`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{lab.source}</pre>}
     </div>
   )
@@ -430,9 +430,9 @@ function NoSqliLab({ lab, onReveal }: any) {
   const go = () => { const r = noSqli(lab.users || [], body); if (r.ok) onReveal(lab.flag); setMsg(r) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Вход (NoSQL/Mongo). Тело запроса — JSON. Сервер ищет <code className="text-amber-300">db.users.find(тело)</code> без фильтрации операторов.</div>
-      <textarea value={body} onChange={e => setBody(e.target.value)} rows={2} className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
-      <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Войти</button>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Вход (NoSQL/Mongo). Тело запроса — JSON. Сервер ищет <code className="text-amber-300">db.users.find(тело)</code> без фильтрации операторов.</div>
+      <textarea value={body} onChange={e => setBody(e.target.value)} rows={2} className={`w-full mb-2 px-2.5 py-2 ${mono}`} style={inp} />
+      <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Войти</button>
       {msg && <div className={`${mono} p-2.5 rounded-lg mt-2`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: msg.ok ? '#6effa0' : '#ff9a9a' }}>{msg.err ? '⚠ ' + msg.err : msg.ok ? '✓ Вход выполнен как ' + msg.who : '✗ Неверные данные'}</div>}
     </div>
   )
@@ -442,8 +442,8 @@ function SstiLab({ lab, onReveal }: any) {
   const go = () => { const r = ssti(v, lab.flag); if (r.flag) onReveal(r.flag); setOut(r) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Поле «Имя» подставляется в шаблон на сервере. Проверь инъекцию: <code className="text-amber-300">{'{{7*7}}'}</code>, затем доберись до <code className="text-amber-300">{'{{config}}'}</code>.</div>
-      <div className="flex gap-2 mb-2"><input value={v} onChange={e => setV(e.target.value)} placeholder="Имя" className={`flex-1 px-2.5 py-2 rounded ${mono}`} style={inp} /><button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Отправить</button></div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Поле «Имя» подставляется в шаблон на сервере. Проверь инъекцию: <code className="text-amber-300">{'{{7*7}}'}</code>, затем доберись до <code className="text-amber-300">{'{{config}}'}</code>.</div>
+      <div className="flex gap-2 mb-2"><input value={v} onChange={e => setV(e.target.value)} placeholder="Имя" className={`flex-1 px-2.5 py-2 ${mono}`} style={inp} /><button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Отправить</button></div>
       {out && <div className={`${mono} p-2.5 rounded-lg`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>Привет, {out.out}{out.confirmed && !out.flag ? '  ← шаблон выполнил выражение!' : ''}</div>}
     </div>
   )
@@ -453,8 +453,8 @@ function SsrfLab({ lab, onReveal }: any) {
   const go = () => { const r = ssrf(url, lab.secret || ''); if (r.flag) onReveal(r.flag); setOut(r.out) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Сервис загружает превью по URL (<code className="text-amber-300">/fetch?url=...</code>). Заставь сервер обратиться к внутреннему ресурсу.</div>
-      <div className="flex gap-2 mb-2"><input value={url} onChange={e => setUrl(e.target.value)} placeholder="http://..." className={`flex-1 px-2.5 py-2 rounded ${mono}`} style={inp} /><button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Загрузить</button></div>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Сервис загружает превью по URL (<code className="text-amber-300">/fetch?url=...</code>). Заставь сервер обратиться к внутреннему ресурсу.</div>
+      <div className="flex gap-2 mb-2"><input value={url} onChange={e => setUrl(e.target.value)} placeholder="http://..." className={`flex-1 px-2.5 py-2 ${mono}`} style={inp} /><button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Загрузить</button></div>
       {out && <pre className={`${mono} p-2.5 rounded-lg whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{out}</pre>}
     </div>
   )
@@ -464,9 +464,9 @@ function XxeLab({ lab, onReveal }: any) {
   const go = () => { const r = xxe(xml, lab.fileContent || ''); if (r.flag) onReveal(r.flag); setOut(r.out) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Сервер парсит присланный XML и допускает внешние сущности (XXE). Прочитай файл сервера.</div>
-      <textarea value={xml} onChange={e => setXml(e.target.value)} rows={4} className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
-      <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Отправить XML</button>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Сервер парсит присланный XML и допускает внешние сущности (XXE). Прочитай файл сервера.</div>
+      <textarea value={xml} onChange={e => setXml(e.target.value)} rows={4} className={`w-full mb-2 px-2.5 py-2 ${mono}`} style={inp} />
+      <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Отправить XML</button>
       {out && <pre className={`${mono} p-2.5 rounded-lg mt-2 whitespace-pre-wrap`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: '#9db' }}>{out}</pre>}
     </div>
   )
@@ -476,10 +476,10 @@ function BruteLab({ lab, onReveal }: any) {
   const go = () => { const r = bruteLogin(lab.accepted || [], u, p); if (r.flag) onReveal(r.flag); setMsg(r) }
   return (
     <div>
-      <div className="text-[11.5px] text-white/55 mb-1.5">Форма входа. Пароль не менялся с установки — попробуй типовые/дефолтные учётки (admin/admin, admin/password, admin/123456...).</div>
-      <input value={u} onChange={e => setU(e.target.value)} placeholder="логин" className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
-      <input value={p} onChange={e => setP(e.target.value)} placeholder="пароль" className={`w-full mb-2 px-2.5 py-2 rounded ${mono}`} style={inp} />
-      <button onClick={go} className="px-4 py-2 rounded font-bold text-[12.5px]" style={{ background: '#2d7bf0', color: '#fff' }}>Войти</button>
+      <div className="text-[13px] leading-[1.5] text-gray mb-2">Форма входа. Пароль не менялся с установки — попробуй типовые/дефолтные учётки (admin/admin, admin/password, admin/123456...).</div>
+      <input value={u} onChange={e => setU(e.target.value)} placeholder="логин" className={`w-full mb-2 px-2.5 py-2 ${mono}`} style={inp} />
+      <input value={p} onChange={e => setP(e.target.value)} placeholder="пароль" className={`w-full mb-2 px-2.5 py-2 ${mono}`} style={inp} />
+      <button onClick={go} className="h-9 px-4 rounded-[11px] bg-green text-ink font-semibold text-[13px]">Войти</button>
       {msg && <div className={`${mono} p-2.5 rounded-lg mt-2`} style={{ background: '#0d0f13', border: '1px solid rgba(255,255,255,.08)', color: msg.ok ? '#6effa0' : '#ff9a9a' }}>{msg.ok ? '✓ Вход выполнен!' : '✗ Неверная пара логин/пароль'}</div>}
     </div>
   )
