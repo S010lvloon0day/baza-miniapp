@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import CourseIcon from '../../components/CourseIcon'
+import Icon from '../../components/Icon'
 import Syllabus from '../../components/course/Syllabus'
 import { CenterLoader, CourseButton, ErrorNote, MonoLabel, ProgressBar, StarRow } from '../../components/course/ui'
 import { useIsWide } from '../../hooks/useMediaQuery'
@@ -42,7 +43,7 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
 
   useRubPayment(rubTx, status => {
     setRubTx(null)
-    if (status === 'paid') { setMsg('✅ Оплата получена, открываю курс…'); setTimeout(onPurchased, 1200) }
+    if (status === 'paid') { setMsg('Оплата получена, открываю курс…'); setTimeout(onPurchased, 1200) }
     else setMsg('Оплата не прошла или отменена. Можно попробовать ещё раз.')
   })
 
@@ -63,7 +64,7 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
     try {
       const r = await coursesApi.starsInvoice(course.id)
       const done = (status: string) => {
-        if (status === 'paid') { setMsg('✅ Оплата получена, открываю курс…'); setTimeout(onPurchased, 1500) }
+        if (status === 'paid') { setMsg('Оплата получена, открываю курс…'); setTimeout(onPurchased, 1500) }
         else if (status === 'failed') setMsg('Оплата не прошла. Попробуй ещё раз.')
       }
       if (tg?.openInvoice) tg.openInvoice(r.link, done)
@@ -85,97 +86,81 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
   }
 
   return (
-    <div className="flex flex-col items-center text-center" style={{ padding: '20px 4px 0' }}>
-      <div
-        className="flex items-center justify-center"
-        style={{
-          width: 88, height: 88, borderRadius: '50%', marginBottom: 20,
-          background: 'radial-gradient(circle,rgba(34,197,94,.28),transparent 68%)',
-          boxShadow: '0 0 34px rgba(34,197,94,.35)', color: '#4AE885',
-        }}
-      >
-        <CourseIcon icon={course.icon} size={40} />
+    <div className="flex flex-col items-center text-center pt-4">
+      <div className="card-gold w-full max-w-[520px] px-5 pt-7 pb-5 flex flex-col items-center mb-4">
+        <div className="gold-metal sheen w-[76px] h-[76px] rounded-[24px] grid place-items-center mb-4 text-[#3A2300]">
+          <span className="relative z-[1]"><CourseIcon icon={course.icon} size={36} /></span>
+        </div>
+        <span className="text-[12.5px] font-semibold text-gold mb-1.5">Авторский курс</span>
+        <h1 className="font-display font-semibold text-[20px] leading-tight mb-2" style={{ textWrap: 'balance' } as React.CSSProperties}>{course.title}</h1>
+        {course.description && (
+          <p className="text-[14px] text-gray leading-relaxed max-w-[340px]">{course.description}</p>
+        )}
       </div>
 
-      <div style={{ fontSize: 19, fontWeight: 800, marginBottom: 8 }}>{course.title}</div>
-      <div style={{ fontSize: 13, color: '#9a9aa2', lineHeight: 1.6, maxWidth: 320, marginBottom: 18 }}>
-        {course.description}
-      </div>
-
-      <div
-        className="w-full flex flex-col text-left"
-        style={{ gap: 10, padding: 16, border: '1px solid rgba(255,255,255,.08)', borderRadius: 16, background: '#101014', marginBottom: 18, maxWidth: 520 }}
-      >
-        <div className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1.2px', color: '#7a7a83' }}>
-          Что внутри
+      <div className="list-group w-full max-w-[520px] text-left mb-4">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Icon name="sections" size={18} className="text-gray shrink-0" />
+          <span className="text-[14px] text-fg/90">{course.chapters.filter(c => !c.is_exam).length} глав · {course.steps_count} шагов</span>
         </div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)' }}>
-          {course.chapters.filter(c => !c.is_exam).length} глав · {course.steps_count} шагов
-        </div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,.8)' }}>
-          Теория и задачи вперемешку, в конце — финальный экзамен
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Icon name="test" size={18} className="text-gray shrink-0" />
+          <span className="text-[14px] text-fg/90">Теория и задачи, в конце финальный экзамен</span>
         </div>
         {course.reviews_count > 0 && (
-          <div className="flex items-center" style={{ gap: 7 }}>
-            <StarRow value={course.rating} size={13} />
-            <span style={{ fontSize: 12, color: '#8a8a93' }}>
-              {course.rating.toFixed(1)} · {course.reviews_count} отзывов
-            </span>
+          <div className="flex items-center gap-3 px-4 py-3">
+            <StarRow value={course.rating} size={15} />
+            <span className="text-[13.5px] text-gray tabular-nums">{course.rating.toFixed(1)} · {course.reviews_count} отзывов</span>
           </div>
         )}
       </div>
 
-      {msg && <ErrorNote>{msg}</ErrorNote>}
+      {msg && <div className="w-full max-w-[520px]"><ErrorNote>{msg}</ErrorNote></div>}
 
-      <div className="w-full" style={{ maxWidth: 520 }}>
+      <div className="w-full max-w-[520px]">
         {!invoice ? (
           (() => {
             const methods = [
-              course.rub ? { key: 'rub', label: 'СБП · банковским приложением', amount: fmtRub(course.rub), color: '#4AE885', onClick: buyRub } : null,
-              { key: 'crypto', label: 'Криптовалюта', amount: `${course.price} USDT`, color: '#ffffff', onClick: buy },
-              course.stars ? { key: 'stars', label: 'Telegram Stars', amount: `${course.stars}⭐`, color: '#E8B84A', onClick: buyStars } : null,
-            ].filter(Boolean) as { key: string; label: string; amount: string; color: string; onClick: () => void }[]
+              course.rub ? { key: 'rub', label: 'СБП', sub: 'банковским приложением', icon: 'card' as const, amount: fmtRub(course.rub), onClick: buyRub } : null,
+              course.stars ? { key: 'stars', label: 'Telegram Stars', sub: 'оплата в Telegram', icon: 'stars' as const, amount: `${course.stars} Stars`, onClick: buyStars } : null,
+              { key: 'crypto', label: 'Криптовалюта', sub: 'USDT через CryptoBot', icon: 'coin' as const, amount: `${course.price} USDT`, onClick: buy },
+            ].filter(Boolean) as { key: string; label: string; sub: string; icon: 'card' | 'stars' | 'coin'; amount: string; onClick: () => void }[]
             const primary = course.rub ? fmtRub(course.rub) : `${course.price} USDT`
             return (
               <div className="flex flex-col">
-                <button
-                  disabled={busy}
-                  onClick={() => setPayOpen(o => !o)}
-                  aria-expanded={payOpen}
-                  className="w-full rounded-xl text-[14px] font-extrabold text-black disabled:opacity-50 transition-transform duration-150 active:-translate-y-0.5 flex items-center justify-center gap-2"
-                  style={{ padding: 14, background: 'linear-gradient(180deg,#4AE885,#22C55E)', boxShadow: '0 6px 20px rgba(34,197,94,.3)' }}
-                >
-                  {busy ? 'Открываю…' : <>Купить · {primary}
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3}
-                      strokeLinecap="round" strokeLinejoin="round"
-                      style={{ transform: payOpen ? 'rotate(180deg)' : 'none', transition: 'transform .18s' }}>
-                      <path d="M6 9l6 6 6-6" />
-                    </svg></>}
+                <button disabled={busy} onClick={() => setPayOpen(o => !o)} aria-expanded={payOpen}
+                  className="btn-gold gold-metal sheen w-full disabled:opacity-60">
+                  <b>{busy ? 'Открываю оплату…' : `Купить курс · ${primary}`}</b>
+                  <small className="inline-flex items-center gap-1">Выбрать способ оплаты <Icon name="chevD" size={12} className={`transition-transform ${payOpen ? 'rotate-180' : ''}`} /></small>
                 </button>
                 <AnimatePresence initial={false}>
                   {payOpen && !busy && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.18 }} className="overflow-hidden">
-                      <div className="flex flex-col gap-1.5 mt-2">
+                      <div className="list-group mt-2.5">
                         {methods.map(m => (
                           <button key={m.key} onClick={() => { setPayOpen(false); m.onClick() }}
-                            className="w-full flex items-center gap-3 rounded-xl text-left active:-translate-y-0.5 transition-transform duration-150"
-                            style={{ padding: '12px 14px', border: '1px solid rgba(255,255,255,.1)', background: '#101014' }}>
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: m.color, boxShadow: `0 0 8px ${m.color}` }} />
-                            <span className="flex-1 text-[13.5px] font-semibold text-white">{m.label}</span>
-                            <span className="text-[13.5px] font-bold" style={{ color: m.color === '#ffffff' ? '#e4e4e8' : m.color }}>{m.amount}</span>
+                            className="w-full flex items-center gap-3 text-left px-4 py-3 active:bg-white/[.04]">
+                            <span className={`w-9 h-9 rounded-[11px] grid place-items-center shrink-0 ${m.key === 'stars' ? 'bg-gold/15 text-gold' : 'bg-white/[.06] text-fg'}`}>
+                              <Icon name={m.icon} size={18} accent="current" />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-[14.5px] font-medium text-fg">{m.label}</span>
+                              <span className="block text-[12.5px] text-gray">{m.sub}</span>
+                            </span>
+                            <span className="text-[14px] font-semibold text-fg tabular-nums">{m.amount}</span>
                           </button>
                         ))}
                       </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
-                <div className="mt-2" style={{ fontSize: 11, color: '#6a6a75' }}>Разовая покупка, курс остаётся у вас навсегда. Premium-подписка этот курс не открывает.</div>
+                <div className="mt-3 text-[12.5px] text-gray2 leading-snug">Разовая покупка: курс остаётся у вас навсегда. Подписка Premium этот курс не открывает.</div>
               </div>
             )
           })()
         ) : (
-          <div className="flex flex-col" style={{ gap: 9 }}>
+          <div className="flex flex-col gap-2.5">
             <CourseButton onClick={check} disabled={busy}>Проверить оплату</CourseButton>
             <CourseButton onClick={buy} variant="ghost" disabled={busy}>Открыть счёт снова</CourseButton>
           </div>
@@ -222,26 +207,22 @@ function ReviewsBlock({ courseId, canReviewHint }: { courseId: number; canReview
   }
 
   return (
-    <div style={{ marginTop: 26 }}>
-      <div className="flex items-center justify-between" style={{ marginBottom: 12 }}>
-        <span className="uppercase font-mono" style={{ fontSize: 11, letterSpacing: '1.5px', color: '#8a8a93' }}>
-          ОТЗЫВЫ
-        </span>
+    <div className="mt-7">
+      <div className="flex items-center justify-between mb-3 px-0.5">
+        <h2 className="font-display font-semibold text-[16px]">Отзывы</h2>
         {count > 0 && (
-          <span className="flex items-center" style={{ gap: 6 }}>
-            <StarRow value={rating} size={13} />
-            <span style={{ fontSize: 11, color: '#8a8a93' }}>{rating.toFixed(1)} · {count}</span>
+          <span className="flex items-center gap-1.5">
+            <StarRow value={rating} size={14} />
+            <span className="text-[13px] text-gray tabular-nums">{rating.toFixed(1)} · {count}</span>
           </span>
         )}
       </div>
 
       {canReview && (
-        <div style={{ border: '1px solid rgba(34,197,94,.25)', borderRadius: 16, background: '#101014', padding: 16, marginBottom: 14 }}>
-          <div className="uppercase" style={{ fontSize: 10, fontWeight: 700, letterSpacing: '1px', color: '#7a7a83', marginBottom: 10 }}>
-            {saved ? 'Ваш отзыв' : 'Оцените курс'}
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <StarRow value={myRating} size={24} onChange={v => { setMyRating(v); setSaved(false) }} />
+        <div className="card-gold p-4 mb-3.5">
+          <div className="font-display font-semibold text-[14px] mb-2.5">{saved ? 'Ваш отзыв' : 'Оцените курс'}</div>
+          <div className="mb-3">
+            <StarRow value={myRating} size={28} onChange={v => { setMyRating(v); setSaved(false) }} />
           </div>
           <textarea
             value={myText}
@@ -249,43 +230,30 @@ function ReviewsBlock({ courseId, canReviewHint }: { courseId: number; canReview
             placeholder="Что понравилось, что можно улучшить"
             rows={3}
             maxLength={1000}
-            style={{
-              width: '100%', boxSizing: 'border-box', padding: '10px 12px',
-              border: '1px solid rgba(255,255,255,.1)', borderRadius: 11,
-              background: '#0D0D11', color: '#fff', fontSize: 13, outline: 'none', resize: 'vertical',
-              fontFamily: 'inherit', marginBottom: 10,
-            }}
+            className="w-full px-3.5 py-3 mb-3 rounded-[14px] bg-black/25 border border-white/[.08] text-fg text-[14.5px] outline-none resize-y placeholder:text-gray2 focus:border-gold/50"
           />
-          <CourseButton onClick={submit} disabled={busy || !myRating || saved} style={{ padding: 12, fontSize: 13 }}>
+          <CourseButton onClick={submit} disabled={busy || !myRating || saved}>
             {saved ? 'Отзыв сохранён' : 'Отправить отзыв'}
           </CourseButton>
         </div>
       )}
 
       {reviews.length === 0 ? (
-        <div style={{ fontSize: 12, color: '#6a6a75' }}>
+        <div className="text-[13.5px] text-gray px-0.5">
           {canReview ? 'Ваш отзыв будет первым.' : 'Отзывы появятся после того, как курс пройдут ученики.'}
         </div>
       ) : (
-        <div className="flex flex-col" style={{ gap: 9 }}>
+        <div className="flex flex-col gap-2.5">
           {reviews.map((r, i) => (
-            <div
-              key={i}
-              style={{
-                border: `1px solid ${r.mine ? 'rgba(34,197,94,.3)' : 'rgba(255,255,255,.08)'}`,
-                borderRadius: 14, background: '#101014', padding: '13px 15px',
-              }}
-            >
-              <div className="flex items-center justify-between" style={{ marginBottom: 6 }}>
-                <span style={{ fontSize: 12.5, fontWeight: 800 }}>
-                  {r.author || 'Ученик'}{r.mine ? ' · вы' : ''}
+            <div key={i} className={`rounded-[18px] bg-s1 px-4 py-3.5 border ${r.mine ? 'border-green/30' : 'border-white/[.07]'}`}>
+              <div className="flex items-center justify-between gap-3 mb-1.5">
+                <span className="text-[14px] font-semibold truncate">
+                  {r.author || 'Ученик'}{r.mine ? <span className="text-gray font-normal"> · вы</span> : ''}
                 </span>
-                <StarRow value={r.rating} size={12} />
+                <StarRow value={r.rating} size={13} />
               </div>
               {r.text && (
-                <div style={{ fontSize: 12.5, color: '#9a9aa2', lineHeight: 1.55, whiteSpace: 'pre-line' }}>
-                  {r.text}
-                </div>
+                <div className="text-[14px] text-fg/80 leading-[1.55] whitespace-pre-line">{r.text}</div>
               )}
             </div>
           ))}
@@ -313,7 +281,7 @@ export default function CourseDetailPage({ courseId, onStart }: Props) {
   if (loading) return <CenterLoader />
   if (!course) {
     return (
-      <div className="flex-1 flex items-center justify-center px-6 text-center" style={{ fontSize: 13, color: '#6a6a75' }}>
+      <div className="flex-1 flex items-center justify-center px-6 text-center text-[14px] text-gray">
         Курс недоступен.
       </div>
     )
@@ -336,46 +304,39 @@ export default function CourseDetailPage({ courseId, onStart }: Props) {
         style={isWide ? { maxWidth: 900, display: 'grid', gridTemplateColumns: '1fr 380px', gap: 24, alignItems: 'start' } : undefined}
       >
         <div>
-          <div
-            style={{
-              border: '1px solid rgba(34,197,94,.25)', borderRadius: 18,
-              background: 'radial-gradient(120% 100% at 0% 0%, rgba(34,197,94,.1), transparent 60%), #0D0D11',
-              padding: 18, marginBottom: 18,
-            }}
-          >
-            <div className="flex items-center" style={{ gap: 8, marginBottom: 8 }}>
-              <span
-                className="uppercase"
-                style={{ fontSize: 9, fontWeight: 700, letterSpacing: '.5px', color: '#8a8a93', background: 'rgba(255,255,255,.06)', borderRadius: 6, padding: '2px 8px' }}
-              >
-                {course.level}
-              </span>
+          <div className="card-hero p-5 mb-6">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-white/[.09] text-[11.5px] font-medium text-fg/85">{course.level}</span>
               {course.reviews_count > 0 && (
-                <span className="flex items-center" style={{ gap: 5 }}>
-                  <StarRow value={course.rating} size={11} />
-                  <span style={{ fontSize: 10.5, color: '#8a8a93' }}>{course.rating.toFixed(1)}</span>
+                <span className="flex items-center gap-1">
+                  <StarRow value={course.rating} size={13} />
+                  <span className="text-[12.5px] text-gray tabular-nums">{course.rating.toFixed(1)}</span>
                 </span>
               )}
             </div>
 
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 6 }}>{course.title}</div>
+            <h1 className="font-display font-semibold text-[21px] leading-tight mb-2" style={{ textWrap: 'balance' } as React.CSSProperties}>{course.title}</h1>
             {course.description && (
-              <div style={{ fontSize: 12.5, color: '#9a9aa2', lineHeight: 1.55, marginBottom: 14 }}>{course.description}</div>
+              <p className="text-[14px] text-gray leading-relaxed mb-4">{course.description}</p>
             )}
 
-            <ProgressBar percent={course.percent} />
-            <div className="font-mono" style={{ fontSize: 10, color: '#6a6a75', margin: '6px 0 14px' }}>
-              {course.percent}% · решено {course.steps_solved} из {course.steps_count} шагов
+            <div className="flex items-center justify-between text-[13px] mb-2">
+              <span className="text-fg/85">Решено {course.steps_solved} из {course.steps_count} шагов</span>
+              <span className="font-display font-semibold text-green tabular-nums">{course.percent}%</span>
             </div>
+            <ProgressBar percent={course.percent} />
 
-            <CourseButton onClick={onStart}>
-              {course.completed ? 'Повторить курс' : started ? 'Продолжить обучение' : 'Начать обучение'}
-            </CourseButton>
+            <div className="mt-4">
+              <CourseButton onClick={onStart}>
+                <Icon name="play" size={15} accent="current" />
+                {course.completed ? 'Повторить курс' : started ? 'Продолжить обучение' : 'Начать обучение'}
+              </CourseButton>
+            </div>
           </div>
 
           {!isWide && (
             <>
-              <MonoLabel>ПРОГРАММА КУРСА</MonoLabel>
+              <MonoLabel>Программа курса</MonoLabel>
               <Syllabus chapters={course.chapters} onSelect={onStart} expandAll={false} />
             </>
           )}
@@ -385,7 +346,7 @@ export default function CourseDetailPage({ courseId, onStart }: Props) {
 
         {isWide && (
           <div>
-            <MonoLabel>ПРОГРАММА КУРСА</MonoLabel>
+            <MonoLabel>Программа курса</MonoLabel>
             <Syllabus chapters={course.chapters} onSelect={onStart} expandAll />
           </div>
         )}

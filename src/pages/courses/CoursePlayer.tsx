@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Icon from '../../components/Icon'
 import StepBar from '../../components/course/StepBar'
 import Syllabus from '../../components/course/Syllabus'
 import LessonContent, { stepKindLabel } from '../../components/course/LessonContent'
@@ -21,14 +22,14 @@ function LessonMedia({ type, url }: { type: string; url: string }) {
     overflow: 'hidden' as const,
     marginBottom: 16,
     aspectRatio: type === 'video' ? '16/9' : '4/3',
-    background: '#0D0D11',
+    background: '#0B1410',
   }
 
   if (!url) {
     return (
       <div className="flex items-center justify-center" style={frame}>
-        <span className="font-mono" style={{ fontSize: 11, color: '#4a4a52' }}>
-          {type === 'video' ? 'видео не добавлено' : 'изображение не добавлено'}
+        <span className="text-[13px] text-gray2">
+          {type === 'video' ? 'Видео не добавлено' : 'Изображение не добавлено'}
         </span>
       </div>
     )
@@ -100,33 +101,34 @@ function TaskStep({ courseId, step, onResult }: TaskProps) {
 
   return (
     <>
-      <div className="font-mono" style={{ fontSize: 10, color: '#5c8a6e', marginBottom: 8 }}>
-        Задача{step.multi ? ' · несколько ответов' : ''}
-        {step.attempts > 0 && ` · попыток: ${step.attempts}`}
+      <div className="flex items-center gap-2 mb-2 text-[12.5px] text-gray">
+        <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-purple/15 text-violet font-medium"><Icon name="test" size={13} accent="current" />Задача</span>
+        {step.multi && <span>несколько ответов</span>}
+        {step.attempts > 0 && <span className="tabular-nums">попыток: {step.attempts}</span>}
       </div>
-      <div style={{ fontSize: 17, fontWeight: 800, lineHeight: 1.4, marginBottom: 18 }}>{step.text}</div>
+      <div className="font-display font-semibold text-[17px] leading-[1.4] mb-4">{step.text}</div>
 
-      <div className="flex flex-col" style={{ gap: 9, marginBottom: 20 }}>
+      <div className="flex flex-col gap-2 mb-5">
         {step.options.map(o => {
           const isSelected = selected.includes(o.id)
           const isCorrectOpt = verdict === 'correct' && correctIds.includes(o.id)
           const isWrongPick = verdict === 'wrong' && isSelected
 
-          let borderColor = 'rgba(255,255,255,.1)'
-          let bg = '#101014'
-          let textColor = '#e4e4e8'
-          let markBg = 'transparent'
-          let markBorder = 'rgba(255,255,255,.25)'
+          let borderColor = 'rgba(255,255,255,.07)'
+          let bg = '#111C17'
+          let textColor = '#F2F4F3'
+          let markBg = 'rgba(255,255,255,.06)'
+          let markBorder = 'rgba(255,255,255,.18)'
 
           if (!verdict && isSelected) {
-            borderColor = 'rgba(34,197,94,.5)'; bg = 'rgba(34,197,94,.08)'
-            markBg = '#4AE885'; markBorder = '#4AE885'
+            borderColor = 'rgba(23,229,132,.55)'; bg = 'rgba(23,229,132,.10)'
+            markBg = '#17E584'; markBorder = '#17E584'
           } else if (isCorrectOpt) {
-            borderColor = 'rgba(34,197,94,.5)'; bg = 'rgba(34,197,94,.1)'
-            markBg = '#4AE885'; markBorder = '#4AE885'; textColor = '#4AE885'
+            borderColor = 'rgba(23,229,132,.55)'; bg = 'rgba(23,229,132,.12)'
+            markBg = '#17E584'; markBorder = '#17E584'; textColor = '#4BF5A8'
           } else if (isWrongPick) {
-            borderColor = 'rgba(255,103,103,.5)'; bg = 'rgba(255,103,103,.08)'
-            markBg = '#ff6767'; markBorder = '#ff6767'; textColor = '#ff9a9a'
+            borderColor = 'rgba(255,107,107,.5)'; bg = 'rgba(255,107,107,.10)'
+            markBg = '#FF6B6B'; markBorder = '#FF6B6B'; textColor = '#FF9A9A'
           }
 
           return (
@@ -140,7 +142,7 @@ function TaskStep({ courseId, step, onResult }: TaskProps) {
               className="flex items-center text-left w-full"
               style={{
                 gap: 12, padding: '13px 14px',
-                border: `1px solid ${borderColor}`, borderRadius: 13, background: bg,
+                border: `1px solid ${borderColor}`, borderRadius: 16, background: bg,
                 cursor: verdict ? 'default' : 'pointer',
                 transition: 'border-color .15s ease, background .15s ease',
               }}
@@ -148,24 +150,19 @@ function TaskStep({ courseId, step, onResult }: TaskProps) {
               <span
                 className="flex items-center justify-center shrink-0"
                 style={{
-                  width: 20, height: 20,
-                  borderRadius: step.multi ? 6 : '50%',
+                  width: 22, height: 22,
+                  borderRadius: step.multi ? 7 : '50%',
                   border: `1.5px solid ${markBorder}`, background: markBg,
                 }}
               >
                 {(isSelected || isCorrectOpt) && verdict !== 'wrong' && (
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0A0A0D" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <Icon name="check" size={14} strokeWidth={2.6} className="text-ink" />
                 )}
                 {isWrongPick && (
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3} strokeLinecap="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <Icon name="close" size={12} strokeWidth={2.6} className="text-[#2A0606]" />
                 )}
               </span>
-              <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: textColor }}>{o.text}</span>
+              <span style={{ flex: 1, color: textColor }} className="text-[14.5px] leading-[1.45]">{o.text}</span>
             </button>
           )
         })}
@@ -174,18 +171,11 @@ function TaskStep({ courseId, step, onResult }: TaskProps) {
       {error && <ErrorNote>{error}</ErrorNote>}
 
       {verdict && (
-        <div
-          style={{
-            padding: '13px 14px', borderRadius: 13, marginBottom: 14,
-            border: `1px solid ${verdict === 'correct' ? 'rgba(34,197,94,.4)' : 'rgba(255,103,103,.4)'}`,
-            background: verdict === 'correct' ? 'rgba(34,197,94,.1)' : 'rgba(255,103,103,.1)',
-            color: verdict === 'correct' ? '#4AE885' : '#ff9a9a',
-            fontSize: 13, fontWeight: 700,
-          }}
-        >
+        <div className={`flex items-center gap-2 px-4 py-3 rounded-[16px] mb-3.5 text-[14px] font-semibold border ${verdict === 'correct' ? 'border-green/35 bg-green/[.10] text-green' : 'border-[#FF6B6B]/35 bg-[#FF6B6B]/[.10] text-[#FF9A9A]'}`}>
+          <Icon name={verdict === 'correct' ? 'checkCircle' : 'warnCircle'} size={18} accent="current" className="shrink-0" />
           {verdict === 'correct'
-            ? '✓ Верно!'
-            : '✕ Неверно. Можно решить снова или вернуться к задаче позже.'}
+            ? 'Верно'
+            : 'Неверно. Можно решить снова или вернуться к задаче позже.'}
         </div>
       )}
 
@@ -319,7 +309,7 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
   if (loading) return <CenterLoader />
   if (!course || !chapter || !step) {
     return (
-      <div className="flex-1 flex items-center justify-center px-6 text-center" style={{ fontSize: 13, color: '#6a6a75' }}>
+      <div className="flex-1 flex items-center justify-center px-6 text-center text-[14px] text-gray">
         В курсе пока нет шагов.
       </div>
     )
@@ -330,12 +320,12 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
 
   const content = (
     <div ref={scrollRef} className="flex-1 overflow-y-auto pb-navsafe px-4 pt-4">
-      <div className="flex items-center justify-between" style={{ marginBottom: 10, gap: 10 }}>
-        <span className="font-mono truncate" style={{ fontSize: 10.5, color: '#8a8a93' }}>
+      <div className="flex items-center justify-between gap-2.5 mb-3">
+        <span className="truncate text-[13px] text-gray">
           {chapter.is_exam ? '' : `Глава ${chapterIdx + 1} · `}{chapter.title}
         </span>
-        <span className="font-mono shrink-0" style={{ fontSize: 10, color: '#6a6a75' }}>
-          {flatIndex + 1} / {totalSteps}
+        <span className="shrink-0 text-[12.5px] text-gray2 tabular-nums">
+          {flatIndex + 1} из {totalSteps}
         </span>
       </div>
 
@@ -343,18 +333,18 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
 
       {step.kind === 'lesson' ? (
         <>
-          <div className="font-mono" style={{ fontSize: 10, color: '#5c8a6e', marginBottom: 8 }}>
-            {stepKindLabel(step.title)}
-          </div>
-          <div style={{ fontSize: 19, fontWeight: 800, lineHeight: 1.35, marginBottom: 16 }}>{step.title}</div>
+          <span className="inline-flex items-center gap-1.5 h-6 px-2.5 mb-2.5 rounded-full bg-green/15 text-green text-[12.5px] font-medium">
+            <Icon name="lesson" size={13} accent="current" />{stepKindLabel(step.title)}
+          </span>
+          <h1 className="font-display font-semibold text-[20px] leading-[1.3] mb-4" style={{ textWrap: 'balance' } as React.CSSProperties}>{step.title}</h1>
           {lessonCache[step.id] ? (
             <>
               <LessonMedia type={step.type} url={lessonCache[step.id].media_url} />
               <LessonContent text={lessonCache[step.id].content} />
             </>
           ) : (
-            <div className="font-mono" style={{ fontSize: 11, color: '#4a4a52', marginBottom: 26 }}>
-              {lessonLoading ? 'загружаем…' : 'текст недоступен'}
+            <div className="text-[14px] text-gray2 mb-6">
+              {lessonLoading ? 'Загружаем…' : 'Текст недоступен'}
             </div>
           )}
         </>
@@ -370,33 +360,26 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
       )}
 
       {justCompleted && (
-        <div
-          className="text-center"
-          style={{
-            marginTop: 18, padding: '18px 16px', borderRadius: 16,
-            border: '1px solid rgba(34,197,94,.4)', background: 'rgba(34,197,94,.08)',
-          }}
-        >
-          <div style={{ fontFamily: "'Anton', sans-serif", fontSize: 20, textTransform: 'uppercase', marginBottom: 6 }}>
-            Курс пройден!
+        <div className="card-gold mt-5 px-5 pt-6 pb-5 text-center flex flex-col items-center">
+          <div className="gold-metal sheen w-14 h-14 rounded-[18px] grid place-items-center mb-3 text-[#3A2300]">
+            <span className="relative z-[1]"><Icon name="trophy" size={26} accent="#3A2300" /></span>
           </div>
-          <div style={{ fontSize: 12.5, color: '#9a9aa2', lineHeight: 1.5, marginBottom: 12 }}>
-            Все задачи решены. Оставьте отзыв — он появится на странице курса.
+          <div className="font-display font-semibold text-[19px] mb-1.5">Курс пройден</div>
+          <div className="text-[14px] text-gray leading-relaxed mb-4 max-w-[300px]">
+            Все задачи решены. Оставьте отзыв, он появится на странице курса.
           </div>
-          <CourseButton onClick={onExit} style={{ padding: 12, fontSize: 13 }}>
-            Оставить отзыв
-          </CourseButton>
+          <CourseButton onClick={onExit}>Оставить отзыв</CourseButton>
         </div>
       )}
 
-      <div className="flex" style={{ gap: 10, marginTop: 22 }}>
+      <div className="flex gap-2.5 mt-6">
         {(stepIdx > 0 || chapterIdx > 0) && (
-          <CourseButton variant="ghost" onClick={goPrev} style={{ flex: 1, padding: 14 }}>Назад</CourseButton>
+          <CourseButton variant="ghost" onClick={goPrev} style={{ flex: 1 }}><Icon name="chevL" size={18} />Назад</CourseButton>
         )}
         {!isLastStep ? (
-          <CourseButton onClick={goNext} style={{ flex: 2, padding: 14 }}>Далее</CourseButton>
+          <CourseButton onClick={goNext} style={{ flex: 2 }}>Далее<Icon name="chevR" size={18} strokeWidth={2.2} /></CourseButton>
         ) : (
-          <CourseButton variant="ghost" onClick={onExit} style={{ flex: 2, padding: 14 }}>К странице курса</CourseButton>
+          <CourseButton variant="ghost" onClick={onExit} style={{ flex: 2 }}>К странице курса</CourseButton>
         )}
       </div>
     </div>
@@ -408,13 +391,13 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
       <div className="flex-1 flex overflow-hidden">
         <aside
           className="overflow-y-auto shrink-0"
-          style={{ width: 320, borderRight: '1px solid rgba(255,255,255,.08)', padding: '16px 14px 90px' }}
+          style={{ width: 320, borderRight: '1px solid rgba(255,255,255,.07)', padding: '16px 14px 90px' }}
         >
-          <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 6 }}>{course.title}</div>
-          <div className="font-mono" style={{ fontSize: 10, color: '#6a6a75', marginBottom: 8 }}>
-            {course.percent}% · {course.steps_solved} / {course.steps_count} шагов
+          <div className="font-display font-semibold text-[15px] mb-1.5">{course.title}</div>
+          <div className="text-[12.5px] text-gray mb-2 tabular-nums">
+            {course.percent}% · {course.steps_solved} из {course.steps_count} шагов
           </div>
-          <div style={{ marginBottom: 16 }}><ProgressBar percent={course.percent} /></div>
+          <div className="mb-4"><ProgressBar percent={course.percent} /></div>
           <Syllabus chapters={chapters} activeChapter={chapterIdx} activeStep={stepIdx} onSelect={goTo} expandAll />
         </aside>
         <div className="flex-1 flex flex-col overflow-hidden">
@@ -428,23 +411,17 @@ export default function CoursePlayer({ courseId, onExit }: Props) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="px-4 pt-3" style={{ paddingBottom: 4 }}>
+      <div className="px-4 pt-3 pb-1">
         <button
           type="button"
           onClick={() => setNavOpen(v => !v)}
-          className="w-full flex items-center"
-          style={{
-            gap: 9, padding: '9px 12px', borderRadius: 12,
-            border: '1px solid rgba(255,255,255,.1)', background: '#101014', cursor: 'pointer',
-          }}
+          className="w-full flex items-center gap-2.5 h-11 px-3.5 rounded-[14px] bg-s1 border border-white/[.07] active:bg-s2"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8a8a93" strokeWidth={2.2} strokeLinecap="round">
-            <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="14" y2="17" />
-          </svg>
-          <span className="flex-1 text-left truncate" style={{ fontSize: 12, fontWeight: 700, color: '#fff' }}>
-            {course.title}
+          <Icon name={navOpen ? 'close' : 'sections'} size={17} className="text-gray" />
+          <span className="flex-1 text-left truncate text-[14px] font-medium text-fg">
+            {navOpen ? 'Закрыть программу' : course.title}
           </span>
-          <span className="font-mono" style={{ fontSize: 10, color: '#4AE885' }}>{course.percent}%</span>
+          <span className="text-[12.5px] font-semibold text-green tabular-nums">{course.percent}%</span>
         </button>
       </div>
 

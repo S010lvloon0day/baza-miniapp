@@ -197,7 +197,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               <div className="w-full mb-4"><SocialProof key={materialId} materialId={materialId} /></div>
               <button onClick={onUpgrade} className="btn-gold gold-metal sheen w-full">
                 <b>Открыть Premium</b>
-                <small>от 990 ₽ в месяц</small>
+                <small>Вся база по одной подписке</small>
               </button>
             </motion.div>
           ) : mat ? (
@@ -278,7 +278,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                       </pre>
                       {docTruncated && (
                         <div className="mt-4 pt-4 border-t border-white/[.07] flex flex-col items-center gap-3">
-                          <div className="text-[13px] text-white/70 text-center leading-snug">
+                          <div className="text-[13.5px] text-gray text-center leading-snug">
                             Файл слишком большой — открыть в мини-аппе невозможно
                           </div>
                           <TgButton prominent />

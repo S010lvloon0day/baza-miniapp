@@ -292,14 +292,14 @@ export default function MaterialSocial({ materialId }: { materialId: number }) {
       <div className="card-gold px-4 py-4 mb-6">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="font-display font-semibold text-[14px] mb-1">
+            <div className="font-display font-semibold text-[14px] mb-1 whitespace-nowrap">
               {data.my_rating ? 'Ваша оценка' : 'Оцените материал'}
             </div>
             {data.rating_count > 0
               ? <RatingBadge rating={data.rating} count={data.rating_count} />
               : <span className="text-[13px] text-gray">Будьте первым</span>}
           </div>
-          {data.can_interact && <Stars value={data.my_rating} size={24} onPick={pick} busy={rating} />}
+          {data.can_interact && <Stars value={data.my_rating} size={21} onPick={pick} busy={rating} />}
         </div>
       </div>
 
