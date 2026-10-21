@@ -93,69 +93,38 @@ function parse(text: string): Block[] {
 }
 
 const listItem = (n: string | number, body: string, ordered: boolean) => (
-  <div key={`${n}-${body.slice(0, 12)}`} className="flex" style={{ gap: 10, marginBottom: 8 }}>
-    <span
-      className={ordered ? 'font-mono' : ''}
-      style={{
-        flex: 'none', minWidth: ordered ? 18 : 12, textAlign: ordered ? 'right' : 'center',
-        color: '#4AE885', fontWeight: 700, fontSize: ordered ? 13 : 15, lineHeight: 1.7,
-      }}
-    >
-      {ordered ? `${n}.` : '•'}
-    </span>
-    <span style={{ flex: 1, fontSize: 13.5, color: '#c9c9ce', lineHeight: 1.7 }}>{body}</span>
+  <div key={`${n}-${body.slice(0, 12)}`} className="flex gap-2.5 mb-2">
+    {ordered
+      ? <span className="shrink-0 min-w-[18px] text-right text-green font-semibold text-[14px] leading-[1.65] tabular-nums">{n}.</span>
+      : <span className="shrink-0 mt-[10px] w-[6px] h-[6px] rotate-45 bg-green" />}
+    <span className="flex-1 text-[15px] text-fg/85 leading-[1.65]">{body}</span>
   </div>
 )
 
 export default function LessonContent({ text }: { text: string }) {
   const blocks = parse(text)
   return (
-    <div style={{ marginBottom: 26 }}>
+    <div className="mb-6">
       {blocks.map((b, i) => {
         if (b.type === 'section') {
-          return (
-            <div
-              key={i}
-              className="uppercase"
-              style={{ fontSize: 12, fontWeight: 800, letterSpacing: '.6px', color: '#4AE885', margin: '22px 0 12px' }}
-            >
-              {b.text}
-            </div>
-          )
+          return <h2 key={i} className="font-display font-semibold text-[17px] leading-snug text-fg mt-6 mb-3">{b.text}</h2>
         }
         if (b.type === 'subhead') {
-          return (
-            <div key={i} style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: '18px 0 8px' }}>
-              {b.text}
-            </div>
-          )
+          return <h3 key={i} className="font-semibold text-[15.5px] text-fg mt-5 mb-2">{b.text}</h3>
         }
         if (b.type === 'para') {
-          return (
-            <p key={i} style={{ fontSize: 13.5, color: '#c9c9ce', lineHeight: 1.75, margin: '0 0 14px' }}>
-              {b.text}
-            </p>
-          )
+          return <p key={i} className="text-[15px] text-fg/85 leading-[1.7] mb-3.5">{b.text}</p>
         }
         if (b.type === 'code') {
           return (
-            <pre
-              key={i}
-              className="font-mono"
-              style={{
-                margin: '0 0 14px', padding: '12px 14px',
-                background: '#0D0D11', border: '1px solid rgba(74,232,133,.18)', borderRadius: 12,
-                overflowX: 'auto', fontSize: 12, lineHeight: 1.6, color: '#8fe3ab',
-                whiteSpace: 'pre-wrap', wordBreak: 'break-word',
-              }}
-            >
+            <pre key={i} className="font-mono mb-3.5 px-3.5 py-3 rounded-[14px] bg-[#060B09] border border-white/[.07] overflow-x-auto text-[12.5px] leading-[1.6] text-fg/90 whitespace-pre-wrap break-words">
               <code>{b.lines.join('\n')}</code>
             </pre>
           )
         }
         const ordered = b.type === 'ordered'
         return (
-          <div key={i} style={{ marginBottom: 14 }}>
+          <div key={i} className="mb-3.5">
             {b.items.map((it, j) => (
               <Fragment key={j}>{listItem(ordered ? j + 1 : '•', it, ordered)}</Fragment>
             ))}

@@ -42,7 +42,6 @@ export default function StepBar({ steps, activeIdx, onSelect }: Props) {
     >
       {steps.map((step, i) => {
         const state = stepState(step, i === activeIdx)
-        const s = STYLES[state]
         return (
           <button
             key={`${step.kind}-${step.id}`}

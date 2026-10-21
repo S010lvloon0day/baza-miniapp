@@ -235,7 +235,7 @@ export default function App() {
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <LibraryPage bmTick={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
-      if (tab === 'chat')   return <ChatPage />
+      if (tab === 'chat')   return <ChatPage onBack={() => switchTab('home')} />
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} onCompete={openCompete} />
       if (tab === 'ctor') {
         if (!isAdmin) return null
@@ -314,9 +314,7 @@ export default function App() {
       if (tab === 'ctor' && ctorEditing) {
         return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={() => setCtorEditing(false)} title="Конструктор" />
       }
-      if (tab === 'chat') {
-        return <Header showBack onBack={() => switchTab('home')} title="Чат базы" fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
-      }
+      if (tab === 'chat') return null
       const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Библиотека', recent: 'История', prof: 'Профиль', ctor: 'Конструктор', chat: 'Чат базы' }
       return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
     }
