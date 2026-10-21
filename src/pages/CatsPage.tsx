@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Lock } from '@phosphor-icons/react'
+import { Lock } from '../components/icons'
 import CategoryIcon from '../components/CategoryIcon'
 import { api } from '../api/client'
 import type { Section } from '../api/client'

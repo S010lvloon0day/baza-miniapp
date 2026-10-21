@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { X } from '@phosphor-icons/react'
+import { X } from '../components/icons'
 import { api } from '../api/client'
 import type { Material } from '../api/client'
 

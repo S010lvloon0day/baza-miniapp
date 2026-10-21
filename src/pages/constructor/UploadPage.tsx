@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, TextT, Trash, CheckCircle, WarningCircle, ArrowUp, ArrowDown, MagnifyingGlass,
   SortAscending,
-} from '@phosphor-icons/react'
+} from '../../components/icons'
 import MediaTypeIcon from '../../components/MediaTypeIcon'
 import { uploadApi, uploadFile } from '../../api/upload'
 import type { AdminSection, DraftAttachment } from '../../api/upload'

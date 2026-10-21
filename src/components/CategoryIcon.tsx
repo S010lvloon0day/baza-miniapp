@@ -1,99 +1,38 @@
-import type { ReactNode } from 'react'
+import Icon from './Icon'
+import type { IconName } from './Icon'
 
 type IconKey =
-  | 'icon_book' | 'icon_card' | 'icon_search' | 'icon_unlock' | 'icon_cpu'
+  | 'icon_book' | 'icon_card' | 'icon_search' | 'icon_unlock' | 'icon_cpu' | 'icon_coin' | 'icon_terminal' | 'icon_ai'
   | 'icon_shield' | 'icon_mask' | 'icon_tool' | 'icon_box' | 'icon_monitor'
   | 'icon_flame' | 'icon_puzzle' | 'icon_code' | 'icon_question' | 'icon_folder'
 
-const SVG_PROPS = {
-  width: 17,
-  height: 17,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.8,
-  strokeLinecap: 'round' as const,
-  strokeLinejoin: 'round' as const,
-  style: { filter: 'drop-shadow(0 0 4px rgba(34,197,94,.9))' },
+const MAP: Record<IconKey, IconName> = {
+  icon_book: 'book', icon_card: 'card', icon_search: 'osint', icon_unlock: 'unlock', icon_cpu: 'ai', icon_coin: 'coin',
+  icon_terminal: 'terminal', icon_ai: 'ai', icon_shield: 'shield', icon_mask: 'mask', icon_tool: 'tool', icon_box: 'box',
+  icon_monitor: 'monitor', icon_flame: 'flame', icon_puzzle: 'puzzle', icon_code: 'code', icon_question: 'question', icon_folder: 'folder',
 }
 
-export const ICON_PATHS: Record<IconKey, ReactNode> = {
-  icon_book: (
-    <>
-      <path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15z" />
-      <path d="M8 7h8M8 11h8" />
-    </>
-  ),
-  icon_card: (
-    <>
-      <rect x="2" y="5" width="20" height="14" rx="2" />
-      <line x1="2" y1="10" x2="22" y2="10" />
-    </>
-  ),
-  icon_search: (
-    <>
-      <circle cx="11" cy="11" r="7" />
-      <line x1="21" y1="21" x2="16.6" y2="16.6" />
-    </>
-  ),
-  icon_unlock: (
-    <>
-      <rect x="4" y="11" width="16" height="10" rx="2" />
-      <path d="M8 11V7a4 4 0 0 1 7.4-2" />
-    </>
-  ),
-  icon_cpu: (
-    <>
-      <rect x="6" y="6" width="12" height="12" rx="2" />
-      <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" />
-    </>
-  ),
-  icon_shield: <path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3z" />,
-  icon_mask: (
-    <>
-      <path d="M2 10c3-2 5-2 6 0s3 2 4 0 3-2 4 0 3 2 6 0" />
-      <path d="M4 10v2a8 8 0 0 0 16 0v-2" />
-    </>
-  ),
-  icon_tool: <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z" />,
-  icon_box: (
-    <>
-      <path d="M21 8l-9-5-9 5 9 5 9-5z" />
-      <path d="M3 8v8l9 5 9-5V8" />
-      <path d="M12 13v8" />
-    </>
-  ),
-  icon_monitor: (
-    <>
-      <rect x="3" y="4" width="18" height="12" rx="2" />
-      <path d="M8 20h8M12 16v4" />
-    </>
-  ),
-  icon_flame: <path d="M12 22c4 0 6-2.7 6-6 0-3-2-4.5-3-6-.2 1.6-1 2.4-2 2-1.3-.5-1-3-1-4-3 2-5 5.3-5 8 0 3.3 2 6 5 6z" />,
-  icon_puzzle: <path d="M9 4h4a1.5 1.5 0 0 1 0 3 1.5 1.5 0 0 0 0 3h4v4a1.5 1.5 0 0 1-3 0 1.5 1.5 0 0 0-3 0v4H7a1.5 1.5 0 0 1 0-3 1.5 1.5 0 0 0 0-3H3V8a1.5 1.5 0 0 1 3 0 1.5 1.5 0 0 0 3 0V4z" />,
-  icon_code: (
-    <>
-      <polyline points="8 6 3 12 8 18" />
-      <polyline points="16 6 21 12 16 18" />
-    </>
-  ),
-  icon_question: (
-    <>
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 1-1 1.7" />
-      <line x1="12" y1="17" x2="12" y2="17.1" />
-    </>
-  ),
-  icon_folder: <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />,
+/** Совместимость со SectionPage: путь иконки по ключу. */
+export const ICON_PATHS: Record<IconKey, React.ReactNode> = Object.fromEntries(
+  (Object.keys(MAP) as IconKey[]).map(k => [k, null]),
+) as Record<IconKey, React.ReactNode>
+
+export function iconNameFor(title: string): IconName { return MAP[resolveIcon(title)] }
+
+/** Индекс цвета обложки раздела — стабильный по id/названию. */
+export function coverIndex(key: string | number): number {
+  const s = String(key); let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return h % 6
 }
 
-// Ordered, first-match-wins. Derived from the live category titles in production
-// (fetched from `sections` where parent_id IS NULL during Task 4 implementation) —
-// every current top-level title maps to a specific icon below, none fall through
-// to the icon_question fallback. New categories added later may hit the fallback
-// until their keyword is added here.
+// Ключевые слова → иконка, первое совпадение.
 const KEYWORD_TABLE: Array<[string[], IconKey]> = [
-  [['код', 'code', 'скрипт', 'script'], 'icon_code'],
+  [['код', 'code', 'скрипт', 'script', 'программ', 'python', 'разработ'], 'icon_code'],
+  [['криптовал', 'крипта', 'bitcoin', 'defi', 'кошел'], 'icon_coin'],
+  [['linux', 'линукс', 'терминал'], 'icon_terminal'],
+  [['нейросет', 'ии ', 'ai', 'gpt'], 'icon_ai'],
+  [['пентест', 'pentest'], 'icon_shield'],
   [['парол', 'crypt', 'шифр'], 'icon_unlock'],
   [['сеть', 'network', 'операционн'], 'icon_cpu'],
   [['анонимн', 'mask', 'обход'], 'icon_mask'],
@@ -114,22 +53,15 @@ export function resolveIcon(title: string): IconKey {
   for (const [keywords, icon] of KEYWORD_TABLE) {
     if (keywords.some(kw => lower.includes(kw))) return icon
   }
-  return 'icon_question'
+  return 'icon_folder'
 }
 
-export default function CategoryIcon({ title, icon: iconOverride }: { title: string; icon?: IconKey }) {
-  const icon = iconOverride ?? resolveIcon(title)
+/** Иконка раздела на нейтральной плитке. */
+export default function CategoryIcon({ title, icon: iconOverride, size = 20 }: { title: string; icon?: IconKey; size?: number }) {
+  const name = MAP[iconOverride ?? resolveIcon(title)]
   return (
-    <div
-      className="w-full h-full rounded-full flex items-center justify-center"
-      style={{
-        border: '1px solid rgba(34,197,94,.4)',
-        background: 'radial-gradient(circle, rgba(34,197,94,.35), rgba(34,197,94,.06) 68%, transparent)',
-        boxShadow: '0 0 16px rgba(34,197,94,.5), inset 0 0 8px rgba(34,197,94,.25)',
-        color: '#4AE885',
-      }}
-    >
-      <svg {...SVG_PROPS}>{ICON_PATHS[icon]}</svg>
+    <div className="w-full h-full rounded-[12px] bg-white/[.06] flex items-center justify-center text-[#CFDAD4]">
+      <Icon name={name} size={size} />
     </div>
   )
 }

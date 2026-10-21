@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Trash, CheckCircle, WarningCircle, PaperPlaneTilt, Gift } from '@phosphor-icons/react'
+import { Plus, Trash, CheckCircle, WarningCircle, PaperPlaneTilt, Gift } from '../components/icons'
 import { api } from '../api/client'
 import type { Section } from '../api/client'
 import { submitApi, uploadSubmitFile } from '../api/submit'

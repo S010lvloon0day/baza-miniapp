@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Anton&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Unbounded:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,16 +10,13 @@ html, body, #root {
   height: 100%;
   margin: 0;
   padding: 0;
-  background:
-    radial-gradient(ellipse 80% 30% at 50% 0%, rgba(255,255,255,.05) 0%, transparent 100%),
-    repeating-linear-gradient(0deg,  transparent 0px, transparent 39px, rgba(255,255,255,.018) 39px, rgba(255,255,255,.018) 40px),
-    repeating-linear-gradient(90deg, transparent 0px, transparent 39px, rgba(255,255,255,.018) 39px, rgba(255,255,255,.018) 40px),
-    #06060C;
-  color: #fff;
-  font-family: 'Montserrat', system-ui, sans-serif;
+  background: #08100D;
+  color: #F2F4F3;
+  font-family: 'Onest', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
+:root { --accent-icon: #17E584; }
 
 #root { display: flex; flex-direction: column; }
 
@@ -27,108 +24,110 @@ html, body, #root {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1c1b2e; border-radius: 1px; }
 
-.dot-glow {
-  width: 5px; height: 5px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 0 6px rgba(255,255,255,.9), 0 0 14px rgba(255,255,255,.4);
-  flex-shrink: 0;
-}
-
-.premium-surface {
-  background: linear-gradient(145deg, rgba(255,255,255,.05), rgba(255,255,255,.01));
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.07), 0 8px 32px rgba(0,0,0,.5);
-}
-
-.premium-glow {
-  box-shadow:
-    0 0 0 1px rgba(199,166,255,.2),
-    0 0 28px rgba(157,92,255,.18),
-    0 18px 50px rgba(0,0,0,.6);
-}
-
+.dot-glow { width: 6px; height: 6px; background: #17E584; border-radius: 50%; flex-shrink: 0; }
+.baza-dot-pulse, .baza-ring-pulse, .baza-flicker, .blink, .typewriter, .terminal-glow { animation: none !important; }
+.baza-grain { display: none; }
 * { -webkit-tap-highlight-color: transparent; }
-
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
-.blink { animation: blink 1.1s step-end infinite; }
-
-@keyframes termGlow {
-  0%,100% { box-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 8px 40px rgba(0,0,0,.7); }
-  50%     { box-shadow: 0 0 0 1px rgba(255,255,255,.16), 0 8px 48px rgba(0,0,0,.8), 0 0 32px rgba(255,255,255,.04); }
-}
-.terminal-glow { animation: termGlow 3.5s ease-in-out infinite; }
-
-@keyframes typewriter {
-  from { width: 0; }
-  to   { width: 100%; }
-}
-.typewriter {
-  overflow: hidden; white-space: nowrap;
-  animation: typewriter 1.2s steps(30) 0.8s both;
-}
-
-@keyframes bazaDotPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.5), 0 0 6px #22C55E; }
-  50% { box-shadow: 0 0 0 5px rgba(34,197,94,0), 0 0 10px #22C55E; }
-}
-@keyframes bazaRingPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.45), 0 0 10px rgba(34,197,94,.35); }
-  50% { box-shadow: 0 0 0 6px rgba(34,197,94,0), 0 0 16px rgba(34,197,94,.55); }
-}
-@keyframes bazaLinePulse {
-  0% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -300; }
-}
-@keyframes bazaFlicker {
-  0%, 100% { opacity: 1; }
-  42% { opacity: 1; }
-  44% { opacity: .15; }
-  46% { opacity: 1; }
-  48% { opacity: .2; }
-  50% { opacity: 1; }
-  70% { opacity: 1; }
-  71% { opacity: .1; }
-  73% { opacity: 1; }
-}
-.baza-dot-pulse { animation: bazaDotPulse 1.6s ease-in-out infinite; }
-.baza-ring-pulse { animation: bazaRingPulse 2s ease-in-out infinite; }
-.baza-flicker { animation: bazaFlicker 3s linear infinite; }
-.baza-grain {
-  position: absolute; inset: 0; pointer-events: none; opacity: .06; mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-}
 
 /* Bottom clearance for scrollable pages so trailing content (buttons, list ends)
    isn't hidden behind the fixed BottomNav — kept in sync with BottomNav's own
    padding/icon/label sizing in one place instead of duplicating the calc per page. */
-.pb-navsafe { padding-bottom: calc(env(safe-area-inset-bottom, 10px) + 104px); }
+.pb-navsafe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
 
 
-/* ── Стеклянные бордеры по всему приложению ──────────────────────────────
-   Тонкие hairline-границы карточек/панелей получают стеклянный вид:
-   чуть ярче, полупрозрачно-белые + мягкий верхний блик. Акцентные зелёные
-   бордеры (в т.ч. на :active) имеют выше специфичность и перекрывают это. */
-[class*="border-white/[.06]"],
-[class*="border-white/[.08]"],
-[class*="border-white/[.1]"] {
-  border-color: rgba(255,255,255,.14);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
-}
+/* ═════ Дизайн-система «База» ═════ */
 
-/* Универсальная стеклянная поверхность для крупных панелей. */
+/* Стекло — нижнее меню, плашка сообщения, плавающие панели. */
 .glass {
-  background:
-    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 42%),
-    rgba(18,18,24,.5);
-  backdrop-filter: blur(24px) saturate(175%);
-  -webkit-backdrop-filter: blur(24px) saturate(175%);
-  border: 1px solid rgba(255,255,255,.16);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.16),
-    inset 0 0 0 1px rgba(255,255,255,.03),
-    0 12px 34px rgba(0,0,0,.5);
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03)), rgba(16,26,21,.72);
+  -webkit-backdrop-filter: blur(30px) saturate(190%);
+  backdrop-filter: blur(30px) saturate(190%);
+  border: 1px solid rgba(255,255,255,.13);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.14), 0 10px 30px rgba(0,0,0,.45);
 }
 
+/* Карточка по умолчанию. */
+.card { background: #111C17; border: 1px solid rgba(255,255,255,.07); border-radius: 20px; }
+.card-violet {
+  background: radial-gradient(110% 120% at 100% 0%, rgba(108,76,255,.34), transparent 62%), linear-gradient(180deg, #15123A, #0F1220);
+  border: 1px solid rgba(160,135,255,.38); border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(200,184,255,.16);
+}
+.card-gold {
+  background: radial-gradient(70% 55% at 50% 30%, rgba(245,194,90,.22), transparent 70%), radial-gradient(120% 80% at 50% 0%, rgba(245,194,90,.10), transparent 60%), linear-gradient(180deg, #17140A, #0E110D);
+  border: 1px solid rgba(255,255,255,.11); border-radius: 22px;
+}
+.card-hero {
+  background: radial-gradient(120% 90% at 100% 0%, rgba(23,229,132,.34), transparent 58%), radial-gradient(90% 70% at 0% 100%, rgba(108,76,255,.30), transparent 62%), linear-gradient(180deg, #0F2A1E, #0B1712);
+  border: 1px solid rgba(255,255,255,.11); border-radius: 24px;
+}
+.list-group { background: #111C17; border: 1px solid rgba(255,255,255,.07); border-radius: 18px; overflow: hidden; }
+.list-group > * + * { border-top: 1px solid rgba(255,255,255,.07); }
+
+/* Полированное золото: Premium, авторское, рейтинг, оплата. */
+.gold-metal {
+  position: relative; overflow: hidden; color: #3A2300;
+  background: linear-gradient(115deg, #8A5A0E 0%, #E9AE3C 18%, #FFE9A8 38%, #F6C453 55%, #C8861C 78%, #FFE08A 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(90,50,0,.45), 0 4px 14px rgba(240,170,40,.28);
+}
+.sheen::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 45%; left: -70%; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.75), transparent);
+  transform: skewX(-20deg); animation: bazaSheen 3.6s ease-in-out infinite;
+}
+.sheen-d1::after { animation-delay: .8s; } .sheen-d2::after { animation-delay: 1.6s; } .sheen-d3::after { animation-delay: 2.4s; }
+@keyframes bazaSheen { 0%, 60% { left: -70%; } 100% { left: 130%; } }
+
+/* Значок Premium. */
+.pbadge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 4px; border-radius: 99px; }
+.pbadge .gem { width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; color: #FFD873;
+  background: radial-gradient(circle at 35% 30%, #4A2E05, #1E1200); box-shadow: inset 0 0 0 1px rgba(255,230,160,.35); }
+.pbadge .pt { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: .02em; color: #3A2300; text-shadow: 0 1px 0 rgba(255,240,200,.55); position: relative; z-index: 1; }
+.pbadge.sm { height: 19px; padding: 0 7px 0 3px; gap: 4px; }
+.pbadge.sm .gem { width: 14px; height: 14px; } .pbadge.sm .pt { font-size: 9.5px; }
+
+/* Кнопки. */
+.btn-primary {
+  position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; gap: 8px;
+  height: 48px; border-radius: 16px; font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 14px; color: #03200F;
+  background: linear-gradient(180deg, #3CF29E 0%, #17E584 45%, #0FBF6C 100%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), inset 0 -2px 0 rgba(0,70,35,.35), 0 8px 22px rgba(23,229,132,.24);
+  transition: transform .15s ease;
+}
+.btn-primary:active { transform: scale(.98); }
+.btn-primary:disabled { opacity: .5; }
+.btn-gold { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 56px; border-radius: 18px; }
+.btn-gold b { font-family: 'Unbounded', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: -.01em; position: relative; z-index: 1; text-shadow: 0 1px 0 rgba(255,240,200,.5); }
+.btn-gold small { font-size: 11.5px; font-weight: 500; color: rgba(46,27,0,.72); position: relative; z-index: 1; }
+.btn-secondary { display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.08); font-weight: 500; color: #F2F4F3; }
+.btn-violet { display: flex; align-items: center; justify-content: center; gap: 8px; height: 44px; border-radius: 14px; background: #7657FF; color: #fff; font-weight: 600; }
+.tile-violet { display: grid; place-items: center; border-radius: 11px; background: #7657FF; color: #fff; }
+.chip { flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 13px; border-radius: 99px; background: #111C17; border: 1px solid rgba(255,255,255,.07); font-size: 13px; color: #A6B8AE; }
+.chip.on { background: #F2F4F3; color: #08100D; border-color: #F2F4F3; font-weight: 600; }
+
+/* Обложки разделов (цвет по индексу). */
+.cover-0 { background: linear-gradient(160deg, #0E7A4C, #08291B); --cv: #9FF0C6; }
+.cover-1 { background: linear-gradient(160deg, #2F4BC4, #0F1640); --cv: #B5C4F5; }
+.cover-2 { background: linear-gradient(160deg, #B26A0E, #2E1905); --cv: #F0D29A; }
+.cover-3 { background: radial-gradient(120% 90% at 100% 0%, rgba(190,170,255,.35), transparent 55%), linear-gradient(165deg, #6447F0, #24166B 70%, #140C3D); --cv: #DCD2FF; }
+.cover-4 { background: linear-gradient(160deg, #0F6E7A, #062429); --cv: #9BE3EE; }
+.cover-5 { background: linear-gradient(160deg, #A0244A, #2E0814); --cv: #FFB3C7; }
+
+.font-display { letter-spacing: -.01em; }
+.pulse-dot { position: relative; width: 7px; height: 7px; border-radius: 50%; background: #17E584; flex-shrink: 0; }
+.pulse-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 50%; border: 1.5px solid #17E584; opacity: 0; animation: bazaPulse 1.8s ease-out infinite; }
+@keyframes bazaPulse { 0% { transform: scale(.5); opacity: .8; } 100% { transform: scale(1.4); opacity: 0; } }
+.typing-dots { display: inline-flex; gap: 3px; }
+.typing-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; animation: bazaDot 1.2s infinite; }
+.typing-dots i:nth-child(2) { animation-delay: .15s; } .typing-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes bazaDot { 0%, 60%, 100% { opacity: .3; transform: none; } 30% { opacity: 1; transform: translateY(-3px); } }
+@keyframes bazaIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+.anim-in { animation: bazaIn .45s cubic-bezier(.2,.8,.2,1) both; }
+
+:focus-visible { outline: 2px solid #17E584; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .sheen::after, .pulse-dot::after, .typing-dots i, .anim-in { animation: none !important; }
+}
 
 /* Живая волна записи голосового */
 @keyframes vbar { 0%, 100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }

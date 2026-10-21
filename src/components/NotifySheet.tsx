@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Bell, BellSlash } from '@phosphor-icons/react'
+import { X, Bell, BellSlash } from './icons'
 import { api } from '../api/client'
 
 interface Props {

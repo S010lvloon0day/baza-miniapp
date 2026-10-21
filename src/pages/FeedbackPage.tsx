@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, ChatCircle, ArrowBendDownRight, Trash, ArrowCounterClockwise, BookOpen, Warning, CheckCircle } from '@phosphor-icons/react'
+import { Star, ChatCircle, ArrowBendDownRight, Trash, ArrowCounterClockwise, BookOpen, Warning, CheckCircle } from '../components/icons'
 import { feedback, plural, social, timeAgo } from '../api/social'
 import type { FeedComment, FeedCounts, FeedItem, FeedKind, FeedRating } from '../api/social'
 import { Composer } from '../components/MaterialSocial'

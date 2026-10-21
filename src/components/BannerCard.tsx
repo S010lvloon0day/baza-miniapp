@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowRight } from '@phosphor-icons/react'
+import { ArrowRight } from './icons'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { Banner } from '../api/client'
 import { API_BASE } from '../api/client'

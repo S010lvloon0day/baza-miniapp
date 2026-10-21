@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Gift, Trash } from '@phosphor-icons/react'
+import { X, Gift, Trash } from '../../components/icons'
 import { coursesApi, CourseApiError } from '../../api/courses'
 import type { AdminMember } from '../../api/courses'
 

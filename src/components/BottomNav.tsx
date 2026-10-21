@@ -1,47 +1,11 @@
-import type { ReactNode } from 'react'
 
 export type Tab = 'home' | 'cats' | 'search' | 'favs' | 'recent' | 'prof' | 'ctor' | 'chat'
 
-const ICONS: Record<Exclude<Tab, 'search'>, ReactNode> = {
-  chat: (
-    <g fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 11.5a8.5 8.5 0 0 1-12.2 7.7L3 21l1.9-5.6A8.5 8.5 0 1 1 21 11.5z" />
-      <path d="M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01" />
-    </g>
-  ),
-  ctor: (
-    <g fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L2 19l3 3 7.3-7.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z" />
-    </g>
-  ),
-  home: <path d="M12 3.2a1 1 0 0 1 .64.23l7.5 6.15A1 1 0 0 1 20.5 10v9a1 1 0 0 1-1 1h-4.25a.75.75 0 0 1-.75-.75v-4.5a2.5 2.5 0 0 0-5 0v4.5a.75.75 0 0 1-.75.75H4.5a1 1 0 0 1-1-1v-9a1 1 0 0 1 .36-.77l7.5-6.15A1 1 0 0 1 12 3.2z" />,
-  cats: (
-    <>
-      <rect x="3" y="3" width="8" height="8" rx="2.5" />
-      <rect x="13" y="3" width="8" height="8" rx="2.5" />
-      <rect x="3" y="13" width="8" height="8" rx="2.5" />
-      <rect x="13" y="13" width="8" height="8" rx="2.5" />
-    </>
-  ),
-  favs: (
-    <g fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 5.2A1.2 1.2 0 0 1 5.2 4H9a2.3 2.3 0 0 1 2.3 1.6A2.3 2.3 0 0 1 13.6 4h3.2A1.2 1.2 0 0 1 18 5.2v12.3a1 1 0 0 1-1 1h-3.6a2 2 0 0 0-1.8 1.1 2 2 0 0 0-1.8-1.1H5a1 1 0 0 1-1-1V5.2z" />
-      <path d="M11.3 5.8v13" />
-      <path d="M19.4 7.1l1.5.4a1 1 0 0 1 .72 1.22l-2.6 9.9" />
-    </g>
-  ),
-  recent: (
-    <g fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="9.2" />
-      <path d="M12 7.5v5l3.5 2" />
-    </g>
-  ),
-  prof: (
-    <>
-      <circle cx="12" cy="7.8" r="4.3" />
-      <path d="M4 20.2c0-4.3 3.6-6.9 8-6.9s8 2.6 8 6.9a1 1 0 0 1-1 .8H5a1 1 0 0 1-1-.8z" />
-    </>
-  ),
+import Icon from './Icon'
+import type { IconName } from './Icon'
+
+const ICONS: Record<Exclude<Tab, 'search'>, IconName> = {
+  home: 'home', chat: 'chat', cats: 'sections', favs: 'library', recent: 'history', prof: 'profile', ctor: 'tool',
 }
 
 const TABS: { id: Exclude<Tab, 'search'>; label: string }[] = [
@@ -64,48 +28,21 @@ interface Props {
 
 export default function BottomNav({ active, onChange, showConstructor, badges }: Props) {
   const tabs = showConstructor ? [...TABS, CTOR_TAB] : TABS
+  const dense = tabs.length > 5
   return (
-    <nav
-      className="glass fixed left-0 right-0 flex z-50"
-      style={{
-        gap: 2,
-        bottom: 'calc(env(safe-area-inset-bottom, 8px) + 10px)',
-        marginLeft: 12,
-        marginRight: 12,
-        padding: '8px 8px',
-        borderRadius: 26,
-        background:
-          'linear-gradient(180deg, rgba(255,255,255,.1), rgba(255,255,255,0) 38%), rgba(14,14,19,.42)',
-      }}
-    >
+    <nav className="glass fixed z-50 flex p-[5px] rounded-[32px]"
+      style={{ left: 10, right: 10, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}>
       {tabs.map(({ id, label }) => {
         const on = active === id
         const badge = badges?.[id] ?? 0
         return (
-          <button
-            key={id}
-            onClick={() => onChange(id)}
-            className="relative flex-1 flex flex-col items-center gap-1 rounded-[13px] transition-colors duration-150 active:bg-white/[.06]"
-            style={{
-              padding: tabs.length > 5 ? '11px 1px' : '12px 2px',
-              background: on ? 'linear-gradient(180deg,rgba(34,197,94,.22),rgba(34,197,94,.08))' : 'transparent',
-              border: on ? '1px solid rgba(74,232,133,.55)' : '1px solid transparent',
-              boxShadow: on ? '0 0 14px rgba(34,197,94,.3)' : 'none',
-              color: on ? '#4AE885' : '#75757f',
-            }}
-          >
-            <svg width={tabs.length > 5 ? 21 : 23} height={tabs.length > 5 ? 21 : 23} viewBox="0 0 24 24" fill="currentColor">
-              {ICONS[id]}
-            </svg>
-            <span
-              className="font-bold tracking-[.1px] leading-none text-center"
-              style={{ fontSize: tabs.length > 5 ? 8.5 : 9.5 }}
-            >
-              {label}
-            </span>
+          <button key={id} onClick={() => onChange(id)} aria-current={on ? 'page' : undefined}
+            className={`relative flex-1 flex flex-col items-center gap-[3px] rounded-[26px] transition-colors ${dense ? 'py-[7px]' : 'pt-[8px] pb-[7px]'} ${on ? 'bg-white/10 text-green' : 'text-gray active:bg-white/5'}`}
+            style={on ? { boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08)' } : undefined}>
+            <Icon name={ICONS[id]} size={dense ? 22 : 24} accent={on ? 'brand' : 'current'} />
+            <span className={`leading-none font-medium ${dense ? 'text-[9.5px]' : 'text-[10.5px]'}`}>{label}</span>
             {badge > 0 && (
-              <span className="absolute top-1 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-green text-black text-[9.5px] font-extrabold flex items-center justify-center"
-                style={{ boxShadow: '0 0 8px rgba(34,197,94,.6)' }}>
+              <span className="absolute top-1 left-1/2 ml-[7px] min-w-[17px] h-[17px] px-1 rounded-full bg-green text-ink text-[10px] font-bold flex items-center justify-center tabular-nums">
                 {badge > 99 ? '99+' : badge}
               </span>
             )}

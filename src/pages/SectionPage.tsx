@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Star, Lock, Check, Bell, BellRinging } from '@phosphor-icons/react'
+import { Star, Lock, Check, Bell, BellRinging } from '../components/icons'
 import { ICON_PATHS, resolveIcon } from '../components/CategoryIcon'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import { CardSocial } from '../components/MaterialSocial'

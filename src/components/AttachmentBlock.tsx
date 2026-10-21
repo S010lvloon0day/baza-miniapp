@@ -1,5 +1,5 @@
 import { useEffect, useState, lazy, Suspense } from 'react'
-import { DownloadSimple, PaperPlaneTilt } from '@phosphor-icons/react'
+import { DownloadSimple, PaperPlaneTilt } from './icons'
 import { api, API_BASE } from '../api/client'
 import type { Attachment } from '../api/client'
 import MediaTypeIcon from './MediaTypeIcon'

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Star, Heart, ChatCircle, Flag, Trash, PaperPlaneRight, SealCheck, ArrowBendDownRight } from '@phosphor-icons/react'
+import { Star, Heart, ChatCircle, Flag, Trash, PaperPlaneRight, SealCheck, ArrowBendDownRight } from './icons'
 import { social, plural, timeAgo } from '../api/social'
 import type { MaterialComment, SocialData } from '../api/social'
 

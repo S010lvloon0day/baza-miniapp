@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Copy, Check, Warning } from '@phosphor-icons/react'
+import { Copy, Check, Warning } from './icons'
 
 const tg = (window as any).Telegram?.WebApp
 

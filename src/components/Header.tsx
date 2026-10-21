@@ -1,4 +1,4 @@
-import { ArrowLeft, BookmarkSimple, MagnifyingGlass, Bell, CornersOut, CornersIn } from '@phosphor-icons/react'
+import Icon from './Icon'
 import BazaMark from './BazaMark'
 
 interface Props {
@@ -13,74 +13,42 @@ interface Props {
   onToggleFullscreen?: () => void
 }
 
+function Btn({ onClick, label, children, tone = 'plain' }: { onClick?: () => void; label: string; children: React.ReactNode; tone?: 'plain' | 'on' }) {
+  return (
+    <button onClick={onClick} aria-label={label} title={label}
+      className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-colors active:bg-white/10 ${tone === 'on' ? 'text-gold' : 'text-[#CFDAD4]'}`}>
+      {children}
+    </button>
+  )
+}
+
 export default function Header({ title, showBack, onBack, onSearch, onBell, bookmarked, onBookmark, fullscreen, onToggleFullscreen }: Props) {
+  const fs = onToggleFullscreen && (
+    <Btn onClick={onToggleFullscreen} label={fullscreen ? 'Оконный режим' : 'Полный экран'}>
+      <Icon name={fullscreen ? 'fsIn' : 'fsOut'} size={19} />
+    </Btn>
+  )
   if (showBack) {
     return (
-      <header className="sticky top-0 z-40 bg-bg/96 backdrop-blur-md border-b border-bd/60 px-4 flex items-center gap-3 h-[56px] shrink-0 relative">
-        <div className="absolute bottom-0 inset-x-0 h-px pointer-events-none"
-          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.12) 30%, rgba(255,255,255,.08) 50%, rgba(255,255,255,.12) 70%, transparent)' }} />
-        <button onClick={onBack} className="w-8 h-8 -ml-1 flex items-center justify-center rounded-lg bg-s2 border border-bd2 active:bg-bd2 transition-colors shrink-0">
-          <ArrowLeft size={17} weight="bold" />
-        </button>
-        {title && (
-          <span className="flex-1 text-[15px] font-semibold tracking-wide truncate">{title}</span>
-        )}
-        {onToggleFullscreen && (
-          <button
-            onClick={onToggleFullscreen}
-            aria-label={fullscreen ? 'Оконный режим' : 'Полный экран'}
-            title={fullscreen ? 'Оконный режим' : 'Полный экран'}
-            className="w-8 h-8 rounded-full bg-white/[.06] flex items-center justify-center active:bg-white/[.14] transition-colors shrink-0">
-            {fullscreen ? <CornersIn size={16} weight="bold" /> : <CornersOut size={16} weight="bold" />}
-          </button>
-        )}
+      <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-xl border-b border-white/[.06] px-2 flex items-center gap-1 h-[54px] shrink-0">
+        <Btn onClick={onBack} label="Назад"><Icon name="back" size={22} className="text-fg" /></Btn>
+        <span className="flex-1 min-w-0 font-display font-semibold text-[15px] truncate">{title}</span>
+        {fs}
         {onBookmark !== undefined && (
-          <button onClick={onBookmark} className={`p-1 active:opacity-60 transition-colors ${bookmarked ? 'text-green' : 'text-gray2'}`}>
-            <BookmarkSimple size={22} weight={bookmarked ? 'fill' : 'regular'} />
-          </button>
+          <Btn onClick={onBookmark} label={bookmarked ? 'Убрать из библиотеки' : 'В библиотеку'} tone={bookmarked ? 'on' : 'plain'}>
+            <Icon name={bookmarked ? 'bookmarkFill' : 'bookmark'} size={21} accent="current" />
+          </Btn>
         )}
       </header>
     )
   }
-
-  // Brand header — same on every tab root screen (Главная/Разделы/Поиск/Избранное/История/Профиль), per the mockup.
   return (
-    <header className="sticky top-0 z-40 bg-bg/95 backdrop-blur border-b border-white/[.08] px-4 flex items-center gap-2.5 h-[56px] shrink-0">
-      <div
-        className="w-8 h-8 rounded-[10px] flex items-center justify-center shrink-0"
-        style={{ background: 'linear-gradient(155deg,#16211a,#0d0f0e)', border: '1px solid rgba(34,197,94,.35)' }}
-      >
-        <BazaMark size={16} />
-      </div>
-      <span className="flex-1 text-[15px] font-extrabold tracking-wide truncate">BAZA<span className="text-green">.</span>{title}</span>
-      {onToggleFullscreen && (
-        <button
-          className="w-8 h-8 rounded-full bg-white/[.06] flex items-center justify-center active:bg-white/[.14] transition-colors shrink-0"
-          onClick={onToggleFullscreen}
-          aria-label={fullscreen ? 'Оконный режим' : 'Полный экран'}
-          title={fullscreen ? 'Оконный режим' : 'Полный экран'}
-        >
-          {fullscreen ? <CornersIn size={16} weight="bold" /> : <CornersOut size={16} weight="bold" />}
-        </button>
-      )}
-      {onSearch && (
-        <button
-          className="w-8 h-8 rounded-full bg-white/[.06] flex items-center justify-center active:bg-white/[.14] transition-colors shrink-0"
-          onClick={onSearch}
-          aria-label="Поиск"
-        >
-          <MagnifyingGlass size={16} weight="bold" />
-        </button>
-      )}
-      {onBell && (
-        <button
-          className="w-8 h-8 rounded-full bg-white/[.06] flex items-center justify-center active:bg-white/[.14] transition-colors shrink-0"
-          onClick={onBell}
-          aria-label="Уведомления"
-        >
-          <Bell size={16} weight="bold" />
-        </button>
-      )}
+    <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-xl px-4 flex items-center gap-2.5 h-[56px] shrink-0">
+      <BazaMark size={20} />
+      <span className="flex-1 min-w-0 truncate font-display font-semibold text-[17px]">{title || 'База'}</span>
+      {fs}
+      {onSearch && <Btn onClick={onSearch} label="Поиск"><Icon name="search" size={21} /></Btn>}
+      {onBell && <Btn onClick={onBell} label="Уведомления"><Icon name="bell" size={21} /></Btn>}
     </header>
   )
 }
