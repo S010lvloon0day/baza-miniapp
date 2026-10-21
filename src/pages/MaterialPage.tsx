@@ -13,6 +13,7 @@ import QuizCard, { parseQuiz } from '../components/QuizCard'
 import TaskCard, { parseTask } from '../components/TaskCard'
 import MarkdownLite from '../components/MarkdownLite'
 import MaterialSocial, { SocialProof } from '../components/MaterialSocial'
+import LevelMark from '../components/LevelMark'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
 // users who actually open a PDF document — lazy-load it so the main bundle (and every other
@@ -211,7 +212,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   {mat.section_title && <><span className="w-1 h-1 rounded-full bg-gray2" /><span className="truncate">{mat.section_title}</span></>}
                 </div>
                 <h1 className="font-display font-semibold text-[22px] leading-[1.25]" style={{ textWrap: 'balance' } as React.CSSProperties}>
-                  {mat.title}
+                  <LevelMark level={(mat as { title_level?: string }).title_level} size={14} />{mat.title}
                 </h1>
               </div>
 

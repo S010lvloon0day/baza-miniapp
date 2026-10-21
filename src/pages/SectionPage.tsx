@@ -8,6 +8,7 @@ import { CardSocial } from '../components/MaterialSocial'
 import { api } from '../api/client'
 import Certificate from '../components/Certificate'
 import type { Section, Material } from '../api/client'
+import LevelMark from '../components/LevelMark'
 
 const tg = (window as any).Telegram?.WebApp
 const openPay = (url: string) => {
@@ -325,7 +326,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                       {m.viewed && !isCur ? <Icon name="check" size={16} strokeWidth={2.3} /> : n}
                     </span>
                     <span className="flex-1 min-w-0">
-                      <b className={`block text-[14.5px] font-medium leading-snug line-clamp-2 ${m.locked ? 'text-fg/60' : ''}`}>{m.title}</b>
+                      <b className={`block text-[14.5px] font-medium leading-snug line-clamp-2 ${m.locked ? 'text-fg/60' : ''}`}><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                       <span className="flex items-center gap-2 mt-1 text-[12px] text-gray2 min-w-0">
                         {m.locked && <PremiumBadge small />}
                         {isCur

@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { Material } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import Icon from '../components/Icon'
+import LevelMark from '../components/LevelMark'
 
 export const typeLabel = (t: string, archive?: boolean) => archive ? 'Архив' : ({ photo: 'Фото', video: 'Видео', document: 'Файл', text: 'Урок', doc: 'Урок', quiz: 'Тест', task: 'Задание' }[t] ?? 'Материал')
 
@@ -47,7 +48,7 @@ export default function RecentPage({ onMaterial }: Props) {
               className="w-full flex items-center gap-3 px-3.5 py-[11px] text-left active:bg-white/[.04] transition-colors">
               <MediaTypeIcon type={m.media_type} size={38} radius={11} iconSize={18} />
               <span className="flex-1 min-w-0">
-                <b className="block text-[14.5px] font-medium truncate">{m.title}</b>
+                <b className="block text-[14.5px] font-medium truncate"><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                 <small className="block text-[12.5px] text-gray truncate">{[m.section_title, typeLabel(m.media_type, m.is_archive)].filter(Boolean).join(' · ')}</small>
               </span>
               <Icon name="chevR" size={15} className="text-gray2" />

@@ -9,6 +9,7 @@ import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
 import { iconNameFor } from '../components/CategoryIcon'
 import { coverClass } from '../components/sectionCover'
+import LevelMark from '../components/LevelMark'
 
 interface Props {
   onSection: (s: Section) => void
@@ -416,7 +417,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
                   className="w-full flex items-center gap-3 px-3.5 py-[11px] text-left active:bg-white/[.04] transition-colors">
                   <MediaTypeIcon type={m.media_type} size={38} radius={11} iconSize={18} />
                   <span className="flex-1 min-w-0">
-                    <b className="block text-[14.5px] font-medium truncate">{m.title}</b>
+                    <b className="block text-[14.5px] font-medium truncate"><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                     <small className="block text-[12.5px] text-gray truncate">{m.section_title}</small>
                   </span>
                   {m.locked && <PremiumBadge small />}

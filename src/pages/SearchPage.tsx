@@ -4,6 +4,7 @@ import MediaTypeIcon from '../components/MediaTypeIcon'
 import PremiumBadge from '../components/PremiumBadge'
 import { api } from '../api/client'
 import type { Material } from '../api/client'
+import LevelMark from '../components/LevelMark'
 
 interface Props {
   onMaterial: (id: number, sectionId: number) => void
@@ -154,7 +155,7 @@ export default function SearchPage({ onMaterial }: Props) {
                 >
                   <MediaTypeIcon type={m.media_type} size={38} radius={11} iconSize={18} />
                   <span className="flex-1 min-w-0">
-                    <b className="block text-[14.5px] font-medium leading-snug">{m.title}</b>
+                    <b className="block text-[14.5px] font-medium leading-snug"><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                     <span className="flex items-center gap-2 mt-1">
                       {m.locked && <PremiumBadge small />}
                       <small className="text-[12.5px] text-gray truncate">{m.section_title}</small>

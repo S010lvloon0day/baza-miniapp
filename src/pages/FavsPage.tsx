@@ -7,6 +7,7 @@ import Icon from '../components/Icon'
 import { iconNameFor } from '../components/CategoryIcon'
 import { coverClass } from '../components/sectionCover'
 import { EmptyState, typeLabel } from './RecentPage'
+import LevelMark from '../components/LevelMark'
 
 interface Props {
   onMaterial: (id: number, sectionId: number) => void
@@ -99,7 +100,7 @@ export default function FavsPage({ onMaterial, onSection, onCourse }: Props) {
               <button key={`m${m.id}`} onClick={() => onMaterial(m.id, m.section_id)} className={rowCls}>
                 <MediaTypeIcon type={m.media_type} size={38} radius={11} iconSize={18} />
                 <span className="flex-1 min-w-0">
-                  <b className="block text-[14.5px] font-medium truncate">{m.title}</b>
+                  <b className="block text-[14.5px] font-medium truncate"><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                   <small className="block text-[12.5px] text-gray truncate">{[m.section_title, typeLabel(m.media_type, m.is_archive)].filter(Boolean).join(' · ')}</small>
                 </span>
                 <Icon name="chevR" size={15} className="text-gray2" />

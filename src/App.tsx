@@ -21,6 +21,7 @@ import { feedback } from './api/social'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
+import Icon from './components/Icon'
 import NotifySheet from './components/NotifySheet'
 import { api } from './api/client'
 import type { Section } from './api/client'
@@ -243,9 +244,8 @@ export default function App() {
         return (
           <div className="flex flex-col flex-1 overflow-hidden">
             <button onClick={openFeedback}
-              className="mx-4 mt-3 flex items-center gap-3 rounded-2xl border border-green/30 px-4 py-3 text-left active:opacity-80"
-              style={{ background: 'radial-gradient(120% 120% at 0% 0%, rgba(34,197,94,.12), transparent 60%), #0D0D11' }}>
-              <span className="text-[20px]">💬</span>
+              className="card-violet mx-4 mt-3 flex items-center gap-3 px-4 py-3 text-left active:opacity-80">
+              <span className="tile-violet w-9 h-9"><Icon name="chat" size={18} accent="current" /></span>
               <span className="flex-1 min-w-0">
                 <span className="block text-[14px] font-bold">Обсуждения и оценки</span>
                 <span className="block text-[11.5px] text-gray truncate">

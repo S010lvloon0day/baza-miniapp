@@ -1,4 +1,5 @@
 import type { CourseSummary } from './courses'
+import { cleanTitles, shouldClean } from '../utils/title'
 
 const tg = (window as any).Telegram?.WebApp
 
@@ -18,7 +19,8 @@ const headers = (): HeadersInit => ({
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(API_BASE + path, { headers: headers() })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
-  return res.json()
+  const data = await res.json()
+  return shouldClean(path) ? cleanTitles(data) : data
 }
 
 async function post<T>(path: string, body?: unknown): Promise<T> {

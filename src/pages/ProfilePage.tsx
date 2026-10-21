@@ -280,14 +280,14 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
   // Доступные способы оплаты для выбранного тарифа
   const methods = selected ? ([
     selected.rub ? { key: 'rub' as const, label: 'СБП', icon: 'card' as const, amount: fmtRub(selected.rub), via: 'через СБП', run: buyWithRub } : null,
-    selected.stars ? { key: 'stars' as const, label: 'Stars', icon: 'stars' as const, amount: `${selected.stars.toLocaleString('ru-RU')} ⭐`, via: 'через Telegram Stars', run: buyWithStars } : null,
+    selected.stars ? { key: 'stars' as const, label: 'Stars', icon: 'stars' as const, amount: `${selected.stars.toLocaleString('ru-RU')} Stars`, via: 'через Telegram Stars', run: buyWithStars } : null,
     { key: 'crypto' as const, label: 'Крипта', icon: 'coin' as const, amount: `${selected.price} $`, via: 'в USDT через CryptoBot', run: buyWithCrypto },
   ].filter(Boolean) as { key: 'rub' | 'stars' | 'crypto'; label: string; icon: 'card' | 'stars' | 'coin'; amount: string; via: string; run: () => void }[]) : []
   const cur = methods.find(m => m.key === method) ?? methods[0]
 
   // Цена тарифа в выбранной валюте и цена за месяц
   const unit = (p: Plan) => cur?.key === 'stars' && p.stars ? p.stars : cur?.key === 'rub' && p.rub ? p.rub : p.price
-  const fmtUnit = (v: number) => cur?.key === 'stars' ? `${Math.round(v).toLocaleString('ru-RU')} ⭐` : cur?.key === 'rub' ? fmtRub(Math.round(v)) : `${Math.round(v * 100) / 100} $`
+  const fmtUnit = (v: number) => cur?.key === 'stars' ? `${Math.round(v).toLocaleString('ru-RU')} Stars` : cur?.key === 'rub' ? fmtRub(Math.round(v)) : `${Math.round(v * 100) / 100} $`
   const base = cfg.plans[0] ? unit(cfg.plans[0]) / Math.max(1, cfg.plans[0].days / 30) : 0
   const months = (p: Plan) => Math.max(1, Math.round(p.days / 30))
 

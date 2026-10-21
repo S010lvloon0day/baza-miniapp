@@ -310,7 +310,7 @@ function MsgMeta({ m, light }: { m: ChatMsg; light?: boolean }) {
       {timeOf(m.created_at)}
       {m.mine && ((m as any).pending
         ? <span className="opacity-70"><Icon name="clock" size={11} /></span>
-        : <span style={{ color: light ? '#fff' : '#A5EBC6', letterSpacing: '-.12em' }}>✓✓</span>)}
+        : <span className="inline-flex" style={{ color: light ? '#fff' : '#A5EBC6' }}><Icon name="check" size={12} strokeWidth={2} /><Icon name="check" size={12} strokeWidth={2} style={{ marginLeft: -7 }} /></span>)}
     </span>
   )
 }

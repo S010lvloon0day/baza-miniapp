@@ -139,3 +139,4 @@ html, body, #root {
   animation: vbar .9s ease-in-out infinite;
   will-change: transform;
 }
+[class*="cover-"] { -webkit-hyphens: auto; hyphens: auto; }

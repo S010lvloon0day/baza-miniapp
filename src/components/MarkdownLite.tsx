@@ -24,7 +24,17 @@ type Block =
 type Node = Block | { t: 'acc'; title: string; blocks: Block[] }
 
 function lex(md: string): Block[] {
-  const lines = (md || '').replace(/\r/g, '').split('\n')
+  // Эмодзи-маркеры в заголовках и пунктах заменяются фирменным оформлением (ромбы-маркеры уже есть).
+  let inCode = false
+  const lines = (md || '').replace(/\r/g, '').split('\n').map(l => {
+    if (/^\s*```/.test(l)) { inCode = !inCode; return l }
+    if (inCode) return l
+    const m = l.match(/^(\s*(?:#{1,6}\s+|[-*•]\s+|\d+[.)]\s+|>\s*)?)(.*)$/)
+    if (!m) return l
+    const head = m[1], rest = m[2]
+    const cleaned = rest.replace(/^(?:\p{Extended_Pictographic}|[\u{FE0F}\u{200D}\u{20E3}]|\s)+/u, '')
+    return head + (head ? cleaned : (cleaned !== rest ? cleaned : rest))
+  })
   const out: Block[] = []
   let i = 0
   while (i < lines.length) {

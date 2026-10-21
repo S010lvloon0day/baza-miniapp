@@ -1,3 +1,4 @@
+import { cleanTitles, shouldClean } from '../utils/title'
 import { API_BASE } from './client'
 
 const tg = (window as any).Telegram?.WebApp
@@ -21,7 +22,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     } catch { /* тело не JSON — оставляем код статуса */ }
     throw new CourseApiError(code, res.status)
   }
-  return res.json()
+  const data = await res.json()
+  return method === 'GET' && shouldClean(path) ? cleanTitles(data) : data
 }
 
 export class CourseApiError extends Error {
