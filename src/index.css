@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Anton&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Anton&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -16,7 +16,7 @@ html, body, #root {
     repeating-linear-gradient(90deg, transparent 0px, transparent 39px, rgba(255,255,255,.018) 39px, rgba(255,255,255,.018) 40px),
     #06060C;
   color: #fff;
-  font-family: 'Manrope', system-ui, sans-serif;
+  font-family: 'Montserrat', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
 }
@@ -127,4 +127,15 @@ html, body, #root {
     inset 0 1px 0 rgba(255,255,255,.16),
     inset 0 0 0 1px rgba(255,255,255,.03),
     0 12px 34px rgba(0,0,0,.5);
+}
+
+
+/* Живая волна записи голосового */
+@keyframes vbar { 0%, 100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+.vbar {
+  height: 100%;
+  align-self: center;
+  transform-origin: center;
+  animation: vbar .9s ease-in-out infinite;
+  will-change: transform;
 }

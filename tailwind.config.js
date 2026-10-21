@@ -19,8 +19,8 @@ export default {
         gray2:     '#3E3E52',
       },
       fontFamily: {
-        display: ['"Manrope"', 'system-ui', 'sans-serif'],
-        sans:    ['"Manrope"', 'system-ui', 'sans-serif'],
+        display: ['"Montserrat"', 'system-ui', 'sans-serif'],
+        sans:    ['"Montserrat"', 'system-ui', 'sans-serif'],
         mono:    ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
       },
       boxShadow: {

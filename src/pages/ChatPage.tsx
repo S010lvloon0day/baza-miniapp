@@ -73,7 +73,7 @@ const BUB_IN = '#18222d'        // входящие (чужие)
 const BUB_OUT = '#1f6f43'       // исходящие (свои) — в фирменном зелёном
 const WALL = 'radial-gradient(1100px 560px at 50% -8%, #16261e 0%, #0e1612 42%, #0a0d0b 100%)'
 
-const QUICK = ['❤️', '🔥', '👍', '😁', '👏', '🎉']
+const QUICK = ['❤️', '🔥', '👍', '😂', '🥳', '🤩']
 const PICKER = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '👍', '👎', '🔥', '❤️', '🎉', '👏', '🙏', '💯', '🚀', '⚡', '✅', '❌', '👀', '💀', '🤝', '🤯']
 const STICKERS = ['😂', '🤣', '😍', '🥰', '😎', '🤨', '😏', '🫠', '😭', '🥺', '😡', '🤬', '🤯', '🥳', '🤩', '😴', '🤤', '🤫', '🙈', '🙉', '🙊', '💀', '👻', '🔥', '💯', '👑', '💪', '🫡', '🤝', '👏', '🙏', '🎉', '🚀', '⚡', '❤️', '💔', '✨', '🌟', '🏆', '🥇', '🎯', '💸', '🧠', '👀', '🫣', '😇', '🤡']
 const FILTERS: { name: string; css: string }[] = [
@@ -305,6 +305,25 @@ function MsgMeta({ m, light }: { m: ChatMsg; light?: boolean }) {
   )
 }
 
+// Эмодзи картинкой (Twemoji) — одинаково и красиво на всех платформах, включая ПК,
+// где системные эмодзи выглядят иначе. При ошибке загрузки — обычный символ.
+function twemojiUrl(e: string): string {
+  const cps: string[] = []
+  for (const ch of Array.from(e)) {
+    const cp = ch.codePointAt(0)
+    if (cp === undefined || cp === 0xFE0F) continue   // убираем variation selector
+    cps.push(cp.toString(16))
+  }
+  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${cps.join('-')}.png`
+}
+function Emo({ e, size = 20 }: { e: string; size?: number }) {
+  const [ok, setOk] = useState(true)
+  if (!ok) return <span style={{ fontSize: size * 0.95 }}>{e}</span>
+  return <img src={twemojiUrl(e)} alt={e} width={size} height={size} draggable={false}
+    loading="lazy" decoding="async" onError={() => setOk(false)}
+    style={{ display: 'inline-block', verticalAlign: '-0.15em' }} />
+}
+
 function Reactions({ m, onToggle }: { m: ChatMsg; onToggle: (id: number, e: string) => void }) {
   if (!m.reactions?.length) return null
   return (
@@ -313,7 +332,7 @@ function Reactions({ m, onToggle }: { m: ChatMsg; onToggle: (id: number, e: stri
         <button key={r.emoji} onClick={(e) => { e.stopPropagation(); onToggle(m.id, r.emoji) }}
           className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] active:scale-95 transition-transform"
           style={{ background: r.mine ? 'rgba(74,232,133,.22)' : 'rgba(255,255,255,.08)', border: `1px solid ${r.mine ? 'rgba(74,232,133,.55)' : 'transparent'}` }}>
-          <span>{r.emoji}</span><span className="text-[12px] font-bold" style={{ color: r.mine ? '#4AE885' : '#cfcfd4' }}>{r.count}</span>
+          <Emo e={r.emoji} size={15} /><span className="text-[12px] font-bold" style={{ color: r.mine ? '#4AE885' : '#cfcfd4' }}>{r.count}</span>
         </button>
       ))}
     </div>
@@ -575,6 +594,7 @@ export default function ChatPage() {
   const [, setMtokV] = useState(0)            // триггер ре-рендера при получении медиа-токена
   const [retDays, setRetDays] = useState<number | null>(null)  // срок хранения (виден админу)
   const [retOpen, setRetOpen] = useState(false)                // лист настройки хранения
+  const [hiId, setHiId] = useState<number | null>(null)        // подсветка сообщения при переходе
   const [online, setOnline] = useState(0)
   const [typing, setTyping] = useState<string[]>([])
   const [isAdmin, setIsAdmin] = useState(false)
@@ -639,6 +659,12 @@ export default function ChatPage() {
     })
   }
   const jumpBottom = () => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight }
+  // переход к сообщению (напр. по тапу на закреплённое) + кратковременная подсветка
+  const jumpToMsg = (id: number) => {
+    const el = document.getElementById('m-' + id)
+    if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); setHiId(id); setTimeout(() => setHiId(null), 1700) }
+    else flash('Сообщение не загружено — прокрути чат выше')
+  }
 
   const merge = useCallback((incoming: ChatMsg[]) => {
     if (!incoming.length) return
@@ -964,20 +990,32 @@ export default function ChatPage() {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       if (!wantRec.current) { stream.getTracks().forEach(t => t.stop()); return }   // палец отпустили до выдачи доступа
       micStream.current = stream
-      const mr = new MediaRecorder(stream); chunks.current = []
-      mr.ondataavailable = (ev) => { if (ev.data.size) chunks.current.push(ev.data) }
+      // выбираем поддерживаемый формат (opus предпочтительно) — иначе на части браузеров
+      // дефолт даёт битый/несовместимый контейнер и запись «зависает»
+      const pref = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4']
+      const sup = (t: string) => { try { return (window as any).MediaRecorder?.isTypeSupported?.(t) } catch { return false } }
+      const mime = pref.find(sup) || ''
+      const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
+      chunks.current = []
+      mr.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.current.push(ev.data) }
       mr.onstop = () => {
-        const blob = new Blob(chunks.current, { type: mr.mimeType || 'audio/webm' })
+        const type = mr.mimeType || mime || 'audio/webm'
+        const blob = new Blob(chunks.current, { type })
         stopMic()   // микрофон выключаем сразу
         const dur = (Date.now() - recStart.current) / 1000
         if (recCancelRef.current) { recCancelRef.current = false; return }   // отменено
-        if (blob.size > 1200 && dur > 0.5) doUpload('voice', blob, mr.mimeType || 'audio/webm', dur)
-        else flash('Слишком коротко — держи дольше')
+        // короткие голосовые тоже отправляем — нужно лишь, чтобы был звук
+        if (blob.size > 0 && dur >= 0.2) doUpload('voice', blob, type, dur)
+        else flash('Пустая запись — зажми и говори')
       }
       mediaRec.current = mr; recStart.current = Date.now()
       recCancelRef.current = false; setRecCancel(false); setRecElapsed(0)
-      mr.start(); setRec(true)
-      recTimer.current = window.setInterval(() => setRecElapsed(Math.floor((Date.now() - recStart.current) / 1000)), 250)
+      mr.start(200); setRec(true)   // timeslice — данные копятся кусками, надёжнее
+      recTimer.current = window.setInterval(() => {
+        const el = Math.floor((Date.now() - recStart.current) / 1000)
+        setRecElapsed(el)
+        if (el >= 300) stopRec()   // авто-стоп на 5 минутах (страховка от «зависания»)
+      }, 200)
     } catch { wantRec.current = false; stopMic(); flash('Нет доступа к микрофону') }
   }
   const stopRec = () => {
@@ -1065,13 +1103,13 @@ export default function ChatPage() {
       </div>
 
       {pinned && !pinned.deleted && (
-        <div className="flex items-center gap-2 px-4 py-2 shrink-0" style={{ borderBottom: '1px solid rgba(74,232,133,.22)', background: 'rgba(34,197,94,.06)' }}>
+        <div onClick={() => jumpToMsg(pinned.id)} className="flex items-center gap-2 px-4 py-2 shrink-0 cursor-pointer active:opacity-80" style={{ borderBottom: '1px solid rgba(74,232,133,.22)', background: 'rgba(34,197,94,.06)' }}>
           <span className="text-green"><IcPin s={14} /></span>
           <div className="flex-1 min-w-0">
             <div className="text-[10px] font-bold uppercase tracking-wide text-green">Закреплено · {pinned.name}</div>
             <div className="text-[12px] text-white truncate">{stripTokens(pinned.text) || '📎 вложение'}</div>
           </div>
-          {isAdmin && <button onClick={unpin} className="text-[11px] font-bold text-[#8a8a93] px-2 py-1">Открепить</button>}
+          {isAdmin && <button onClick={(e) => { e.stopPropagation(); unpin() }} className="text-[11px] font-bold text-[#8a8a93] px-2 py-1">Открепить</button>}
         </div>
       )}
 
@@ -1081,7 +1119,7 @@ export default function ChatPage() {
         ) : msgs.map((m, i) => {
           const d = dayLabel(m.created_at); const sep = d !== lastDay; lastDay = d
           return (
-            <div key={m.id}>
+            <div key={m.id} id={`m-${m.id}`} style={hiId === m.id ? { background: 'rgba(74,232,133,.13)', borderRadius: 12, transition: 'background .5s' } : { transition: 'background .8s' }}>
               {sep && (
                 <div className="flex justify-center my-2.5">
                   <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ background: 'rgba(0,0,0,.35)', color: '#d7d7dc', backdropFilter: 'blur(2px)' }}>{d}</span>
@@ -1275,14 +1313,20 @@ export default function ChatPage() {
       <div className="flex items-end gap-2 px-2 pt-2 shrink-0" style={{ borderTop: '1px solid rgba(255,255,255,.06)', background: '#0c0c10', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 22px)' }}>
         {rec ? (
           /* индикатор записи голосового */
-          <div className="flex-1 flex items-center gap-2.5 rounded-[22px] px-3.5" style={{ background: '#17171d', border: '1px solid rgba(255,80,80,.3)', height: 44 }}>
+          <div className="flex-1 flex items-center gap-2.5 rounded-[22px] px-3.5" style={{ background: recCancel ? 'rgba(255,80,80,.1)' : '#17171d', border: `1px solid ${recCancel ? 'rgba(255,80,80,.55)' : 'rgba(255,80,80,.3)'}`, height: 44, transition: 'background .2s, border-color .2s' }}>
             <span className="relative flex h-3 w-3 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full" style={{ background: '#ff5050', opacity: .55 }} />
               <span className="relative inline-flex rounded-full h-3 w-3" style={{ background: '#ff5050' }} />
             </span>
             <span className="text-[15px] text-white tabular-nums shrink-0">{fmtDur(recElapsed)}</span>
-            <span className="text-[12px] ml-1 truncate" style={{ color: recCancel ? '#ff8a8a' : '#8a8a93' }}>{recCancel ? 'отпусти — отмена' : '‹ смахни влево для отмены'}</span>
-            <button onClick={cancelRec} className="ml-auto text-[12px] font-bold text-[#ff8a8a] px-2 py-1 shrink-0">Отмена</button>
+            {/* живая волна записи */}
+            <div className="flex-1 flex items-center justify-center gap-[3px] h-5 overflow-hidden min-w-0 mx-1">
+              {Array.from({ length: 28 }).map((_, i) => (
+                <span key={i} className="vbar" style={{ width: 2.5, borderRadius: 3, background: recCancel ? '#ff8a8a' : '#4AE885', animationDelay: `${((i * 7) % 28) * 0.045}s` }} />
+              ))}
+            </div>
+            <span className="text-[11.5px] shrink-0" style={{ color: recCancel ? '#ff8a8a' : '#8a8a93' }}>{recCancel ? 'отпусти — отмена' : 'отпусти — отправить'}</span>
+            <button onClick={cancelRec} className="text-[12px] font-bold text-[#ff8a8a] px-1.5 py-1 shrink-0" aria-label="Отмена">✕</button>
           </div>
         ) : (
           /* единое поле: 📎 слева, текст, справа 😊 — как в Telegram */
@@ -1330,7 +1374,7 @@ export default function ChatPage() {
               transition={{ type: 'spring', stiffness: 420, damping: 30 }} className="w-full max-w-[290px] flex flex-col gap-2">
               {/* реакции — плавающая пилюля */}
               <div className="flex justify-around items-center px-1 py-1 rounded-full" style={{ background: '#1a1b21', border: '1px solid rgba(255,255,255,.08)', boxShadow: '0 12px 32px rgba(0,0,0,.5)' }}>
-                {QUICK.map(e => <button key={e} onClick={() => react(menuFor.id, e)} className="text-[23px] w-9 h-9 flex items-center justify-center rounded-full active:scale-125 transition-transform">{e}</button>)}
+                {QUICK.map(e => <button key={e} onClick={() => react(menuFor.id, e)} className="w-9 h-9 flex items-center justify-center rounded-full active:scale-125 transition-transform"><Emo e={e} size={26} /></button>)}
               </div>
               {/* действия — компактная карточка */}
               <div className="rounded-[16px] overflow-hidden" style={{ background: '#15161b', border: '1px solid rgba(255,255,255,.08)', boxShadow: '0 16px 40px rgba(0,0,0,.55)' }}>
