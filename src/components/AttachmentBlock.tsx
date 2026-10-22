@@ -157,18 +157,20 @@ export default function AttachmentBlock({
           </>
         )}
 
-        <div className="flex gap-2 mt-3">
-          <button onClick={openExternal} disabled={!url}
-            className="btn-primary flex-1 !h-11 !text-[13px] disabled:opacity-30">
-            <DownloadSimple size={17} weight="fill" />
-            Скачать
-          </button>
-          <button onClick={sendToTelegram} disabled={sending || sent}
-            className="btn-secondary flex-1 text-[13.5px] disabled:opacity-40">
-            <PaperPlaneTilt size={16} weight="fill" />
-            {sent ? 'Отправлено' : sending ? 'Отправка…' : 'В Telegram'}
-          </button>
-        </div>
+        {att.kind !== 'photo' && (
+          <div className="flex gap-2 mt-3">
+            <button onClick={openExternal} disabled={!url}
+              className="btn-primary flex-1 !h-11 !text-[13px] disabled:opacity-30">
+              <DownloadSimple size={17} weight="fill" />
+              Скачать
+            </button>
+            <button onClick={sendToTelegram} disabled={sending || sent}
+              className="btn-secondary flex-1 text-[13.5px] disabled:opacity-40">
+              <PaperPlaneTilt size={16} weight="fill" />
+              {sent ? 'Отправлено' : sending ? 'Отправка…' : 'В Telegram'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
