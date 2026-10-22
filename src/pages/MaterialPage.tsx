@@ -124,6 +124,10 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
   // с одним вложением идут прежним путём — их 2391 штука, трогать нечего.
   const atts = mat?.attachments ?? []
   const multi = atts.length > 1
+  // В материале с несколькими вложениями фото показываем сразу под названием
+  // как презентацию, а файлы (документы/видео/текст) — отдельным блоком ниже.
+  const photoAtts = multi ? atts.filter(a => a.kind === 'photo') : []
+  const fileAtts = multi ? atts.filter(a => a.kind !== 'photo') : []
 
   const initData = encodeURIComponent(tg?.initData || '')
   const furl = mat?.file_url ? `${API_BASE}${mat.file_url}?init_data=${initData}` : null
@@ -222,6 +226,20 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   <img src={furl} alt={mat.title} loading="lazy"
                     className="w-full rounded-[18px] border border-white/[.07] block"
                     onError={e => (e.currentTarget.style.display = 'none')} />
+                </div>
+              )}
+
+              {/* ── Фото-галерея (мульти-вложения) — сразу под названием, без скачивания ── */}
+              {multi && photoAtts.length > 0 && (
+                <div className="mx-4 mb-4 flex flex-col gap-3">
+                  {photoAtts.map(a => {
+                    const purl = a.url ? `${API_BASE}${a.url}?init_data=${initData}` : null
+                    return purl ? (
+                      <img key={a.id} src={purl} alt={mat.title} loading="lazy"
+                        className="w-full rounded-[18px] border border-white/[.07] block"
+                        onError={e => (e.currentTarget.style.display = 'none')} />
+                    ) : null
+                  })}
                 </div>
               )}
 
@@ -379,20 +397,20 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                 </>
               )}
 
-              {/* Несколько вложений — каждое своим блоком, в порядке загрузки */}
-              {multi && (
+              {/* Файлы для скачивания — отдельным блоком внизу (фото уже показаны сверху) */}
+              {multi && fileAtts.length > 0 && (
                 <>
                   <div className="px-4 pt-5 pb-2.5 flex items-baseline gap-2">
-                    <h2 className="font-display font-semibold text-[15px]">Вложения</h2>
-                    <span className="text-[13px] text-gray tabular-nums">{atts.length}</span>
+                    <h2 className="font-display font-semibold text-[15px]">Файлы</h2>
+                    <span className="text-[13px] text-gray tabular-nums">{fileAtts.length}</span>
                   </div>
-                  {atts.map((a, i) => (
+                  {fileAtts.map((a, i) => (
                     <AttachmentBlock
                       key={a.id}
                       materialId={materialId}
                       att={a}
                       index={i}
-                      total={atts.length}
+                      total={fileAtts.length}
                     />
                   ))}
                 </>
