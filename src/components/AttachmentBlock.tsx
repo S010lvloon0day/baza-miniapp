@@ -158,16 +158,22 @@ export default function AttachmentBlock({
         )}
 
         {att.kind !== 'photo' && (
-          <div className="flex gap-2 mt-3">
-            <button onClick={openExternal} disabled={!url}
-              className="btn-primary flex-1 !h-11 !text-[13px] disabled:opacity-30">
-              <DownloadSimple size={17} weight="fill" />
-              Скачать
-            </button>
+          <div className="flex flex-col gap-2 mt-3">
+            {att.kind === 'document' && (
+              <div className="text-[12px] text-gray leading-snug text-center px-1">
+                Большой файл надёжнее получить в Telegram — скачивание во встроенном
+                браузере может прерваться.
+              </div>
+            )}
             <button onClick={sendToTelegram} disabled={sending || sent}
-              className="btn-secondary flex-1 text-[13.5px] disabled:opacity-40">
-              <PaperPlaneTilt size={16} weight="fill" />
-              {sent ? 'Отправлено' : sending ? 'Отправка…' : 'В Telegram'}
+              className="btn-primary w-full !h-11 !text-[13px] disabled:opacity-40">
+              <PaperPlaneTilt size={17} weight="fill" />
+              {sent ? 'Отправлено в Telegram' : sending ? 'Отправка…' : 'Получить в Telegram'}
+            </button>
+            <button onClick={openExternal} disabled={!url}
+              className="btn-secondary w-full text-[13.5px] disabled:opacity-30">
+              <DownloadSimple size={16} weight="fill" />
+              Скачать в браузере
             </button>
           </div>
         )}
