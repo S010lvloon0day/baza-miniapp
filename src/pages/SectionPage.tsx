@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import Icon from '../components/Icon'
+import BazaMark from '../components/BazaMark'
 import PremiumBadge from '../components/PremiumBadge'
 import { iconNameFor } from '../components/CategoryIcon'
 import { coverClass } from '../components/sectionCover'
@@ -266,21 +267,25 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           <div className="flex flex-col gap-2.5">
             {featured.map(m => (
               <button key={m.id} onClick={() => onMaterial(m.id, section.id, page)}
-                className="relative w-full rounded-[22px] p-[1.5px] text-left overflow-hidden active:scale-[.99] transition-transform"
-                style={{ background: 'linear-gradient(135deg,#FFE7A3,#E0A43B 40%,#8a5a12)', boxShadow: '0 8px 26px rgba(224,164,59,.28)' }}>
-                <span className="relative block rounded-[21px] p-4 overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg,#F7CE72 0%,#E6A93E 48%,#C6871F 100%)' }}>
-                  <span className="absolute -right-8 -top-10 w-32 h-32 rounded-full" style={{ background: 'radial-gradient(circle,rgba(255,255,255,.45),transparent 65%)' }} />
-                  <span className="absolute left-0 right-0 top-0 h-1/2" style={{ background: 'linear-gradient(180deg,rgba(255,255,255,.28),transparent)' }} />
-                  <span className="relative flex items-center gap-3.5">
-                    <span className="w-[52px] h-[52px] rounded-[16px] grid place-items-center shrink-0 text-[26px] leading-none"
-                      style={{ background: 'rgba(60,40,0,.22)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)' }}>🧭</span>
-                    <span className="flex-1 min-w-0" style={{ color: '#3a2600' }}>
-                      <span className="block text-[10.5px] font-extrabold tracking-[.12em] uppercase" style={{ color: '#5a3d00' }}>★ Важное · интерактивный каталог</span>
-                      <b className="block text-[17px] font-extrabold leading-snug line-clamp-2 mt-0.5" style={{ color: '#2a1c00' }}>{m.title.replace(/^🧭\s*/, '')}</b>
-                      <span className="block text-[12.5px] font-medium mt-0.5" style={{ color: '#4a3200' }}>Дерево всех OSINT-инструментов — нажми, чтобы открыть</span>
+                className="card-gold relative w-full text-left overflow-hidden active:scale-[.99] transition-transform"
+                style={{ boxShadow: 'inset 0 1px 0 rgba(255,223,128,.18), 0 10px 28px rgba(0,0,0,.35)' }}>
+                {/* фирменный знак на фоне */}
+                <span className="absolute -right-6 -bottom-8 pointer-events-none" style={{ opacity: .1 }}><BazaMark size={150} color="#F5C25A" /></span>
+                <span className="relative flex items-center gap-3.5 p-4">
+                  <span className="gold-metal sheen w-[54px] h-[54px] rounded-[16px] grid place-items-center shrink-0">
+                    <Icon name="compass" size={28} accent="#3A2300" style={{ position: 'relative', zIndex: 1, color: '#3A2300' }} />
+                  </span>
+                  <span className="flex-1 min-w-0">
+                    <span className="flex items-center gap-2 mb-1">
+                      <span className="text-[11.5px] font-semibold text-gold">Важное</span>
+                      <span className="w-1 h-1 rounded-full bg-gold/60" />
+                      <span className="text-[11.5px] font-medium text-[#CDBB8E]">интерактивный каталог</span>
                     </span>
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ flex: '0 0 auto' }}><path d="M9 6l6 6-6 6" stroke="#3a2600" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <b className="block font-display font-semibold text-[16px] leading-snug text-fg line-clamp-2">{m.title.replace(/^🧭\s*/, '')}</b>
+                    <span className="block text-[12.5px] text-gray mt-1">1 170 инструментов · 33 раздела</span>
+                  </span>
+                  <span className="w-9 h-9 rounded-full grid place-items-center shrink-0" style={{ background: 'rgba(245,194,90,.14)', color: '#F5C25A' }}>
+                    <Icon name="chevR" size={18} />
                   </span>
                 </span>
               </button>

@@ -229,7 +229,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   <iframe src={embedUrl} title={mat.title} loading="lazy"
                     allow="clipboard-write"
                     className="w-full rounded-[16px] border border-white/[.08] block"
-                    style={{ height: 'calc(100dvh - 170px)', minHeight: 460, background: '#0c1511' }} />
+                    style={{ height: 'calc(100dvh - 120px)', minHeight: 460, background: '#08100D' }} />
                 </div>
               )}
 
@@ -436,7 +436,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
         </AnimatePresence>
       </div>
 
-      {sectionMats.length > 1 && (
+      {sectionMats.length > 1 && !embedUrl && (
         <div className="glass fixed z-50 flex items-center justify-between p-[5px] rounded-[30px]"
           style={{ left: 10, right: 10, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}>
           <button disabled={!prevId} onClick={() => prevId && navigate(prevId)} aria-label="Предыдущий материал"
