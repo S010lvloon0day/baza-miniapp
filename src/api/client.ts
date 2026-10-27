@@ -271,6 +271,7 @@ export const api = {
   chatStickers:   ()             => get<{ packs: StickerPack[]; is_admin: boolean }>('/api/chat/stickers'),
   chatStickerUrl: (fid: string, kind: string) => `${API_BASE}/api/chat/sticker?fid=${encodeURIComponent(fid)}&k=${kind}&${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}`,
   chatStickerFile: (fid: string, kind: string, ttl?: number) => post<{ ok?: boolean; id?: number }>('/api/chat/send', { sticker_fid: fid, sticker_kind: kind, ttl }),
+  chatPackOf:     (q: { fid?: string; name?: string; msg?: number }) => get<{ pack: StickerPack; added: boolean }>(`/api/chat/pack_of?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])).toString()}`),
   chatStickersAdd: (link: string) => post<{ ok?: boolean; pack?: StickerPack; error?: string; message?: string }>('/api/chat/stickers/add', { link }),
   chatStickersRemove: (name: string) => post<{ ok?: boolean }>('/api/chat/stickers/remove', { name }),
   chatDelete:     (id: number)   => del<{ ok?: boolean }>(`/api/chat/${id}`),

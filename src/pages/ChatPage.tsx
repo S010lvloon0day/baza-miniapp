@@ -164,8 +164,13 @@ function InlineEmoji({ kind, eref, size }: { kind: string; eref: string; size: n
   }
   if (!fid) return <span className="inline-block" style={{ width: size, height: size, verticalAlign: '-0.3em' }} />
   const url = api.chatStickerUrl(fid, kind === 'v' ? 'video' : kind === 'a' ? 'animated' : 'image')
+  // нажатие на эмодзи в сообщении → показать его набор (скопировать эмодзи / добавить набор себе)
+  const open = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    window.dispatchEvent(new CustomEvent('chat:emoji', { detail: h >= 0 ? { name: eref.slice(0, h) } : { fid } }))
+  }
   return (
-    <span className="inline-block" style={{ width: size, height: size, verticalAlign: '-0.3em' }}>
+    <span className="inline-block cursor-pointer" onClick={open} style={{ width: size, height: size, verticalAlign: '-0.3em' }}>
       {kind === 'a' ? <LottieSticker url={url} size={size} />
         : kind === 'v' ? <video src={url} autoPlay loop muted playsInline className="w-full h-full object-contain" />
           : <img src={url} alt="" loading="lazy" className="w-full h-full object-contain" />}
@@ -661,6 +666,9 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const [searchQ, setSearchQ] = useState('')
   const [searchRes, setSearchRes] = useState<ChatMsg[] | null>(null)
   const [searching, setSearching] = useState(false)
+  // набор эмодзи/стикеров по нажатию на эмодзи в сообщении
+  const packScrollRef = useRef<HTMLDivElement>(null)
+  const [packSheet, setPackSheet] = useState<{ pack: import('../api/client').StickerPack | null; added: boolean; loading: boolean } | null>(null)
   const tempSeq = useRef(0)      // счётчик оптимистичных сообщений
   const atBottom = useRef(true)
   const lastTyping = useRef(0)
@@ -996,6 +1004,33 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
       const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
   }
+  const openPackOf = (q: { fid?: string; name?: string; msg?: number }) => {
+    setMenuFor(null)
+    setPackSheet({ pack: null, added: false, loading: true })
+    api.chatPackOf(q).then(r => setPackSheet({ pack: r.pack, added: r.added, loading: false }))
+      .catch(() => { setPackSheet(null); flash('Набор не найден') })
+  }
+  useEffect(() => {
+    const h = (e: Event) => openPackOf((e as CustomEvent).detail || {})
+    window.addEventListener('chat:emoji', h)
+    return () => window.removeEventListener('chat:emoji', h)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  const addPackFromSheet = async () => {
+    const p = packSheet?.pack; if (!p) return
+    try {
+      const r = await api.chatStickersAdd(p.name)
+      if (r.ok) { setPackSheet(s => s ? { ...s, added: true } : s); loadPacks(); flash(p.emoji ? 'Эмодзи добавлены' : 'Стикеры добавлены') }
+      else flash(r.message || 'Не удалось добавить')
+    } catch { flash('Не удалось добавить') }
+  }
+  const useFromSheet = (st: import('../api/client').StickerDef) => {
+    const p = packSheet?.pack; if (!p) return
+    setPackSheet(null)
+    if (p.emoji) { setStickerOpen(false); insertEmojiNode(st.fid, st.kind); taRef.current?.focus(); flash('Эмодзи вставлено в сообщение') }
+    else sendStickerFile(st.fid, st.kind)
+  }
+
   const addPack = async () => {
     const l = addPackLink.trim(); if (!l) return
     setPackBusy(true)
@@ -1594,6 +1629,52 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         </div>
       </div>
 
+      <AnimatePresence>
+        {packSheet && (
+          <motion.div className="fixed inset-0 z-[72] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(3px)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPackSheet(null)}>
+            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }} transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+              className="w-full max-w-[520px] rounded-t-[26px] flex flex-col" style={{ background: '#0F1A15', borderTop: '1px solid rgba(255,255,255,.08)', maxHeight: '72vh', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)' }}>
+              <div className="self-center w-10 h-1 rounded-full bg-white/15 mt-2.5" />
+              {packSheet.loading || !packSheet.pack ? (
+                <div className="py-14 text-center text-[14px] text-gray">Загружаем набор…</div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 px-4 pt-3 pb-3">
+                    <span className="tile-violet w-10 h-10 rounded-[12px] shrink-0"><Icon name={packSheet.pack.emoji ? 'emoji' : 'sticker'} size={20} accent="#fff" /></span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display font-semibold text-[15px] text-fg truncate">{packSheet.pack.title}</div>
+                      <div className="text-[12.5px] text-gray tabular-nums">{packSheet.pack.emoji ? 'Эмодзи' : 'Стикеры'} · {packSheet.pack.stickers.length} · нажмите, чтобы {packSheet.pack.emoji ? 'вставить в сообщение' : 'отправить'}</div>
+                    </div>
+                    <button onClick={() => setPackSheet(null)} aria-label="Закрыть" className="w-9 h-9 rounded-full flex items-center justify-center text-gray active:bg-white/10 shrink-0"><Icon name="close" size={18} /></button>
+                  </div>
+                  <div ref={packScrollRef} className={`flex-1 overflow-y-auto px-3 grid gap-1 ${packSheet.pack.emoji ? 'grid-cols-8' : 'grid-cols-5'}`}>
+                    {packSheet.pack.stickers.map((st, i) => {
+                      const url = api.chatStickerUrl(st.fid, st.kind)
+                      const sz = packSheet.pack!.emoji ? 34 : 64
+                      return (
+                        <button key={i} onClick={() => useFromSheet(st)} className="aspect-square flex items-center justify-center rounded-[10px] active:bg-white/10 overflow-hidden">
+                          <InView rootRef={packScrollRef}>
+                            {st.kind === 'animated' ? <LottieSticker url={url} size={sz} />
+                              : st.kind === 'video' ? <video src={url} autoPlay loop muted playsInline style={{ width: sz, height: sz, objectFit: 'contain' }} />
+                                : <img src={url} alt={st.emoji} loading="lazy" style={{ width: sz, height: sz, objectFit: 'contain' }} />}
+                          </InView>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <div className="px-4 pt-3">
+                    {packSheet.added
+                      ? <div className="btn-secondary w-full text-gray"><Icon name="check" size={18} />Набор уже у вас</div>
+                      : <button onClick={addPackFromSheet} className="btn-primary w-full">Добавить {packSheet.pack.emoji ? 'эмодзи' : 'стикеры'} · {packSheet.pack.stickers.length}</button>}
+                  </div>
+                </>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPick('photo')} />
       <input ref={videoInput} type="file" accept="video/*" hidden onChange={onPick('video')} />
 
@@ -1610,6 +1691,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
               {/* действия — компактная карточка */}
               <div className="glass rounded-[18px] overflow-hidden" style={{ background: 'rgba(17,28,23,.94)' }}>
                 <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcReply s={16} />Ответить</button>
+                {menuFor.type === 'sticker' && menuFor.has_media && (<><div className="h-px bg-white/[.06]" /><button onClick={() => openPackOf({ msg: menuFor.id })} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="sticker" size={16} />Набор стикеров</button></>)}
                 {!menuFor.mine && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcUser s={16} />Профиль автора</button></>)}
                 {menuFor.mine && menuFor.type === 'text' && (<><div className="h-px bg-white/[.06]" /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcEdit s={16} />Редактировать</button></>)}
                 {isAdmin && (<><div className="h-px bg-white/[.06]" /><button onClick={() => pin(menuFor.id)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium active:bg-white/[.06]" style={{ color: VIOLET }}><IcPin s={16} />Закрепить</button></>)}
