@@ -225,8 +225,11 @@ export interface ChatMsg {
   anim: boolean
   once: boolean
   ttl: boolean
+  /** Автор с активной подпиской Premium (корона у имени). */
+  premium?: boolean
 }
-export interface ChatResp { messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string; retention_days?: number }
+export interface ChatMember { user_id: number; name: string; username: string; avatar: string; premium?: boolean }
+export interface ChatResp { messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string; retention_days?: number; last_read?: number }
 export interface GifItem { id: string; preview: string; send: string }
 export interface StickerDef { fid: string; emoji: string; kind: string }
 export interface StickerPack { name: string; title: string; emoji?: boolean; stickers: StickerDef[] }
@@ -276,6 +279,10 @@ export const api = {
   chatReact:      (id: number, emoji: string) => post<{ ok?: boolean; on?: boolean }>(`/api/chat/${id}/react`, { emoji }),
   chatEdit:       (id: number, text: string) => post<{ ok?: boolean; error?: string }>(`/api/chat/${id}/edit`, { text }),
   chatTyping:     ()             => post<{ ok?: boolean }>('/api/chat/typing'),
+  chatUnread:     ()             => get<{ count: number; mentions: number; last_read: number }>('/api/chat/unread'),
+  chatRead:       (id: number)   => post<{ ok?: boolean }>('/api/chat/read', { id }),
+  chatMembers:    (q: string)    => get<{ members: ChatMember[] }>(`/api/chat/members?q=${encodeURIComponent(q)}`),
+  chatSearch:     (q: string)    => get<{ messages: ChatMsg[] }>(`/api/chat/search?q=${encodeURIComponent(q)}`),
   chatUser:       (uid: number) => get<ChatUserCard>(`/api/chat/user/${uid}`),
   chatMediaUrl:   (id: number)   => `${API_BASE}/api/chat/media/${id}?${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}`,
   chatAvatarUrl:  (uid: number, v?: string | number) => `${API_BASE}/api/chat/avatar/${uid}?${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}${v != null ? `&v=${v}` : ''}`,

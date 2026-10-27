@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
 import { api } from '../api/client'
-import type { ChatMsg, ChatUserCard } from '../api/client'
+import type { ChatMsg, ChatUserCard, ChatMember } from '../api/client'
 import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
 
@@ -480,7 +480,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
       <div className={`flex gap-2 px-2 ${grouped ? 'mt-0.5' : 'mt-2'} ${mine ? 'flex-row-reverse' : ''}`}>
         {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
         <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-          {!grouped && !mine && <div className="text-[13px] font-semibold mb-0.5 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}</div>}
+          {!grouped && !mine && <div className="text-[13px] font-semibold mb-0.5 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}{m.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}</div>}
           <div onClick={() => onAction(m)} className="relative px-1 active:scale-105 transition-transform cursor-pointer">
             {m.has_media
               ? ((m.mime || '').includes('tgs')
@@ -511,7 +511,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
           }}>
           {!grouped && !mine && (
             <div className="px-3 pt-[7px] text-[13px] font-semibold leading-none" style={{ color: colorFor(m.name) }} onClick={(e) => { e.stopPropagation(); onProfile(m.user_id) }}>
-              {m.name}
+              {m.name}{m.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}
             </div>
           )}
           {quoted && (
@@ -646,6 +646,21 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const lastId = useRef(0)
   const sigRef = useRef('')      // подпись текущей ленты — чтобы пропускать рендер на пустых опросах
   const pollTick = useRef(0)     // счётчик опросов: периодически делаем полную сверку
+  // непрочитанные: метка «Новые сообщения», кнопка «вниз» со счётчиком, отметка прочтения
+  const [unreadFrom, setUnreadFrom] = useState<number | null>(null)
+  const [newBelow, setNewBelow] = useState(0)
+  const [showDown, setShowDown] = useState(false)
+  const readSent = useRef(0)
+  const markRead = (id: number) => { if (id > readSent.current) { readSent.current = id; api.chatRead(id).catch(() => {}) } }
+  // @упоминания: подсказка участников при наборе «@…»
+  const [mention, setMention] = useState<ChatMember[] | null>(null)
+  const mentionQ = useRef('')
+  const mentionT = useRef<number | undefined>(undefined)
+  // поиск по чату
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQ, setSearchQ] = useState('')
+  const [searchRes, setSearchRes] = useState<ChatMsg[] | null>(null)
+  const [searching, setSearching] = useState(false)
   const tempSeq = useRef(0)      // счётчик оптимистичных сообщений
   const atBottom = useRef(true)
   const lastTyping = useRef(0)
@@ -744,8 +759,19 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         if (first) {
           // открываем сразу на последнем сообщении, без видимой прокрутки
           setMsgs(r.messages); sigRef.current = chatSig(r.messages); lastId.current = maxId(r.messages)
-          requestAnimationFrame(() => { jumpBottom(); requestAnimationFrame(() => { jumpBottom(); setReady(true) }) })
-          setTimeout(jumpBottom, 120); setTimeout(jumpBottom, 350); setTimeout(jumpBottom, 700)
+          const lr = r.last_read || 0
+          const firstNew = lr > 0 ? r.messages.find(m => m.id > lr && !m.mine && !m.deleted) : undefined
+          if (firstNew) {
+            // есть непрочитанные — открываем на метке «Новые сообщения», как в Telegram
+            setUnreadFrom(firstNew.id)
+            const toSep = () => { const sep = document.getElementById('unread-sep'); const el = scrollRef.current; if (sep && el) el.scrollTop = Math.max(0, sep.offsetTop - 8) }
+            requestAnimationFrame(() => { toSep(); requestAnimationFrame(() => { toSep(); setReady(true); const el = scrollRef.current; if (el) { atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120; setShowDown(!atBottom.current); if (atBottom.current) markRead(lastId.current) } }) })
+            setTimeout(toSep, 150)
+          } else {
+            requestAnimationFrame(() => { jumpBottom(); requestAnimationFrame(() => { jumpBottom(); setReady(true) }) })
+            setTimeout(jumpBottom, 120); setTimeout(jumpBottom, 350); setTimeout(jumpBottom, 700)
+            markRead(lastId.current)
+          }
           return
         }
 
@@ -754,7 +780,13 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         const prevMax = lastId.current
         const newMax = maxId(r.messages)
         merge(r.messages)                          // обновит ленту только при реальном изменении
-        if (newMax > prevMax && wasBottom) scrollToBottom(true)  // скроллим лишь при новом сообщении
+        if (newMax > prevMax) {
+          if (wasBottom) { scrollToBottom(true); markRead(newMax) }   // скроллим лишь при новом сообщении
+          else {
+            const fresh = r.messages.filter(m => m.id > prevMax && !m.mine && !m.deleted).length
+            if (fresh) setNewBelow(n => n + fresh)
+          }
+        }
       } catch { /* тихо */ }
     }
     // сперва берём короткоживущий токен для медиа (вместо initData в URL),
@@ -793,6 +825,9 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     const el = scrollRef.current
     if (!el) return
     atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120
+    const down = !atBottom.current && el.scrollHeight - el.scrollTop - el.clientHeight > 300
+    if (down !== showDown) setShowDown(down)
+    if (atBottom.current) { if (newBelow) setNewBelow(0); markRead(lastId.current) }
     if (el.scrollTop < 60 && msgs.length) loadOlder()
   }
 
@@ -816,7 +851,48 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   // синхронизация rich-поля: читаем контент редактора в text (с токенами эмодзи)
   const refreshFromEditor = () => { const el = taRef.current; if (el) setText(serializeEditor(el)) }
   const setComposer = (t: string) => { setText(t); const el = taRef.current; if (el) fillEditor(el, t) }
+  const detectMention = () => {
+    const sel = window.getSelection(); const node = sel?.anchorNode
+    if (!sel || !node || node.nodeType !== 3 || !taRef.current?.contains(node)) { setMention(null); return }
+    const before = (node.textContent || '').slice(0, sel.anchorOffset)
+    const mm = before.match(/(^|[\s\u00a0])@([A-Za-z0-9_а-яёА-ЯЁ]{0,32})$/)
+    if (!mm) { mentionQ.current = ''; setMention(null); return }
+    const q = mm[2]; mentionQ.current = q
+    window.clearTimeout(mentionT.current)
+    mentionT.current = window.setTimeout(() => {
+      api.chatMembers(q).then(r => { if (mentionQ.current === q) setMention(r.members?.length ? r.members : null) }).catch(() => setMention(null))
+    }, 180)
+  }
+  const applyMention = (u: ChatMember) => {
+    const sel = window.getSelection(); const node = sel?.anchorNode
+    const ins = '@' + u.username + '\u00a0'
+    if (sel && node && node.nodeType === 3 && taRef.current?.contains(node)) {
+      const off = sel.anchorOffset; const txt = node.textContent || ''
+      const start = txt.slice(0, off).lastIndexOf('@')
+      if (start >= 0) {
+        node.textContent = txt.slice(0, start) + ins + txt.slice(off)
+        const rg = document.createRange(); rg.setStart(node, start + ins.length); rg.collapse(true)
+        sel.removeAllRanges(); sel.addRange(rg)
+      } else insertTextAtCaret(ins)
+    } else insertTextAtCaret(ins)
+    mentionQ.current = ''; setMention(null); refreshFromEditor(); taRef.current?.focus()
+  }
+  // поиск: запрос с задержкой, пока человек печатает
+  useEffect(() => {
+    if (!searchOpen) return
+    const q = searchQ.trim()
+    if (q.length < 2) { setSearchRes(null); setSearching(false); return }
+    setSearching(true)
+    const t = window.setTimeout(() => {
+      api.chatSearch(q).then(r => setSearchRes(r.messages || [])).catch(() => setSearchRes([])).finally(() => setSearching(false))
+    }, 300)
+    return () => window.clearTimeout(t)
+  }, [searchQ, searchOpen])
+  const closeSearch = () => { setSearchOpen(false); setSearchQ(''); setSearchRes(null) }
+  const openFound = (id: number) => { closeSearch(); setTimeout(() => jumpToMsg(id), 60) }
+
   const onEditorInput = () => {
+    detectMention()
     refreshFromEditor()
     const now = Date.now()
     if (now - lastTyping.current > 2500) { lastTyping.current = now; api.chatTyping().catch(() => {}) }
@@ -875,7 +951,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     } as any
     ;(temp as any).pending = true
     setMsgs(prev => { const arr = [...prev, temp]; sigRef.current = chatSig(arr); return arr })
-    setComposer(''); setReply(null)
+    setComposer(''); setReply(null); setMention(null)
     atBottom.current = true
     scrollToBottom(true)
 
@@ -1109,8 +1185,23 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   return (
     <div className="relative flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
 
+      {/* поиск по чату: строка поиска вместо шапки */}
+      {searchOpen && (
+        <div className="relative flex items-center gap-2 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06]">
+          <button onClick={closeSearch} aria-label="Закрыть поиск" className="w-9 h-10 flex items-center justify-center rounded-full text-fg active:bg-white/10 shrink-0">
+            <Icon name="back" size={22} />
+          </button>
+          <div className="flex-1 flex items-center gap-2 h-10 px-3 rounded-full bg-white/[.07] border border-white/[.08] min-w-0">
+            <Icon name="search" size={18} className="text-gray shrink-0" />
+            <input autoFocus value={searchQ} onChange={e => setSearchQ(e.target.value)} placeholder="Поиск по чату"
+              className="flex-1 min-w-0 bg-transparent text-[15px] text-fg placeholder:text-gray2 outline-none" style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
+            {searchQ && <button onClick={() => setSearchQ('')} aria-label="Очистить" className="text-gray shrink-0"><Icon name="close" size={16} /></button>}
+          </div>
+        </div>
+      )}
+
       {/* шапка чата: плитка, название, онлайн, «печатает», последние участники */}
-      <div className="relative flex items-center gap-2.5 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06]">
+      <div className={`relative flex items-center gap-2.5 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06] ${searchOpen ? 'hidden' : ''}`}>
         {onBack && (
           <button onClick={onBack} aria-label="Назад" className="w-9 h-10 -mr-1 flex items-center justify-center rounded-full text-fg active:bg-white/10 shrink-0">
             <Icon name="back" size={22} />
@@ -1143,6 +1234,10 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
             </div>
           ))}
         </div>
+        <button onClick={() => setSearchOpen(true)} aria-label="Поиск по чату"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-[#CFDAD4] active:bg-white/10 shrink-0">
+          <Icon name="search" size={20} />
+        </button>
         {isAdmin && (
           <button onClick={() => setRetOpen(true)} aria-label="Настройки чата"
             className="w-9 h-9 -mr-1 flex items-center justify-center rounded-full text-gray active:bg-white/10 shrink-0">
@@ -1162,6 +1257,40 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         </div>
       )}
 
+      {searchOpen && (
+        <div className="absolute left-0 right-0 bottom-0 z-30 overflow-y-auto bg-bg" style={{ top: 57 }}>
+          {searchQ.trim().length < 2 ? (
+            <div className="px-6 pt-10 text-center text-[14px] text-gray">Введите хотя бы 2 символа: слово из сообщения или имя участника.</div>
+          ) : searching && !searchRes ? (
+            <div className="px-6 pt-10 text-center text-[14px] text-gray">Ищем…</div>
+          ) : searchRes && searchRes.length === 0 ? (
+            <div className="px-6 pt-10 text-center text-[14px] text-gray">Ничего не нашлось. Попробуйте другое слово.</div>
+          ) : (
+            <div className="px-3 py-3 flex flex-col gap-0.5">
+              {searchRes && <div className="px-2 pb-2 text-[12.5px] text-gray tabular-nums">Найдено: {searchRes.length}{searchRes.length >= 50 ? '+' : ''}</div>}
+              {(searchRes || []).map(m => {
+                const t = stripTokens(m.text); const q = searchQ.trim().toLowerCase(); const i = t.toLowerCase().indexOf(q)
+                const from = Math.max(0, i - 40); const pre = (from > 0 ? '…' : '') + t.slice(from, Math.max(from, i))
+                return (
+                  <button key={m.id} onClick={() => openFound(m.id)} className="flex items-start gap-3 px-2 py-2.5 rounded-[14px] text-left active:bg-white/[.05]">
+                    <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} size={36} />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[14px] font-semibold truncate" style={{ color: colorFor(m.name) }}>{m.name}{m.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}</span>
+                        <span className="ml-auto text-[11.5px] text-gray2 shrink-0 tabular-nums">{dayLabel(m.created_at)} · {timeOf(m.created_at)}</span>
+                      </div>
+                      <div className="text-[13.5px] text-[#CFDAD4] line-clamp-2 break-words">
+                        {i >= 0 ? <>{pre}<mark className="bg-transparent font-semibold" style={{ color: '#17E584' }}>{t.slice(i, i + q.length)}</mark>{t.slice(i + q.length, i + q.length + 120)}</> : t.slice(0, 160)}
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       <div ref={scrollRef} onScroll={onScroll} className="flex-1 overflow-y-auto overflow-x-hidden pt-2" style={{ overscrollBehavior: 'contain', background: WALL, opacity: ready ? 1 : 0, transition: 'opacity .12s', paddingBottom: dockH + 12 }}>
         {msgs.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center gap-3 text-[14px] text-gray px-8 text-center">
@@ -1172,6 +1301,13 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
           const d = dayLabel(m.created_at); const sep = d !== lastDay; lastDay = d
           return (
             <div key={m.id} id={`m-${m.id}`} style={hiId === m.id ? { background: 'rgba(118,87,255,.16)', borderRadius: 14, transition: 'background .5s' } : { transition: 'background .8s' }}>
+              {m.id === unreadFrom && (
+                <div id="unread-sep" className="flex items-center gap-3 px-4 my-3">
+                  <span className="flex-1 h-px" style={{ background: 'rgba(185,168,255,.3)' }} />
+                  <span className="text-[12px] font-semibold" style={{ color: VIOLET }}>Новые сообщения</span>
+                  <span className="flex-1 h-px" style={{ background: 'rgba(185,168,255,.3)' }} />
+                </div>
+              )}
               {sep && (
                 <div className="flex justify-center my-3">
                   <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#CFDAD4]" style={{ background: 'rgba(17,28,23,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
@@ -1186,7 +1322,33 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
       {/* плавающая нижняя панель: листы + стеклянная капсула ввода */}
       <div ref={dockRef} className="absolute left-0 right-0 bottom-0 z-20 px-2.5 flex flex-col pointer-events-none [&>*]:pointer-events-auto"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 12px)' }}>
+        {showDown && !searchOpen && (
+          <button onClick={() => { scrollToBottom(true); setNewBelow(0) }} aria-label="К новым сообщениям"
+            className="glass self-end relative mb-2 mr-1 w-11 h-11 rounded-full flex items-center justify-center text-fg active:scale-95 transition-transform">
+            <Icon name="chevD" size={22} />
+            {newBelow > 0 && (
+              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 min-w-[20px] h-5 px-1.5 rounded-full bg-green text-ink text-[11px] font-bold flex items-center justify-center tabular-nums">
+                {newBelow > 99 ? '99+' : newBelow}
+              </span>
+            )}
+          </button>
+        )}
         {toast && <div className="self-center mb-2 px-3.5 py-1.5 rounded-full text-[12.5px] text-fg glass">{toast}</div>}
+
+        {mention && mention.length > 0 && (
+          <div className="glass rounded-[18px] mb-2 py-1.5 max-h-[248px] overflow-y-auto" style={{ background: 'rgba(13,21,17,.97)' }}>
+            {mention.map(u => (
+              <button key={u.user_id} onMouseDown={e => e.preventDefault()} onClick={() => applyMention(u)}
+                className="w-full flex items-center gap-3 px-3 py-2 text-left active:bg-white/[.06]">
+                <Avatar name={u.name} src={api.chatAvatarUrl(u.user_id)} size={32} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-[14px] font-semibold text-fg truncate">{u.name}{u.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}</div>
+                  <div className="text-[12.5px] text-gray truncate">@{u.username}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
 
         {(reply || editing) && (
           <div className="glass rounded-[18px] mb-2 flex items-center gap-2.5 pl-3 pr-1.5 py-1.5" style={{ background: 'rgba(13,21,17,.95)' }}>

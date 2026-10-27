@@ -90,6 +90,8 @@ export default function App() {
   // Новые комментарии и оценки с прошлого просмотра ленты (только у админа)
   const [fbUnread, setFbUnread] = useState(0)
   const [fbUnanswered, setFbUnanswered] = useState(0)
+  // Непрочитанные сообщения в чате (счётчик на вкладке «Чат»)
+  const [chatUnread, setChatUnread] = useState(0)
   // Отступы под оверлей Telegram в полноэкранном режиме (на ПК), чтобы шапку не перекрывало.
   const [safeInset, setSafeInset] = useState({ top: 0, right: 0, left: 0 })
   // Полноэкранный/оконный режим на ПК: текущее состояние и признак поддержки.
@@ -124,6 +126,17 @@ export default function App() {
       if (r.ok) { setFbUnread(r.total); setFbUnanswered(r.unanswered) }
     })
   }, [])
+
+  // Счётчик непрочитанных в чате: опрашиваем, пока чат закрыт; при открытии чата обнуляем
+  useEffect(() => {
+    if (tab === 'chat') { setChatUnread(0); return }
+    let alive = true
+    const load = () => { if (!document.hidden) api.chatUnread().then(r => { if (alive) setChatUnread(r.count || 0) }).catch(() => {}) }
+    load()
+    const t = window.setInterval(load, 30_000)
+    document.addEventListener('visibilitychange', load)
+    return () => { alive = false; window.clearInterval(t); document.removeEventListener('visibilitychange', load) }
+  }, [tab])
 
   useEffect(() => {
     if (!isAdmin) return
@@ -394,7 +407,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {!isMat && tab !== 'chat' && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread }} />}
+      {!isMat && tab !== 'chat' && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread, chat: chatUnread }} />}
 
       <NotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} />
     </div>
