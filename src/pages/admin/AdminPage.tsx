@@ -55,13 +55,13 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {top.k !== 'home' && (
-        <div className="sticky top-0 z-30 flex items-center gap-2 px-2 h-14 bg-bg/85 backdrop-blur-xl border-b border-white/[.06]">
+        <div className="sticky top-0 z-30 bg-bg/85 backdrop-blur-xl border-b border-white/[.06]"><div className="max-w-[760px] mx-auto flex items-center gap-2 px-2 h-14">
           <button onClick={goBack} aria-label="Назад" className="w-10 h-10 rounded-full grid place-items-center active:bg-white/10"><Icon name="chevL" size={22} /></button>
           <h2 className="font-display font-semibold text-[16px] truncate flex-1">{title}</h2>
           {top.k === 'material' && <button onClick={() => onOpenMaterial(top.id)} className="h-9 px-3 rounded-full bg-white/[.06] text-[12.5px] flex items-center gap-1.5"><Icon name="eye" size={15} />Как видят</button>}
-        </div>
+        </div></div>
       )}
-      <motion.div key={stack.length + top.k} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .18 }} className="flex-1 flex flex-col min-h-0">
+      <motion.div key={stack.length + top.k} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .18 }} className="flex-1 flex flex-col min-h-0 w-full max-w-[760px] mx-auto">
         {top.k === 'home' && <Home nav={nav} fbUnread={fbUnread} />}
         {top.k === 'content' && <SectionsScreen nav={nav} parentId={null} />}
         {top.k === 'section' && <SectionsScreen key={top.id} nav={nav} parentId={top.id} />}
@@ -86,77 +86,135 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
 
 /* ───────────── Главная админки ───────────── */
 
+const rub = (n: number) => num(Math.round(n)) + ' ₽'
+const dayLabel = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }).replace('.', '')
+
 function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
   const [o, setO] = useState<Overview | null>(null)
   const [err, setErr] = useState('')
-  const load = useCallback(() => adminApi.overview().then(setO).catch(e => setErr(errMsg(e))), [])
+  const [sel, setSel] = useState<number | null>(null)
+  const [spin, setSpin] = useState(false)
+  const load = useCallback(() => { setSpin(true); return adminApi.overview().then(setO).catch(e => setErr(errMsg(e))).finally(() => setSpin(false)) }, [])
   useEffect(() => { load() }, [load])
 
   if (err) return <div className="p-6 text-center text-gray">{err === 'forbidden' ? 'Нет прав администратора' : err}</div>
   if (!o) return <Loader />
   const max = Math.max(1, ...o.signups.map(s => s.n))
+  const pick = sel ?? o.signups.length - 1
+  const go = (k: Screen['k']) => () => nav.push({ k } as Screen)
+  const attention = [
+    o.pending_submissions > 0 && { k: 'subs' as const, icon: 'checkCircle' as IconName, t: 'Заявки на проверку', n: o.pending_submissions },
+    o.reported_comments > 0 && { k: 'comments' as const, icon: 'flag' as IconName, t: 'Жалобы на комментарии', n: o.reported_comments },
+    fbUnread > 0 && { k: 'feedback' as const, icon: 'chat' as IconName, t: 'Новые отзывы и оценки', n: fbUnread },
+  ].filter(Boolean) as { k: Screen['k']; icon: IconName; t: string; n: number }[]
 
-  const tiles: { k: Screen['k']; icon: IconName; title: string; sub: string; badge?: number; tone: string }[] = [
-    { k: 'content', icon: 'folder', title: 'Контент', sub: `${num(o.sections)} разд. · ${num(o.materials)} мат.`, tone: '#17E584' },
-    { k: 'users', icon: 'users', title: 'Пользователи', sub: `${num(o.users)} · бан ${o.banned}`, tone: '#B9A8FF' },
-    { k: 'subs', icon: 'checkCircle', title: 'Заявки', sub: o.pending_submissions ? 'ждут проверки' : 'новых нет', badge: o.pending_submissions, tone: '#17E584' },
-    { k: 'comments', icon: 'flag', title: 'Комментарии', sub: o.reported_comments ? 'есть жалобы' : 'жалоб нет', badge: o.reported_comments, tone: '#FF8A8A' },
-    { k: 'feedback', icon: 'chat', title: 'Обсуждения', sub: 'отзывы и оценки', badge: fbUnread, tone: '#B9A8FF' },
-    { k: 'courses', icon: 'book', title: 'Курсы', sub: 'конструктор курсов', tone: '#F5C25A' },
-    { k: 'broadcast', icon: 'send', title: 'Рассылка', sub: 'сообщение всем', tone: '#17E584' },
-    { k: 'banners', icon: 'image', title: 'Баннеры', sub: 'на главной', tone: '#F5C25A' },
-    { k: 'pinned', icon: 'pin', title: 'Закреп', sub: 'в чате бота', tone: '#B9A8FF' },
-    { k: 'payments', icon: 'card', title: 'Оплаты', sub: `${num(o.rub_30d)} ₽ за 30 дн.`, tone: '#F5C25A' },
-    { k: 'logs', icon: 'history', title: 'Журнал', sub: 'кто что менял', tone: '#A6B8AE' },
-  ]
+  const Item = ({ k, icon, title, sub, tone, badge }: { k: Screen['k']; icon: IconName; title: string; sub: string; tone: string; badge?: number }) => (
+    <button onClick={go(k)} className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-white/[.04]">
+      <span className="w-9 h-9 rounded-[11px] grid place-items-center shrink-0" style={{ background: tone + '1F', color: tone }}><Icon name={icon} size={18} accent="current" /></span>
+      <span className="flex-1 min-w-0">
+        <span className="block text-[14.5px] font-medium">{title}</span>
+        <span className="block text-[12px] text-gray truncate">{sub}</span>
+      </span>
+      {!!badge && <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-green text-ink text-[11.5px] font-bold grid place-items-center">{badge}</span>}
+      <Icon name="chevR" size={16} className="text-gray2 shrink-0" />
+    </button>
+  )
+  const Group = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <section>
+      <h3 className="text-[12.5px] font-semibold text-gray px-1 mb-2">{title}</h3>
+      <div className="list-group">{children}</div>
+    </section>
+  )
 
   return (
     <div className="px-4 pt-3 pb-navsafe">
       {/* сводка */}
       <div className="relative overflow-hidden rounded-[24px] p-5 border border-white/[.08]"
-        style={{ background: 'radial-gradient(120% 90% at 100% 0%, rgba(118,87,255,.35), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(23,229,132,.22), transparent 60%), #111C17' }}>
-        <span className="absolute -right-8 -bottom-10 opacity-[.07] pointer-events-none"><BazaMark size={170} color="#fff" /></span>
+        style={{ background: 'radial-gradient(120% 90% at 100% 0%, rgba(118,87,255,.32), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(23,229,132,.18), transparent 60%), #111C17' }}>
+        <span className="absolute -right-8 -bottom-10 opacity-[.06] pointer-events-none"><BazaMark size={190} color="#fff" /></span>
         <div className="relative flex items-center justify-between">
-          <span className="text-[13px] text-gray">Админка Базы</span>
-          <button onClick={load} className="w-8 h-8 rounded-full bg-white/[.08] grid place-items-center" aria-label="Обновить"><Icon name="refresh" size={15} /></button>
+          <span className="flex items-center gap-2 text-[13px] text-gray"><span className="pulse-dot" />Админка Базы</span>
+          <button onClick={load} className="w-8 h-8 rounded-full bg-white/[.08] grid place-items-center" aria-label="Обновить">
+            <Icon name="refresh" size={15} className={spin ? 'animate-spin' : ''} />
+          </button>
         </div>
-        <div className="relative mt-2 flex items-end gap-2">
+        <div className="relative mt-2 flex items-end gap-2 flex-wrap">
           <b className="font-display font-semibold text-[34px] leading-none">{num(o.users)}</b>
           <span className="text-[13px] text-gray mb-1">пользователей</span>
+          <span className="text-[12px] font-semibold text-green mb-1 ml-auto">+{o.new_7d} за неделю</span>
         </div>
-        <div className="relative grid grid-cols-3 gap-2 mt-4">
-          {[['Premium', o.premium, '#F5C25A'], ['Сегодня', o.active_1d, '#17E584'], ['За 7 дн.', o.active_7d, '#B9A8FF']].map(([l, v, c]) => (
-            <div key={l as string} className="rounded-[14px] bg-black/25 px-3 py-2.5">
-              <b className="block font-display font-semibold text-[17px]" style={{ color: c as string }}>{num(v as number)}</b>
+        <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
+          {([['Premium', num(o.premium), '#F5C25A'], ['Активны сегодня', num(o.active_1d), '#17E584'], ['За 7 дней', num(o.active_7d), '#B9A8FF'], ['Выручка 30 дн.', rub(o.rub_30d), '#F5C25A']] as const).map(([l, v, c]) => (
+            <div key={l} className="rounded-[14px] bg-black/25 px-3 py-2.5 min-w-0">
+              <b className="block font-display font-semibold text-[17px] truncate" style={{ color: c }}>{v}</b>
               <span className="text-[11.5px] text-gray">{l}</span>
             </div>
           ))}
         </div>
         {/* регистрации за 14 дней */}
         <div className="relative mt-4">
-          <div className="flex justify-between text-[11.5px] text-gray mb-1.5"><span>Новые за 14 дней</span><span>+{o.new_1d} сегодня · +{o.new_7d} за неделю</span></div>
-          <div className="flex items-end gap-[3px] h-12">
-            {o.signups.map(s => (
-              <div key={s.d} title={`${s.d}: ${s.n}`} className="flex-1 rounded-t-[4px]" style={{ height: `${Math.max(6, s.n / max * 100)}%`, background: 'linear-gradient(180deg,#17E584,rgba(23,229,132,.35))' }} />
+          <div className="flex justify-between text-[11.5px] text-gray mb-2">
+            <span>Новые пользователи</span>
+            <span><b className="text-fg font-semibold">{o.signups[pick]?.n ?? 0}</b> · {pick === o.signups.length - 1 ? 'сегодня' : dayLabel(o.signups[pick].d)}</span>
+          </div>
+          <div className="flex items-end gap-[4px] h-14">
+            {o.signups.map((s, i) => (
+              <button key={s.d} onClick={() => setSel(i)} aria-label={`${s.d}: ${s.n}`} className="flex-1 h-full flex items-end">
+                <span className="w-full rounded-t-[4px] transition-opacity" style={{ height: `${Math.max(6, s.n / max * 100)}%`, opacity: i === pick ? 1 : .45,
+                  background: i === pick ? 'linear-gradient(180deg,#4BF5A8,#17E584)' : 'linear-gradient(180deg,#17E584,rgba(23,229,132,.4))' }} />
+              </button>
             ))}
           </div>
+          <div className="flex justify-between text-[10.5px] text-gray2 mt-1"><span>{dayLabel(o.signups[0].d)}</span><span>сегодня</span></div>
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        <button className="btn-primary h-12" onClick={() => nav.push({ k: 'upload' })}><Icon name="plus" size={17} />Материал</button>
-        <button className="btn-secondary h-12" onClick={() => nav.push({ k: 'users' })}><Icon name="search" size={17} />Найти юзера</button>
+      {/* быстрые действия */}
+      <div className="grid grid-cols-3 gap-2 mt-3">
+        <button className="btn-primary h-11 px-2 gap-1.5" style={{ fontFamily: 'Onest, sans-serif', fontSize: 14, fontWeight: 700 }} onClick={go('upload')}><Icon name="plus" size={16} />Материал</button>
+        <button className="btn-secondary h-11 text-[13.5px] px-2" onClick={go('broadcast')}><Icon name="send" size={16} />Рассылка</button>
+        <button className="btn-secondary h-11 text-[13.5px] px-2" onClick={go('users')}><Icon name="search" size={16} />Юзер</button>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        {tiles.map(t => (
-          <button key={t.k} onClick={() => nav.push({ k: t.k } as Screen)} className="card relative p-3.5 text-left active:scale-[.98] transition-transform">
-            <span className="w-10 h-10 rounded-[12px] grid place-items-center mb-2.5" style={{ background: t.tone + '22', color: t.tone }}><Icon name={t.icon} size={20} accent="current" /></span>
-            <b className="block text-[14.5px] font-semibold">{t.title}</b>
-            <span className="block text-[12px] text-gray truncate">{t.sub}</span>
-            {!!t.badge && <span className="absolute top-3 right-3 min-w-[22px] h-[22px] px-1.5 rounded-full bg-green text-ink text-[11.5px] font-bold grid place-items-center">{t.badge}</span>}
-          </button>
-        ))}
+      {/* требует внимания */}
+      {attention.length > 0 ? (
+        <div className="card mt-3 overflow-hidden" style={{ borderColor: 'rgba(23,229,132,.25)' }}>
+          <div className="px-4 pt-3 text-[12.5px] font-semibold text-green">Требует внимания</div>
+          {attention.map(a => (
+            <button key={a.k} onClick={go(a.k)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-white/[.04]">
+              <Icon name={a.icon} size={18} className="text-green" accent="current" />
+              <span className="flex-1 text-[14px]">{a.t}</span>
+              <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-green text-ink text-[11.5px] font-bold grid place-items-center">{a.n}</span>
+            </button>
+          ))}
+          <div className="h-1.5" />
+        </div>
+      ) : (
+        <div className="flex items-center gap-2.5 mt-3 px-4 py-3 rounded-[16px] bg-s1 border border-white/[.06] text-[13px] text-gray">
+          <Icon name="checkCircle" size={17} className="text-green" accent="current" />Новых заявок, жалоб и отзывов нет
+        </div>
+      )}
+
+      <div className="grid sm:grid-cols-2 gap-x-3 gap-y-4 mt-5">
+        <Group title="Контент">
+          <Item k="content" icon="folder" title="Разделы и материалы" sub={`${num(o.sections)} разделов · ${num(o.materials)} материалов`} tone="#17E584" />
+          <Item k="courses" icon="book" title="Курсы" sub="конструктор курсов и доступ" tone="#F5C25A" />
+          <Item k="subs" icon="checkCircle" title="Заявки от пользователей" sub={o.pending_submissions ? `ждут проверки: ${o.pending_submissions}` : 'новых нет'} tone="#17E584" badge={o.pending_submissions} />
+        </Group>
+        <Group title="Сообщество">
+          <Item k="users" icon="users" title="Пользователи" sub={`${num(o.users)} · в бане ${o.banned}`} tone="#B9A8FF" />
+          <Item k="comments" icon="flag" title="Комментарии" sub={o.reported_comments ? `жалоб: ${o.reported_comments}` : 'жалоб нет'} tone="#FF8A8A" badge={o.reported_comments} />
+          <Item k="feedback" icon="chat" title="Обсуждения" sub="отзывы и оценки материалов" tone="#B9A8FF" badge={fbUnread} />
+        </Group>
+        <Group title="Продвижение">
+          <Item k="broadcast" icon="send" title="Рассылка" sub="сообщение всем или сегменту" tone="#17E584" />
+          <Item k="banners" icon="image" title="Баннеры" sub="карточки на главной" tone="#F5C25A" />
+          <Item k="pinned" icon="pin" title="Закреп в боте" sub="сообщение при /start" tone="#B9A8FF" />
+        </Group>
+        <Group title="Деньги и учёт">
+          <Item k="payments" icon="card" title="Оплаты" sub={`${rub(o.rub_30d)} за 30 дней · ${o.rub_30d_count} оплат`} tone="#F5C25A" />
+          <Item k="logs" icon="history" title="Журнал" sub="кто и что менял" tone="#A6B8AE" />
+        </Group>
       </div>
     </div>
   )

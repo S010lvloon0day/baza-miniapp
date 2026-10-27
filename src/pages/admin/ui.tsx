@@ -32,7 +32,7 @@ export function Toaster() {
     <AnimatePresence>
       {t && (
         <motion.div key={t.k} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 16 }}
-          className="glass fixed z-[80] left-4 right-4 px-4 py-3 rounded-2xl flex items-center gap-2.5 text-[14px]"
+          className="glass fixed z-[80] left-4 right-4 mx-auto max-w-[560px] px-4 py-3 rounded-2xl flex items-center gap-2.5 text-[14px]"
           style={{ bottom: 'calc(env(safe-area-inset-bottom,0px) + 96px)' }}>
           <Icon name={t.err ? 'warnCircle' : 'checkCircle'} size={18} className={t.err ? 'text-[#FF6B6B]' : 'text-green'} />
           <span className="flex-1">{t.text}</span>
@@ -142,7 +142,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
       {open && (
         <>
           <motion.div className="fixed inset-0 z-[70] bg-black/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
-          <motion.div className="fixed z-[71] left-0 right-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[26px] bg-s1 border-t border-white/[.08] px-4 pt-3"
+          <motion.div className="fixed z-[71] left-0 right-0 bottom-0 mx-auto w-full max-w-[600px] max-h-[88vh] overflow-y-auto rounded-t-[26px] bg-s1 border-t border-white/[.08] px-4 pt-3"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)' }}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 30, stiffness: 320 }}>
             <div className="w-10 h-1 rounded-full bg-white/15 mx-auto mb-3" />
