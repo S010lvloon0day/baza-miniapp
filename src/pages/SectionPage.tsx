@@ -230,8 +230,12 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const showUpsell = lockedPreview && !loading && total === 0 && subs.length === 0
   if (showUpsell) return <PremiumUpsell section={section} onUpgrade={onUpgrade} />
 
-  const present = FILTERS.filter(f => f.id !== 'all' && mats.some(m => f.match(m.media_type)))
-  const shown = filter === 'all' ? mats : mats.filter(m => FILTERS.find(f => f.id === filter)!.match(m.media_type))
+  // Закреплённые «важные» материалы — рендерятся отдельной карточкой сверху
+  // (помечаются ведущим значком 🧭 в названии), из обычного списка исключаются.
+  const featured = mats.filter(m => (m.title || '').trimStart().startsWith('🧭'))
+  const listMats = mats.filter(m => !featured.includes(m))
+  const present = FILTERS.filter(f => f.id !== 'all' && listMats.some(m => f.match(m.media_type)))
+  const shown = filter === 'all' ? listMats : listMats.filter(m => FILTERS.find(f => f.id === filter)!.match(m.media_type))
   const anyViewed = mats.some(m => m.viewed)
   let lastViewed = -1
   mats.forEach((m, i) => { if (m.viewed) lastViewed = i })
@@ -256,6 +260,27 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
       {subMsg && <div className="mx-[18px] -mt-2 mb-3 text-[13px] text-green">{subMsg}</div>}
 
       <div className="px-3.5 flex flex-col gap-4">
+        {featured.length > 0 && (
+          <div className="flex flex-col gap-2.5">
+            {featured.map(m => (
+              <button key={m.id} onClick={() => onMaterial(m.id, section.id, page)}
+                className="relative w-full rounded-[20px] p-4 text-left overflow-hidden border border-green/40 active:scale-[.99] transition-transform"
+                style={{ background: 'linear-gradient(120deg,rgba(23,229,132,.22),rgba(23,229,132,.04) 62%),#0E2017' }}>
+                <span className="absolute -right-6 -top-6 w-24 h-24 rounded-full" style={{ background: 'radial-gradient(circle,rgba(23,229,132,.18),transparent 70%)' }} />
+                <div className="relative flex items-center gap-3">
+                  <span className="w-12 h-12 rounded-[14px] grid place-items-center shrink-0 bg-green/20 text-[24px] leading-none">🧭</span>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-[10.5px] font-bold tracking-wider text-green uppercase">★ Важное · интерактивно</span>
+                    <b className="block text-[16px] font-bold leading-snug line-clamp-2 mt-0.5">{m.title.replace(/^🧭\s*/, '')}</b>
+                    <span className="block text-[12.5px] text-[#CFE9D8]/80 mt-0.5">Дерево OSINT-инструментов — нажми, чтобы открыть</span>
+                  </span>
+                  <Icon name="chevR" size={20} accent="brand" className="text-green shrink-0" />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         {total > 0 && (
           <div className="flex items-center gap-3 px-1">
             <div className="flex-1 h-1.5 rounded-full bg-white/[.08] overflow-hidden">
