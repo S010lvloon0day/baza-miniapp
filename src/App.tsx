@@ -61,14 +61,15 @@ type View =
   | { type: 'compete' }
 
 /** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
-function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean } {
+function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number } {
   const qp = new URLSearchParams(location.search)
   const sp: string = tg?.initDataUnsafe?.start_param || ''
   const m = Number(qp.get('m') || (sp.match(/^m(\d+)$/)?.[1] ?? ''))
   return {
     material: Number.isInteger(m) && m > 0 ? m : undefined,
     feedback: qp.get('feedback') === '1' || sp === 'feedback',
-    chat: qp.get('chat') === '1' || sp === 'chat',
+    chat: qp.get('chat') === '1' || sp === 'chat' || !!qp.get('chat_msg'),
+    chatMsg: Number(qp.get('chat_msg')) || undefined,
   }
 }
 
@@ -244,7 +245,7 @@ export default function App() {
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <LibraryPage bmTick={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
-      if (tab === 'chat')   return <ChatPage onBack={() => switchTab('home')} />
+      if (tab === 'chat')   return <ChatPage onBack={() => switchTab('home')} initialMsg={deepLink.chatMsg} />
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} onCompete={openCompete} />
       if (tab === 'ctor') {
         if (!isAdmin) return null

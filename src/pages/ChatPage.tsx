@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
-import { api } from '../api/client'
-import type { ChatMsg, ChatUserCard, ChatMember } from '../api/client'
+import { api, setChatTopic, getChatTopic } from '../api/client'
+import type { ChatMsg, ChatUserCard, ChatMember, ChatTopic } from '../api/client'
 import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
 import { EMOJI_CATS, EMOJI_CDN, EMOJI_SEQ, codeToChar, emojiUrl } from '../utils/emojiData'
@@ -623,7 +623,7 @@ function chatSig(arr: ChatMsg[]): string {
 const TEMP_BASE = 1e15
 const maxId = (arr: ChatMsg[]) => arr.reduce((mx, m) => (m.id < TEMP_BASE && m.id > mx ? m.id : mx), 0)
 
-export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
+export default function ChatPage({ onBack, initialMsg }: { onBack?: () => void; initialMsg?: number } = {}) {
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
   const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
   const [gated, setGated] = useState(false)   // не подписан на канал — доступ к чату закрыт
@@ -631,6 +631,19 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const [, setMtokV] = useState(0)            // триггер ре-рендера при получении медиа-токена
   const [retDays, setRetDays] = useState<number | null>(null)  // срок хранения (виден админу)
   const [retOpen, setRetOpen] = useState(false)                // лист настройки хранения
+  // темы чата, мут, переход к сообщению из уведомления
+  const [topic, setTopic] = useState(getChatTopic())
+  const [topics, setTopics] = useState<ChatTopic[]>([])
+  const [mutedMsg, setMutedMsg] = useState<string | null>(null)
+  const [muteFor, setMuteFor] = useState<{ id: number; name: string } | null>(null)
+  const [mutePurge, setMutePurge] = useState(false)
+  const pendingJump = useRef<number | null>(initialMsg ?? null)
+  useEffect(() => {
+    const load = () => api.chatTopics().then(r => setTopics(r.topics || [])).catch(() => {})
+    load()
+    const t = window.setInterval(() => { if (!document.hidden) load() }, 15000)
+    return () => window.clearInterval(t)
+  }, [])
   const [hiId, setHiId] = useState<number | null>(null)        // подсветка сообщения при переходе
   const [online, setOnline] = useState(0)
   const [typing, setTyping] = useState<string[]>([])
@@ -748,6 +761,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); flashMsg(id); return }
     try {
       const r = await api.chatAround(id)
+      if (r.topic && r.topic !== getChatTopic()) { pendingJump.current = id; setTopic(r.topic); return }
       if (r.messages && r.messages.length) {
         merge(r.messages)
         // ждём отрисовку, затем прыгаем к сообщению
@@ -779,6 +793,8 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
 
   useEffect(() => {
     let alive = true
+    setChatTopic(topic)
+    setMsgs([]); sigRef.current = ''; lastId.current = 0; setUnreadFrom(null); setNewBelow(0)
     const pull = async (first = false) => {
       try {
         pollTick.current++
@@ -787,7 +803,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         const full = first || pollTick.current % 5 === 0
         const r = await api.chat(full ? undefined : (lastId.current || undefined))
         if (!alive) return
-        setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setGifEnabled(!!r.gif)
+        setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setGifEnabled(!!r.gif); setMutedMsg(r.muted ?? null)
         // «печатает…» обновляем только при реальном изменении — иначе лишний ре-рендер каждые 2.2с
         setTyping(prev => { const n = r.typing ?? []; return (prev.length === n.length && prev.every((v, i) => v === n[i])) ? prev : n })
 
@@ -796,6 +812,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         if (typeof r.retention_days === 'number') setRetDays(r.retention_days)
 
         if (first) {
+          if (pendingJump.current) { const j = pendingJump.current; pendingJump.current = null; setTimeout(() => jumpToMsg(j), 450) }
           // открываем сразу на последнем сообщении, без видимой прокрутки
           setMsgs(r.messages); sigRef.current = chatSig(r.messages); lastId.current = maxId(r.messages)
           const lr = r.last_read || 0
@@ -848,7 +865,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     document.addEventListener('visibilitychange', onVis)
     return () => { alive = false; window.clearInterval(t); window.clearInterval(tk); document.removeEventListener('visibilitychange', onVis) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [topic])
 
   // запоминаем последнюю выбранную вкладку панели
   useEffect(() => { try { localStorage.setItem('chat_sttab', stickerTab) } catch { /* */ } }, [stickerTab])
@@ -1001,10 +1018,10 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     setSending(true)
     try {
       const r = await api.chatSend(t, replyId, ttlSec || undefined)
-      if (r.error === 'slow') {
+      if (r.error) {
         setMsgs(prev => prev.filter(m => m.id !== temp.id))  // убираем черновик
         setComposer(t)                                        // возвращаем текст
-        flash(r.message || 'Не так быстро')
+        flash(r.message || (r.error === 'slow' ? 'Не так быстро' : 'Не удалось отправить'))
         return
       }
       await syncAfterSend()
@@ -1035,7 +1052,8 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const sendStickerFile = async (fid: string, kind: string) => {
     setStickerOpen(false)
     try {
-      await api.chatStickerFile(fid, kind, ttlSec || undefined)
+      const sr = await api.chatStickerFile(fid, kind, ttlSec || undefined)
+      if (sr.error) { flash(sr.message || 'Не удалось отправить'); return }
       const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
   }
@@ -1101,7 +1119,8 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const sendGif = async (url: string) => {
     setStickerOpen(false)
     try {
-      await api.chatGifSend(url, ttlSec || undefined)
+      const gr = await api.chatGifSend(url, ttlSec || undefined)
+      if (gr.error) { flash(gr.message || 'Не удалось отправить'); return }
       const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
   }
@@ -1323,6 +1342,23 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
           </button>
         )}
       </div>
+
+      {!searchOpen && topics.length > 1 && (
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-3 py-2 shrink-0 border-b border-white/[.06] bg-bg">
+          {topics.map(t => (
+            <button key={t.id} onClick={() => { if (t.id !== topic) { setReady(false); setTopic(t.id) } }}
+              className={`chip !h-8 !px-3 !text-[12.5px] ${t.id === topic ? 'on' : ''}`}>
+              {t.title}
+              {t.unread > 0 && t.id !== topic && <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-green text-ink text-[10.5px] font-bold grid place-items-center">{t.unread > 98 ? '99+' : t.unread}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+      {mutedMsg && (
+        <div className="flex items-center gap-2 px-4 py-2 shrink-0 text-[12.5px] text-[#FF9A9A] border-b border-white/[.06]" style={{ background: 'rgba(255,80,80,.08)' }}>
+          <Icon name="lock" size={14} className="shrink-0" />{mutedMsg}
+        </div>
+      )}
 
       {pinned && !pinned.deleted && (
         <div onClick={() => jumpToMsg(pinned.id)} className="flex items-center gap-2.5 px-3.5 py-2 shrink-0 cursor-pointer active:bg-white/[.03] border-b border-white/[.06]" style={{ background: 'rgba(17,28,23,.92)' }}>
@@ -1766,6 +1802,8 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
                 {!menuFor.mine && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcUser s={16} />Профиль автора</button></>)}
                 {menuFor.mine && menuFor.type === 'text' && (<><div className="h-px bg-white/[.06]" /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcEdit s={16} />Редактировать</button></>)}
                 {isAdmin && (<><div className="h-px bg-white/[.06]" /><button onClick={() => pin(menuFor.id)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium active:bg-white/[.06]" style={{ color: VIOLET }}><IcPin s={16} />Закрепить</button></>)}
+                {!menuFor.mine && !menuFor.deleted && (<><div className="h-px bg-white/[.06]" /><button onClick={async () => { const id = menuFor.id; setMenuFor(null); try { const r = await api.chatReport(id); flash(r.hidden ? 'Сообщение скрыто до проверки' : 'Жалоба отправлена модераторам') } catch { flash('Не удалось отправить жалобу') } }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="flag" size={16} />Пожаловаться</button></>)}
+                {isAdmin && !menuFor.mine && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setMuteFor({ id: menuFor.user_id, name: menuFor.name }); setMutePurge(false); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-[#FFB25B] active:bg-white/[.06]"><Icon name="lock" size={16} />Замутить автора</button></>)}
                 {(menuFor.mine || isAdmin) && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { del(menuFor.id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium active:bg-white/[.06]" style={{ color: '#FF7A7A' }}><IcTrash s={16} />Удалить</button></>)}
               </div>
             </motion.div>
@@ -1778,6 +1816,26 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
       </AnimatePresence>
 
       <AnimatePresence>
+        {muteFor && (
+          <motion.div className="fixed inset-0 z-[72] flex items-end justify-center px-4" style={{ background: 'rgba(0,0,0,.55)', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMuteFor(null)}>
+            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }}
+              className="w-full max-w-[340px] rounded-[20px] p-4" style={{ background: 'rgba(17,28,23,.98)', border: '1px solid rgba(255,255,255,.08)' }}>
+              <div className="font-display font-semibold text-[15px] mb-1">Замутить {muteFor.name}</div>
+              <div className="text-[12.5px] text-gray mb-3">Не сможет писать в чат. Получит сообщение от бота.</div>
+              <div className="grid grid-cols-2 gap-2">
+                {([[60, '1 час'], [1440, '24 часа'], [10080, '7 дней'], [0, 'Навсегда']] as const).map(([m, l]) => (
+                  <button key={l} onClick={async () => { const u = muteFor; setMuteFor(null); try { await api.chatMute(u.id, m, '', mutePurge); flash(`${u.name}: мут ${l.toLowerCase()}`) } catch { flash('Не удалось') } }}
+                    className={`h-11 rounded-[14px] text-[14px] font-semibold ${m === 0 ? 'text-white' : 'text-fg bg-white/[.07]'}`} style={m === 0 ? { background: '#E5484D' } : undefined}>{l}</button>
+                ))}
+              </div>
+              <button onClick={() => setMutePurge(v => !v)} className="mt-3 w-full flex items-center gap-2.5 text-[13px] text-gray">
+                <span className={`w-5 h-5 rounded-[6px] border grid place-items-center ${mutePurge ? 'bg-green border-green text-ink' : 'border-white/25'}`}>{mutePurge && <Icon name="check" size={13} strokeWidth={2.6} />}</span>
+                Удалить его сообщения за последние сутки
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
         {retOpen && (
           <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setRetOpen(false)}>

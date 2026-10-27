@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from '../../components/Icon'
-import { API_BASE } from '../../api/client'
+import { API_BASE, api } from '../../api/client'
+import type { ChatReport, ChatMute } from '../../api/client'
 import { adminApi } from '../../api/admin'
 import type { ABanner, APinned, ABroadcast, APayment, ALog, ALimits, ALimitUser, AWeek } from '../../api/admin'
 import type { Nav } from './AdminPage'
@@ -346,6 +347,63 @@ export function WeekScreen({ nav }: { nav: Nav }) {
               }}>Отменить</button>
             : <Badge tone="gray">отменён</Badge>} />
       ))}</div> : <p className="text-[13px] text-gray2 px-1">Пока не выдавались</p>}
+      {node}
+    </div>
+  )
+}
+
+/* ───────────── Чат: жалобы и муты ───────────── */
+
+export function ChatModScreen({ nav }: { nav: Nav }) {
+  const [d, setD] = useState<{ reports: ChatReport[]; mutes: ChatMute[]; filter_mat: boolean } | null>(null)
+  const [tab, setTab] = useState<'reports' | 'mutes'>('reports')
+  const { ask, node } = useConfirm()
+  const load = useCallback(() => { api.chatAdminReports().then(setD).catch(e => toast(errMsg(e), true)) }, [])
+  useEffect(() => { load() }, [load])
+  if (!d) return <Loader />
+  const act = async (id: number, a: 'dismiss' | 'delete') => {
+    try { await api.chatAdminReport(id, a); toast(a === 'delete' ? 'Сообщение удалено' : 'Жалобы отклонены'); load() } catch (e) { toast(errMsg(e), true) }
+  }
+  const mute = async (r: ChatReport, minutes: number) => {
+    try { await api.chatMute(r.user_id, minutes, 'по жалобам'); toast(`${r.name}: мут`); load() } catch (e) { toast(errMsg(e), true) }
+  }
+  return (
+    <div className="px-4 pt-3 pb-navsafe">
+      <div className="card mb-3">
+        <button className="w-full flex items-center gap-3 px-4 py-3 text-left" onClick={async () => {
+          try { await api.chatFilter(!d.filter_mat); setD({ ...d, filter_mat: !d.filter_mat }); toast(d.filter_mat ? 'Фильтр мата выключен' : 'Фильтр мата включён') } catch (e) { toast(errMsg(e), true) }
+        }}>
+          <span className="flex-1"><b className="block text-[14.5px] font-medium">Фильтр мата</b><span className="text-[12px] text-gray">Мат в сообщениях заменяется звёздочками</span></span>
+          <span className="w-[46px] h-[28px] rounded-full p-[3px] shrink-0" style={{ background: d.filter_mat ? '#17E584' : 'rgba(255,255,255,.12)' }}>
+            <span className="block w-[22px] h-[22px] rounded-full bg-white transition-transform" style={{ transform: d.filter_mat ? 'translateX(18px)' : 'none' }} /></span>
+        </button>
+        <p className="px-4 pb-3 text-[12px] text-gray2 leading-snug">Всегда действует: ссылки-приглашения и чужие Telegram-каналы запрещены, новички (меньше 3 дней) не могут слать ссылки, 3 жалобы — сообщение скрывается до решения.</p>
+      </div>
+      <Segmented value={tab} onChange={setTab} items={[['reports', 'Жалобы', d.reports.length], ['mutes', 'В муте', d.mutes.length]]} />
+      <div className="mt-3" />
+      {tab === 'reports' ? (d.reports.length ? d.reports.map(r => (
+        <div key={r.id} className="card p-4 mb-2">
+          <div className="flex items-center gap-2 text-[12px] text-gray mb-1">
+            <button className="text-fg font-semibold" onClick={() => nav.push({ k: 'user', id: r.user_id })}>{r.name}</button>
+            {r.username && <span>@{r.username}</span>}<span>·</span><span>{fmtDate(r.created_at)}</span>
+          </div>
+          <p className="text-[14px] whitespace-pre-line break-words">{r.text || (r.type !== 'text' ? `[${r.type}]` : '—')}</p>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            <Badge tone="red">жалоб: {r.reports}</Badge>{r.hidden && <Badge tone="gray">скрыто</Badge>}{r.topic !== 'general' && <Badge tone="violet">{r.topic}</Badge>}
+          </div>
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <button className="btn-secondary h-9 text-[13px]" onClick={() => act(r.id, 'dismiss')}>Оставить</button>
+            <button className="btn-secondary h-9 text-[13px] text-[#FF8080]" onClick={async () => { if (await ask('Удалить сообщение?')) act(r.id, 'delete') }}>Удалить</button>
+            <button className="btn-secondary h-9 text-[13px]" onClick={() => mute(r, 1440)}>Мут 24 ч</button>
+            <button className="btn-secondary h-9 text-[13px]" onClick={async () => { if (await ask(`Замутить ${r.name} навсегда?`, 'Замутить')) mute(r, 0) }}>Мут навсегда</button>
+          </div>
+        </div>
+      )) : <Empty icon="checkCircle" text="Жалоб нет" />) : (d.mutes.length ? (
+        <div className="list-group">{d.mutes.map(m => (
+          <Row key={m.user_id} icon="lock" tone="gray" title={m.name} sub={`${m.until ? 'до ' + fmtDate(m.until) : 'навсегда'}${m.reason ? ' · ' + m.reason : ''}`}
+            right={<button className="h-8 px-3 rounded-full bg-white/[.06] text-[12.5px] text-green" onClick={async () => { try { await api.chatUnmute(m.user_id); toast('Мут снят'); load() } catch (e) { toast(errMsg(e), true) } }}>Снять</button>} />
+        ))}</div>
+      ) : <Empty icon="chat" text="Никто не в муте" />)}
       {node}
     </div>
   )

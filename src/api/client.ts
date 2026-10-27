@@ -33,6 +33,12 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
   return res.json()
 }
 
+/** POST, который отдаёт тело и при ошибке (чтобы показать причину отказа сервера). */
+async function postAny<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(API_BASE + path, { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+  return res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+}
+
 async function del<T>(path: string): Promise<T> {
   const res = await fetch(API_BASE + path, { method: 'DELETE', headers: headers() })
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -242,11 +248,15 @@ export interface ChatMsg {
   premium?: boolean
 }
 export interface ChatMember { user_id: number; name: string; username: string; avatar: string; premium?: boolean }
-export interface ChatResp { messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string; retention_days?: number; last_read?: number }
+export interface ChatTopic { id: string; title: string; unread: number }
+export interface ChatReport { id: number; user_id: number; name: string; username: string; type: string; text: string; created_at: string; hidden: boolean; topic: string; reports: number; last: string }
+export interface ChatMute { user_id: number; until: string | null; reason: string; created_at: string; name: string }
+export interface ChatResp { topic?: string; muted?: string | null; messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string; retention_days?: number; last_read?: number }
 export interface GifItem { id: string; preview: string; send: string }
 export interface StickerDef { fid: string; emoji: string; kind: string }
 export interface StickerPack { name: string; title: string; emoji?: boolean; stickers: StickerDef[] }
 export interface ChatUserCard {
+  muted?: string | null
   user_id: number
   name: string
   username: string
@@ -262,6 +272,11 @@ export interface ChatUserCard {
   avatar_anim: boolean
 }
 
+/** Текущая тема чата — подставляется во все запросы ленты и отправки. */
+let _chatTopic = 'general'
+export const setChatTopic = (t: string) => { _chatTopic = t }
+export const getChatTopic = () => _chatTopic
+
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
@@ -270,20 +285,27 @@ export const api = {
   material:       (id: number)   => get<Material>(`/api/material/${id}`),
   profile:        ()             => get<Profile>('/api/profile'),
   compete:        ()             => get<Compete>('/api/compete'),
-  chat:           (after?: number) => get<ChatResp>(`/api/chat${after ? `?after=${after}` : ''}`),
-  chatRecheck:    ()             => get<ChatResp>('/api/chat?recheck=1'),
+  chat:           (after?: number) => get<ChatResp>(`/api/chat?topic=${_chatTopic}${after ? `&after=${after}` : ''}`),
+  chatRecheck:    ()             => get<ChatResp>(`/api/chat?recheck=1&topic=${_chatTopic}`),
+  chatTopics:     ()             => get<{ topics: ChatTopic[] }>('/api/chat/topics'),
+  chatReport:     (id: number)   => post<{ ok?: boolean; hidden?: boolean }>(`/api/chat/${id}/report`),
+  chatAdminReports: ()           => get<{ reports: ChatReport[]; mutes: ChatMute[]; filter_mat: boolean }>('/api/chat/admin/reports'),
+  chatAdminReport: (id: number, action: 'dismiss' | 'delete') => post<{ ok?: boolean }>(`/api/chat/admin/reports/${id}`, { action }),
+  chatMute:       (user_id: number, minutes: number, reason = '', purge = false) => post<{ ok?: boolean }>('/api/chat/admin/mute', { user_id, minutes, reason, purge }),
+  chatUnmute:     (user_id: number) => post<{ ok?: boolean }>('/api/chat/admin/mute', { user_id, action: 'unmute' }),
+  chatFilter:     (on: boolean)  => post<{ ok?: boolean; on?: boolean }>('/api/chat/admin/filter', { on }),
   chatMtoken:     ()             => get<{ token: string; ttl: number }>('/api/chat/mtoken'),
   setMediaToken:  (t: string)    => { _mtok = t },
   chatSetRetention: (days: number) => post<{ ok?: boolean; days?: number; error?: string }>('/api/chat/retention', { days }),
-  chatOlder:      (before: number) => get<{ messages: ChatMsg[] }>(`/api/chat/older?before=${before}`),
-  chatAround:     (id: number)    => get<{ messages: ChatMsg[] }>(`/api/chat/around?id=${id}`),
-  chatSend:       (text: string, reply_to?: number, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl }),
-  chatSticker:    (sticker: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker, ttl }),
+  chatOlder:      (before: number) => get<{ messages: ChatMsg[] }>(`/api/chat/older?before=${before}&topic=${_chatTopic}`),
+  chatAround:     (id: number)    => get<{ messages: ChatMsg[]; topic?: string }>(`/api/chat/around?id=${id}`),
+  chatSend:       (text: string, reply_to?: number, ttl?: number) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl, topic: _chatTopic }),
+  chatSticker:    (sticker: string, ttl?: number) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker, ttl, topic: _chatTopic }),
   chatGif:        (q: string)    => get<{ gifs: GifItem[] }>(`/api/chat/gif${q ? `?q=${encodeURIComponent(q)}` : ''}`),
-  chatGifSend:    (url: string, ttl?: number) => post<{ ok?: boolean; id?: number; error?: string }>('/api/chat/gif/send', { url, ttl }),
+  chatGifSend:    (url: string, ttl?: number) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/gif/send', { url, ttl, topic: _chatTopic }),
   chatStickers:   ()             => get<{ packs: StickerPack[]; is_admin: boolean }>('/api/chat/stickers'),
   chatStickerUrl: (fid: string, kind: string) => `${API_BASE}/api/chat/sticker?fid=${encodeURIComponent(fid)}&k=${kind}&${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}`,
-  chatStickerFile: (fid: string, kind: string, ttl?: number) => post<{ ok?: boolean; id?: number }>('/api/chat/send', { sticker_fid: fid, sticker_kind: kind, ttl }),
+  chatStickerFile: (fid: string, kind: string, ttl?: number) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker_fid: fid, sticker_kind: kind, ttl, topic: _chatTopic }),
   chatPackOf:     (q: { fid?: string; name?: string; msg?: number }) => get<{ pack: StickerPack; added: boolean }>(`/api/chat/pack_of?${new URLSearchParams(Object.entries(q).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])).toString()}`),
   chatStickersAdd: (link: string) => post<{ ok?: boolean; pack?: StickerPack; error?: string; message?: string }>('/api/chat/stickers/add', { link }),
   chatStickersRemove: (name: string) => post<{ ok?: boolean }>('/api/chat/stickers/remove', { name }),
@@ -302,7 +324,7 @@ export const api = {
   chatAvatarUrl:  (uid: number, v?: string | number) => `${API_BASE}/api/chat/avatar/${uid}?${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}${v != null ? `&v=${v}` : ''}`,
   chatAvatarUploadUrl: ()        => `${API_BASE}/api/chat/avatar/upload`,
   chatAvatarMode: (mode: string) => post<{ ok?: boolean; mode?: string }>('/api/chat/avatar/mode', { mode }),
-  chatUploadUrl:  (type: string, dur = 0, ttl = 0, once = false) => `${API_BASE}/api/chat/upload?type=${type}&dur=${dur}${ttl ? `&ttl=${ttl}` : ''}${once ? '&once=1' : ''}`,
+  chatUploadUrl:  (type: string, dur = 0, ttl = 0, once = false) => `${API_BASE}/api/chat/upload?type=${type}&dur=${dur}&topic=${_chatTopic}${ttl ? `&ttl=${ttl}` : ''}${once ? '&once=1' : ''}`,
   contributors:   ()             => get<{ contributors: Contributor[]; total: number; my_rank: number | null; my_approved: number }>('/api/contributors'),
   config:         ()             => get<Config>('/api/config'),
   documentText:   (id: number)   => get<{ title: string; text: string; extension: string; truncated?: boolean }>(`/api/document_text/${id}`),
