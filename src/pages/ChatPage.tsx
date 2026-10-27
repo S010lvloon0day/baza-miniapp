@@ -6,6 +6,7 @@ import { api } from '../api/client'
 import type { ChatMsg, ChatUserCard, ChatMember } from '../api/client'
 import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
+import { EMOJI_CATS, EMOJI_CDN, EMOJI_SEQ, codeToChar, emojiUrl } from '../utils/emojiData'
 
 // ── иконки — только фирменный набор «База» ──
 type IcP = { s?: number }
@@ -84,7 +85,6 @@ const VIOLET = '#B9A8FF'
 
 const QUICK = ['❤️', '🔥', '👍', '😂', '🥳', '🤩']
 const PICKER = ['😀', '😂', '😍', '😎', '🤔', '😮', '😢', '😡', '👍', '👎', '🔥', '❤️', '🎉', '👏', '🙏', '💯', '🚀', '⚡', '✅', '❌', '👀', '💀', '🤝', '🤯']
-const STICKERS = ['😂', '🤣', '😍', '🥰', '😎', '🤨', '😏', '🫠', '😭', '🥺', '😡', '🤬', '🤯', '🥳', '🤩', '😴', '🤤', '🤫', '🙈', '🙉', '🙊', '💀', '👻', '🔥', '💯', '👑', '💪', '🫡', '🤝', '👏', '🙏', '🎉', '🚀', '⚡', '❤️', '💔', '✨', '🌟', '🏆', '🥇', '🎯', '💸', '🧠', '👀', '🫣', '😇', '🤡']
 const FILTERS: { name: string; css: string }[] = [
   { name: 'Ориг.', css: 'none' },
   { name: 'Ярко', css: 'brightness(1.15) saturate(1.3) contrast(1.05)' },
@@ -187,13 +187,23 @@ function renderText(text: string, big = false) {
   const out: any[] = []
   const re = new RegExp(EMOJI_TOKEN.source, 'g')
   let last = 0, mm: RegExpExecArray | null, key = 0
+  const pushPlain = (s: string) => {
+    // обычные эмодзи в тексте — картинками Apple
+    let li = 0; let em: RegExpExecArray | null
+    const rx = new RegExp(EMOJI_SEQ.source, 'gu')
+    while ((em = rx.exec(s))) {
+      if (em.index > li) out.push(<span key={key++}>{s.slice(li, em.index)}</span>)
+      out.push(<Emo key={key++} e={em[0]} size={big ? 44 : 20} />)
+      li = em.index + em[0].length
+    }
+    if (li < s.length) out.push(<span key={key++}>{s.slice(li)}</span>)
+  }
   const pushText = (s: string) => {
     if (!s) return
     s.split(/(@[A-Za-z0-9_]{3,32})/g).forEach((p) => {
       if (!p) return
-      out.push(p.startsWith('@')
-        ? <span key={key++} className="font-semibold" style={{ color: VIOLET }}>{p}</span>
-        : <span key={key++}>{p}</span>)
+      if (p.startsWith('@')) out.push(<span key={key++} className="font-semibold" style={{ color: VIOLET }}>{p}</span>)
+      else pushPlain(p)
     })
   }
   while ((mm = re.exec(text))) {
@@ -234,11 +244,27 @@ function serializeEditor(root: HTMLElement): string {
     else if (n.nodeType === 1) {
       const el = n as HTMLElement
       if (el.tagName === 'BR') out += '\n'
+      else if (el.hasAttribute('data-u')) out += el.getAttribute('data-u') || ''
       else if (el.hasAttribute('data-e')) { const d = el.getAttribute('data-e') || ''; out += `{e:${d.slice(0, 1)}:${d.slice(2)}}` }
       else { if (el.tagName === 'DIV' && out && !out.endsWith('\n')) out += '\n'; out += serializeEditor(el) }
     }
   })
   return out
+}
+
+/** Обычное эмодзи в поле ввода — картинкой Apple (в текст уходит сам символ). */
+function buildUniEmoji(ch: string): Node {
+  const url = emojiUrl(ch)
+  if (!url) return document.createTextNode(ch)
+  const span = document.createElement('span')
+  span.setAttribute('contenteditable', 'false')
+  span.setAttribute('data-u', ch)
+  span.style.display = 'inline-block'; span.style.width = '20px'; span.style.height = '20px'
+  span.style.verticalAlign = '-0.3em'; span.style.margin = '0 1px'
+  const img = document.createElement('img'); img.src = url; img.alt = ch
+  img.style.width = '100%'; img.style.height = '100%'; img.draggable = false
+  span.appendChild(img)
+  return span
 }
 
 function fillEditor(root: HTMLElement, text: string) {
@@ -320,23 +346,15 @@ function MsgMeta({ m, light }: { m: ChatMsg; light?: boolean }) {
   )
 }
 
-// Эмодзи картинкой (Twemoji) — одинаково и красиво на всех платформах, включая ПК,
-// где системные эмодзи выглядят иначе. При ошибке загрузки — обычный символ.
-function twemojiUrl(e: string): string {
-  const cps: string[] = []
-  for (const ch of Array.from(e)) {
-    const cp = ch.codePointAt(0)
-    if (cp === undefined || cp === 0xFE0F) continue   // убираем variation selector
-    cps.push(cp.toString(16))
-  }
-  return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${cps.join('-')}.png`
-}
+// Эмодзи картинкой — набор Apple, как в Telegram; одинаково на всех устройствах.
+// Если картинки нет — обычный символ.
 function Emo({ e, size = 20 }: { e: string; size?: number }) {
   const [ok, setOk] = useState(true)
-  if (!ok) return <span style={{ fontSize: size * 0.95 }}>{e}</span>
-  return <img src={twemojiUrl(e)} alt={e} width={size} height={size} draggable={false}
+  const url = emojiUrl(e)
+  if (!ok || !url) return <span style={{ fontSize: size * 0.95, lineHeight: 1 }}>{e}</span>
+  return <img src={url} alt={e} width={size} height={size} draggable={false}
     loading="lazy" decoding="async" onError={() => setOk(false)}
-    style={{ display: 'inline-block', verticalAlign: '-0.15em' }} />
+    style={{ display: 'inline-block', verticalAlign: '-0.2em', width: size, height: size }} />
 }
 
 function Reactions({ m, onToggle }: { m: ChatMsg; onToggle: (id: number, e: string) => void }) {
@@ -460,7 +478,11 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
   // quoted (цитируемое сообщение) приходит из родителя — пузырь не зависит от всей карты msgs,
   // поэтому при новом сообщении перерисовывается только он сам, а не вся лента
   const src = m.has_media ? api.chatMediaUrl(m.id) : ''
-  const onlyEmoji = !!m.text && /\{e:[avi]:[A-Za-z0-9_#-]+\}/.test(m.text) && m.text.replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '').trim() === ''
+  const onlyEmoji = !!m.text && (() => {
+    const t = m.text.replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '\u0001')
+    const n = (t.match(/\u0001/g) || []).length + (t.match(new RegExp(EMOJI_SEQ.source, 'gu')) || []).length
+    return n > 0 && n <= 3 && t.replace(/\u0001/g, '').replace(new RegExp(EMOJI_SEQ.source, 'gu'), '').trim() === ''
+  })()
   // долгое нажатие на медиа → меню (ответить/удалить), обычный тап → просмотр
   const lpTimer = useRef<number | null>(null)
   const lpFired = useRef(false)
@@ -493,7 +515,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
                 : (m.mime || '').startsWith('video')
                   ? <video src={api.chatMediaUrl(m.id)} autoPlay loop muted playsInline className="w-[128px] h-[128px] object-contain" />
                   : <img src={api.chatMediaUrl(m.id)} alt="" draggable={false} className="w-[128px] h-[128px] object-contain" />)
-              : <span className="text-[62px] leading-none">{m.text}</span>}
+              : <Emo e={m.text} size={96} />}
             <span className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full flex items-center" style={{ background: 'rgba(0,0,0,.45)' }}><MsgMeta m={m} light /></span>
           </div>
           <Reactions m={m} onToggle={onReact} />
@@ -667,6 +689,16 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const [searching, setSearching] = useState(false)
   // набор эмодзи/стикеров по нажатию на эмодзи в сообщении
   const packScrollRef = useRef<HTMLDivElement>(null)
+  // недавние эмодзи (как в Telegram) — хранятся на устройстве
+  const [recentEmoji, setRecentEmoji] = useState<string[]>(() => { try { return JSON.parse(localStorage.getItem('chat_recent_emoji') || '[]') } catch { return [] } })
+  const pickEmoji = (ch: string) => {
+    insertEmojiChar(ch)
+    setRecentEmoji(prev => {
+      const next = [ch, ...prev.filter(x => x !== ch)].slice(0, 24)
+      try { localStorage.setItem('chat_recent_emoji', JSON.stringify(next)) } catch { /* */ }
+      return next
+    })
+  }
   const [packSheet, setPackSheet] = useState<{ pack: import('../api/client').StickerPack | null; added: boolean; loading: boolean } | null>(null)
   const tempSeq = useRef(0)      // счётчик оптимистичных сообщений
   const atBottom = useRef(true)
@@ -908,6 +940,10 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     const el = taRef.current; if (!el) return
     const k = kind === 'video' ? 'v' : kind === 'animated' ? 'a' : 'i'
     insertAtCaret(el, buildEmojiSpan(k, fid)); refreshFromEditor()
+  }
+  const insertEmojiChar = (ch: string) => {
+    const el = taRef.current; if (!el) return
+    insertAtCaret(el, buildUniEmoji(ch)); refreshFromEditor()
   }
   const insertTextAtCaret = (s: string) => {
     const el = taRef.current; if (!el) return
@@ -1405,7 +1441,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
 
         {emojiOpen && (
           <div className="glass rounded-[22px] mb-2 grid grid-cols-8 gap-1 px-3 py-2" style={{ background: 'rgba(13,21,17,.97)' }}>
-          {PICKER.map(e => <button key={e} onClick={() => insertTextAtCaret(e)} className="text-[22px] py-1 active:scale-125 transition-transform">{e}</button>)}
+          {PICKER.map(e => <button key={e} onClick={() => insertEmojiChar(e)} className="py-1 flex justify-center active:scale-125 transition-transform"><Emo e={e} size={26} /></button>)}
         </div>
       )}
 
@@ -1493,8 +1529,32 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
                 </>
               )
             ) : stickerTab === 'emoji' ? (
-              emojiPacks.length ? (
-                emojiPacks.map(p => (
+              <>
+                {recentEmoji.length > 0 && (
+                  <div className="mb-2">
+                    <div className="px-1 py-1.5 text-[12.5px] font-semibold text-[#CFDAD4]">Недавние</div>
+                    <div className="grid grid-cols-8 gap-0.5">
+                      {recentEmoji.map(ch => (
+                        <button key={ch} onClick={() => pickEmoji(ch)} className="aspect-square flex items-center justify-center rounded-[10px] active:bg-white/10">
+                          <Emo e={ch} size={30} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {EMOJI_CATS.map((c, ci) => (
+                  <div key={c.title} id={`ecat_${ci}`} className="mb-2">
+                    <div className="px-1 py-1.5 text-[12.5px] font-semibold text-[#CFDAD4] sticky top-0 z-10" style={{ background: '#0E1612' }}>{c.title}</div>
+                    <div className="grid grid-cols-8 gap-0.5">
+                      {c.codes.map(code => (
+                        <button key={code} onClick={() => pickEmoji(codeToChar(code))} className="aspect-square flex items-center justify-center rounded-[10px] active:bg-white/10">
+                          <img src={EMOJI_CDN + code + '.png'} alt="" width={30} height={30} loading="lazy" decoding="async" draggable={false} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                {emojiPacks.map(p => (
                   <div key={p.name} id={`pk_${p.name}`} className="mb-3">
                     <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0E1612' }}>
                       <span className="text-[12.5px] font-semibold text-[#CFDAD4] truncate flex-1">{p.title}</span>
@@ -1514,14 +1574,8 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
                       ))}
                     </div>
                   </div>
-                ))
-              ) : (
-                <div className="grid grid-cols-7 gap-1">
-                  {STICKERS.map(s => (
-                    <button key={s} onClick={() => insertTextAtCaret(s)} className="text-[28px] py-1 active:scale-125 transition-transform">{s}</button>
-                  ))}
-                </div>
-              )
+                ))}
+              </>
             ) : stickerPacks.length === 0 ? (
               <div className="py-8 text-center text-[13px] text-gray px-6 leading-relaxed">Паков пока нет. Вставьте сверху ссылку <b className="text-green font-semibold">t.me/addstickers/…</b> или <b className="text-green font-semibold">t.me/addemoji/…</b> и нажмите «+»: добавится стикерпак или анимированные эмодзи из Telegram.</div>
             ) : (
@@ -1553,6 +1607,12 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
           <div className={`flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0 border-t border-white/[.06] ${stickerTab === '__gif__' ? 'hidden' : ''}`}>
             <button onClick={() => setStickerTab('emoji')} aria-label="Эмодзи" className={`shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center ${stickerTab === 'emoji' ? 'bg-white/10 text-fg' : 'text-gray'}`}>
               <Icon name="emoji" size={19} /></button>
+            {stickerTab === 'emoji' && ['1f600', '1f44b', '1f43b', '1f354', '26bd', '2708-fe0f', '1f4a1', '2764-fe0f', '1f3c1'].map((code, ci) => (
+              <button key={code} onClick={() => document.getElementById(`ecat_${ci}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                aria-label={EMOJI_CATS[ci]?.title} className="shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center active:bg-white/10 opacity-80">
+                <img src={EMOJI_CDN + code + '.png'} alt="" width={22} height={22} loading="lazy" draggable={false} />
+              </button>
+            ))}
             {packs.map(p => {
               const th = p.stickers[0]   // первый стикер пака как иконка — понятно, что это
               const on = p.emoji ? false : stickerTab === p.name
