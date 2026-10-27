@@ -634,7 +634,6 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   const wantRec = useRef(false)
   const [ttlSec, setTtlSec] = useState(0)
   const [onceOn, setOnceOn] = useState(false)
-  const [gifOpen, setGifOpen] = useState(false)
   const [gifEnabled, setGifEnabled] = useState(false)
   const [gifQuery, setGifQuery] = useState('')
   const [gifs, setGifs] = useState<import('../api/client').GifItem[]>([])
@@ -996,7 +995,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   }
 
   const loadPacks = () => api.chatStickers().then(r => { const ps = r.packs || []; setPacks(ps); for (const p of ps) PACKCACHE[p.name] = p }).catch(() => {})
-  const openSticker = () => { setAttachOpen(false); setStickerOpen(true); loadPacks() }
+  const openSticker = () => { setAttachOpen(false); setEmojiOpen(false); setMention(null); setStickerOpen(true); if (stickerTab === '__gif__' && !gifs.length) loadGifs(''); loadPacks() }
   const sendStickerFile = async (fid: string, kind: string) => {
     setStickerOpen(false)
     try {
@@ -1063,9 +1062,8 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     setGifLoading(true)
     api.chatGif(q).then(r => setGifs(r.gifs || [])).catch(() => setGifs([])).finally(() => setGifLoading(false))
   }
-  const openGif = () => { setAttachOpen(false); setGifOpen(true); if (!gifs.length) loadGifs('') }
   const sendGif = async (url: string) => {
-    setGifOpen(false)
+    setStickerOpen(false)
     try {
       await api.chatGifSend(url, ttlSec || undefined)
       const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
@@ -1074,11 +1072,11 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
 
   // поиск гифок с задержкой
   useEffect(() => {
-    if (!gifOpen) return
+    if (!(stickerOpen && stickerTab === '__gif__')) return
     const t = setTimeout(() => loadGifs(gifQuery.trim()), 350)
     return () => clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gifQuery, gifOpen])
+  }, [gifQuery, stickerOpen, stickerTab])
 
   const sendEditedPhoto = async () => {
     if (!photoEdit) return
@@ -1379,7 +1377,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         )}
         {toast && <div className="self-center mb-2 px-3.5 py-1.5 rounded-[16px] text-[12.5px] leading-snug text-center text-fg glass max-w-[92%]">{toast}</div>}
 
-        {mention && mention.length > 0 && (
+        {mention && mention.length > 0 && !stickerOpen && !attachOpen && !emojiOpen && (
           <div className="glass rounded-[18px] mb-2 py-1.5 max-h-[248px] overflow-y-auto" style={{ background: 'rgba(13,21,17,.97)' }}>
             {mention.map(u => (
               <button key={u.user_id} onMouseDown={e => e.preventDefault()} onClick={() => applyMention(u)}
@@ -1438,12 +1436,13 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
           {/* верхние вкладки: Эмодзи / Стикеры / GIF — как в Telegram */}
           <div className="flex items-center gap-1 px-2 pt-2 pb-1.5 shrink-0 border-b border-white/[.06]">
             {([['emoji', 'Эмодзи'], ['stickers', 'Стикеры'], ['gif', 'GIF']] as const).map(([k, lab]) => {
-              const active = k === 'emoji' ? stickerTab === 'emoji' : k === 'stickers' ? stickerTab !== 'emoji' : false
+              const active = k === 'emoji' ? stickerTab === 'emoji' : k === 'stickers' ? (stickerTab !== 'emoji' && stickerTab !== '__gif__') : stickerTab === '__gif__'
               return (
                 <button key={k} onClick={() => {
                   if (k === 'emoji') setStickerTab('emoji')
                   else if (k === 'stickers') setStickerTab(stickerPacks[0]?.name || '__st__')
-                  else { setStickerOpen(false); if (gifEnabled) openGif() }
+                  else if (gifEnabled) { setStickerTab('__gif__'); if (!gifs.length) loadGifs('') }
+                  else flash('GIF сейчас недоступны')
                 }} className={`h-8 px-3.5 rounded-full text-[13.5px] font-semibold transition-colors ${active ? 'bg-white/10 text-fg' : 'text-gray'}`}>
                   {lab}
                 </button>
@@ -1452,8 +1451,20 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
             <button onClick={() => setStickerOpen(false)} aria-label="Закрыть" className="ml-auto w-8 h-8 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={16} /></button>
           </div>
 
+          {/* GIF: строка поиска вместо добавления набора */}
+          {stickerTab === '__gif__' && (
+            <div className="px-2 py-1.5 shrink-0">
+              <div className="flex items-center gap-2 h-9 px-3.5 rounded-full bg-white/[.06] border border-white/[.08] text-gray">
+                <Icon name="search" size={16} />
+                <input value={gifQuery} onChange={e => setGifQuery(e.target.value)} placeholder="Поиск GIF"
+                  className="flex-1 min-w-0 bg-transparent text-[16px] text-fg placeholder:text-gray2 outline-none"
+                  style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
+              </div>
+            </div>
+          )}
+
           {/* строка добавления своего пака */}
-          <div className="flex gap-2 px-2 py-1.5 shrink-0">
+          <div className={`flex gap-2 px-2 py-1.5 shrink-0 ${stickerTab === '__gif__' ? 'hidden' : ''}`}>
             <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="Ссылка на набор: t.me/addemoji/… или t.me/addstickers/…"
               className="flex-1 min-w-0 h-9 px-3.5 rounded-full text-[16px] text-fg placeholder:text-gray2 outline-none bg-white/[.06] border border-white/[.08]"
               style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
@@ -1464,7 +1475,24 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
 
           {/* контент */}
           <div ref={stScrollRef} className="flex-1 overflow-y-auto px-2 pb-2" style={{ overscrollBehavior: 'contain' }}>
-            {stickerTab === 'emoji' ? (
+            {stickerTab === '__gif__' ? (
+              gifLoading && gifs.length === 0 ? (
+                <div className="py-8 text-center text-[13px] text-gray">Загрузка…</div>
+              ) : gifs.length === 0 ? (
+                <div className="py-8 text-center text-[13px] text-gray">Ничего не найдено. Попробуйте другое слово.</div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {gifs.map(g => (
+                      <button key={g.id} onClick={() => sendGif(g.send)} className="rounded-[12px] overflow-hidden active:opacity-70 bg-white/[.05]">
+                        <img src={g.preview} alt="" className="w-full h-24 object-cover" loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="text-[10px] text-gray2 text-center mt-2">Powered by GIPHY</div>
+                </>
+              )
+            ) : stickerTab === 'emoji' ? (
               emojiPacks.length ? (
                 emojiPacks.map(p => (
                   <div key={p.name} id={`pk_${p.name}`} className="mb-3">
@@ -1522,7 +1550,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
           </div>
 
           {/* нижний ряд иконок-паков, как в Telegram */}
-          <div className="flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0 border-t border-white/[.06]">
+          <div className={`flex items-center gap-1 px-2 py-1.5 overflow-x-auto shrink-0 border-t border-white/[.06] ${stickerTab === '__gif__' ? 'hidden' : ''}`}>
             <button onClick={() => setStickerTab('emoji')} aria-label="Эмодзи" className={`shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center ${stickerTab === 'emoji' ? 'bg-white/10 text-fg' : 'text-gray'}`}>
               <Icon name="emoji" size={19} /></button>
             {packs.map(p => {
@@ -1545,33 +1573,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
         </div>
       )}
 
-        {gifOpen && (
-          <div className="glass rounded-[22px] mb-2 px-2.5 py-2.5 max-h-72 overflow-y-auto" style={{ background: 'rgba(13,21,17,.97)' }}>
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex-1 min-w-0 flex items-center gap-2 h-10 px-3.5 rounded-full bg-white/[.06] border border-white/[.08] text-gray">
-                <Icon name="search" size={17} />
-                <input value={gifQuery} onChange={e => setGifQuery(e.target.value)} placeholder="Поиск GIF" autoFocus
-                  className="flex-1 min-w-0 bg-transparent text-[16px] text-fg placeholder:text-gray2 outline-none"
-                  style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
-              </div>
-              <button onClick={() => setGifOpen(false)} aria-label="Закрыть" className="w-9 h-9 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={16} /></button>
-            </div>
-            {gifLoading && gifs.length === 0 ? (
-              <div className="py-6 text-center text-[13px] text-gray">Загрузка…</div>
-            ) : gifs.length === 0 ? (
-              <div className="py-6 text-center text-[13px] text-gray">Ничего не найдено</div>
-            ) : (
-              <div className="grid grid-cols-3 gap-1.5">
-                {gifs.map(g => (
-                  <button key={g.id} onClick={() => sendGif(g.send)} className="rounded-[12px] overflow-hidden active:opacity-70 bg-white/[.05]">
-                  <img src={g.preview} alt="" className="w-full h-24 object-cover" loading="lazy" />
-                </button>
-              ))}
-            </div>
-          )}
-            <div className="text-[10px] text-gray2 text-center mt-2">Powered by GIPHY</div>
-        </div>
-      )}
+
 
         <div className="relative flex items-end gap-1.5 p-[6px] rounded-[30px] glass"
           style={{
