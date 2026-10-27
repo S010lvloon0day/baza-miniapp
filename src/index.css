@@ -140,3 +140,6 @@ html, body, #root {
   will-change: transform;
 }
 [class*="cover-"] { -webkit-hyphens: auto; hyphens: auto; }
+
+.no-scrollbar::-webkit-scrollbar{display:none}
+.no-scrollbar{scrollbar-width:none}

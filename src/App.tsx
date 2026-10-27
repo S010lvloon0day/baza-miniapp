@@ -15,13 +15,12 @@ import SubmitPage from './pages/SubmitPage'
 import CoursesListPage from './pages/courses/CoursesListPage'
 import CourseDetailPage from './pages/courses/CourseDetailPage'
 import CoursePlayer from './pages/courses/CoursePlayer'
-import ConstructorPage from './pages/constructor/ConstructorPage'
+import AdminPage from './pages/admin/AdminPage'
 import FeedbackPage from './pages/FeedbackPage'
 import { feedback } from './api/social'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
-import Icon from './components/Icon'
 import NotifySheet from './components/NotifySheet'
 import { api } from './api/client'
 import type { Section } from './api/client'
@@ -86,10 +85,8 @@ export default function App() {
   const [giveawayVisible, setGiveawayVisible] = useState(false)
   // Вкладка конструктора — только для админов, признак приходит с сервера
   const [isAdmin, setIsAdmin] = useState(false)
-  const [ctorEditing, setCtorEditing] = useState(false)
   // Новые комментарии и оценки с прошлого просмотра ленты (только у админа)
   const [fbUnread, setFbUnread] = useState(0)
-  const [fbUnanswered, setFbUnanswered] = useState(0)
   // Непрочитанные сообщения в чате (счётчик на вкладке «Чат»)
   const [chatUnread, setChatUnread] = useState(0)
   // Отступы под оверлей Telegram в полноэкранном режиме (на ПК), чтобы шапку не перекрывало.
@@ -123,7 +120,7 @@ export default function App() {
 
   const refreshUnread = useCallback(() => {
     feedback.unread().then(r => {
-      if (r.ok) { setFbUnread(r.total); setFbUnanswered(r.unanswered) }
+      if (r.ok) { setFbUnread(r.total) }
     })
   }, [])
 
@@ -216,10 +213,8 @@ export default function App() {
   const switchTab = (t: Tab) => {
     setTab(t)
     setStack([])
-    if (t !== 'ctor') setCtorEditing(false)
   }
 
-  const openFeedback = () => setStack(s => [...s, { type: 'feedback' }])
 
   const openCompete = () => setStack(s => [...s, { type: 'compete' }])
 
@@ -253,28 +248,7 @@ export default function App() {
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} onCompete={openCompete} />
       if (tab === 'ctor') {
         if (!isAdmin) return null
-        if (ctorEditing) return <ConstructorPage editing={ctorEditing} onEditingChange={setCtorEditing} />
-        return (
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <button onClick={openFeedback}
-              className="card-violet mx-4 mt-3 flex items-center gap-3 px-4 py-3 text-left active:opacity-80">
-              <span className="tile-violet w-9 h-9"><Icon name="chat" size={18} accent="current" /></span>
-              <span className="flex-1 min-w-0">
-                <span className="block text-[14px] font-bold">Обсуждения и оценки</span>
-                <span className="block text-[11.5px] text-gray truncate">
-                  {fbUnread > 0 ? `Новых: ${fbUnread}` : 'Новых нет'}{fbUnanswered > 0 ? ` · без ответа: ${fbUnanswered}` : ''}
-                </span>
-              </span>
-              {fbUnread > 0 && (
-                <span className="min-w-[22px] h-[22px] px-1.5 rounded-full bg-green text-black text-[11px] font-extrabold flex items-center justify-center">
-                  {fbUnread}
-                </span>
-              )}
-              <span className="text-gray">›</span>
-            </button>
-            <ConstructorPage editing={ctorEditing} onEditingChange={setCtorEditing} />
-          </div>
-        )
+        return <AdminPage fbUnread={fbUnread} onFeedbackSeen={() => { setFbUnread(0); refreshUnread() }} onOpenMaterial={id => openMaterialById(id)} />
       }
     }
     if (top?.type === 'feedback') {
@@ -324,11 +298,8 @@ export default function App() {
 
   const renderHeader = () => {
     if (!top) {
-      if (tab === 'ctor' && ctorEditing) {
-        return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={() => setCtorEditing(false)} title="Конструктор" />
-      }
-      if (tab === 'chat') return null
-      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Библиотека', recent: 'История', prof: 'Профиль', ctor: 'Конструктор', chat: 'Чат базы' }
+      if (tab === 'chat' || tab === 'ctor') return null
+      const titles: Record<Tab, string> = { home: '', cats: 'Разделы', search: 'Поиск', favs: 'Библиотека', recent: 'История', prof: 'Профиль', ctor: 'Админка', chat: 'Чат базы' }
       return <Header title={titles[tab]} onSearch={() => switchTab('search')} onBell={() => setNotifyOpen(true)} fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} />
     }
     if (top.type === 'feedback') {

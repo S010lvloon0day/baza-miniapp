@@ -147,9 +147,11 @@ interface Props {
   /** Редактор открыт — App скрывает вкладки и показывает стрелку «назад». */
   editing: boolean
   onEditingChange: (editing: boolean) => void
+  /** Открыть сразу нужный режим без переключателя (из админки). */
+  fixedMode?: 'material' | 'course'
 }
 
-export default function ConstructorPage({ editing, onEditingChange }: Props) {
+export default function ConstructorPage({ editing, onEditingChange, fixedMode }: Props) {
   const [courses, setCourses] = useState<AdminCourseSummary[]>([])
   const [sections, setSections] = useState<AdminSection[]>([])
   const [draft, setDraft] = useState<DraftCourse | null>(null)
@@ -157,7 +159,7 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
   const [error, setError] = useState<string | null>(null)
   const [grant, setGrant] = useState<{ id: number; title: string } | null>(null)
   // Конструктор обслуживает две задачи: загрузку материалов и курсы.
-  const [mode, setMode] = useState<'material' | 'course'>('material')
+  const [mode, setMode] = useState<'material' | 'course'>(fixedMode ?? 'material')
 
   const reload = useCallback(async () => {
     try {
@@ -240,7 +242,7 @@ export default function ConstructorPage({ editing, onEditingChange }: Props) {
     </div>
   )
 
-  if (!editing && mode === 'material') {
+  if (!editing && mode === 'material' && !fixedMode) {
     return (
       <div className="flex flex-col flex-1 overflow-hidden">
         <ModeSwitch />

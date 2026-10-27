@@ -5,7 +5,7 @@ import Icon from './Icon'
 import type { IconName } from './Icon'
 
 const ICONS: Record<Exclude<Tab, 'search'>, IconName> = {
-  home: 'home', chat: 'chat', cats: 'sections', favs: 'library', recent: 'history', prof: 'profile', ctor: 'tool',
+  home: 'home', chat: 'chat', cats: 'sections', favs: 'library', recent: 'history', prof: 'profile', ctor: 'shield',
 }
 
 const TABS: { id: Exclude<Tab, 'search'>; label: string }[] = [
@@ -16,7 +16,7 @@ const TABS: { id: Exclude<Tab, 'search'>; label: string }[] = [
   { id: 'prof',   label: 'Профиль'    },
 ]
 
-const CTOR_TAB = { id: 'ctor' as const, label: 'Конструктор' }
+const CTOR_TAB = { id: 'ctor' as const, label: 'Админка' }
 
 interface Props {
   active: Tab
