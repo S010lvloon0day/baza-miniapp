@@ -264,18 +264,23 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           <div className="flex flex-col gap-2.5">
             {featured.map(m => (
               <button key={m.id} onClick={() => onMaterial(m.id, section.id, page)}
-                className="relative w-full rounded-[20px] p-4 text-left overflow-hidden border border-green/40 active:scale-[.99] transition-transform"
-                style={{ background: 'linear-gradient(120deg,rgba(23,229,132,.22),rgba(23,229,132,.04) 62%),#0E2017' }}>
-                <span className="absolute -right-6 -top-6 w-24 h-24 rounded-full" style={{ background: 'radial-gradient(circle,rgba(23,229,132,.18),transparent 70%)' }} />
-                <div className="relative flex items-center gap-3">
-                  <span className="w-12 h-12 rounded-[14px] grid place-items-center shrink-0 bg-green/20 text-[24px] leading-none">🧭</span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-[10.5px] font-bold tracking-wider text-green uppercase">★ Важное · интерактивно</span>
-                    <b className="block text-[16px] font-bold leading-snug line-clamp-2 mt-0.5">{m.title.replace(/^🧭\s*/, '')}</b>
-                    <span className="block text-[12.5px] text-[#CFE9D8]/80 mt-0.5">Дерево OSINT-инструментов — нажми, чтобы открыть</span>
+                className="relative w-full rounded-[22px] p-[1.5px] text-left overflow-hidden active:scale-[.99] transition-transform"
+                style={{ background: 'linear-gradient(135deg,#FFE7A3,#E0A43B 40%,#8a5a12)', boxShadow: '0 8px 26px rgba(224,164,59,.28)' }}>
+                <span className="relative block rounded-[21px] p-4 overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg,#F7CE72 0%,#E6A93E 48%,#C6871F 100%)' }}>
+                  <span className="absolute -right-8 -top-10 w-32 h-32 rounded-full" style={{ background: 'radial-gradient(circle,rgba(255,255,255,.45),transparent 65%)' }} />
+                  <span className="absolute left-0 right-0 top-0 h-1/2" style={{ background: 'linear-gradient(180deg,rgba(255,255,255,.28),transparent)' }} />
+                  <span className="relative flex items-center gap-3.5">
+                    <span className="w-[52px] h-[52px] rounded-[16px] grid place-items-center shrink-0 text-[26px] leading-none"
+                      style={{ background: 'rgba(60,40,0,.22)', boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)' }}>🧭</span>
+                    <span className="flex-1 min-w-0" style={{ color: '#3a2600' }}>
+                      <span className="block text-[10.5px] font-extrabold tracking-[.12em] uppercase" style={{ color: '#5a3d00' }}>★ Важное · интерактивный каталог</span>
+                      <b className="block text-[17px] font-extrabold leading-snug line-clamp-2 mt-0.5" style={{ color: '#2a1c00' }}>{m.title.replace(/^🧭\s*/, '')}</b>
+                      <span className="block text-[12.5px] font-medium mt-0.5" style={{ color: '#4a3200' }}>Дерево всех OSINT-инструментов — нажми, чтобы открыть</span>
+                    </span>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{ flex: '0 0 auto' }}><path d="M9 6l6 6-6 6" stroke="#3a2600" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"/></svg>
                   </span>
-                  <Icon name="chevR" size={20} accent="brand" className="text-green shrink-0" />
-                </div>
+                </span>
               </button>
             ))}
           </div>
