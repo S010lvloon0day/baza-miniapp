@@ -30,6 +30,9 @@ export function cleanTitles<T>(data: T): T {
         if (KEYS.has(k) && typeof val === 'string') {
           const lv = levelOf(val)
           if (lv && o[`${k}_level`] === undefined) o[`${k}_level`] = lv
+          // ведущий значок (например 🧭 — «важный» материал) сохраняем отдельно: по нему интерфейс выделяет карточку
+          const lead = val.trimStart().match(/^(?:\p{Extended_Pictographic}|\p{Regional_Indicator})[\u{FE0F}\u{200D}\p{Extended_Pictographic}]*/u)
+          if (lead && o[`${k}_icon`] === undefined) o[`${k}_icon`] = lead[0].replace(/\uFE0F/g, '')
           o[k] = stripEmoji(val)
         } else if (val && typeof val === 'object') o[k] = walk(val)
       }

@@ -232,7 +232,9 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
 
   // Закреплённые «важные» материалы — рендерятся отдельной карточкой сверху
   // (помечаются ведущим значком 🧭 в названии), из обычного списка исключаются.
-  const featured = mats.filter(m => (m.title || '').trimStart().startsWith('🧭'))
+  // значок приходит в title_icon (эмодзи из названий вырезаются при загрузке, см. utils/title.ts)
+  const isFeatured = (m: Material) => (m as { title_icon?: string }).title_icon === '🧭' || (m.title || '').trimStart().startsWith('🧭')
+  const featured = mats.filter(isFeatured)
   const listMats = mats.filter(m => !featured.includes(m))
   const present = FILTERS.filter(f => f.id !== 'all' && listMats.some(m => f.match(m.media_type)))
   const shown = filter === 'all' ? listMats : listMats.filter(m => FILTERS.find(f => f.id === filter)!.match(m.media_type))
@@ -345,7 +347,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
             </div>
             <div className="list-group">
               {shown.map(m => {
-                const n = page * ITEMS_PER_PAGE + mats.indexOf(m) + 1
+                const n = page * ITEMS_PER_PAGE + listMats.indexOf(m) + 1
                 const isCur = m.id === currentId
                 return (
                   <button key={m.id} onClick={() => onMaterial(m.id, section.id, page)}
