@@ -131,6 +131,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
   const initData = encodeURIComponent(tg?.initData || '')
   const furl = mat?.file_url ? `${API_BASE}${mat.file_url}?init_data=${initData}` : null
+  // Встроенная веб-страница: материал с директивой "::embed:: <url>" в тексте
+  // показывает её прямо в карточке (iframe), без ссылки. Напр. OSINT Framework.
+  const embedUrl = (mat?.content || '').match(/^\s*::embed::\s*(\S+)/)?.[1] || null
 
   const openExternal = () => {
     if (!furl) return
@@ -219,6 +222,16 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   <LevelMark level={(mat as { title_level?: string }).title_level} size={14} />{mat.title}
                 </h1>
               </div>
+
+              {/* ── Встроенная страница (OSINT Framework и т.п.) ── */}
+              {embedUrl && (
+                <div className="px-3 mb-3">
+                  <iframe src={embedUrl} title={mat.title} loading="lazy"
+                    allow="clipboard-write"
+                    className="w-full rounded-[16px] border border-white/[.08] block"
+                    style={{ height: 'calc(100dvh - 170px)', minHeight: 460, background: '#0c1511' }} />
+                </div>
+              )}
 
               {/* ── PHOTO ── */}
               {!multi && mat.media_type === 'photo' && furl && (
@@ -383,7 +396,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               })()}
 
               {/* Text content */}
-              {mat.content && mat.media_type !== 'quiz' && mat.media_type !== 'task' && mat.media_type !== 'doc' && (
+              {mat.content && !embedUrl && mat.media_type !== 'quiz' && mat.media_type !== 'task' && mat.media_type !== 'doc' && (
                 <>
                   <div className="px-4 pb-2.5 flex items-center justify-between gap-3">
                     <h2 className="font-display font-semibold text-[15px]">
