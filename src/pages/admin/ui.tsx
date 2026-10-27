@@ -17,6 +17,18 @@ export const fmtDay = (s?: string | null) => {
   return isNaN(+d) ? s : d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
 }
 export const num = (n: number) => n.toLocaleString('ru-RU')
+export const ago = (s?: string | null) => {
+  if (!s) return 'нет данных'
+  const d = new Date(s.includes('T') ? s : s.replace(' ', 'T') + 'Z')
+  const m = Math.round((Date.now() - +d) / 60000)
+  if (isNaN(m)) return s
+  if (m < 2) return 'только что'
+  if (m < 60) return `${m} мин назад`
+  const h = Math.round(m / 60)
+  if (h < 24) return `${h} ч назад`
+  const dd = Math.round(h / 24)
+  return dd < 30 ? `${dd} дн. назад` : fmtDate(s).slice(0, 8)
+}
 
 /** Простой «тост» для результатов действий. */
 let pushToast: ((t: string, err?: boolean) => void) | null = null

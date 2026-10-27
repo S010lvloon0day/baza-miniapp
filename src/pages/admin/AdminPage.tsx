@@ -10,20 +10,20 @@ import ConstructorPage from '../constructor/ConstructorPage'
 import FeedbackPage from '../FeedbackPage'
 import { SectionsScreen, MaterialScreen } from './ContentScreens'
 import { UsersScreen, UserScreen, SubmissionsScreen, CommentsScreen } from './PeopleScreens'
-import { BannersScreen, PinnedScreen, BroadcastScreen, PaymentsScreen, LogsScreen } from './MiscScreens'
-import { Loader, Toaster, errMsg, num } from './ui'
+import { BannersScreen, PinnedScreen, BroadcastScreen, PaymentsScreen, LogsScreen, LimitsScreen } from './MiscScreens'
+import { Loader, Toaster, errMsg, num, ago } from './ui'
 
 export type Screen =
   | { k: 'home' } | { k: 'content' } | { k: 'section'; id: number; title: string } | { k: 'material'; id: number }
-  | { k: 'upload' } | { k: 'users' } | { k: 'user'; id: number } | { k: 'subs' } | { k: 'comments' } | { k: 'feedback' }
-  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' }
+  | { k: 'upload'; sectionId?: number } | { k: 'users' } | { k: 'user'; id: number } | { k: 'subs' } | { k: 'comments' } | { k: 'feedback' }
+  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' } | { k: 'limits' }
 
 export interface Nav { push: (s: Screen) => void; back: () => void }
 
 const TITLES: Partial<Record<Screen['k'], string>> = {
   content: 'Контент', material: 'Материал', upload: 'Новый материал', users: 'Пользователи', user: 'Пользователь',
   subs: 'Заявки', comments: 'Комментарии', feedback: 'Обсуждения', courses: 'Курсы', banners: 'Баннеры',
-  pinned: 'Закреп в боте', broadcast: 'Рассылка', payments: 'Оплаты', logs: 'Журнал',
+  pinned: 'Закреп в боте', limits: 'Лимиты чтения', broadcast: 'Рассылка', payments: 'Оплаты', logs: 'Журнал',
 }
 
 // Стек экранов переживает размонтирование (например, «Как видят» → назад)
@@ -67,7 +67,7 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
         {top.k === 'content' && <SectionsScreen nav={nav} parentId={null} />}
         {top.k === 'section' && <SectionsScreen key={top.id} nav={nav} parentId={top.id} />}
         {top.k === 'material' && <MaterialScreen key={top.id} nav={nav} id={top.id} />}
-        {top.k === 'upload' && <UploadPage />}
+        {top.k === 'upload' && <UploadPage initialSectionId={top.sectionId} />}
         {top.k === 'users' && <UsersScreen nav={nav} />}
         {top.k === 'user' && <UserScreen key={top.id} id={top.id} />}
         {top.k === 'subs' && <SubmissionsScreen />}
@@ -79,6 +79,7 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
         {top.k === 'broadcast' && <BroadcastScreen />}
         {top.k === 'payments' && <PaymentsScreen />}
         {top.k === 'logs' && <LogsScreen />}
+        {top.k === 'limits' && <LimitsScreen nav={nav} />}
         </div>
       </motion.div>
       <Toaster />
@@ -197,7 +198,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
         </div>
       )}
 
-      <div className="grid sm:grid-cols-2 gap-x-3 gap-y-4 mt-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-4 mt-5 [&>*]:min-w-0">
         <Group title="Контент">
           <Item k="content" icon="folder" title="Разделы и материалы" sub={`${num(o.sections)} разделов · ${num(o.materials)} материалов`} tone="#17E584" />
           <Item k="courses" icon="book" title="Курсы" sub="конструктор курсов и доступ" tone="#F5C25A" />
@@ -207,6 +208,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="users" icon="users" title="Пользователи" sub={`${num(o.users)} · в бане ${o.banned}`} tone="#B9A8FF" />
           <Item k="comments" icon="flag" title="Комментарии" sub={o.reported_comments ? `жалоб: ${o.reported_comments}` : 'жалоб нет'} tone="#FF8A8A" badge={o.reported_comments} />
           <Item k="feedback" icon="chat" title="Обсуждения" sub="отзывы и оценки материалов" tone="#B9A8FF" badge={fbUnread} />
+          <Item k="limits" icon="clock" title="Лимиты чтения" sub="кто упёрся в лимит · сброс" tone="#F5C25A" />
         </Group>
         <Group title="Продвижение">
           <Item k="broadcast" icon="send" title="Рассылка" sub="сообщение всем или сегменту" tone="#17E584" />
@@ -218,6 +220,64 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="logs" icon="history" title="Журнал" sub="кто и что менял" tone="#A6B8AE" />
         </Group>
       </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5 [&>*]:min-w-0">
+        <Revenue data={o.revenue} onOpen={go('payments')} />
+        <section className="card p-4">
+          <div className="flex items-center justify-between mb-2"><b className="text-[14px]">Популярное за неделю</b><span className="text-[11.5px] text-gray">открытий</span></div>
+          {o.top_materials.length ? o.top_materials.map((m, i) => (
+            <button key={m.id} onClick={() => nav.push({ k: 'material', id: m.id })} className="w-full flex items-center gap-3 py-2 text-left">
+              <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: i === 0 ? '#F5C25A' : '#6E8478' }}>{i + 1}</span>
+              <span className="flex-1 min-w-0 text-[13.5px] truncate">{m.title}</span>
+              <span className="text-[12.5px] text-gray tabular-nums">{num(m.views)}</span>
+            </button>
+          )) : <p className="text-[13px] text-gray2">Пока нет данных</p>}
+        </section>
+        <section className="card p-4 sm:col-span-2">
+          <div className="flex items-center justify-between mb-1"><b className="text-[14px]">Новые пользователи</b>
+            <button onClick={go('users')} className="text-[12.5px] text-green">Все ›</button></div>
+          {o.recent_users.map(u => (
+            <button key={u.id} onClick={() => nav.push({ k: 'user', id: u.id })} className="w-full flex items-center gap-3 py-2 text-left">
+              <span className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-semibold shrink-0"
+                style={{ background: u.premium ? 'linear-gradient(135deg,#F5C25A,#B8862B)' : '#20302A', color: u.premium ? '#2A1C00' : '#CFDAD4' }}>
+                {(u.name || u.username || '?').trim().slice(0, 1).toUpperCase()}
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block text-[13.5px] truncate">{u.name || u.username || u.id}</span>
+                <span className="block text-[11.5px] text-gray truncate">{u.username ? '@' + u.username + ' · ' : ''}{ago(u.joined_at)}</span>
+              </span>
+              <Icon name="chevR" size={15} className="text-gray2" />
+            </button>
+          ))}
+        </section>
+      </div>
     </div>
+  )
+}
+
+function Revenue({ data, onOpen }: { data: { d: string; sum: number }[]; onOpen: () => void }) {
+  const total = data.reduce((a, x) => a + x.sum, 0)
+  const max = Math.max(1, ...data.map(x => x.sum))
+  const [sel, setSel] = useState<number | null>(null)
+  const cur = sel !== null ? data[sel] : null
+  return (
+    <section className="card p-4">
+      <div className="flex items-start justify-between">
+        <div>
+          <span className="text-[12px] text-gray">{cur ? dayLabel(cur.d) : 'Выручка за 30 дней'}</span>
+          <b className="block font-display font-semibold text-[22px] text-gold mt-0.5">{rub(cur ? cur.sum : total)}</b>
+        </div>
+        <button onClick={onOpen} className="text-[12.5px] text-green">Оплаты ›</button>
+      </div>
+      <div className="flex items-end gap-[2px] h-16 mt-3" onMouseLeave={() => setSel(null)}>
+        {data.map((x, i) => (
+          <button key={x.d} onClick={() => setSel(sel === i ? null : i)} onMouseEnter={() => setSel(i)} className="flex-1 h-full flex items-end" aria-label={`${x.d}: ${x.sum}`}>
+            <span className="w-full rounded-t-[3px]" style={{ height: x.sum ? `${Math.max(8, x.sum / max * 100)}%` : '3px',
+              background: x.sum ? (sel === i ? '#FFE08A' : 'linear-gradient(180deg,#F5C25A,rgba(245,194,90,.35))') : 'rgba(255,255,255,.08)' }} />
+          </button>
+        ))}
+      </div>
+      <div className="flex justify-between text-[10.5px] text-gray2 mt-1"><span>{dayLabel(data[0].d)}</span><span>сегодня</span></div>
+    </section>
   )
 }

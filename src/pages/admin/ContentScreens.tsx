@@ -77,6 +77,15 @@ export function SectionsScreen({ nav, parentId }: { nav: Nav; parentId: number |
         </>
       ) : (
         <>
+          {me && (() => {
+            const path: ASection[] = []; let c = all.find(x => x.id === me.parent_id)
+            for (let i = 0; c && i < 8; i++) { path.unshift(c); c = all.find(x => x.id === c!.parent_id) }
+            return path.length ? (
+              <div className="flex items-center gap-1 text-[12px] text-gray mb-2 overflow-x-auto no-scrollbar whitespace-nowrap">
+                {path.map(x => <span key={x.id} className="flex items-center gap-1">{x.emoji} {x.title}<Icon name="chevR" size={12} className="text-gray2" /></span>)}
+                <span className="text-fg">{me.title}</span>
+              </div>) : null
+          })()}
           {me && (
             <div className="card p-4 mb-1">
               <div className="flex items-start gap-3">
@@ -124,7 +133,7 @@ export function SectionsScreen({ nav, parentId }: { nav: Nav; parentId: number |
 
           {parentId !== null && (
             <>
-              <SectionTitle right={<button className="text-green text-[13px] font-semibold flex items-center gap-1" onClick={() => nav.push({ k: 'upload' })}><Icon name="plus" size={15} />Материал</button>}>
+              <SectionTitle right={<button className="text-green text-[13px] font-semibold flex items-center gap-1" onClick={() => nav.push({ k: 'upload', sectionId: parentId })}><Icon name="plus" size={15} />Материал</button>}>
                 Материалы · {mats?.length ?? '…'}
               </SectionTitle>
               {!mats ? <Loader /> : mats.length ? (
@@ -250,7 +259,7 @@ export function MaterialScreen({ nav, id }: { nav: Nav; id: number }) {
         </select>
       </label>
       <div className="list-group mb-4"><Toggle label="Premium" tone="gold" value={m.is_premium} onChange={v => set({ is_premium: v })} /></div>
-      <div className="flex gap-2">
+      <div className={`flex gap-2 ${dirty ? 'sticky z-20 p-2 -mx-2 rounded-[20px] glass' : ''}`} style={dirty ? { bottom: 'calc(env(safe-area-inset-bottom,0px) + 92px)' } : undefined}>
         <button className="btn-primary flex-1" disabled={!dirty || busy} onClick={save}>{busy ? 'Сохраняю…' : dirty ? 'Сохранить' : 'Сохранено'}</button>
         <button className="btn-secondary px-4 text-[#FF8080]" onClick={remove}><Icon name="trash" size={17} /></button>
       </div>

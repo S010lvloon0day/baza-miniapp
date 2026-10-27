@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from '../../components/Icon'
 import { API_BASE } from '../../api/client'
 import { adminApi } from '../../api/admin'
-import type { ABanner, APinned, ABroadcast, APayment, ALog } from '../../api/admin'
+import type { ABanner, APinned, ABroadcast, APayment, ALog, ALimits, ALimitUser } from '../../api/admin'
+import type { Nav } from './AdminPage'
 import { uploadFile } from '../../api/upload'
-import { Badge, Empty, Field, IconBtn, Loader, Row, SectionTitle, Segmented, Sheet, errMsg, fmtDate, num, toast, useConfirm } from './ui'
+import { Badge, Empty, Field, IconBtn, Loader, Row, SectionTitle, Segmented, Sheet, ago, errMsg, fmtDate, num, toast, useConfirm } from './ui'
 
 /* ───────────── Баннеры на главной ───────────── */
 
@@ -174,16 +175,20 @@ export function BroadcastScreen() {
 
 export function PaymentsScreen() {
   const [d, setD] = useState<{ payments: APayment[]; total_rub: number; total_other: number; count_other: number } | null>(null)
+  const [st, setSt] = useState<'all' | 'paid' | 'pending' | 'failed'>('all')
   useEffect(() => { adminApi.payments().then(setD).catch(e => toast(errMsg(e), true)) }, [])
   if (!d) return <Loader />
+  const list = d.payments.filter(p => st === 'all' || (st === 'failed' ? !['paid', 'pending'].includes(p.status) : p.status === st))
+  const cnt = (f: typeof st) => d.payments.filter(p => f === 'all' || (f === 'failed' ? !['paid', 'pending'].includes(p.status) : p.status === f)).length
   return (
     <div className="px-4 pt-3 pb-navsafe">
       <div className="grid grid-cols-2 gap-2">
         <div className="card p-4"><span className="text-[12px] text-gray">Рубли, всего</span><b className="font-display font-semibold text-[20px] block mt-1">{num(d.total_rub)} ₽</b></div>
         <div className="card p-4"><span className="text-[12px] text-gray">Stars / крипта</span><b className="font-display font-semibold text-[20px] block mt-1">{num(d.count_other)}</b><span className="text-[11.5px] text-gray2">оплат</span></div>
       </div>
-      <SectionTitle>Последние платежи</SectionTitle>
-      {d.payments.length ? <div className="list-group">{d.payments.map((p, i) => (
+      <div className="mt-4"><Segmented value={st} onChange={setSt} items={[['all', 'Все', cnt('all')], ['paid', 'Оплачено', cnt('paid')], ['pending', 'Ожидают', cnt('pending')], ['failed', 'Не прошли', cnt('failed')]]} /></div>
+      <SectionTitle>{st === 'paid' ? `Оплачено на ${num(list.filter(p => p.src === 'rub').reduce((a, p) => a + p.amount, 0))} ₽` : 'Последние платежи'}</SectionTitle>
+      {list.length ? <div className="list-group">{list.map((p, i) => (
         <Row key={i} title={<>{p.amount}{p.src === 'rub' ? ' ₽' : ''} <span className="text-gray font-normal">· {p.username ? '@' + p.username : p.user_id}</span></>}
           sub={`${p.src === 'rub' ? 'Карта/СБП' : 'Stars/крипта'} · ${p.kind === 'course' ? 'курс' : (p.days ? p.days + ' дн.' : p.kind)} · ${fmtDate(p.at)}`}
           right={<Badge tone={p.status === 'paid' ? 'green' : p.status === 'pending' ? 'gold' : 'gray'}>{p.status === 'paid' ? 'оплачено' : p.status === 'pending' ? 'ожидает' : p.status === 'failed' ? 'не прошла' : p.status === 'canceled' || p.status === 'cancelled' ? 'отменена' : p.status}</Badge>} />
@@ -215,6 +220,79 @@ export function LogsScreen() {
           <p className="text-[12px] text-gray break-words">{l.user_id} {l.detail && '· ' + l.detail}</p>
         </div>
       ))}</div> : <Empty icon="history" text="Записей нет" />}
+    </div>
+  )
+}
+
+/* ───────────── Лимиты чтения ───────────── */
+
+function Meter({ label, v, max }: { label: string; v: number; max: number }) {
+  const p = Math.min(1, v / max)
+  const c = p >= 1 ? '#FF6B6B' : p >= .75 ? '#F5C25A' : '#17E584'
+  return (
+    <div className="flex-1 min-w-0">
+      <div className="flex justify-between text-[11px] mb-1"><span className="text-gray">{label}</span><span className="tabular-nums" style={{ color: p >= .75 ? c : '#CFDAD4' }}>{v}/{max}</span></div>
+      <div className="h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${p * 100}%`, background: c }} /></div>
+    </div>
+  )
+}
+
+export function LimitsScreen({ nav }: { nav: Nav }) {
+  const [filter, setFilter] = useState<'active' | 'paused' | 'banned' | 'all'>('active')
+  const [d, setD] = useState<ALimits | null>(null)
+  const [q, setQ] = useState('')
+  const [cur, setCur] = useState<ALimitUser | null>(null)
+  const load = useCallback(() => { adminApi.limits(filter).then(setD).catch(e => toast(errMsg(e), true)) }, [filter])
+  useEffect(() => { setD(null); load() }, [load])
+  const reset = async (u: ALimitUser, scope: 'hour' | 'day' | 'all') => {
+    try { await adminApi.limitReset(u.id, scope); toast(scope === 'all' ? 'Полный сброс, бан снят' : scope === 'day' ? 'Суточный счётчик обнулён' : 'Часовой счётчик обнулён'); setCur(null); load() }
+    catch (e) { toast(errMsg(e), true) }
+  }
+  const L = d?.limits
+  const list = (d?.users || []).filter(u => !q || String(u.id).includes(q) || u.username.toLowerCase().includes(q.toLowerCase().replace('@', '')) || u.name.toLowerCase().includes(q.toLowerCase()))
+  return (
+    <div className="px-4 pt-3 pb-navsafe">
+      <div className="card p-4 mb-3">
+        <p className="text-[13px] text-gray leading-relaxed">Считаются <b className="text-fg font-medium">разные</b> материалы. Час и сутки — мягкая пауза, снимается сама. 30 дней — автобан.</p>
+        {L && <div className="flex gap-2 mt-3">
+          {[['Час', L.hour], ['Сутки', L.day], ['30 дней', L.month]].map(([l, v]) => (
+            <div key={l as string} className="flex-1 rounded-[12px] bg-white/[.04] px-3 py-2"><b className="font-display font-semibold text-[16px]">{v}</b><span className="block text-[11px] text-gray">{l}</span></div>
+          ))}
+        </div>}
+      </div>
+      <Segmented value={filter} onChange={setFilter} items={[['active', 'Под нагрузкой'], ['paused', 'На паузе', d?.counts.paused], ['banned', 'Автобан', d?.counts.banned], ['all', 'Все за 30 дн.']]} />
+      <div className="mt-3" />
+      <Field placeholder="Найти по ID или @username" value={q} onChange={setQ} />
+      {!d || !L ? <Loader /> : list.length ? list.map(u => (
+        <button key={u.id} onClick={() => setCur(u)} className="card w-full text-left p-4 mb-2 active:scale-[.99] transition-transform">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="flex-1 min-w-0">
+              <b className="block text-[14.5px] font-semibold truncate">{u.name || u.username || u.id}</b>
+              <span className="block text-[12px] text-gray truncate">{u.username ? '@' + u.username + ' · ' : ''}{u.id} · {ago(u.last)}</span>
+            </span>
+            {u.autoban ? <Badge tone="red">Автобан</Badge> : u.paused ? <Badge tone="gold">Пауза: {u.paused === 'day' ? 'сутки' : 'час'}</Badge> : null}
+          </div>
+          <div className="flex gap-3">
+            <Meter label="Час" v={u.hour} max={L.hour} /><Meter label="Сутки" v={u.day} max={L.day} /><Meter label="30 дней" v={u.month} max={L.month} />
+          </div>
+          {(u.unlock_at || u.blocked_24h > 0) && <p className="text-[12px] text-gray mt-2.5">
+            {u.unlock_at ? `Пауза снимется сама: ${fmtDate(u.unlock_at)}` : ''}{u.unlock_at && u.blocked_24h ? ' · ' : ''}{u.blocked_24h ? `не открылось за сутки: ${u.blocked_24h}` : ''}
+          </p>}
+        </button>
+      )) : <Empty icon="checkCircle" text={filter === 'paused' ? 'Сейчас никто не на паузе' : filter === 'banned' ? 'Автобанов нет' : 'Никто не приближается к лимитам'} />}
+
+      <Sheet open={!!cur} onClose={() => setCur(null)} title={cur ? (cur.name || cur.username || String(cur.id)) : ''}>
+        {cur && L && (<>
+          <div className="flex gap-3 mb-4"><Meter label="Час" v={cur.hour} max={L.hour} /><Meter label="Сутки" v={cur.day} max={L.day} /><Meter label="30 дней" v={cur.month} max={L.month} /></div>
+          {cur.autoban && <p className="text-[13px] text-[#FF8A8A] mb-3">Забанен автоматически: {cur.ban_reason}</p>}
+          <div className="list-group mb-3">
+            <Row icon="clock" tone="green" title="Сбросить час" sub="снимает паузу «час»" onClick={() => reset(cur, 'hour')} />
+            <Row icon="refresh" tone="gold" title="Сбросить сутки" sub="снимает паузу «сутки», месячный счётчик остаётся" onClick={() => reset(cur, 'day')} />
+            <Row icon="unlock" tone="violet" title="Полный сброс" sub={cur.autoban ? 'обнулить всё и снять автобан' : 'обнулить все счётчики'} onClick={() => reset(cur, 'all')} />
+          </div>
+          <button className="btn-secondary w-full" onClick={() => { setCur(null); nav.push({ k: 'user', id: cur.id }) }}>Открыть карточку пользователя</button>
+        </>)}
+      </Sheet>
     </div>
   )
 }

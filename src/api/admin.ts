@@ -23,8 +23,11 @@ export interface Overview {
   sections: number; materials: number; pending_submissions: number; reported_comments: number
   rub_30d: number; rub_30d_count: number; pay_30d: number; pay_30d_count: number
   signups: { d: string; n: number }[]
+  top_materials: { id: number; title: string; views: number }[]
+  recent_users: { id: number; username: string; name: string; joined_at: string; premium: boolean }[]
+  revenue: { d: string; sum: number }[]
 }
-export interface AUser { id: number; username: string; name: string; joined_at: string; premium_until: string | null; premium: boolean; banned: boolean }
+export interface AUser { id: number; username: string; name: string; joined_at: string; premium_until: string | null; premium: boolean; banned: boolean; last_seen?: string | null }
 export interface AUserFull extends AUser {
   ban_reason: string; banned_at: string | null
   xp: { xp: number; streak: number; best: number; last: string } | null
@@ -33,6 +36,7 @@ export interface AUserFull extends AUser {
   courses: { section_id: number; title: string; at: string }[]
   logs: { action: string; detail: string; at: string }[]
   limits: Record<string, number> | null
+  history: { id: number; title: string | null; at: string }[]
 }
 export interface ASection {
   id: number; parent_id: number | null; title: string; emoji: string; description: string; is_premium: boolean
@@ -49,9 +53,14 @@ export interface ABroadcast { running: boolean; sent: number; failed: number; to
 export interface APayment { src: string; user_id: number; username: string; amount: number; days: number | null; at: string; status: string; kind: string }
 export interface ALog { id: number; user_id: number; action: string; detail: string; at: string }
 
+export interface ALimitUser { id: number; username: string; name: string; hour: number; day: number; month: number; blocked_24h: number; last: string | null; paused: '' | 'hour' | 'day'; autoban: boolean; ban_reason: string; unlock_at: string | null; load: number }
+export interface ALimits { limits: { hour: number; day: number; month: number }; users: ALimitUser[]; counts: { paused: number; banned: number } }
+
 export const adminApi = {
+  limits: (filter: string) => get<ALimits>(`/api/admin/limits?${qs({ filter })}`),
+  limitReset: (id: number, scope: 'hour' | 'day' | 'all') => post(`/api/admin/limits/${id}/reset`, { scope }),
   overview: () => get<Overview>('/api/admin/overview'),
-  users: (q: string, filter: string, offset = 0) => get<{ total: number; users: AUser[] }>(`/api/admin/users?${qs({ q, filter, offset })}`),
+  users: (q: string, filter: string, offset = 0, sort = 'new') => get<{ total: number; users: AUser[] }>(`/api/admin/users?${qs({ q, filter, offset, sort })}`),
   user: (id: number) => get<AUserFull>(`/api/admin/users/${id}`),
   premium: (id: number, days: number, notify: boolean) => post<{ premium_until: string }>(`/api/admin/users/${id}/premium`, { days, notify }),
   revokePremium: (id: number) => post(`/api/admin/users/${id}/premium`, { action: 'revoke' }),

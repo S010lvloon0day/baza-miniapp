@@ -57,7 +57,7 @@ function sortByNumber<T extends DraftAttachment>(list: T[]): T[] {
  * интернете отправка видео без индикатора неотличима от зависшего приложения.
  * Материал собирается отдельной кнопкой, когда всё долетело.
  */
-export default function UploadPage() {
+export default function UploadPage({ initialSectionId }: { initialSectionId?: number } = {}) {
   const [sections, setSections] = useState<AdminSection[]>([])
   // Раздел и подраздел выбираются РАЗДЕЛЬНО. Один список с путями «Раздел ›
   // Подраздел» обрезается на узком экране, и легко промахнуться уровнем.
@@ -78,7 +78,15 @@ export default function UploadPage() {
 
   useEffect(() => {
     uploadApi.sections()
-      .then(setSections)
+      .then(list => {
+        setSections(list)
+        // Открыто из раздела админки — подставляем его сразу.
+        const me = initialSectionId ? list.find(x => x.id === initialSectionId) : undefined
+        if (me) {
+          if (!me.parent_id) setRootId(me.id)
+          else if (!list.find(x => x.id === me.parent_id)?.parent_id) { setRootId(me.parent_id); setSubId(me.id) }
+        }
+      })
       .catch(() => setResult({ ok: false, text: 'Не удалось загрузить список разделов' }))
   }, [])
 

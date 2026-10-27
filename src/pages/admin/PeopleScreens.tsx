@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Icon from '../../components/Icon'
 import { adminApi } from '../../api/admin'
 import type { AUser, AUserFull, ASubmission, AComment, ASection } from '../../api/admin'
-import { Badge, Empty, Field, Loader, Row, SectionTitle, Segmented, Sheet, Toggle, errMsg, fmtDate, fmtDay, num, toast, useConfirm } from './ui'
+import { Badge, Empty, Field, Loader, Row, SectionTitle, Segmented, Sheet, Toggle, ago, errMsg, fmtDate, fmtDay, num, toast, useConfirm } from './ui'
 import type { Nav } from './AdminPage'
 
 const initials = (u: { name: string; username: string; id: number }) =>
@@ -24,17 +24,18 @@ export function UsersScreen({ nav }: { nav: Nav }) {
   const [filter, setFilter] = useState<'all' | 'premium' | 'new' | 'banned'>('all')
   const [data, setData] = useState<{ total: number; users: AUser[] } | null>(null)
   const [more, setMore] = useState(false)
+  const [sort, setSort] = useState<'new' | 'active' | 'premium'>('new')
 
   useEffect(() => {
     setData(null)
-    const id = setTimeout(() => adminApi.users(q, filter).then(setData).catch(e => toast(errMsg(e), true)), q ? 300 : 0)
+    const id = setTimeout(() => adminApi.users(q, filter, 0, sort).then(setData).catch(e => toast(errMsg(e), true)), q ? 300 : 0)
     return () => clearTimeout(id)
-  }, [q, filter])
+  }, [q, filter, sort])
 
   const loadMore = async () => {
     if (!data) return
     setMore(true)
-    try { const r = await adminApi.users(q, filter, data.users.length); setData({ total: r.total, users: [...data.users, ...r.users] }) }
+    try { const r = await adminApi.users(q, filter, data.users.length, sort); setData({ total: r.total, users: [...data.users, ...r.users] }) }
     catch (e) { toast(errMsg(e), true) } finally { setMore(false) }
   }
 
@@ -45,7 +46,10 @@ export function UsersScreen({ nav }: { nav: Nav }) {
         <input value={q} onChange={e => setQ(e.target.value)} placeholder="ID, @username или имя" className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-gray2" />
       </label>
       <Segmented value={filter} onChange={setFilter} items={[['all', 'Все'], ['premium', 'Premium'], ['new', 'Новые 7 дн.'], ['banned', 'Баны']]} />
-      <SectionTitle>{data ? `Найдено: ${num(data.total)}` : 'Загрузка…'}</SectionTitle>
+      <SectionTitle right={
+        <select value={sort} onChange={e => setSort(e.target.value as typeof sort)} className="bg-transparent text-[12.5px] text-green outline-none text-right">
+          <option value="new">Сначала новые</option><option value="active">По активности</option><option value="premium">По Premium</option>
+        </select>}>{data ? `Найдено: ${num(data.total)}` : 'Загрузка…'}</SectionTitle>
       {!data ? <Loader /> : data.users.length ? (
         <>
           <div className="list-group">
@@ -54,7 +58,7 @@ export function UsersScreen({ nav }: { nav: Nav }) {
                 <Avatar u={u} />
                 <span className="flex-1 min-w-0">
                   <span className="block text-[14.5px] font-medium truncate">{u.name || u.username || u.id}</span>
-                  <span className="block text-[12px] text-gray truncate">{u.username ? '@' + u.username + ' · ' : ''}{u.id}</span>
+                  <span className="block text-[12px] text-gray truncate">{u.username ? '@' + u.username + ' · ' : ''}{sort === 'new' ? 'пришёл ' + ago(u.joined_at) : 'был ' + ago(u.last_seen)}</span>
                 </span>
                 {u.banned ? <Badge tone="red">Бан</Badge> : u.premium ? <Badge tone="gold">Premium</Badge> : null}
               </button>
@@ -106,6 +110,16 @@ export function UserScreen({ id }: { id: number }) {
         ))}
       </div>
 
+      <div className="grid grid-cols-2 gap-2 mt-2">
+        <button className="btn-secondary h-10 text-[13px]" onClick={() => {
+          const tg = (window as any).Telegram?.WebApp
+          const url = u.username ? `https://t.me/${u.username}` : `tg://user?id=${u.id}`
+          if (tg?.openTelegramLink && u.username) tg.openTelegramLink(url); else window.open(url, '_blank')
+        }}><Icon name="external" size={15} />Открыть в Telegram</button>
+        <button className="btn-secondary h-10 text-[13px]" onClick={() => { navigator.clipboard?.writeText(String(u.id)).then(() => toast('ID скопирован'), () => toast(String(u.id))) }}>
+          <Icon name="copy" size={15} />Копировать ID</button>
+      </div>
+
       <SectionTitle>Действия</SectionTitle>
       <div className="list-group">
         <Row icon="crown" tone="gold" title="Выдать Premium" sub="Добавить дни к подписке" onClick={() => setSheet('premium')} />
@@ -129,13 +143,17 @@ export function UserScreen({ id }: { id: number }) {
       {u.payments.length > 0 && (<>
         <SectionTitle>Оплаты</SectionTitle>
         <div className="list-group">{u.payments.map((p, i) => (
-          <Row key={i} title={`${p.amount} ${p.src === 'rub' ? '₽' : ''}`} sub={`${p.src} · ${p.days ? p.days + ' дн. · ' : ''}${fmtDate(p.at)}`}
+          <Row key={i} title={`${p.amount} ${p.src === 'rub' ? '₽' : ''}`} sub={`${p.src === 'rub' ? 'Карта/СБП' : 'Stars/крипта'} · ${p.days ? p.days + ' дн. · ' : ''}${fmtDate(p.at)}`}
             right={<Badge tone={p.status === 'paid' ? 'green' : 'gray'}>{p.status === 'paid' ? 'оплачено' : p.status}</Badge>} />
         ))}</div>
       </>)}
       {u.courses.length > 0 && (<>
         <SectionTitle>Купленные курсы</SectionTitle>
         <div className="list-group">{u.courses.map(c => <Row key={c.section_id} icon="book" title={c.title || `#${c.section_id}`} sub={fmtDate(c.at)} />)}</div>
+      </>)}
+      {u.history?.length > 0 && (<>
+        <SectionTitle>Недавно открывал</SectionTitle>
+        <div className="list-group">{u.history.map(h => <Row key={h.id + h.at} icon="doc" title={h.title || `Материал #${h.id}`} sub={ago(h.at)} />)}</div>
       </>)}
       <SectionTitle>Последние действия</SectionTitle>
       {u.logs.length ? <div className="list-group">{u.logs.map((l, i) => (
