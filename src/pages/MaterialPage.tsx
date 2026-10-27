@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, lazy, Suspense } from 'react'
+import { useCallback, useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { api, API_BASE } from '../api/client'
 import Icon from '../components/Icon'
@@ -171,6 +171,20 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
     </button>
   )
 
+  // Встроенная страница занимает ровно видимую часть окна (100dvh в Telegram неточен)
+  const fitEmbed = useCallback((el: HTMLIFrameElement | null) => {
+    if (!el) return
+    const tgw = (window as unknown as { Telegram?: { WebApp?: { viewportStableHeight?: number; onEvent?: (e: string, f: () => void) => void } } }).Telegram?.WebApp
+    const fit = () => {
+      const vh = Math.min(window.innerHeight, tgw?.viewportStableHeight || window.innerHeight)
+      const top = el.getBoundingClientRect().top + window.scrollY
+      el.style.height = Math.max(360, Math.floor(vh - top - 12)) + 'px'
+    }
+    fit(); requestAnimationFrame(fit); setTimeout(fit, 300)
+    window.addEventListener('resize', fit)
+    tgw?.onEvent?.('viewportChanged', fit)
+  }, [])
+
   return (
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="flex-1 overflow-y-auto pb-navsafe">
@@ -215,7 +229,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
             <motion.div key={`mat-${materialId}`} initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.2 }} className="pb-2">
 
-              <div className="px-4 pt-4 pb-4">
+              {!embedUrl && <div className="px-4 pt-4 pb-4">
                 <div className="flex items-center gap-2 mb-2.5 text-[13px] text-gray">
                   <MediaTypeIcon type={mat.is_archive ? 'document' : mat.media_type} size={26} radius={8} iconSize={15} tone="green" />
                   <span>{mat.is_archive ? 'Архив' : typeLabel(mat.media_type)}</span>
@@ -224,15 +238,15 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                 <h1 className="font-display font-semibold text-[22px] leading-[1.25]" style={{ textWrap: 'balance' } as React.CSSProperties}>
                   <LevelMark level={(mat as { title_level?: string }).title_level} size={14} />{mat.title}
                 </h1>
-              </div>
+              </div>}
 
               {/* ── Встроенная страница (OSINT Framework и т.п.) ── */}
               {embedUrl && (
-                <div className="px-3 mb-3">
-                  <iframe src={embedUrl} title={mat.title} loading="lazy"
+                <div className="px-3 pt-2 mb-3">
+                  <iframe ref={fitEmbed} src={embedUrl} title={mat.title}
                     allow="clipboard-write"
-                    className="w-full rounded-[16px] border border-white/[.08] block"
-                    style={{ height: 'calc(100dvh - 120px)', minHeight: 460, background: '#08100D' }} />
+                    className="w-full rounded-[18px] border border-white/[.08] block"
+                    style={{ height: 520, background: '#08100D' }} />
                 </div>
               )}
 
