@@ -8,5 +8,6 @@ export default defineConfig({
   build: {
     outDir: 'docs',
   },
+  define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
   plugins: [react()],
 })

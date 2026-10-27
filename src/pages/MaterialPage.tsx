@@ -13,6 +13,7 @@ import QuizCard, { parseQuiz } from '../components/QuizCard'
 import TaskCard, { parseTask } from '../components/TaskCard'
 import MarkdownLite from '../components/MarkdownLite'
 import MaterialSocial, { SocialProof } from '../components/MaterialSocial'
+declare const __BUILD_ID__: string
 import LevelMark from '../components/LevelMark'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
@@ -133,7 +134,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
   const furl = mat?.file_url ? `${API_BASE}${mat.file_url}?init_data=${initData}` : null
   // Встроенная веб-страница: материал с директивой "::embed:: <url>" в тексте
   // показывает её прямо в карточке (iframe), без ссылки. Напр. OSINT Framework.
-  const embedUrl = (mat?.content || '').match(/^\s*::embed::\s*(\S+)/)?.[1] || null
+  const embedRaw = (mat?.content || '').match(/^\s*::embed::\s*(\S+)/)?.[1] || null
+  // метка сборки — чтобы Telegram не показывал встроенную страницу из старого кэша
+  const embedUrl = embedRaw ? embedRaw + (embedRaw.includes('?') ? '&' : '?') + 'v=' + __BUILD_ID__ : null
 
   const openExternal = () => {
     if (!furl) return
