@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
 import { api, setChatTopic, getChatTopic } from '../api/client'
-import type { ChatMsg, ChatUserCard, ChatMember, ChatTopic } from '../api/client'
+import type { ChatMsg, ChatUserCard, ChatMember, ChatTopic, ChatOnline } from '../api/client'
 import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
 import { EMOJI_CATS, EMOJI_CDN, EMOJI_SEQ, codeToChar, emojiUrl } from '../utils/emojiData'
@@ -180,7 +180,9 @@ function InlineEmoji({ kind, eref, size }: { kind: string; eref: string; size: n
 
 /** В превью (ответы/закреп) эмодзи-токены заменяем на 🙂, чтобы не светить код. */
 function stripTokens(text: string) {
-  return (text || '').replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '🙂')
+  const t = (text || '').replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '🙂')
+  const noMat = t.replace(/#m\d{1,7}\b/g, '').trim()
+  return noMat || (t !== noMat ? 'Материал' : t)
 }
 
 function renderText(text: string, big = false) {
@@ -464,11 +466,63 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
   )
 }
 
-function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }: {
+const WK_COLORS = ['', '#F5C25A', '#C9D3DC', '#D08A57']
+/** Значки у ника: место в рейтинге недели (1–3) и ранг по опыту. */
+function NameBadges({ m }: { m: { premium?: boolean; wk?: number; lvl?: number; rank?: string } }) {
+  return (
+    <>
+      {m.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}
+      {!!m.wk && <span title={`${m.wk} место недели`} className="inline-flex align-[-2px] ml-1" style={{ color: WK_COLORS[m.wk] }}><Icon name="trophy" size={12} accent="current" /></span>}
+      {!!m.lvl && m.rank && <span className="ml-1.5 text-[10.5px] font-medium align-[1px] px-1.5 py-[1px] rounded-full bg-white/[.07] text-gray">{m.rank}</span>}
+    </>
+  )
+}
+
+const MAT_TOKEN = /#m\d{1,7}\b/g
+
+function MatCard({ mat, mine, onOpen }: { mat: NonNullable<ChatMsg['mat']>; mine: boolean; onOpen: (id: number) => void }) {
+  return (
+    <button onClick={(e) => { e.stopPropagation(); onOpen(mat.id) }}
+      className="mx-2 mt-2 flex items-center gap-2.5 px-2.5 py-2 rounded-[12px] text-left active:opacity-80 max-w-[calc(100%-16px)]"
+      style={{ background: mine ? 'rgba(0,0,0,.22)' : 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.07)' }}>
+      <span className="w-9 h-9 rounded-[10px] grid place-items-center shrink-0" style={{ background: 'rgba(23,229,132,.14)', color: '#17E584' }}>
+        <Icon name={mat.kind === 'video' ? 'video' : 'book'} size={18} accent="current" />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13.5px] font-semibold text-fg leading-tight line-clamp-2">{mat.title}</span>
+        <span className="flex items-center gap-1.5 mt-0.5 text-[11.5px] text-gray truncate">
+          {mat.premium && <span className="text-gold font-semibold">Premium</span>}
+          <span className="truncate">{mat.section || 'Материал'}</span>
+        </span>
+      </span>
+      <Icon name="chevR" size={16} className="text-gray shrink-0" />
+    </button>
+  )
+}
+
+function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, onReply, onOpenMat }: {
   m: ChatMsg; prev: ChatMsg | null; next: ChatMsg | null; quoted: ChatMsg | null
   onAction: (m: ChatMsg) => void; onReact: (id: number, e: string) => void
   onProfile: (uid: number) => void; onMedia: (url: string, video: boolean, msg?: ChatMsg) => void
+  onReply: (m: ChatMsg) => void; onOpenMat: (id: number) => void
 }) {
+  // свайп влево по сообщению — ответить (как в Telegram)
+  const rowRef = useRef<HTMLDivElement>(null)
+  const sw = useRef<{ x: number; y: number; dx: number; on: boolean | null } | null>(null)
+  const swStart = (e: React.TouchEvent) => { const t = e.touches[0]; sw.current = { x: t.clientX, y: t.clientY, dx: 0, on: null } }
+  const swMove = (e: React.TouchEvent) => {
+    const s0 = sw.current; if (!s0) return
+    const t = e.touches[0]; const dx = t.clientX - s0.x, dy = t.clientY - s0.y
+    if (s0.on === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) s0.on = Math.abs(dx) > Math.abs(dy) * 1.3 && dx < 0
+    if (!s0.on) return
+    s0.dx = Math.max(-72, Math.min(0, dx))
+    if (rowRef.current) { rowRef.current.style.transition = 'none'; rowRef.current.style.transform = `translateX(${s0.dx}px)` }
+  }
+  const swEnd = () => {
+    const s0 = sw.current; sw.current = null
+    if (rowRef.current) { rowRef.current.style.transition = 'transform .2s ease'; rowRef.current.style.transform = '' }
+    if (s0?.on && s0.dx <= -52) { try { tg?.HapticFeedback?.impactOccurred?.('light') } catch { /* */ } onReply(m) }
+  }
   const mine = m.mine
   const near = (a: ChatMsg, b: ChatMsg) => Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) < 5 * 60000
   const grouped = !!prev && prev.user_id === m.user_id && !prev.deleted && near(prev, m)   // есть сообщение выше от того же
@@ -507,7 +561,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
       <div className={`flex gap-2 px-2 ${grouped ? 'mt-0.5' : 'mt-2'} ${mine ? 'flex-row-reverse' : ''}`}>
         {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
         <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
-          {!grouped && !mine && <div className="text-[13px] font-semibold mb-0.5 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}{m.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}</div>}
+          {!grouped && !mine && <div className="text-[13px] font-semibold mb-0.5 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}<NameBadges m={m} /></div>}
           <div onClick={() => onAction(m)} className="relative px-1 active:scale-105 transition-transform cursor-pointer">
             {m.has_media
               ? ((m.mime || '').includes('tgs')
@@ -527,7 +581,8 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
   const onlyMedia = m.has_media && !m.text && !(m.once && !mine)
 
   return (
-    <div className={`flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''}`} style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease' }}>
+    <div ref={rowRef} onTouchStart={swStart} onTouchMove={swMove} onTouchEnd={swEnd} onTouchCancel={swEnd}
+      className={`flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''}`} style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease' }}>
       {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
       <div className={`max-w-[82%] min-w-0 ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
         <div onClick={() => onAction(m)} className="relative overflow-hidden active:opacity-90 max-w-full"
@@ -538,7 +593,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
           }}>
           {!grouped && !mine && (
             <div className="px-3 pt-[7px] text-[13px] font-semibold leading-none" style={{ color: colorFor(m.name) }} onClick={(e) => { e.stopPropagation(); onProfile(m.user_id) }}>
-              {m.name}{m.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}
+              {m.name}<NameBadges m={m} />
             </div>
           )}
           {quoted && (
@@ -584,9 +639,13 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia }
             </div>
           )}
 
-          {m.text && (
+          {m.mat && <MatCard mat={m.mat} mine={mine} onOpen={onOpenMat} />}
+          {m.mat && !(m.text || '').replace(MAT_TOKEN, '').trim() && (
+            <div className="px-3 pt-1 pb-1.5 flex justify-end"><MsgMeta m={m} /></div>
+          )}
+          {m.text && !(m.mat && !m.text.replace(MAT_TOKEN, '').trim()) && (
             <div className="px-3 pt-[6px] pb-[6px] text-[15px] leading-[1.38] text-fg break-words" style={{ wordBreak: 'break-word' }}>
-              <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(m.text, onlyEmoji)}</span>
+              <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(m.mat ? m.text.replace(MAT_TOKEN, '').trim() : m.text, onlyEmoji)}</span>
               {/* метаданные встроены в конец последней строки — текст обтекает, как в Telegram */}
               <span className="inline-block align-bottom ml-2" style={{ transform: 'translateY(2px)' }}><MsgMeta m={m} /></span>
             </div>
@@ -623,7 +682,10 @@ function chatSig(arr: ChatMsg[]): string {
 const TEMP_BASE = 1e15
 const maxId = (arr: ChatMsg[]) => arr.reduce((mx, m) => (m.id < TEMP_BASE && m.id > mx ? m.id : mx), 0)
 
-export default function ChatPage({ onBack, initialMsg }: { onBack?: () => void; initialMsg?: number } = {}) {
+export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBack?: () => void; initialMsg?: number; onOpenMaterial?: (id: number) => void } = {}) {
+  const openMat = (id: number) => onOpenMaterial?.(id)
+  const [onlineList, setOnlineList] = useState<ChatOnline[] | null>(null)
+  const openOnline = () => { setOnlineList([]); api.chatOnline().then(r => setOnlineList(r.online || [])).catch(() => setOnlineList(null)) }
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
   const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
   const [gated, setGated] = useState(false)   // не подписан на канал — доступ к чату закрыт
@@ -907,6 +969,25 @@ export default function ChatPage({ onBack, initialMsg }: { onBack?: () => void; 
   // синхронизация rich-поля: читаем контент редактора в text (с токенами эмодзи)
   const refreshFromEditor = () => { const el = taRef.current; if (el) setText(serializeEditor(el)) }
   const setComposer = (t: string) => { setText(t); const el = taRef.current; if (el) fillEditor(el, t) }
+  // черновик для каждой темы: сохраняем при вводе, подставляем при переключении
+  const draftTopic = useRef<string | null>(null)
+  useEffect(() => {
+    draftTopic.current = topic
+    let d = ''
+    try { d = localStorage.getItem('chat_draft:' + topic) || '' } catch { /* */ }
+    setComposer(d)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topic])
+  useEffect(() => {
+    if (draftTopic.current == null || editing) return
+    const id = window.setTimeout(() => {
+      try {
+        if (text.trim()) localStorage.setItem('chat_draft:' + draftTopic.current, text)
+        else localStorage.removeItem('chat_draft:' + draftTopic.current)
+      } catch { /* */ }
+    }, 300)
+    return () => window.clearTimeout(id)
+  }, [text, editing])
   const detectMention = () => {
     const sel = window.getSelection(); const node = sel?.anchorNode
     if (!sel || !node || node.nodeType !== 3 || !taRef.current?.contains(node)) { setMention(null); return }
@@ -1190,6 +1271,11 @@ export default function ChatPage({ onBack, initialMsg }: { onBack?: () => void; 
 
   const startEdit = (m: ChatMsg) => { setEditing(m); setReply(null); setComposer(m.text); setMenuFor(null); taRef.current?.focus() }
   const startReply = (m: ChatMsg) => { setReply(m); setEditing(null); setMenuFor(null); taRef.current?.focus() }
+  // стабильные обработчики для мемоизированных строк ленты
+  const replyRef = useRef(startReply); replyRef.current = startReply
+  const matRef = useRef(openMat); matRef.current = openMat
+  const replyStable = useCallback((m: ChatMsg) => replyRef.current(m), [])
+  const openMatStable = useCallback((id: number) => matRef.current(id), [])
   const insertMention = (un: string) => { insertTextAtCaret('@' + un + ' ') }
 
   const stopMic = () => {
@@ -1312,7 +1398,7 @@ export default function ChatPage({ onBack, initialMsg }: { onBack?: () => void; 
           <div className="font-display font-semibold text-[15px] leading-tight truncate">Чат базы</div>
           <div className="flex items-center gap-1.5 mt-1 text-[12px] text-gray whitespace-nowrap overflow-hidden">
             <span className="pulse-dot" style={{ width: 6, height: 6 }} />
-            <span className="tabular-nums">{online} в сети</span>
+            <button onClick={openOnline} className="tabular-nums underline decoration-dotted decoration-white/25 underline-offset-[3px]">{online} в сети</button>
             {typing.length > 0 && (
               <>
                 <span className="w-[3px] h-[3px] rounded-full bg-gray2 shrink-0" />
@@ -1427,7 +1513,7 @@ export default function ChatPage({ onBack, initialMsg }: { onBack?: () => void; 
                   <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#CFDAD4]" style={{ background: 'rgba(17,28,23,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
                 </div>
               )}
-              <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} />
+              <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} onReply={replyStable} onOpenMat={openMatStable} />
             </div>
           )
         })}
@@ -1816,6 +1902,30 @@ export default function ChatPage({ onBack, initialMsg }: { onBack?: () => void; 
       </AnimatePresence>
 
       <AnimatePresence>
+        {onlineList && (
+          <motion.div className="fixed inset-0 z-[72] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.55)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOnlineList(null)}>
+            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
+              className="w-full max-w-[460px] rounded-t-[28px] pt-3 px-4 bg-s1 border-t border-white/[.08] max-h-[70vh] flex flex-col"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 20px)' }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-3 bg-white/15" />
+              <div className="font-display font-semibold text-[16px] text-fg mb-2">Сейчас в чате · {onlineList.length || online}</div>
+              <div className="overflow-y-auto no-scrollbar -mx-1">
+                {onlineList.length === 0 && <div className="py-6 text-center text-[13px] text-gray">Загрузка…</div>}
+                {onlineList.map(u => (
+                  <button key={u.user_id} onClick={() => { setOnlineList(null); setProfileFor(u.user_id) }}
+                    className="w-full flex items-center gap-3 px-1 py-2 rounded-[12px] active:bg-white/[.05] text-left">
+                    <Avatar name={u.name} src={api.chatAvatarUrl(u.user_id)} size={36} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-[14px] font-semibold text-fg truncate">{u.name}<NameBadges m={u} /></span>
+                      <span className="block text-[12px] text-gray truncate">{u.admin ? 'Администратор' : (u.username ? '@' + u.username : u.rank)}</span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
         {muteFor && (
           <motion.div className="fixed inset-0 z-[72] flex items-end justify-center px-4" style={{ background: 'rgba(0,0,0,.55)', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMuteFor(null)}>

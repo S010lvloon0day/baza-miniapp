@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef, lazy, Suspense } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { api, API_BASE } from '../api/client'
+import { api, API_BASE, getChatTopic } from '../api/client'
 import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
 import type { Material } from '../api/client'
@@ -452,6 +452,21 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
               {/* Оценки и обсуждение */}
               <MaterialSocial key={materialId} materialId={materialId} />
+
+              {/* Обсудить в чате: карточка материала подставляется в поле ввода */}
+              <button onClick={() => {
+                  try { localStorage.setItem('chat_draft:' + getChatTopic(), `#m${materialId} `) } catch { /* */ }
+                  window.dispatchEvent(new CustomEvent('baza:open-chat'))
+                }}
+                className="mx-4 mt-3 mb-2 w-[calc(100%-32px)] flex items-center gap-3 px-4 py-3 rounded-[16px] text-left active:opacity-80"
+                style={{ background: 'rgba(118,87,255,.12)', border: '1px solid rgba(185,168,255,.16)' }}>
+                <span className="tile-violet w-9 h-9 rounded-[11px] shrink-0"><Icon name="chat" size={17} accent="#fff" /></span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[14px] font-semibold text-fg">Обсудить в чате</span>
+                  <span className="block text-[12px] text-gray">Отправить карточку материала и задать вопрос</span>
+                </span>
+                <Icon name="chevR" size={16} className="text-gray" />
+              </button>
             </motion.div>
           ) : null}
         </AnimatePresence>

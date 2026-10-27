@@ -246,7 +246,16 @@ export interface ChatMsg {
   ttl: boolean
   /** Автор с активной подпиской Premium (корона у имени). */
   premium?: boolean
+  /** Ранг по опыту (0..4) и название; место в рейтинге недели 1–3 (0 — нет). */
+  lvl?: number
+  rank?: string
+  wk?: number
+  /** Материал, на который ссылается сообщение. */
+  mat?: ChatMatCard
 }
+export interface ChatMatCard { id: number; title: string; section: string; premium: boolean; kind: string }
+export interface ChatOnline { user_id: number; name: string; username: string; premium: boolean; rank: string; lvl: number; wk: number; admin: boolean }
+export interface ReferralInfo { link: string; invited: number; paid: number; days: number; bonus_days: number }
 export interface ChatMember { user_id: number; name: string; username: string; avatar: string; premium?: boolean }
 export interface ChatTopic { id: string; title: string; unread: number }
 export interface ChatReport { id: number; user_id: number; name: string; username: string; type: string; text: string; created_at: string; hidden: boolean; topic: string; reports: number; last: string }
@@ -311,7 +320,9 @@ export const api = {
   chatStickersRemove: (name: string) => post<{ ok?: boolean }>('/api/chat/stickers/remove', { name }),
   chatDelete:     (id: number)   => del<{ ok?: boolean }>(`/api/chat/${id}`),
   chatPin:        (id: number)   => post<{ ok?: boolean }>(`/api/chat/${id}/pin`),
-  chatUnpin:      ()             => post<{ ok?: boolean }>('/api/chat/unpin'),
+  chatUnpin:      ()             => post<{ ok?: boolean }>(`/api/chat/unpin?topic=${encodeURIComponent(_chatTopic)}`),
+  chatOnline:     ()             => get<{ online: ChatOnline[] }>('/api/chat/online'),
+  referral:       ()             => get<ReferralInfo>('/api/referral'),
   chatReact:      (id: number, emoji: string) => post<{ ok?: boolean; on?: boolean }>(`/api/chat/${id}/react`, { emoji }),
   chatEdit:       (id: number, text: string) => post<{ ok?: boolean; error?: string }>(`/api/chat/${id}/edit`, { text }),
   chatTyping:     ()             => post<{ ok?: boolean }>('/api/chat/typing'),

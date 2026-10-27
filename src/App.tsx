@@ -215,6 +215,12 @@ export default function App() {
     setTab(t)
     setStack([])
   }
+  // «Обсудить в чате» из материала
+  useEffect(() => {
+    const h = () => { setTab('chat'); setStack([]) }
+    window.addEventListener('baza:open-chat', h)
+    return () => window.removeEventListener('baza:open-chat', h)
+  }, [])
 
 
   const openCompete = () => setStack(s => [...s, { type: 'compete' }])
@@ -245,7 +251,7 @@ export default function App() {
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <LibraryPage bmTick={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
-      if (tab === 'chat')   return <ChatPage onBack={() => switchTab('home')} initialMsg={deepLink.chatMsg} />
+      if (tab === 'chat')   return <ChatPage onBack={() => switchTab('home')} initialMsg={deepLink.chatMsg} onOpenMaterial={id => openMaterialById(id)} />
       if (tab === 'prof')   return <ProfilePage scrollToPlans={upgradePending} onScrolled={() => setUpgradePending(false)} onCompete={openCompete} />
       if (tab === 'ctor') {
         if (!isAdmin) return null

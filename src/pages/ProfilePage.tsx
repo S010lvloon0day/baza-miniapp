@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
-import type { Profile, Config, Plan } from '../api/client'
+import type { Profile, Config, Plan, ReferralInfo } from '../api/client'
 import { useRubPayment, fmtRub } from '../hooks/useRubPayment'
 import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
@@ -110,6 +110,47 @@ function CertVerifyBox() {
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function ReferralCard() {
+  const [r, setR] = useState<ReferralInfo | null>(null)
+  const [copied, setCopied] = useState(false)
+  useEffect(() => { api.referral().then(setR).catch(() => {}) }, [])
+  if (!r || !r.link || !r.bonus_days) return null
+  const tg = (window as any).Telegram?.WebApp
+  const share = () => {
+    const text = 'База знаний: курсы, OSINT, пентест, код — заходи'
+    const url = `https://t.me/share/url?url=${encodeURIComponent(r.link)}&text=${encodeURIComponent(text)}`
+    try { tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank') } catch { window.open(url, '_blank') }
+  }
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(r.link); setCopied(true); setTimeout(() => setCopied(false), 1600) } catch { /* */ }
+  }
+  return (
+    <div className="mx-4 mt-6 card p-4" style={{ background: 'linear-gradient(160deg, rgba(118,87,255,.16), rgba(17,28,23,.6) 60%)' }}>
+      <div className="flex items-center gap-3">
+        <span className="tile-violet w-10 h-10 rounded-[13px] shrink-0"><Icon name="gift" size={19} accent="#fff" /></span>
+        <div className="min-w-0">
+          <div className="text-[15.5px] font-bold leading-tight">Пригласи друга</div>
+          <div className="text-[12.5px] text-gray mt-0.5">Друг оформит подписку — тебе <span className="text-gold font-semibold">+{r.bonus_days} дн. Premium</span></div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 mt-3.5 text-center">
+        {([['Пришли', r.invited], ['Оплатили', r.paid], ['Получено дн.', r.days]] as const).map(([l, v]) => (
+          <div key={l} className="rounded-[12px] py-2 bg-white/[.05]">
+            <div className="font-display font-semibold text-[17px] tabular-nums">{v}</div>
+            <div className="text-[11px] text-gray mt-0.5">{l}</div>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2 mt-3.5">
+        <button onClick={share} className="btn-primary flex-1 h-11 text-[14px]">Поделиться ссылкой</button>
+        <button onClick={copy} aria-label="Скопировать" className="btn-secondary w-11 h-11 shrink-0 flex items-center justify-center">
+          <Icon name={copied ? 'check' : 'copy'} size={18} />
+        </button>
+      </div>
     </div>
   )
 }
@@ -317,6 +358,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
 
       {comp && <StatsRow c={comp} />}
       {comp && <RankCard c={comp} onOpen={onCompete} />}
+      <ReferralCard />
 
       {/* Тарифы */}
       {cfg.plans.length > 0 && (
