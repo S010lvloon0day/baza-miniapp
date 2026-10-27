@@ -37,7 +37,7 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
   const [courseEditing, setCourseEditing] = useState(false)
   const top = stack[stack.length - 1]
   const nav: Nav = {
-    push: s => { setStack(st => [...st, s]); window.scrollTo(0, 0) },
+    push: s => setStack(st => [...st, s]),
     back: () => setStack(st => (st.length > 1 ? st.slice(0, -1) : st)),
   }
   const goBack = () => { if (top.k === 'courses' && courseEditing) setCourseEditing(false); else nav.back() }
@@ -53,7 +53,7 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
   const title = top.k === 'section' ? top.title : TITLES[top.k] || 'Админка'
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
       {top.k !== 'home' && (
         <div className="sticky top-0 z-30 bg-bg/85 backdrop-blur-xl border-b border-white/[.06]"><div className="max-w-[760px] mx-auto flex items-center gap-2 px-2 h-14">
           <button onClick={goBack} aria-label="Назад" className="w-10 h-10 rounded-full grid place-items-center active:bg-white/10"><Icon name="chevL" size={22} /></button>
@@ -61,7 +61,8 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
           {top.k === 'material' && <button onClick={() => onOpenMaterial(top.id)} className="h-9 px-3 rounded-full bg-white/[.06] text-[12.5px] flex items-center gap-1.5"><Icon name="eye" size={15} />Как видят</button>}
         </div></div>
       )}
-      <motion.div key={stack.length + top.k} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .18 }} className="flex-1 flex flex-col min-h-0 w-full max-w-[760px] mx-auto">
+      <motion.div key={stack.length + top.k} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .18 }} className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="flex flex-col min-h-full w-full max-w-[760px] mx-auto">
         {top.k === 'home' && <Home nav={nav} fbUnread={fbUnread} />}
         {top.k === 'content' && <SectionsScreen nav={nav} parentId={null} />}
         {top.k === 'section' && <SectionsScreen key={top.id} nav={nav} parentId={top.id} />}
@@ -78,6 +79,7 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
         {top.k === 'broadcast' && <BroadcastScreen />}
         {top.k === 'payments' && <PaymentsScreen />}
         {top.k === 'logs' && <LogsScreen />}
+        </div>
       </motion.div>
       <Toaster />
     </div>
