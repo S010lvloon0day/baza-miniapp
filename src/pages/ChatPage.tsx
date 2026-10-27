@@ -700,7 +700,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
   }, [msgs])
   const emojiPacks = packs.filter(p => p.emoji)          // custom_emoji паки → вставка в текст
   const stickerPacks = packs.filter(p => !p.emoji)       // обычные стикеры → отдельным сообщением
-  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), 2500) }
+  const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), t.length > 60 ? 5000 : 2500) }
 
   const scrollToBottom = (smooth = true) => {
     requestAnimationFrame(() => {
@@ -1035,10 +1035,19 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
     const l = addPackLink.trim(); if (!l) return
     setPackBusy(true)
     try {
+      if (!/addstickers\/|addemoji\//i.test(l) && /[@|\s]/.test(l)) {
+        // «@Boseh | @NewEmojis» — это название набора (каналы авторов), а не его адрес
+        flash('Нужна ссылка на набор: t.me/addemoji/… или t.me/addstickers/…')
+        return
+      }
       const r = await api.chatStickersAdd(l)
-      if (r.error) flash(r.message || 'Пак не найден')
-      else { setAddPackLink(''); await loadPacks(); if (r.pack) setStickerTab(r.pack.emoji ? 'emoji' : r.pack.name) }
-    } catch { flash('Ошибка') } finally { setPackBusy(false) }
+      if (r.error) flash(r.message || 'Набор не найден')
+      else { setAddPackLink(''); await loadPacks(); if (r.pack) { setStickerTab(r.pack.emoji ? 'emoji' : r.pack.name); flash(`Добавлен набор «${r.pack.title}»`) } }
+    } catch (e) {
+      flash(String((e as Error)?.message || '').includes('404')
+        ? 'Набор не найден. Скопируйте ссылку на него в Telegram: откройте набор → «Поделиться» → «Копировать ссылку»'
+        : 'Не удалось добавить набор, попробуйте ещё раз')
+    } finally { setPackBusy(false) }
   }
   const removePack = async (name: string) => {
     try {
@@ -1368,7 +1377,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
             )}
           </button>
         )}
-        {toast && <div className="self-center mb-2 px-3.5 py-1.5 rounded-full text-[12.5px] text-fg glass">{toast}</div>}
+        {toast && <div className="self-center mb-2 px-3.5 py-1.5 rounded-[16px] text-[12.5px] leading-snug text-center text-fg glass max-w-[92%]">{toast}</div>}
 
         {mention && mention.length > 0 && (
           <div className="glass rounded-[18px] mb-2 py-1.5 max-h-[248px] overflow-y-auto" style={{ background: 'rgba(13,21,17,.97)' }}>
@@ -1445,7 +1454,7 @@ export default function ChatPage({ onBack }: { onBack?: () => void } = {}) {
 
           {/* строка добавления своего пака */}
           <div className="flex gap-2 px-2 py-1.5 shrink-0">
-            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="Ссылка на пак: t.me/addstickers/… или t.me/addemoji/…"
+            <input value={addPackLink} onChange={e => setAddPackLink(e.target.value)} placeholder="Ссылка на набор: t.me/addemoji/… или t.me/addstickers/…"
               className="flex-1 min-w-0 h-9 px-3.5 rounded-full text-[16px] text-fg placeholder:text-gray2 outline-none bg-white/[.06] border border-white/[.08]"
               style={{ WebkitUserSelect: 'text', userSelect: 'text' }} />
             <button onClick={addPack} disabled={packBusy} aria-label="Добавить пак" className="w-9 h-9 rounded-full flex items-center justify-center disabled:opacity-50 bg-green/[.18] text-green shrink-0">
