@@ -56,7 +56,20 @@ export interface ALog { id: number; user_id: number; action: string; detail: str
 export interface ALimitUser { id: number; username: string; name: string; hour: number; day: number; month: number; blocked_24h: number; last: string | null; paused: '' | 'hour' | 'day'; autoban: boolean; ban_reason: string; unlock_at: string | null; load: number }
 export interface ALimits { limits: { hour: number; day: number; month: number }; users: ALimitUser[]; counts: { paused: number; banned: number } }
 
+export interface AQuestion { variant?: number; q: string; options: string[]; correct: number; source?: string }
+export interface AQuestions { kind: string; seconds: number; xp: number; questions: AQuestion[] }
+export interface AWeek {
+  prizes: number[]; week_end: string; week_start: string; rules_from: string; rules_active: boolean; daily_cap: number
+  rows: { id: number; name: string; username: string; xp: number; issues: string[] }[]
+  history: { id: number; week_start: string; place: number; user_id: number; name: string; xp: number; days: number; status: string }[]
+}
+
 export const adminApi = {
+  questions: (mid: number) => get<AQuestions>(`/api/admin/material/${mid}/questions`),
+  saveQuestions: (mid: number, questions: AQuestion[]) => post<AQuestions>(`/api/admin/material/${mid}/questions`, { questions }),
+  regenQuestions: (mid: number) => post<AQuestions>(`/api/admin/material/${mid}/questions`, { regenerate: true }),
+  week: () => get<AWeek>('/api/admin/week'),
+  revokePrize: (id: number) => post(`/api/admin/week/${id}/revoke`),
   limits: (filter: string) => get<ALimits>(`/api/admin/limits?${qs({ filter })}`),
   limitReset: (id: number, scope: 'hour' | 'day' | 'all') => post(`/api/admin/limits/${id}/reset`, { scope }),
   overview: () => get<Overview>('/api/admin/overview'),

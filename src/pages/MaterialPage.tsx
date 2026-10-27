@@ -12,6 +12,7 @@ import { renderWithLinks } from '../components/RichText'
 import QuizCard, { parseQuiz } from '../components/QuizCard'
 import TaskCard, { parseTask } from '../components/TaskCard'
 import MarkdownLite from '../components/MarkdownLite'
+import CompletionBar from '../components/CompletionBar'
 import MaterialSocial, { SocialProof } from '../components/MaterialSocial'
 declare const __BUILD_ID__: string
 import LevelMark from '../components/LevelMark'
@@ -403,7 +404,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
 
               {/* Markdown-урок */}
               {mat.media_type === 'doc' && mat.content && (
-                <div className="mb-4 -mx-0"><MarkdownLite content={mat.content} onAllSolved={() => { api.completeMaterial(materialId).catch(() => {}) }} /></div>
+                <div className="mb-4 -mx-0"><MarkdownLite content={mat.content} onAllSolved={() => window.dispatchEvent(new Event('baza:solved'))} /></div>
               )}
 
               {/* Практическое задание */}
@@ -445,6 +446,9 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   ))}
                 </>
               )}
+
+              {/* Зачёт материала */}
+              {mat.progress?.active && <CompletionBar key={materialId} materialId={materialId} progress={mat.progress} />}
 
               {/* Оценки и обсуждение */}
               <MaterialSocial key={materialId} materialId={materialId} />

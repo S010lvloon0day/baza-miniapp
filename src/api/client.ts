@@ -94,8 +94,12 @@ export interface Material {
   /** Приходит только из /api/material/:id. Пусто у закрытых материалов. */
   attachments?: Attachment[]
   files_count?: number
-  /** Пользователь уже открывал этот материал (приходит в списке раздела). */
+  /** Материал пройден (засчитан). */
   viewed?: boolean
+  /** Открывал, но ещё не прошёл. */
+  opened?: boolean
+  /** Условия зачёта (только в /api/material/:id). */
+  progress?: MaterialProgress
   /** Средняя оценка, число оценок и комментариев (в списке раздела; нет — значит ещё не было). */
   rating?: number
   rating_count?: number
@@ -103,6 +107,14 @@ export interface Material {
   /** Файл материала — архив (.zip/.rar/...). */
   is_archive?: boolean
 }
+
+export interface ProgressQuestion { variant: number; text: string; options: string[] }
+export interface MaterialProgress {
+  active: boolean; done: boolean; kind?: 'lesson' | 'video' | 'quiz' | 'task' | 'tasks' | 'glance'
+  seconds?: number; elapsed?: number; xp?: number; question?: ProgressQuestion | null; retry_in?: number
+  video?: { duration: number; watched: number }
+}
+export interface CompleteResp { ok?: boolean; done?: boolean; xp?: number; error?: string; wait?: number; retry_in?: number; message?: string; question?: ProgressQuestion; watched?: number }
 
 export interface TodaySection {
   id: number
@@ -201,6 +213,7 @@ export interface Compete {
   board_all: BoardRow[]
   board_week: BoardRow[]
   feed: FeedRow[]
+  week?: { prizes: number[]; week_end: string; rules_from: string; daily_cap: number }
 }
 
 export interface ChatReaction { emoji: string; count: number; mine: boolean }
@@ -308,7 +321,10 @@ export const api = {
   removeSectionFavorite: (id: number) => del<{ ok: boolean; favorite: boolean }>(`/api/sections/${id}/favorite`),
   /** Без attachmentId шлёт материал целиком — все вложения по порядку. */
   sendFile:       (id: number)   => post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}`),
-  completeMaterial: (id: number) => post<{ ok?: boolean; error?: string }>(`/api/material/${id}/complete`),
+  completeMaterial: async (id: number, body: { answer?: number } = {}): Promise<CompleteResp> => {
+    const res = await fetch(API_BASE + `/api/material/${id}/complete`, { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    return res.json().catch(() => ({ error: `HTTP ${res.status}` }))
+  },
   sendAttachment: (id: number, attachmentId: number) =>
     post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}/${attachmentId}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),

@@ -1,5 +1,5 @@
 import Icon from './Icon'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import MarkdownLite from './MarkdownLite'
 
 /** Практическое задание (media_type = 'task'), content — JSON:
@@ -65,6 +65,8 @@ const Intro = ({ t }: { t?: string }) => t
   ? <div className="text-[15px] leading-[1.7] text-fg/85 whitespace-pre-wrap break-words">{t}</div> : null
 
 function Result({ ok, total, good }: { ok: boolean; total: number; good: number }) {
+  // Решено — сообщаем экрану материала, чтобы засчитать прохождение.
+  useEffect(() => { if (ok) window.dispatchEvent(new Event('baza:solved')) }, [ok])
   return (
     <div className={`${box} ${ok ? 'border-green/35 bg-green/[.07]' : 'border-[#FF6B6B]/30 bg-[#FF6B6B]/[.07]'}`}>
       <div className={`flex items-center gap-2 text-[14px] font-semibold ${ok ? 'text-green' : 'text-[#FF9A9A]'}`}>

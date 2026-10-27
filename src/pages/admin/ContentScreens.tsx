@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../../components/Icon'
 import MediaTypeIcon from '../../components/MediaTypeIcon'
 import { adminApi } from '../../api/admin'
-import type { ASection, AMaterial, AMaterialRow } from '../../api/admin'
+import type { ASection, AMaterial, AMaterialRow, AQuestion, AQuestions } from '../../api/admin'
 import { uploadFile } from '../../api/upload'
 import { Badge, Empty, Field, IconBtn, Loader, Row, SectionTitle, Sheet, Toggle, errMsg, toast, useConfirm, fmtDate } from './ui'
 import type { Nav } from './AdminPage'
@@ -284,8 +284,74 @@ export function MaterialScreen({ nav, id }: { nav: Nav; id: number }) {
             onUp={() => moveFile(f.id, i - 1)} onDown={() => moveFile(f.id, i + 1)} onDelete={() => delFile(f.id, f.name || f.kind)} onSave={p => editFileText(f.id, p)} />)}
         </div>
       ) : <p className="text-[13px] text-gray2 px-1">Вложений нет</p>}
+      <QuestionsBlock mid={m.id} />
       {node}
     </div>
+  )
+}
+
+const KIND_LABEL: Record<string, string> = { lesson: 'Урок: время чтения + вопрос', video: 'Видео: досмотреть до конца', quiz: 'Тест: верный ответ', task: 'Задача: решить', tasks: 'Задания в тексте: решить', glance: 'Файл/фото: короткий просмотр' }
+
+function QuestionsBlock({ mid }: { mid: number }) {
+  const [d, setD] = useState<AQuestions | null>(null)
+  const [edit, setEdit] = useState<AQuestion[] | null>(null)
+  const load = useCallback(() => adminApi.questions(mid).then(setD).catch(() => setD(null)), [mid])
+  useEffect(() => { load() }, [load])
+  if (!d) return null
+  const save = async () => {
+    if (!edit) return
+    try { setD(await adminApi.saveQuestions(mid, edit)); setEdit(null); toast('Вопросы сохранены') } catch (e) { toast(errMsg(e), true) }
+  }
+  const regen = async () => { try { setD(await adminApi.regenQuestions(mid)); toast('Вопросы пересозданы по тексту') } catch (e) { toast(errMsg(e), true) } }
+  const upd = (i: number, p: Partial<AQuestion>) => edit && setEdit(edit.map((q, j) => j === i ? { ...q, ...p } : q))
+  return (
+    <>
+      <SectionTitle right={d.kind === 'lesson' ? <button className="text-green text-[13px] font-semibold" onClick={() => setEdit(d.questions.length ? d.questions.map(q => ({ ...q, options: [...q.options] })) : [{ q: '', options: ['', '', '', ''], correct: 0 }])}>Изменить</button> : undefined}>
+        Зачёт
+      </SectionTitle>
+      <div className="card p-4">
+        <div className="flex items-center justify-between gap-2">
+          <b className="text-[14px]">{KIND_LABEL[d.kind] || d.kind}</b>
+          <Badge tone="gold">+{d.xp} XP</Badge>
+        </div>
+        {d.seconds > 0 && <p className="text-[12.5px] text-gray mt-1">Минимум {Math.floor(d.seconds / 60) ? `${Math.floor(d.seconds / 60)} мин ` : ''}{d.seconds % 60 ? `${d.seconds % 60} с` : ''} на материале</p>}
+        {d.kind === 'lesson' && (d.questions.length ? d.questions.map((q, i) => (
+          <div key={i} className="mt-3 pt-3 border-t border-white/[.06]">
+            <div className="flex items-center gap-2 mb-1.5"><span className="text-[11.5px] text-gray">Вариант {i + 1}</span>{q.source === 'admin' ? <Badge tone="violet">ваш</Badge> : <Badge tone="gray">авто</Badge>}</div>
+            <p className="text-[13.5px] font-medium whitespace-pre-line">{q.q}</p>
+            <ul className="mt-1.5 flex flex-col gap-1">{q.options.map((o, j) => (
+              <li key={j} className={`text-[12.5px] flex gap-1.5 ${j === q.correct ? 'text-green' : 'text-gray'}`}>
+                <Icon name={j === q.correct ? 'check' : 'close'} size={13} className="mt-[2px] shrink-0" />{o}
+              </li>))}</ul>
+          </div>
+        )) : <p className="text-[12.5px] text-gold mt-2">Вопрос по тексту не получился — урок засчитывается по времени и прокрутке. Можно добавить свой.</p>)}
+        {d.kind === 'lesson' && <button className="btn-secondary w-full h-10 mt-3 text-[13px]" onClick={regen}><Icon name="refresh" size={15} />Пересоздать по тексту урока</button>}
+      </div>
+
+      <Sheet open={!!edit} onClose={() => setEdit(null)} title="Проверочные вопросы">
+        {edit && (<>
+          <p className="text-[12.5px] text-gray mb-3">Ученику показывается один вариант; после неверного ответа — следующий. Отметьте верный ответ кружком.</p>
+          {edit.map((q, i) => (
+            <div key={i} className="card p-3 mb-3">
+              <div className="flex items-center justify-between mb-2"><b className="text-[13px]">Вариант {i + 1}</b>
+                {edit.length > 1 && <button className="text-[12.5px] text-[#FF8A8A]" onClick={() => setEdit(edit.filter((_, j) => j !== i))}>Удалить</button>}</div>
+              <Field label="Вопрос" multiline rows={2} value={q.q} onChange={v => upd(i, { q: v })} />
+              {q.options.map((o, j) => (
+                <div key={j} className="flex items-center gap-2 mb-2">
+                  <button onClick={() => upd(i, { correct: j })} aria-label="Верный ответ"
+                    className={`w-6 h-6 rounded-full border-2 shrink-0 grid place-items-center ${q.correct === j ? 'border-green bg-green' : 'border-white/25'}`}>
+                    {q.correct === j && <Icon name="check" size={13} className="text-ink" strokeWidth={2.6} />}</button>
+                  <input className="flex-1 bg-s2 border border-white/[.08] rounded-[12px] px-3 py-2.5 text-[14px] outline-none" value={o}
+                    placeholder={`Ответ ${j + 1}`} onChange={e => upd(i, { options: q.options.map((x, k) => k === j ? e.target.value : x) })} />
+                </div>
+              ))}
+            </div>
+          ))}
+          {edit.length < 5 && <button className="btn-secondary w-full mb-3" onClick={() => setEdit([...edit, { q: '', options: ['', '', '', ''], correct: 0 }])}><Icon name="plus" size={15} />Ещё вариант</button>}
+          <button className="btn-primary w-full" onClick={save}>Сохранить вопросы</button>
+        </>)}
+      </Sheet>
+    </>
   )
 }
 

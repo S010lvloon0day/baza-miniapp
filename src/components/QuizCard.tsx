@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import Icon from './Icon'
 
 /** Материал-тест (media_type = 'quiz'): content — JSON
@@ -30,6 +30,7 @@ export default function QuizCard({ data }: { data: QuizData }) {
   const letters = useMemo(() => ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'], [])
   const answered = picked !== null
   const right = answered && picked === data.correct
+  useEffect(() => { if (right) window.dispatchEvent(new Event('baza:solved')) }, [right])
 
   const choose = (i: number) => {
     if (answered) return

@@ -65,6 +65,7 @@ export function useResume(el: HTMLVideoElement | null, materialId: number, attac
       if (t === lastSent) return
       lastSent = t
       watchSave({ material_id: materialId, attachment_id: attachmentId, position: t, duration: d })
+      if (d) window.dispatchEvent(new CustomEvent('baza:video', { detail: { ratio: t / d } }))
     }
 
     // Ссылка на поток живёт 2–3 ч. Если видео стояло на паузе дольше, следующий

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon from '../../components/Icon'
 import { API_BASE } from '../../api/client'
 import { adminApi } from '../../api/admin'
-import type { ABanner, APinned, ABroadcast, APayment, ALog, ALimits, ALimitUser } from '../../api/admin'
+import type { ABanner, APinned, ABroadcast, APayment, ALog, ALimits, ALimitUser, AWeek } from '../../api/admin'
 import type { Nav } from './AdminPage'
 import { uploadFile } from '../../api/upload'
 import { Badge, Empty, Field, IconBtn, Loader, Row, SectionTitle, Segmented, Sheet, ago, errMsg, fmtDate, num, toast, useConfirm } from './ui'
@@ -293,6 +293,60 @@ export function LimitsScreen({ nav }: { nav: Nav }) {
           <button className="btn-secondary w-full" onClick={() => { setCur(null); nav.push({ k: 'user', id: cur.id }) }}>Открыть карточку пользователя</button>
         </>)}
       </Sheet>
+    </div>
+  )
+}
+
+/* ───────────── Итоги недели ───────────── */
+
+export function WeekScreen({ nav }: { nav: Nav }) {
+  const [d, setD] = useState<AWeek | null>(null)
+  const { ask, node } = useConfirm()
+  const load = useCallback(() => { adminApi.week().then(setD).catch(e => toast(errMsg(e), true)) }, [])
+  useEffect(() => { load() }, [load])
+  if (!d) return <Loader />
+  const fmtW = (s: string) => new Date(s).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', timeZone: 'Europe/Moscow' })
+  let place = 0
+  return (
+    <div className="px-4 pt-3 pb-navsafe">
+      <div className="card p-4">
+        <div className="flex items-center justify-between">
+          <b className="text-[14.5px]">Неделя с {fmtW(d.week_start)}</b>
+          <span className="text-[12px] text-gray">итоги {fmtW(d.week_end)} в 00:05</span>
+        </div>
+        <p className="text-[12.5px] text-gray mt-1.5">
+          {d.rules_active ? 'Призы 3 / 2 / 1 дня Premium выдаются автоматически трём первым честным участникам. Вам придёт отчёт в бот.'
+            : `Призы начнутся с недели от ${fmtW(d.rules_from)}. Сейчас — предпросмотр, кто был бы в тройке.`}
+        </p>
+      </div>
+      <SectionTitle>Текущий рейтинг</SectionTitle>
+      {d.rows.length ? <div className="list-group">{d.rows.map((r, i) => {
+        const ok = r.issues.length === 0
+        const prize = ok && place < 3 ? [3, 2, 1][place++] : 0
+        return (
+          <button key={r.id} onClick={() => nav.push({ k: 'user', id: r.id })} className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-white/[.04]">
+            <span className="w-6 text-[13px] font-bold tabular-nums text-center" style={{ color: i < 3 ? '#F5C25A' : '#6E8478' }}>{i + 1}</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[14px] font-medium truncate">{r.name}{r.username ? <span className="text-gray font-normal"> · @{r.username}</span> : null}</span>
+              <span className={`block text-[11.5px] truncate ${ok ? 'text-green' : 'text-[#FF8A8A]'}`}>{ok ? (prize ? `получит +${prize} дн.` : 'честный участник') : r.issues.join(' · ')}</span>
+            </span>
+            <span className="text-[13px] tabular-nums text-gray">{num(r.xp)} XP</span>
+          </button>
+        )
+      })}</div> : <Empty icon="trophy" text="На этой неделе пока никого" />}
+
+      <SectionTitle>Выданные призы</SectionTitle>
+      {d.history.length ? <div className="list-group">{d.history.map(h => (
+        <Row key={h.id} title={`${h.place} место · ${h.name}`} sub={`неделя ${fmtW(h.week_start)} · ${num(h.xp)} XP · +${h.days} дн.`}
+          right={h.status === 'paid'
+            ? <button className="h-8 px-3 rounded-full bg-white/[.06] text-[12.5px] text-[#FF8A8A]" onClick={async () => {
+                if (await ask(`Отменить приз «${h.name}» (+${h.days} дн.)? Эти дни будут списаны с его Premium.`, 'Отменить приз')) {
+                  try { await adminApi.revokePrize(h.id); toast('Приз отменён'); load() } catch (e) { toast(errMsg(e), true) }
+                }
+              }}>Отменить</button>
+            : <Badge tone="gray">отменён</Badge>} />
+      ))}</div> : <p className="text-[13px] text-gray2 px-1">Пока не выдавались</p>}
+      {node}
     </div>
   )
 }

@@ -156,6 +156,8 @@ export default function CompetePage() {
 
         <Board rows={rows} />
 
+        {scope === 'week' && <PrizesCard prizes={data.week?.prizes ?? []} cap={data.week?.daily_cap ?? 15} from={data.week?.rules_from} />}
+
         {/* Ваш ранг */}
         <section className="card px-3.5 py-3" style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.24), transparent 70%), #111C17', borderColor: 'rgba(160,135,255,.3)' }}>
           <div className="flex items-center gap-2.5">
@@ -205,5 +207,36 @@ export default function CompetePage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function PrizesCard({ prizes, cap, from }: { prizes: number[]; cap: number; from?: string }) {
+  const started = prizes.length > 0
+  const list = started ? prizes : [3, 2, 1]
+  const fromDay = from ? new Date(from).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', timeZone: 'Europe/Moscow' }) : ''
+  return (
+    <section className="card px-3.5 py-3.5">
+      <div className="flex items-center gap-2.5 mb-3">
+        <span className="gold-metal sheen w-[34px] h-[34px] rounded-[11px] grid place-items-center shrink-0"><Icon name="gift" size={17} accent="#3A2300" className="relative z-[1]" /></span>
+        <div className="flex-1 min-w-0">
+          <div className="font-display font-semibold text-[15px] leading-tight">Призы недели</div>
+          <div className="text-[12px] text-gray mt-0.5">{started ? 'Начисляются автоматически в понедельник' : `Стартуют ${fromDay}`}</div>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {list.map((d, i) => (
+          <div key={i} className="rounded-xl px-2.5 py-2.5 text-center" style={{ background: i === 0 ? 'rgba(245,194,90,.12)' : 'rgba(255,255,255,.05)' }}>
+            <div className="text-[11.5px] text-gray">{i + 1} место</div>
+            <div className={`font-display font-semibold text-[16px] mt-0.5 ${i === 0 ? 'text-gold' : ''}`}>+{d} дн.</div>
+            <div className="text-[10.5px] text-gray2">Premium</div>
+          </div>
+        ))}
+      </div>
+      <ul className="mt-3 flex flex-col gap-1.5 text-[12.5px] text-gray leading-snug">
+        <li className="flex gap-2"><Icon name="check" size={14} className="text-green mt-[2px] shrink-0" />Очки дают только пройденные материалы: урок прочитан и вопрос отвечен верно, видео досмотрено до конца, задача решена</li>
+        <li className="flex gap-2"><Icon name="check" size={14} className="text-green mt-[2px] shrink-0" />В рейтинг идёт до {cap} материалов в день, тесты и задачи — без ограничения</li>
+        <li className="flex gap-2"><Icon name="check" size={14} className="text-green mt-[2px] shrink-0" />Приз получают аккаунты от 7 дней, активные минимум 3 дня за неделю и без пауз лимита чтения</li>
+      </ul>
+    </section>
   )
 }

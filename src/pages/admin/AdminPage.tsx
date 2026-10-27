@@ -10,20 +10,20 @@ import ConstructorPage from '../constructor/ConstructorPage'
 import FeedbackPage from '../FeedbackPage'
 import { SectionsScreen, MaterialScreen } from './ContentScreens'
 import { UsersScreen, UserScreen, SubmissionsScreen, CommentsScreen } from './PeopleScreens'
-import { BannersScreen, PinnedScreen, BroadcastScreen, PaymentsScreen, LogsScreen, LimitsScreen } from './MiscScreens'
+import { BannersScreen, PinnedScreen, BroadcastScreen, PaymentsScreen, LogsScreen, LimitsScreen, WeekScreen } from './MiscScreens'
 import { Loader, Toaster, errMsg, num, ago } from './ui'
 
 export type Screen =
   | { k: 'home' } | { k: 'content' } | { k: 'section'; id: number; title: string } | { k: 'material'; id: number }
   | { k: 'upload'; sectionId?: number } | { k: 'users' } | { k: 'user'; id: number } | { k: 'subs' } | { k: 'comments' } | { k: 'feedback' }
-  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' } | { k: 'limits' }
+  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' } | { k: 'limits' } | { k: 'week' }
 
 export interface Nav { push: (s: Screen) => void; back: () => void }
 
 const TITLES: Partial<Record<Screen['k'], string>> = {
   content: 'Контент', material: 'Материал', upload: 'Новый материал', users: 'Пользователи', user: 'Пользователь',
   subs: 'Заявки', comments: 'Комментарии', feedback: 'Обсуждения', courses: 'Курсы', banners: 'Баннеры',
-  pinned: 'Закреп в боте', limits: 'Лимиты чтения', broadcast: 'Рассылка', payments: 'Оплаты', logs: 'Журнал',
+  pinned: 'Закреп в боте', limits: 'Лимиты чтения', week: 'Итоги недели', broadcast: 'Рассылка', payments: 'Оплаты', logs: 'Журнал',
 }
 
 // Стек экранов переживает размонтирование (например, «Как видят» → назад)
@@ -80,6 +80,7 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
         {top.k === 'payments' && <PaymentsScreen />}
         {top.k === 'logs' && <LogsScreen />}
         {top.k === 'limits' && <LimitsScreen nav={nav} />}
+        {top.k === 'week' && <WeekScreen nav={nav} />}
         </div>
       </motion.div>
       <Toaster />
@@ -208,6 +209,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="users" icon="users" title="Пользователи" sub={`${num(o.users)} · в бане ${o.banned}`} tone="#B9A8FF" />
           <Item k="comments" icon="flag" title="Комментарии" sub={o.reported_comments ? `жалоб: ${o.reported_comments}` : 'жалоб нет'} tone="#FF8A8A" badge={o.reported_comments} />
           <Item k="feedback" icon="chat" title="Обсуждения" sub="отзывы и оценки материалов" tone="#B9A8FF" badge={fbUnread} />
+          <Item k="week" icon="trophy" title="Итоги недели" sub="призы 3/2/1 дня · проверка честности" tone="#F5C25A" />
           <Item k="limits" icon="clock" title="Лимиты чтения" sub="кто упёрся в лимит · сброс" tone="#F5C25A" />
         </Group>
         <Group title="Продвижение">

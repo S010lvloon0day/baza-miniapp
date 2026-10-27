@@ -243,6 +243,7 @@ function WeekRating({ c, onOpen, onPlay }: { c: Compete; onOpen?: () => void; on
               </div>
               <b className={`mt-1.5 font-semibold truncate max-w-full px-1 ${r.rank === 1 ? 'text-[14.5px]' : 'text-[13px]'} ${r.is_me ? 'text-green' : ''}`}>{r.is_me ? 'Вы' : r.name}</b>
               <small className={`text-[12px] tabular-nums ${r.rank === 1 ? 'text-gold font-semibold' : 'text-gray'}`}>{r.xp.toLocaleString('ru-RU')} XP</small>
+              {!!c.week?.prizes?.[r.rank - 1] && <span className="mt-0.5 h-[20px] px-2 rounded-full grid place-items-center text-[10.5px] font-semibold text-gold bg-gold/[.12]">+{c.week.prizes[r.rank - 1]} дн. Premium</span>}
             </div>
           ) : <div key={`e${i}`} />)}
         </div>

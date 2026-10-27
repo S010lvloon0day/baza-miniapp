@@ -359,8 +359,8 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                     className="w-full flex items-center gap-3 px-3.5 py-[11px] text-left active:bg-white/[.04] transition-colors"
                     style={isCur ? { background: 'linear-gradient(90deg,rgba(23,229,132,.14),transparent 70%)' } : undefined}>
                     <span className={`w-[38px] h-[38px] rounded-full grid place-items-center shrink-0 text-[13px] font-semibold tabular-nums
-                      ${isCur ? 'bg-green text-ink' : m.viewed ? 'bg-green/15 text-green' : 'bg-white/[.06] text-gray'}`}>
-                      {m.viewed && !isCur ? <Icon name="check" size={16} strokeWidth={2.3} /> : n}
+                      ${isCur ? 'bg-green text-ink' : m.viewed ? 'bg-green/15 text-green' : m.opened ? 'bg-gold/10 text-gold' : 'bg-white/[.06] text-gray'}`}>
+                      {m.viewed && !isCur ? <Icon name="check" size={16} strokeWidth={2.3} /> : m.opened && !isCur ? <Icon name="eye" size={16} /> : n}
                     </span>
                     <span className="flex-1 min-w-0">
                       <b className={`block text-[14.5px] font-medium leading-snug line-clamp-2 ${m.locked ? 'text-fg/60' : ''}`}><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
@@ -368,7 +368,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                         {m.locked && <PremiumBadge small />}
                         {isCur
                           ? <span className="text-green">Продолжите здесь</span>
-                          : <span className="truncate">{m.is_archive ? 'Архив' : typeLabel(m.media_type)}{(m.files_count ?? 0) > 1 ? ` · ${m.files_count} файла` : ''}</span>}
+                          : <span className="truncate">{m.opened ? <span className="text-gold">Начат · </span> : null}{m.is_archive ? 'Архив' : typeLabel(m.media_type)}{(m.files_count ?? 0) > 1 ? ` · ${m.files_count} файла` : ''}</span>}
                         <CardSocial rating={m.rating} ratingCount={m.rating_count} comments={m.comments_count} />
                       </span>
                     </span>
