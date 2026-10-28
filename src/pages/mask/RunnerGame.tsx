@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
@@ -221,8 +222,8 @@ export default function RunnerGame({ model, target, onClose }: Props) {
   }, [])
 
   const pct = Math.min(100, (score / target) * 100)
-  return (
-    <div className="fixed inset-0 z-50 bg-bg select-none">
+  return createPortal(
+    <div className="fixed inset-0 bg-bg select-none" style={{ zIndex: 1000 }}>
       <div ref={host} className="absolute inset-0" />
       <div className="absolute top-0 left-0 right-0 p-3 flex items-center gap-3" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 12px)' }}>
         <button onClick={() => onClose(!!res?.done)} className="glass w-10 h-10 rounded-full grid place-items-center text-[18px]">✕</button>
@@ -253,6 +254,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body,
   )
 }

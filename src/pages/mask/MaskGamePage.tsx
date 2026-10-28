@@ -5,6 +5,7 @@ import type { MaskState, MaskReact, MaskClue } from '../../api/mask'
 import type { StageHandle } from './MaskStage'
 
 const MaskStage = lazy(() => import('./MaskStage'))
+const RunnerGame = lazy(() => import('./RunnerGame'))
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const haptic = (t: 'error' | 'success' | 'warning') => { try { tg?.HapticFeedback?.notificationOccurred(t) } catch { /* */ } }
@@ -130,6 +131,7 @@ export default function MaskGamePage() {
   const [tab, setTab] = useState<'clues' | 'board' | 'feed'>('clues')
   const [revealedNow, setRevealedNow] = useState(false)
   const [note, setNote] = useState('')
+  const [runOpen, setRunOpen] = useState(false)
   const stage = useRef<StageHandle>(null)
   const voice = useVoice()
   const greeted = useRef(false)
@@ -190,6 +192,12 @@ export default function MaskGamePage() {
   const canReveal = s.reveal
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
+      {runOpen && (
+        <Suspense fallback={null}>
+          <RunnerGame model={s.run_model ?? { v0: 10, a: 0.1, vmax: 28 }} target={s.tasks?.run.target ?? 20000}
+            onClose={() => { setRunOpen(false); load() }} />
+        </Suspense>
+      )}
       {/* Сцена */}
       <div className="relative w-full" style={{ height: 'min(62vh, 560px)', background: 'radial-gradient(80% 70% at 50% 38%, rgba(118,87,255,.22), transparent 70%), radial-gradient(70% 50% at 50% 100%, rgba(23,229,132,.14), transparent 70%), #08100D' }}>
         <Suspense fallback={null}>
@@ -232,6 +240,7 @@ export default function MaskGamePage() {
               ))}
             </div>
             <p className="text-[12px] text-gray2 mt-3">Следи за ботом — объявим старт.</p>
+            {s.is_admin && <button onClick={() => setRunOpen(true)} className="btn-secondary w-full h-11 rounded-[14px] mt-3 text-[14px]">Тест: забег (видно только админу)</button>}
           </section>
         ) : !r ? (
           <section className="card p-4 text-center text-[14px] text-gray">Новый раунд скоро начнётся</section>
