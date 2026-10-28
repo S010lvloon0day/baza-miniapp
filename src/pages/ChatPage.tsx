@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo, memo, Fragment } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
 import { api, setChatTopic, getChatTopic } from '../api/client'
 import type { ChatMsg, ChatUserCard, ChatMember, ChatTopic, ChatOnline } from '../api/client'
+import { renderRich, firstUrl, LinkPreviewCard, FORMATS } from './chat/rich'
+import MediaViewer, { type ViewItem } from './chat/MediaViewer'
+import { PollMsg, PollComposer } from './chat/Poll'
+import MediaGallery, { downloadFile } from './chat/MediaGallery'
 import Icon from '../components/Icon'
 import PremiumBadge from '../components/PremiumBadge'
 import { EMOJI_CATS, EMOJI_CDN, EMOJI_SEQ, codeToChar, emojiUrl } from '../utils/emojiData'
@@ -123,11 +127,11 @@ function palIdx(name: string) {
 }
 function colorFor(name: string) { return PAL[palIdx(name)] }
 
-async function uploadMedia(type: string, file: Blob, mime: string, dur: number, caption: string, ttl = 0, once = false) {
+async function uploadMedia(type: string, file: Blob, mime: string, dur: number, caption: string, ttl = 0, once = false, album = '') {
   const fd = new FormData()
   fd.append('file', file, (file as File).name || `${type}.bin`)
   if (caption) fd.append('caption', caption)
-  const url = api.chatUploadUrl(type, dur, ttl, once) + (mime ? `&mime=${encodeURIComponent(mime)}` : '')
+  const url = api.chatUploadUrl(type, dur, ttl, once) + (mime ? `&mime=${encodeURIComponent(mime)}` : '') + (album ? `&album=${album}` : '')
   const res = await fetch(url, { method: 'POST', headers: { 'X-Init-Data': tg?.initData || '' }, body: fd })
   return res.json().catch(() => ({ error: 'bad' }))
 }
@@ -341,18 +345,51 @@ function insertAtCaret(root: HTMLElement, node: Node) {
 }
 
 /** Голосовое сообщение: play/pause + «волна» + таймер, как в Telegram. */
-function VoiceMsg({ url, mine }: { url: string; mine?: boolean }) {
+// голосовые: общая скорость и «шина» событий для мини-плеера и автопроигрывания следующего
+const SPEEDS = [1, 1.5, 2]
+let voiceSpeed = (() => { try { const v = Number(localStorage.getItem('chat_voice_speed')); return SPEEDS.includes(v) ? v : 1 } catch { return 1 } })()
+export const voiceBus = {
+  emit: (type: string, detail: any) => window.dispatchEvent(new CustomEvent('cv:' + type, { detail })),
+}
+
+function VoiceMsg({ url, mine, id, name }: { url: string; mine?: boolean; id: number; name: string }) {
   const aRef = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState(false)
   const [cur, setCur] = useState(0)
   const [dur, setDur] = useState(0)
+  const [speed, setSpeed] = useState(voiceSpeed)
   const bars = useMemo(() => {
     let h = 0; for (let i = 0; i < url.length; i++) h = (h * 31 + url.charCodeAt(i)) >>> 0
     const a: number[] = []
     for (let i = 0; i < 32; i++) { h = (h * 1103515245 + 12345) & 0x7fffffff; a.push(0.22 + (h % 100) / 100 * 0.78) }
     return a
   }, [url])
-  const toggle = () => { const a = aRef.current; if (!a) return; if (a.paused) { a.play().catch(() => {}); setPlaying(true) } else { a.pause(); setPlaying(false) } }
+  const play = () => {
+    const a = aRef.current; if (!a) return
+    document.querySelectorAll('audio, video[data-round]').forEach(el => { if (el !== a) (el as HTMLMediaElement).pause() })
+    a.playbackRate = voiceSpeed; a.play().catch(() => {})
+  }
+  const toggle = () => { const a = aRef.current; if (!a) return; if (a.paused) play(); else a.pause() }
+  const cycleSpeed = () => {
+    voiceSpeed = SPEEDS[(SPEEDS.indexOf(voiceSpeed) + 1) % SPEEDS.length]
+    try { localStorage.setItem('chat_voice_speed', String(voiceSpeed)) } catch { /* */ }
+    window.dispatchEvent(new CustomEvent('cv:speed'))
+  }
+  useEffect(() => {
+    const onCmd = (e: Event) => {
+      const d = (e as CustomEvent).detail || {}; if (d.id !== id) return
+      const a = aRef.current; if (!a) return
+      if (d.cmd === 'toggle') toggle()
+      else if (d.cmd === 'play') { a.currentTime = 0; play() }
+      else if (d.cmd === 'stop') { a.pause(); a.currentTime = 0; setCur(0) }
+      else if (d.cmd === 'speed') cycleSpeed()
+    }
+    const onSpeed = () => { setSpeed(voiceSpeed); if (aRef.current) aRef.current.playbackRate = voiceSpeed }
+    window.addEventListener('cv:cmd', onCmd); window.addEventListener('cv:speed', onSpeed)
+    return () => { window.removeEventListener('cv:cmd', onCmd); window.removeEventListener('cv:speed', onSpeed) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id])
+  const report = (pl: boolean, c = cur) => voiceBus.emit('state', { id, name, playing: pl, cur: c, dur })
   const onMeta = () => {
     const a = aRef.current; if (!a) return
     if (!isFinite(a.duration)) { a.currentTime = 1e101; a.ontimeupdate = () => { a.ontimeupdate = null; a.currentTime = 0; setDur(a.duration) } }
@@ -362,20 +399,28 @@ function VoiceMsg({ url, mine }: { url: string; mine?: boolean }) {
   const accent = mine ? '#C8F7DD' : '#17E584'
   const dim = mine ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.18)'
   return (
-    <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 190, maxWidth: 260 }} onClick={(e) => e.stopPropagation()}>
+    <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 200, maxWidth: 270 }} onClick={(e) => e.stopPropagation()}>
       <button onClick={toggle} aria-label={playing ? 'Пауза' : 'Слушать'} className="shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: accent, color: '#03200F' }}>
         <Icon name={playing ? 'pause' : 'play'} size={15} accent="current" style={playing ? undefined : { marginLeft: 2 }} />
       </button>
-      <div className="flex items-center gap-[2px] h-7 flex-1 cursor-pointer" onClick={(e) => { const a = aRef.current; if (!a || !dur) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur; setCur(a.currentTime) }}>
-        {bars.map((b, i) => (
-          <span key={i} style={{ width: 3, borderRadius: 2, height: `${Math.round(b * 100)}%`, background: (i / bars.length) <= frac ? accent : dim }} />
-        ))}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-[2px] h-7 cursor-pointer" onClick={(e) => { const a = aRef.current; if (!a || !dur) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur; setCur(a.currentTime) }}>
+          {bars.map((b, i) => (
+            <span key={i} style={{ width: 3, borderRadius: 2, height: `${Math.round(b * 100)}%`, background: (i / bars.length) <= frac ? accent : dim }} />
+          ))}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[11.5px] tabular-nums" style={{ color: mine ? 'rgba(220,255,236,.8)' : '#A6B8AE' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
+          {(playing || cur > 0) && (
+            <button onClick={cycleSpeed} className="px-1.5 rounded-full text-[10.5px] font-bold tabular-nums" style={{ background: dim, color: mine ? '#fff' : '#CFDAD4' }}>{speed}×</button>
+          )}
+        </div>
       </div>
-      <span className="text-[12px] tabular-nums shrink-0" style={{ color: mine ? 'rgba(220,255,236,.8)' : '#A6B8AE' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
       <audio ref={aRef} src={url} preload="metadata" onLoadedMetadata={onMeta}
-        onTimeUpdate={() => setCur(aRef.current?.currentTime || 0)}
-        onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)}
-        onEnded={() => { setPlaying(false); setCur(0) }} />
+        onTimeUpdate={() => { const c = aRef.current?.currentTime || 0; setCur(c); report(!aRef.current?.paused, c) }}
+        onPlay={() => { setPlaying(true); if (aRef.current) aRef.current.playbackRate = voiceSpeed; report(true) }}
+        onPause={() => { setPlaying(false); report(false) }}
+        onEnded={() => { setPlaying(false); setCur(0); report(false, 0); voiceBus.emit('ended', { id }) }} />
     </div>
   )
 }
@@ -547,12 +592,83 @@ function MatCard({ mat, mine, onOpen }: { mat: NonNullable<ChatMsg['mat']>; mine
   )
 }
 
-function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, onReply, onOpenMat }: {
+/** Стабильные обработчики ленты (одни на всю ленту — строки не перерисовываются зря). */
+export interface FeedCtx {
+  view: (msgs: ChatMsg[], id: number) => void
+  jump: (id: number) => void
+  pollUpdate: (m: ChatMsg) => void
+  toggleSelect: (id: number) => void
+}
+
+function HeartBurst() {
+  return (
+    <motion.span className="absolute inset-0 grid place-items-center pointer-events-none z-10"
+      initial={{ opacity: 0, scale: 0.4 }} animate={{ opacity: [0, 1, 1, 0], scale: [0.4, 1.25, 1, 1.1] }} transition={{ duration: 0.75 }}>
+      <Emo e="❤️" size={52} />
+    </motion.span>
+  )
+}
+
+const fileExt = (n?: string) => { const e = (n || '').split('.').pop() || ''; return e && e !== n ? e.slice(0, 4).toUpperCase() : 'FILE' }
+
+function FileCard({ m, mine, bind }: { m: ChatMsg; mine: boolean; bind: (open: () => void) => Record<string, any> }) {
+  return (
+    <div className="flex items-center gap-3 px-3 pt-2.5 pb-1 min-w-[210px] max-w-[290px]" {...bind(() => downloadFile(m))}>
+      <span className="w-11 h-11 rounded-[12px] grid place-items-center shrink-0 font-bold text-[11px] tracking-wide"
+        style={{ background: mine ? 'rgba(0,0,0,.25)' : 'rgba(23,229,132,.14)', color: mine ? '#fff' : '#17E584' }}>{fileExt(m.fname)}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-semibold text-fg truncate">{m.fname || 'Файл'}</span>
+        <span className="flex items-center gap-1 text-[12px]" style={{ color: mine ? 'rgba(255,255,255,.7)' : '#A6B8AE' }}>
+          <Icon name="download" size={12} accent="current" /> Скачать · проверен антивирусом
+        </span>
+      </span>
+    </div>
+  )
+}
+
+function AlbumGrid({ items, bind, ctx }: { items: ChatMsg[]; bind: (open: () => void) => Record<string, any>; ctx: FeedCtx }) {
+  const n = items.length
+  const cols = n === 2 || n === 4 ? 2 : 3
+  return (
+    <div className="grid gap-[2px] w-[min(72vw,300px)]" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+      {items.map((it, i) => {
+        const big = n === 3 && i === 0 || n === 5 && i < 2 || n === 7 && i === 0
+        return (
+          <div key={it.id} className="relative overflow-hidden bg-black/30" style={{ gridColumn: big ? (n === 5 ? 'span 1' : `span ${cols}`) : undefined, aspectRatio: big && n !== 5 ? '16/10' : '1' }}
+            {...bind(() => ctx.view(items, it.id))}>
+            {it.type === 'photo'
+              ? <img src={api.chatMediaUrl(it.id)} alt="" loading="lazy" className="w-full h-full object-cover pointer-events-none" />
+              : <>
+                  <video src={api.chatMediaUrl(it.id) + '#t=0.1'} preload="metadata" muted playsInline className="w-full h-full object-cover pointer-events-none" />
+                  <span className="absolute inset-0 grid place-items-center pointer-events-none"><span className="w-8 h-8 rounded-full grid place-items-center text-white" style={{ background: 'rgba(0,0,0,.5)' }}><Icon name="play" size={14} accent="#fff" /></span></span>
+                </>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, onReply, onOpenMat, ctx, album, selectMode, selected }: {
   m: ChatMsg; prev: ChatMsg | null; next: ChatMsg | null; quoted: ChatMsg | null
   onAction: (m: ChatMsg) => void; onReact: (id: number, e: string) => void
   onProfile: (uid: number) => void; onMedia: (url: string, video: boolean, msg?: ChatMsg) => void
   onReply: (m: ChatMsg) => void; onOpenMat: (id: number) => void
+  ctx: FeedCtx; album?: ChatMsg[]; selectMode?: boolean; selected?: boolean
 }) {
+  // тап по сообщению: в режиме выбора — отметить; двойной тап — ❤️; одиночный — меню (с задержкой, как в Telegram)
+  const tapT = useRef<number | null>(null)
+  const [burst, setBurst] = useState(0)
+  const bubbleTap = () => {
+    if (selectMode) { ctx.toggleSelect(m.id); return }
+    if (tapT.current) {
+      clearTimeout(tapT.current); tapT.current = null
+      if (!(m.reactions || []).some(r => r.emoji === '❤️' && r.mine)) onReact(m.id, '❤️')
+      setBurst(Date.now()); try { tg?.HapticFeedback?.impactOccurred?.('light') } catch { /* */ }
+      return
+    }
+    tapT.current = window.setTimeout(() => { tapT.current = null; onAction(m) }, 260)
+  }
   // свайп влево по сообщению — ответить (как в Telegram)
   const rowRef = useRef<HTMLDivElement>(null)
   const sw = useRef<{ x: number; y: number; dx: number; on: boolean | null } | null>(null)
@@ -568,7 +684,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
   const swEnd = () => {
     const s0 = sw.current; sw.current = null
     if (rowRef.current) { rowRef.current.style.transition = 'transform .2s ease'; rowRef.current.style.transform = '' }
-    if (s0?.on && s0.dx <= -52) { try { tg?.HapticFeedback?.impactOccurred?.('light') } catch { /* */ } onReply(m) }
+    if (s0?.on && s0.dx <= -52 && !selectMode) { try { tg?.HapticFeedback?.impactOccurred?.('light') } catch { /* */ } onReply(m) }
   }
   const mine = m.mine
   const near = (a: ChatMsg, b: ChatMsg) => Math.abs(new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) < 5 * 60000
@@ -592,7 +708,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
   const lpEnd = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null } }
   // медиа: короткий тап — просмотр, долгое нажатие — меню сообщения
   const tapMedia = (open: () => void) => ({
-    onClick: (e: React.MouseEvent) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } open() },
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } if (selectMode) { ctx.toggleSelect(m.id); return } open() },
     onTouchStart: () => { lastTouch.current = Date.now(); lpStart() }, onTouchEnd: lpEnd, onTouchMove: lpEnd,
     // на телефоне после касания браузер шлёт ещё и мышиные события — их пропускаем
     onMouseDown: () => { if (Date.now() - lastTouch.current > 900) lpStart() },
@@ -659,10 +775,18 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
 
   return (
     <div ref={rowRef} onTouchStart={swStart} onTouchMove={swMove} onTouchEnd={swEnd} onTouchCancel={swEnd}
-      className={`flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''}`} style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease' }}>
+      onClick={selectMode ? () => ctx.toggleSelect(m.id) : undefined}
+      className={`relative flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''} ${selectMode ? 'pl-10' : ''}`}
+      style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease, padding .18s ease', background: selected ? 'rgba(23,229,132,.08)' : undefined }}>
+      {selectMode && (
+        <span className="absolute left-2.5 bottom-1.5 w-[22px] h-[22px] rounded-full border-2 grid place-items-center"
+          style={{ borderColor: selected ? '#17E584' : 'rgba(255,255,255,.35)', background: selected ? '#17E584' : 'transparent', color: '#021A0C' }}>
+          {selected && <Icon name="check" size={12} strokeWidth={2.8} />}
+        </span>
+      )}
       {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
       <div className={`max-w-[82%] min-w-0 ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
-        <div onClick={() => onAction(m)} className="relative overflow-hidden active:opacity-90 max-w-full"
+        <div onClick={(e) => { e.stopPropagation(); bubbleTap() }} className="relative overflow-hidden active:opacity-90 max-w-full"
           style={{
             ...radius,
             background: mine ? BUB_OUT : BUB_IN,
@@ -673,10 +797,18 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
               {m.name}<NameBadges m={m} />
             </div>
           )}
+          {m.fwd_name && (
+            <button onClick={(e) => { e.stopPropagation(); if (m.fwd_id) ctx.jump(m.fwd_id) }} className="block px-3 pt-[6px] text-left text-[12.5px] leading-tight" style={{ color: mine ? '#C8F7DD' : VIOLET }}>
+              Переслано от <b className="font-semibold">{m.fwd_name}</b>
+            </button>
+          )}
+          {burst > 0 && <HeartBurst key={burst} />}
           {quoted && (
-            <div className="mx-2 mt-2 px-2 py-1.5 rounded-[8px] text-[12.5px]" style={{ background: mine ? 'rgba(0,0,0,.2)' : 'rgba(23,229,132,.08)', borderLeft: '3px solid #17E584' }}>
+            <div onClick={(e) => { e.stopPropagation(); ctx.jump(quoted.id) }} className="mx-2 mt-2 px-2 py-1.5 rounded-[8px] text-[12.5px] cursor-pointer" style={{ background: mine ? 'rgba(0,0,0,.2)' : 'rgba(23,229,132,.08)', borderLeft: '3px solid #17E584' }}>
               <span className="font-semibold text-[12px]" style={{ color: mine ? '#C8F7DD' : '#17E584' }}>{quoted.name}</span>
-              <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.78)' : '#A6B8AE' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || attachLabel(quoted))}</div>
+              {m.quote
+                ? <div className="flex gap-1" style={{ color: mine ? 'rgba(255,255,255,.85)' : '#CFDAD4' }}><span className="opacity-60">“</span><span className="line-clamp-3">{m.quote}</span></div>
+                : <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.78)' : '#A6B8AE' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || attachLabel(quoted))}</div>}
             </div>
           )}
 
@@ -692,13 +824,10 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
           ) : (
             <div className="relative">
               {m.type === 'photo' && src && (
-                <img src={src} draggable={false} alt="" loading="lazy" decoding="async"
-                  onClick={(e) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } onMedia(src, false, m) }}
-                  onTouchStart={lpStart} onTouchEnd={lpEnd} onTouchMove={lpEnd}
-                  onMouseDown={lpStart} onMouseUp={lpEnd} onMouseLeave={lpEnd}
-                  onContextMenu={(e) => e.preventDefault()}
-                  className="block max-h-[230px] max-w-[66vw] w-auto object-cover select-none"
-                  style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} />
+                album && album.length > 1
+                  ? <AlbumGrid items={album} bind={tapMedia} ctx={ctx} />
+                  : <img src={src} draggable={false} alt="" loading="lazy" decoding="async" {...tapMedia(() => ctx.view([m], m.id))}
+                      className="block max-h-[230px] max-w-[66vw] w-auto object-cover select-none" />
               )}
               {m.type === 'gif' && (m.media_url || src) && (() => {
                 const u = m.media_url || src
@@ -713,7 +842,8 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
               })()}
               {m.type === 'video' && src && (
                 // превью: тап — просмотр на весь экран, долгое нажатие — меню
-                <div className="relative" {...tapMedia(() => onMedia(src, true, m))}>
+                album && album.length > 1 ? <AlbumGrid items={album} bind={tapMedia} ctx={ctx} /> :
+                <div className="relative" {...tapMedia(() => ctx.view([m], m.id))}>
                   <video src={src + '#t=0.1'} preload="metadata" muted playsInline disablePictureInPicture
                     className="block max-h-[260px] min-h-[120px] min-w-[160px] max-w-[66vw] w-auto object-cover select-none pointer-events-none bg-black/40" />
                   <span className="absolute inset-0 grid place-items-center pointer-events-none">
@@ -728,7 +858,9 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
                   )}
                 </div>
               )}
-              {m.type === 'voice' && src && <VoiceMsg url={src} mine={mine} />}
+              {m.type === 'voice' && src && <VoiceMsg url={src} mine={mine} id={m.id} name={m.name} />}
+              {m.type === 'file' && src && <FileCard m={m} mine={mine} bind={tapMedia} />}
+              {m.type === 'poll' && m.poll && <PollMsg m={m} mine={mine} onUpdate={ctx.pollUpdate} />}
               {/* на медиа без подписи — время поверх картинки в тёмной плашке */}
               {onlyMedia && (m.type === 'photo' || m.type === 'gif' || m.type === 'video') && (
                 <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded-full flex items-center" style={{ background: 'rgba(0,0,0,.5)' }}><MsgMeta m={m} light /></span>
@@ -740,14 +872,17 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
           {m.mat && !(m.text || '').replace(MAT_TOKEN, '').trim() && (
             <div className="px-3 pt-1 pb-1.5 flex justify-end"><MsgMeta m={m} /></div>
           )}
-          {m.text && !(m.mat && !m.text.replace(MAT_TOKEN, '').trim()) && (
+          {m.text && m.type !== 'poll' && !(m.mat && !m.text.replace(MAT_TOKEN, '').trim()) && (
             <div className="px-3 pt-[6px] pb-[6px] text-[15px] leading-[1.38] text-fg break-words" style={{ wordBreak: 'break-word' }}>
-              <span style={{ whiteSpace: 'pre-wrap' }}>{renderText(m.mat ? m.text.replace(MAT_TOKEN, '').trim() : m.text, onlyEmoji)}</span>
+              <span style={{ whiteSpace: 'pre-wrap' }}>{onlyEmoji ? renderText(m.text, true)
+                : renderRich(m.mat ? m.text.replace(MAT_TOKEN, '').trim() : m.text, (t, k) => <Fragment key={k}>{renderText(t, false)}</Fragment>)}</span>
               {/* метаданные встроены в конец последней строки — текст обтекает, как в Telegram */}
               <span className="inline-block align-bottom ml-2" style={{ transform: 'translateY(2px)' }}><MsgMeta m={m} /></span>
             </div>
           )}
 
+          {m.type === 'text' && !m.mat && firstUrl(m.text) && <LinkPreviewCard url={firstUrl(m.text)} mine={mine} />}
+          {m.type === 'poll' && <div className="px-3 pb-1.5 flex justify-end"><MsgMeta m={m} /></div>}
           {/* если текста нет и это не только-медиа (напр. голос) — метаданные отдельной строкой */}
           {!m.text && !onlyMedia && m.type !== 'photo' && m.type !== 'gif' && m.type !== 'video' && (
             <div className="px-3 pb-1.5 flex justify-end"><MsgMeta m={m} /></div>
@@ -783,6 +918,19 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const openMat = (id: number) => onOpenMaterial?.(id)
   const [onlineList, setOnlineList] = useState<ChatOnline[] | null>(null)
   const openOnline = () => { setOnlineList([]); api.chatOnline().then(r => setOnlineList(r.online || [])).catch(() => setOnlineList(null)) }
+  const fileInput = useRef<HTMLInputElement>(null)
+  const [viewerG, setViewerG] = useState<{ items: ViewItem[]; start: number } | null>(null)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [quoteFor, setQuoteFor] = useState<ChatMsg | null>(null)
+  const [replyQuote, setReplyQuote] = useState('')
+  const [fwdFor, setFwdFor] = useState<ChatMsg | null>(null)
+  const [pollOpen, setPollOpen] = useState(false)
+  const [galleryOpen, setGalleryOpen] = useState(false)
+  const [fmtOn, setFmtOn] = useState(false)
+  const [player, setPlayer] = useState<{ id: number; name: string; playing: boolean; cur: number; dur: number } | null>(null)
+  const [mentionSeen, setMentionSeen] = useState<Set<number>>(new Set())
+  const lrOpen = useRef(0)
   const [msgs, setMsgs] = useState<ChatMsg[]>([])
   const [ready, setReady] = useState(false)   // показываем ленту только когда она уже внизу
   const [gated, setGated] = useState(false)   // не подписан на канал — доступ к чату закрыт
@@ -978,7 +1126,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         if (!alive) return
         setOnline(r.online); setIsAdmin(!!r.is_admin); setPinned(r.pinned ?? null); setGifEnabled(!!r.gif); setMutedMsg(r.muted ?? null)
         // «печатает…» обновляем только при реальном изменении — иначе лишний ре-рендер каждые 2.2с
-        setTyping(prev => { const n = r.typing ?? []; return (prev.length === n.length && prev.every((v, i) => v === n[i])) ? prev : n })
+        setTyping(prev => { const n = r.typing2 ? r.typing2.map(t => t.name + '\u0001' + t.kind) : (r.typing ?? []); return (prev.length === n.length && prev.every((v, i) => v === n[i])) ? prev : n })
 
         if (r.gated) { setGated(true); setChannel(r.channel || ''); setReady(true); return }
         setGated(false)
@@ -989,6 +1137,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
           // открываем сразу на последнем сообщении, без видимой прокрутки
           setMsgs(r.messages); sigRef.current = chatSig(r.messages); lastId.current = maxId(r.messages)
           const lr = r.last_read || 0
+          lrOpen.current = lr
           const firstNew = lr > 0 ? r.messages.find(m => m.id > lr && !m.mine && !m.deleted) : undefined
           if (firstNew) {
             // есть непрочитанные — открываем на метке «Новые сообщения», как в Telegram
@@ -1056,7 +1205,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     atBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120
     const down = !atBottom.current && el.scrollHeight - el.scrollTop - el.clientHeight > 300
     if (down !== showDown) setShowDown(down)
-    if (atBottom.current) { if (newBelow) setNewBelow(0); markRead(lastId.current) }
+    if (atBottom.current) { if (newBelow) setNewBelow(0); markRead(lastId.current); if (atMeQ.length) setMentionSeen(s => new Set([...s, ...atMeQ])) }
     if (el.scrollTop < 60 && msgs.length) loadOlder()
   }
 
@@ -1198,7 +1347,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       id: TEMP_BASE + (++tempSeq.current),
       user_id: MY_ID, name: ME?.first_name || '', username: ME?.username || '',
       avatar: '', mine: true, type: 'text', text: t, has_media: false, media_url: '',
-      mime: '', dur: 0, reply_to: replyId ?? null, created_at: new Date().toISOString(),
+      mime: '', dur: 0, reply_to: replyId ?? null, created_at: new Date().toISOString(), quote: replyQuote,
       deleted: false, edited: false, reactions: [], anim: false, once: false, ttl: false,
     } as any
     ;(temp as any).pending = true
@@ -1209,7 +1358,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
     setSending(true)
     try {
-      const r = await api.chatSend(t, replyId, ttlSec || undefined)
+      const q = replyQuote; setReplyQuote('')
+      const r = await api.chatSend(t, replyId, ttlSec || undefined, q)
       if (r.error) {
         setMsgs(prev => prev.filter(m => m.id !== temp.id))  // убираем черновик
         setComposer(t)                                        // возвращаем текст
@@ -1226,12 +1376,41 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
   const doUpload = async (type: string, file: Blob, mime: string, dur = 0) => {
     flash('Загружаю…')
+    api.chatTyping('upload').catch(() => {})
     const r = await uploadMedia(type, file, mime, dur, '', ttlSec, onceOn)
     if (onceOn) setOnceOn(false)
     if (r?.error) { flash(r.message || 'Не удалось загрузить'); return }
     const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom(); setToast('')
   }
 
+  // галерея: несколько фото/видео — альбомом (до 10), одно фото — через редактор
+  const onPickGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).slice(0, 10); e.target.value = ''; setAttachOpen(false)
+    if (!files.length) return
+    if (files.length === 1) {
+      const f = files[0]
+      if (f.type.startsWith('image/') && !f.type.includes('gif')) { setFilterIdx(0); setPhotoEdit({ url: URL.createObjectURL(f), file: f }) }
+      else doUpload(f.type.startsWith('video/') ? 'video' : 'photo', f, f.type || '')
+      return
+    }
+    const album = Math.random().toString(36).slice(2, 12)
+    let ok = 0
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i]
+      setToast(`Загружаю ${i + 1} из ${files.length}…`)
+      api.chatTyping('upload').catch(() => {})
+      const r = await uploadMedia(f.type.startsWith('video/') ? 'video' : 'photo', f, f.type || '', 0, '', ttlSec, false, album)
+      if (r?.error) { flash(r.message || 'Не удалось загрузить'); break }
+      ok++
+    }
+    if (ok) { const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom(); setToast('') }
+  }
+  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]; e.target.value = ''; setAttachOpen(false)
+    if (!f) return
+    if (f.size > 30 * 1024 * 1024) { flash('Файл больше 30 МБ'); return }
+    doUpload('file', f, f.type || '')
+  }
   const onPick = (type: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; e.target.value = ''; setAttachOpen(false)
     if (!f) return
@@ -1381,12 +1560,125 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     [])
 
   const startEdit = (m: ChatMsg) => { setEditing(m); setReply(null); setComposer(m.text); setMenuFor(null); taRef.current?.focus() }
-  const startReply = (m: ChatMsg) => { setReply(m); setEditing(null); setMenuFor(null); taRef.current?.focus() }
+  const startReply = (m: ChatMsg) => { setReply(m); setReplyQuote(''); setEditing(null); setMenuFor(null); taRef.current?.focus() }
   // стабильные обработчики для мемоизированных строк ленты
   const replyRef = useRef(startReply); replyRef.current = startReply
   const matRef = useRef(openMat); matRef.current = openMat
   const replyStable = useCallback((m: ChatMsg) => replyRef.current(m), [])
   const openMatStable = useCallback((id: number) => matRef.current(id), [])
+
+  // ── лента: галерея, переходы, опросы, выбор ──
+  const msgsRef = useRef<ChatMsg[]>([]); msgsRef.current = msgs
+  const isGalleryMsg = (x: ChatMsg) => !x.deleted && x.has_media && !x.once && (x.type === 'photo' || x.type === 'video')
+  const toView = (x: ChatMsg): ViewItem => ({ url: api.chatMediaUrl(x.id), video: x.type !== 'photo', id: x.id, mine: x.mine, name: x.name })
+  const ctxImpl = {
+    view: (_list: ChatMsg[], id: number) => {
+      const all = msgsRef.current.filter(isGalleryMsg)
+      const start = Math.max(0, all.findIndex(x => x.id === id))
+      setViewerG({ items: all.map(toView), start })
+    },
+    jump: (id: number) => jumpToMsg(id),
+    pollUpdate: (m: ChatMsg) => setMsgs(arr => arr.map(x => x.id === m.id ? { ...m } : x)),
+    toggleSelect: (id: number) => setSelected(prev => {
+      const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id)
+      if (!n.size) setSelectMode(false)
+      return n
+    }),
+  }
+  const ctxRef = useRef(ctxImpl); ctxRef.current = ctxImpl
+  const feedCtx = useMemo<FeedCtx>(() => ({
+    view: (l, id) => ctxRef.current.view(l, id), jump: (id) => ctxRef.current.jump(id),
+    pollUpdate: (m) => ctxRef.current.pollUpdate(m), toggleSelect: (id) => ctxRef.current.toggleSelect(id),
+  }), [])
+  // альбомы: подряд идущие медиа одного автора с одним album — одним сообщением
+  const { albumOf, albumHidden } = useMemo(() => {
+    const albumOf = new Map<number, ChatMsg[]>(), albumHidden = new Set<number>()
+    let head: ChatMsg | null = null
+    for (const x of msgs) {
+      if (x.album && !x.deleted && (x.type === 'photo' || x.type === 'video') && head && head.album === x.album && head.user_id === x.user_id) {
+        albumOf.get(head.id)!.push(x); albumHidden.add(x.id)
+      } else if (x.album && !x.deleted && (x.type === 'photo' || x.type === 'video')) { head = x; albumOf.set(x.id, [x]) }
+      else head = null
+    }
+    return { albumOf, albumHidden }
+  }, [msgs])
+  // кнопка «@»: непрочитанные упоминания и ответы мне
+  const atMeQ = useMemo(() => {
+    const myIds = new Set(msgs.filter(x => x.mine).map(x => x.id))
+    return msgs.filter(x => x.id > lrOpen.current && lrOpen.current > 0 && !x.mine && !x.deleted && !mentionSeen.has(x.id) &&
+      ((!!MY_UN && (x.text || '').toLowerCase().includes('@' + MY_UN)) || (x.reply_to != null && myIds.has(x.reply_to)))).map(x => x.id)
+  }, [msgs, mentionSeen])
+  const goMention = () => { const id = atMeQ[0]; if (!id) return; setMentionSeen(s => new Set([...s, id])); jumpToMsg(id) }
+  // голосовые: мини-плеер и автопроигрывание следующего
+  useEffect(() => {
+    const onState = (e: Event) => {
+      const d = (e as CustomEvent).detail
+      setPlayer(p => (d.playing || (p && p.id === d.id && d.cur > 0)) ? d : (p && p.id === d.id ? null : p))
+    }
+    const onEnded = (e: Event) => {
+      const id = (e as CustomEvent).detail?.id
+      const arr = msgsRef.current, i = arr.findIndex(x => x.id === id)
+      const nx = i >= 0 ? arr.slice(i + 1).find(x => x.type === 'voice' && !x.deleted && x.has_media) : undefined
+      if (nx) setTimeout(() => voiceBus.emit('cmd', { id: nx.id, cmd: 'play' }), 250)
+      else setPlayer(null)
+    }
+    window.addEventListener('cv:state', onState); window.addEventListener('cv:ended', onEnded)
+    return () => { window.removeEventListener('cv:state', onState); window.removeEventListener('cv:ended', onEnded) }
+  }, [])
+  // панель форматирования: показываем, когда в поле ввода выделен текст
+  useEffect(() => {
+    const h = () => {
+      const sel = window.getSelection(); const el = taRef.current
+      setFmtOn(!!sel && !sel.isCollapsed && !!el && el.contains(sel.anchorNode) && el.contains(sel.focusNode))
+    }
+    document.addEventListener('selectionchange', h); return () => document.removeEventListener('selectionchange', h)
+  }, [])
+  const applyFormat = (a: string, b: string) => {
+    const sel = window.getSelection(); if (!sel || sel.isCollapsed) return
+    const t = sel.toString()
+    document.execCommand('insertText', false, a + t + b)
+    refreshFromEditor(); setFmtOn(false)
+  }
+  // выбор нескольких
+  const exitSelect = () => { setSelectMode(false); setSelected(new Set()) }
+  const selMsgs = () => msgsRef.current.filter(x => selected.has(x.id))
+  const copySelected = async () => {
+    const t = selMsgs().map(x => `${x.name}: ${stripTokens(x.text) || attachLabel(x)}`).join('\n')
+    try { await navigator.clipboard.writeText(t); flash('Скопировано') } catch { flash('Не удалось скопировать') }
+    exitSelect()
+  }
+  const deleteSelected = async () => {
+    const list = selMsgs().filter(x => x.mine || isAdmin)
+    if (!list.length) { flash('Можно удалить только свои сообщения'); return }
+    if (!window.confirm(`Удалить ${list.length} ${list.length === 1 ? 'сообщение' : 'сообщений'}?`)) return
+    for (const x of list) await del(x.id)
+    exitSelect(); flash('Удалено')
+  }
+  const copyMsg = async (x: ChatMsg) => {
+    setMenuFor(null)
+    try { await navigator.clipboard.writeText(x.type === 'poll' ? (x.poll?.q || '') : stripTokens(x.text)); flash('Текст скопирован') } catch { flash('Не удалось скопировать') }
+  }
+  const forwardTo = async (x: ChatMsg, t: ChatTopic) => {
+    setFwdFor(null)
+    const r = await api.chatForward(x.id, t.id).catch(() => ({ error: 'net', message: 'Не удалось переслать' } as any))
+    if (r?.error) { flash(r.message || 'Не удалось переслать'); return }
+    flash(`Переслано в «${t.title}»`)
+    if (t.id === topic) { const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom() }
+  }
+  const shareToTelegram = (x: ChatMsg) => {
+    setFwdFor(null)
+    const text = `${x.name}: ${stripTokens(x.text) || attachLabel(x)}\n— из чата «Базы знаний»`
+    const url = `https://t.me/share/url?url=${encodeURIComponent(' ')}&text=${encodeURIComponent(text)}`
+    try { tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank') } catch { window.open(url, '_blank') }
+  }
+  // темы: долгое нажатие — без уведомлений
+  const topicLp = useRef<{ t: number; fired: boolean }>({ t: 0, fired: false })
+  const toggleTopicMute = async (t: ChatTopic) => {
+    const on = !t.muted
+    setTopics(arr => arr.map(x => x.id === t.id ? { ...x, muted: on } : x))
+    try { await api.chatTopicMute(t.id, on); flash(on ? `«${t.title}»: без уведомлений` : `«${t.title}»: уведомления включены`) } catch { /* */ }
+    try { tg?.HapticFeedback?.impactOccurred?.('light') } catch { /* */ }
+  }
   const insertMention = (un: string) => { insertTextAtCaret('@' + un + ' ') }
 
   const stopMic = () => {
@@ -1411,7 +1703,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   }
   const flipCam = async () => {
     const nf = facing === 'user' ? 'environment' : 'user'
-    try { await openCam(nf); setFacing(nf) } catch { flash('Не удалось переключить камеру') }
+    try { await openCam(nf); setFacing(nf); try { localStorage.setItem('chat_cam', nf) } catch { /* */ } } catch { flash('Не удалось переключить камеру') }
   }
   const startRec = async (kind: 'voice' | 'round' = 'voice') => {
     if (rec || micStream.current || wantRec.current) return   // уже идёт/готовится
@@ -1422,8 +1714,10 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       micStream.current = stream
       let recStream: MediaStream = stream
       if (kind === 'round') {
-        setFacing('user')
-        await openCam('user')
+        let pref: 'user' | 'environment' = 'user'
+        try { if (localStorage.getItem('chat_cam') === 'environment') pref = 'environment' } catch { /* */ }
+        setFacing(pref)
+        await openCam(pref)
         if (!wantRec.current) { stopCam(); stopMic(); return }
         // квадратный кадр: центр камеры, фронтальная — зеркально (как видит себя человек)
         const cv = document.createElement('canvas'); cv.width = 480; cv.height = 480
@@ -1478,6 +1772,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       recTimer.current = window.setInterval(() => {
         const el = (Date.now() - recStart.current) / 1000
         setRecElapsed(Math.floor(el))
+        if (Date.now() - lastTyping.current > 3000) { lastTyping.current = Date.now(); api.chatTyping(kind === 'round' ? 'round' : 'voice').catch(() => {}) }
         if (el >= (kind === 'round' ? ROUND_MAX : 300)) stopRec()   // кружок — до минуты, голос — страховка 5 мин
       }, 200)
     } catch {
@@ -1589,8 +1884,16 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         </div>
       )}
 
+      {selectMode && (
+        <div className="flex items-center gap-2 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06]" style={{ minHeight: 57 }}>
+          <button onClick={exitSelect} aria-label="Отмена" className="w-10 h-10 rounded-full grid place-items-center text-fg active:bg-white/10"><Icon name="close" size={20} /></button>
+          <div className="flex-1 font-display font-semibold text-[15px]">Выбрано: {selected.size}</div>
+          <button onClick={copySelected} aria-label="Копировать" className="w-10 h-10 rounded-full grid place-items-center text-fg active:bg-white/10"><Icon name="copy" size={19} /></button>
+          <button onClick={deleteSelected} aria-label="Удалить" className="w-10 h-10 rounded-full grid place-items-center active:bg-white/10" style={{ color: '#FF7A7A' }}><Icon name="trash" size={19} /></button>
+        </div>
+      )}
       {/* шапка чата: плитка, название, онлайн, «печатает», последние участники */}
-      <div className={`relative flex items-center gap-2.5 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06] ${searchOpen ? 'hidden' : ''}`}>
+      <div className={`relative flex items-center gap-2.5 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06] ${searchOpen || selectMode ? 'hidden' : ''}`}>
         {onBack && (
           <button onClick={onBack} aria-label="Назад" className="w-9 h-10 -mr-1 flex items-center justify-center rounded-full text-fg active:bg-white/10 shrink-0">
             <Icon name="back" size={22} />
@@ -1610,7 +1913,10 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                 <span className="w-[3px] h-[3px] rounded-full bg-gray2 shrink-0" />
                 <span className="flex items-center gap-1.5 truncate" style={{ color: VIOLET }}>
                   <span className="typing-dots"><i /><i /><i /></span>
-                  <span className="truncate">{typing.length > 1 ? `${typing.length} печатают` : `${typing[0]} печатает`}</span>
+                  <span className="truncate">{typing.length > 1 ? `${typing.length} печатают` : (() => {
+                    const [nm, kind] = typing[0].split('\u0001')
+                    return `${nm} ${({ voice: 'записывает голосовое', round: 'записывает видео', upload: 'отправляет файл' } as Record<string, string>)[kind] || 'печатает'}`
+                  })()}</span>
                 </span>
               </>
             )}
@@ -1623,6 +1929,10 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             </div>
           ))}
         </div>
+        <button onClick={() => setGalleryOpen(true)} aria-label="Медиа темы"
+          className="w-9 h-9 flex items-center justify-center rounded-full text-[#CFDAD4] active:bg-white/10 shrink-0">
+          <Icon name="image" size={20} />
+        </button>
         <button onClick={() => setSearchOpen(true)} aria-label="Поиск по чату"
           className="w-9 h-9 flex items-center justify-center rounded-full text-[#CFDAD4] active:bg-white/10 shrink-0">
           <Icon name="search" size={20} />
@@ -1638,12 +1948,31 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       {!searchOpen && topics.length > 1 && (
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar px-3 py-2 shrink-0 border-b border-white/[.06] bg-bg">
           {topics.map(t => (
-            <button key={t.id} onClick={() => { if (t.id !== topic) { setReady(false); setTopic(t.id) } }}
+            <button key={t.id}
+              onClick={() => { if (topicLp.current.fired) { topicLp.current.fired = false; return } if (t.id !== topic) { setReady(false); setTopic(t.id) } }}
+              onTouchStart={() => { topicLp.current.fired = false; topicLp.current.t = window.setTimeout(() => { topicLp.current.fired = true; toggleTopicMute(t) }, 550) }}
+              onTouchEnd={() => clearTimeout(topicLp.current.t)} onTouchMove={() => clearTimeout(topicLp.current.t)}
+              onContextMenu={(e) => { e.preventDefault(); topicLp.current.fired = true; toggleTopicMute(t) }}
               className={`chip !h-8 !px-3 !text-[12.5px] ${t.id === topic ? 'on' : ''}`}>
+              {t.muted && <Icon name="bellOff" size={13} accent="current" className="opacity-70" />}
               {t.title}
               {t.unread > 0 && t.id !== topic && <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-green text-ink text-[10.5px] font-bold grid place-items-center">{t.unread > 98 ? '99+' : t.unread}</span>}
             </button>
           ))}
+        </div>
+      )}
+      {player && (
+        <div className="flex items-center gap-2 px-3 py-1.5 shrink-0 border-b border-white/[.06]" style={{ background: 'rgba(23,229,132,.07)' }}>
+          <button onClick={() => voiceBus.emit('cmd', { id: player.id, cmd: 'toggle' })} aria-label={player.playing ? 'Пауза' : 'Играть'}
+            className="w-8 h-8 rounded-full grid place-items-center shrink-0" style={{ background: '#17E584', color: '#03200F' }}>
+            <Icon name={player.playing ? 'pause' : 'play'} size={13} accent="current" />
+          </button>
+          <button onClick={() => jumpToMsg(player.id)} className="flex-1 min-w-0 text-left">
+            <div className="text-[13px] font-semibold text-fg truncate">{player.name}</div>
+            <div className="text-[11.5px] text-gray tabular-nums">Голосовое · {fmtDur(player.cur)}{player.dur ? ` / ${fmtDur(player.dur)}` : ''}</div>
+          </button>
+          <button onClick={() => voiceBus.emit('cmd', { id: player.id, cmd: 'speed' })} className="px-2 h-7 rounded-full text-[12px] font-bold text-fg bg-white/[.08] tabular-nums">{voiceSpeed}×</button>
+          <button onClick={() => { voiceBus.emit('cmd', { id: player.id, cmd: 'stop' }); setPlayer(null) }} aria-label="Закрыть плеер" className="w-8 h-8 rounded-full grid place-items-center text-gray active:bg-white/10"><Icon name="close" size={15} /></button>
         </div>
       )}
       {mutedMsg && (
@@ -1704,6 +2033,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             Пока тихо. Напишите первым и поздоровайтесь с базой.
           </div>
         ) : msgs.map((m, i) => {
+          if (albumHidden.has(m.id)) return <div key={m.id} id={`m-${m.id}`} />
           const d = dayLabel(m.created_at); const sep = d !== lastDay; lastDay = d
           return (
             <div key={m.id} id={`m-${m.id}`} style={hiId === m.id ? { background: 'rgba(118,87,255,.16)', borderRadius: 14, transition: 'background .5s' } : { transition: 'background .8s' }}>
@@ -1719,7 +2049,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                   <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#CFDAD4]" style={{ background: 'rgba(17,28,23,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
                 </div>
               )}
-              <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} onReply={replyStable} onOpenMat={openMatStable} />
+              <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} onReply={replyStable} onOpenMat={openMatStable}
+                ctx={feedCtx} album={albumOf.get(m.id)} selectMode={selectMode} selected={selectMode && selected.has(m.id)} />
             </div>
           )
         })}
@@ -1728,6 +2059,22 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       {/* плавающая нижняя панель: листы + стеклянная капсула ввода */}
       <div ref={dockRef} className={`absolute left-0 right-0 bottom-0 ${rec && recKind === 'round' ? 'z-[60]' : 'z-20'} px-2.5 flex flex-col pointer-events-none [&>*]:pointer-events-auto`}
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 12px)' }}>
+        {atMeQ.length > 0 && !searchOpen && (
+          <button onClick={goMention} aria-label="К упоминаниям"
+            className="glass self-end relative mb-2 mr-1 w-11 h-11 rounded-full flex items-center justify-center text-[19px] font-bold active:scale-95 transition-transform" style={{ color: VIOLET }}>
+            @
+            <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center tabular-nums text-white" style={{ background: '#7657FF' }}>{atMeQ.length}</span>
+          </button>
+        )}
+        {fmtOn && (
+          <div className="glass self-center mb-2 flex items-center gap-0.5 px-1 py-1 rounded-full" style={{ background: 'rgba(13,21,17,.96)' }}>
+            {FORMATS.map((f, i) => (
+              <button key={i} title={f.title} onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()}
+                onClick={() => applyFormat(f.wrap[0], f.wrap[1])} onTouchEnd={(e) => { e.preventDefault(); applyFormat(f.wrap[0], f.wrap[1]) }}
+                className="min-w-[38px] h-9 px-2 rounded-full text-[15px] text-fg active:bg-white/10">{f.label}</button>
+            ))}
+          </div>
+        )}
         {showDown && !searchOpen && (
           <button onClick={() => { scrollToBottom(true); setNewBelow(0) }} aria-label="К новым сообщениям"
             className="glass self-end relative mb-2 mr-1 w-11 h-11 rounded-full flex items-center justify-center text-fg active:scale-95 transition-transform">
@@ -1761,9 +2108,9 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             <span className="text-green shrink-0"><Icon name={editing ? 'edit' : 'reply'} size={17} /></span>
             <div className="flex-1 min-w-0 pl-2.5 border-l-[3px] border-green">
               <div className="text-[12px] font-semibold text-green">{editing ? 'Редактирование' : `Ответ ${reply!.name}`}</div>
-              <div className="text-[12.5px] text-gray truncate">{stripTokens((editing || reply)!.text) || attachLabel((editing || reply)!)}</div>
+              <div className="text-[12.5px] text-gray truncate">{replyQuote && !editing ? `“${replyQuote}”` : (stripTokens((editing || reply)!.text) || attachLabel((editing || reply)!))}</div>
             </div>
-            <button onClick={() => { setReply(null); setEditing(null); setComposer('') }} aria-label="Отменить" className="w-9 h-9 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={17} /></button>
+            <button onClick={() => { setReply(null); setReplyQuote(''); if (editing) setComposer(''); setEditing(null) }} aria-label="Отменить" className="w-9 h-9 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={17} /></button>
           </div>
         )}
 
@@ -1775,12 +2122,18 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
         {attachOpen && (
           <div className="glass rounded-[22px] mb-2 p-2.5 flex flex-col gap-2" style={{ background: 'rgba(13,21,17,.97)' }}>
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => photoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
-                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(23,229,132,.16)', color: '#17E584' }}><IcPhoto s={19} /></span>Фото
+            <div className="grid grid-cols-4 gap-2">
+              <button onClick={() => photoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(23,229,132,.16)', color: '#17E584' }}><IcPhoto s={19} /></span>Галерея
               </button>
-              <button onClick={() => videoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
+              <button onClick={() => videoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
                 <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(118,87,255,.18)', color: VIOLET }}><IcVideo s={19} /></span>Видео
+              </button>
+              <button onClick={() => fileInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(127,211,255,.16)', color: '#7FD3FF' }}><Icon name="doc" size={19} accent="current" /></span>Файл
+              </button>
+              <button onClick={() => { setAttachOpen(false); setPollOpen(true) }} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(245,194,90,.16)', color: '#F5C25A' }}><Icon name="rating" size={19} accent="current" /></span>Опрос
               </button>
             </div>
             <div className="flex gap-2">
@@ -2101,10 +2454,65 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         )}
       </AnimatePresence>
 
-      <input ref={photoInput} type="file" accept="image/*" hidden onChange={onPick('photo')} />
+      <input ref={photoInput} type="file" accept="image/*,video/*" multiple hidden onChange={onPickGallery} />
+      <input ref={fileInput} type="file" hidden onChange={onPickFile} />
       <input ref={videoInput} type="file" accept="video/*" hidden onChange={onPick('video')} />
 
       <AnimatePresence>
+        {viewerG && (
+          <MediaViewer items={viewerG.items} start={viewerG.start} onClose={() => setViewerG(null)}
+            canDelete={(it) => !!it.mine || isAdmin} onDelete={(id) => del(id)} />
+        )}
+        {galleryOpen && (
+          <MediaGallery title={topics.find(t => t.id === topic)?.title || 'Чат'} onClose={() => setGalleryOpen(false)}
+            onView={(items, start) => setViewerG({ items, start })} onJump={(id) => { setGalleryOpen(false); jumpToMsg(id) }} />
+        )}
+        {pollOpen && (
+          <PollComposer onClose={() => setPollOpen(false)} onSent={async (err) => {
+            if (err) { flash(err); return }
+            setPollOpen(false); const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
+          }} />
+        )}
+        {quoteFor && (
+          <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setQuoteFor(null)}>
+            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
+              className="w-full max-w-[460px] rounded-t-[28px] p-5 bg-s1 border-t border-white/[.08]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 22px)' }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-white/15" />
+              <div className="font-display font-semibold text-[16px] text-fg">Цитата</div>
+              <div className="text-[12.5px] text-gray mb-3">Выдели нужный фрагмент и нажми «Ответить с цитатой»</div>
+              <div id="quote-src" className="max-h-[40vh] overflow-y-auto rounded-[14px] p-3 bg-white/[.05] text-[15px] leading-[1.45] text-fg whitespace-pre-wrap"
+                style={{ userSelect: 'text', WebkitUserSelect: 'text' }}>{stripTokens(quoteFor.text)}</div>
+              <button onClick={() => {
+                  const sel = window.getSelection(); const box = document.getElementById('quote-src')
+                  let q = sel && !sel.isCollapsed && box?.contains(sel.anchorNode) ? sel.toString().trim() : ''
+                  if (!q) q = stripTokens(quoteFor.text).slice(0, 300)
+                  const m0 = quoteFor; setQuoteFor(null); startReply(m0); setReplyQuote(q.slice(0, 300))
+                }} className="btn-primary w-full h-12 mt-4 text-[15px]">Ответить с цитатой</button>
+            </motion.div>
+          </motion.div>
+        )}
+        {fwdFor && (
+          <motion.div className="fixed inset-0 z-[80] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.6)' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setFwdFor(null)}>
+            <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
+              className="w-full max-w-[460px] rounded-t-[28px] p-5 bg-s1 border-t border-white/[.08]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 22px)' }}>
+              <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-white/15" />
+              <div className="font-display font-semibold text-[16px] text-fg mb-3">Переслать в тему</div>
+              <div className="flex flex-col">
+                {topics.map(t => (
+                  <button key={t.id} onClick={() => forwardTo(fwdFor, t)} className="flex items-center gap-3 py-2.5 px-1 rounded-[12px] active:bg-white/[.05] text-left">
+                    <span className="tile-violet w-9 h-9 rounded-[11px] shrink-0"><Icon name="chat" size={16} accent="#fff" /></span>
+                    <span className="flex-1 text-[14.5px] font-medium text-fg">{t.title}{t.id === topic && <span className="text-gray font-normal"> · текущая</span>}</span>
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => shareToTelegram(fwdFor)} className="btn-secondary w-full h-11 mt-3 text-[14px] flex items-center justify-center gap-2">
+                <Icon name="send" size={16} accent="current" /> Отправить в Telegram
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
         {menuFor && (
           <motion.div className="fixed inset-0 z-[70] flex items-end justify-center px-4" style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(3px)', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMenuFor(null)}>
@@ -2117,6 +2525,10 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               {/* действия — компактная карточка */}
               <div className="glass rounded-[18px] overflow-hidden" style={{ background: 'rgba(17,28,23,.94)' }}>
                 <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcReply s={16} />Ответить</button>
+                {menuFor.type === 'text' && menuFor.text.length > 20 && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setQuoteFor(menuFor); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="text" size={16} />Цитировать часть</button></>)}
+                {(menuFor.type === 'text' || menuFor.type === 'poll') && (<><div className="h-px bg-white/[.06]" /><button onClick={() => copyMsg(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="copy" size={16} />Копировать</button></>)}
+                {!menuFor.once && menuFor.type !== 'poll' && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setFwdFor(menuFor); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="arrowR" size={16} />Переслать</button></>)}
+                <div className="h-px bg-white/[.06]" /><button onClick={() => { setSelectMode(true); setSelected(new Set([menuFor.id])); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="checkCircle" size={16} />Выбрать</button>
                 {menuFor.type === 'sticker' && menuFor.has_media && (<><div className="h-px bg-white/[.06]" /><button onClick={() => openPackOf({ msg: menuFor.id })} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="sticker" size={16} />Набор стикеров</button></>)}
                 {!menuFor.mine && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setProfileFor(menuFor.user_id); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcUser s={16} />Профиль автора</button></>)}
                 {menuFor.mine && menuFor.type === 'text' && (<><div className="h-px bg-white/[.06]" /><button onClick={() => startEdit(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcEdit s={16} />Редактировать</button></>)}
@@ -2154,14 +2566,13 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#ff5050' }} />
               {fmtDur(recElapsed)} / 1:00
             </div>
-            {recLocked && (
-              <div className="mt-5 flex items-center gap-3 pointer-events-auto">
-                <button onClick={cancelRec} className="h-11 px-5 rounded-full text-[14px] font-semibold text-[#FF8A8A] bg-white/[.08] active:bg-white/[.14]">Отмена</button>
-                <button onClick={flipCam} aria-label="Сменить камеру" className="w-11 h-11 rounded-full grid place-items-center text-white bg-white/[.08] active:bg-white/[.14]">
-                  <Icon name="refresh" size={19} accent="current" />
-                </button>
-              </div>
-            )}
+            <div className="mt-5 flex items-center gap-3 pointer-events-auto">
+              {recLocked && <button onClick={cancelRec} className="h-11 px-5 rounded-full text-[14px] font-semibold text-[#FF8A8A] bg-white/[.08] active:bg-white/[.14]">Отмена</button>}
+              <button onClick={flipCam} onTouchStart={(e) => e.stopPropagation()} aria-label="Сменить камеру"
+                className="h-11 px-4 rounded-full flex items-center gap-2 text-[13.5px] font-medium text-white bg-white/[.1] active:bg-white/[.18]">
+                <Icon name="refresh" size={18} accent="current" />{facing === 'user' ? 'Фронтальная' : 'Основная'}
+              </button>
+            </div>
           </motion.div>
         )}
         {onlineList && (

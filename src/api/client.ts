@@ -230,7 +230,13 @@ export interface ChatMsg {
   username: string
   avatar: string
   mine: boolean
-  type: 'text' | 'photo' | 'video' | 'voice' | 'gif' | 'sticker' | 'round'
+  type: 'text' | 'photo' | 'video' | 'voice' | 'gif' | 'sticker' | 'round' | 'file' | 'poll'
+  fname?: string
+  album?: string
+  fwd_name?: string
+  fwd_id?: number | null
+  quote?: string
+  poll?: ChatPollData
   text: string
   has_media: boolean
   media_url: string
@@ -253,14 +259,16 @@ export interface ChatMsg {
   /** Материал, на который ссылается сообщение. */
   mat?: ChatMatCard
 }
+export interface ChatPollData { q: string; multi: boolean; anon: boolean; voters: number; options: { text: string; votes: number; mine: boolean }[] }
+export interface LinkPreview { title: string; descr: string; image: boolean; site: string }
 export interface ChatMatCard { id: number; title: string; section: string; premium: boolean; kind: string }
 export interface ChatOnline { user_id: number; name: string; username: string; premium: boolean; rank: string; lvl: number; wk: number; admin: boolean }
 export interface ReferralInfo { link: string; invited: number; paid: number; days: number; bonus_days: number }
 export interface ChatMember { user_id: number; name: string; username: string; avatar: string; premium?: boolean }
-export interface ChatTopic { id: string; title: string; unread: number }
+export interface ChatTopic { id: string; title: string; unread: number; muted?: boolean }
 export interface ChatReport { id: number; user_id: number; name: string; username: string; type: string; text: string; created_at: string; hidden: boolean; topic: string; reports: number; last: string }
 export interface ChatMute { user_id: number; until: string | null; reason: string; created_at: string; name: string }
-export interface ChatResp { topic?: string; muted?: string | null; messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string; retention_days?: number; last_read?: number }
+export interface ChatResp { typing2?: { name: string; kind: string }[]; topic?: string; muted?: string | null; messages: ChatMsg[]; online: number; slow: number; is_admin?: boolean; pinned?: ChatMsg | null; typing?: string[]; gif?: boolean; gated?: boolean; channel?: string; retention_days?: number; last_read?: number }
 export interface GifItem { id: string; preview: string; send: string }
 export interface StickerDef { fid: string; emoji: string; kind: string }
 export interface StickerPack { name: string; title: string; emoji?: boolean; stickers: StickerDef[] }
@@ -308,7 +316,14 @@ export const api = {
   chatSetRetention: (days: number) => post<{ ok?: boolean; days?: number; error?: string }>('/api/chat/retention', { days }),
   chatOlder:      (before: number) => get<{ messages: ChatMsg[] }>(`/api/chat/older?before=${before}&topic=${_chatTopic}`),
   chatAround:     (id: number)    => get<{ messages: ChatMsg[]; topic?: string }>(`/api/chat/around?id=${id}`),
-  chatSend:       (text: string, reply_to?: number, ttl?: number) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl, topic: _chatTopic }),
+  chatSend:       (text: string, reply_to?: number, ttl?: number, quote?: string) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { text, reply_to, ttl, quote: quote || undefined, topic: _chatTopic }),
+  chatForward:    (id: number, topic: string) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { fwd: id, topic }),
+  chatPoll:       (poll: { q: string; options: string[]; multi: boolean; anon: boolean }) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { poll, topic: _chatTopic }),
+  chatVote:       (id: number, opts: number[]) => postAny<{ ok?: boolean; message?: ChatMsg; error?: string }>(`/api/chat/${id}/vote`, { opts }),
+  chatMediaList:  (kind: string, before?: number) => get<{ items: ChatMsg[] }>(`/api/chat/media_list?topic=${encodeURIComponent(_chatTopic)}&kind=${kind}${before ? `&before=${before}` : ''}`),
+  chatPreview:    (url: string) => get<LinkPreview>(`/api/chat/preview?url=${encodeURIComponent(url)}`),
+  chatPreviewImg: (url: string) => `${API_BASE}/api/chat/preview_img?url=${encodeURIComponent(url)}&${_mtok ? `t=${_mtok}` : `init_data=${encodeURIComponent(tg?.initData || '')}`}`,
+  chatTopicMute:  (topic: string, on: boolean) => post<{ ok?: boolean }>('/api/chat/topic_mute', { topic, on }),
   chatSticker:    (sticker: string, ttl?: number) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/send', { sticker, ttl, topic: _chatTopic }),
   chatGif:        (q: string)    => get<{ gifs: GifItem[] }>(`/api/chat/gif${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   chatGifSend:    (url: string, ttl?: number) => postAny<{ ok?: boolean; id?: number; error?: string; message?: string }>('/api/chat/gif/send', { url, ttl, topic: _chatTopic }),
@@ -325,7 +340,7 @@ export const api = {
   referral:       ()             => get<ReferralInfo>('/api/referral'),
   chatReact:      (id: number, emoji: string) => post<{ ok?: boolean; on?: boolean }>(`/api/chat/${id}/react`, { emoji }),
   chatEdit:       (id: number, text: string) => post<{ ok?: boolean; error?: string }>(`/api/chat/${id}/edit`, { text }),
-  chatTyping:     ()             => post<{ ok?: boolean }>('/api/chat/typing'),
+  chatTyping:     (kind?: 'typing' | 'voice' | 'round' | 'upload') => post<{ ok?: boolean }>('/api/chat/typing', kind ? { kind } : undefined),
   chatUnread:     ()             => get<{ count: number; mentions: number; last_read: number }>('/api/chat/unread'),
   chatRead:       (id: number)   => post<{ ok?: boolean }>('/api/chat/read', { id }),
   chatMembers:    (q: string)    => get<{ members: ChatMember[] }>(`/api/chat/members?q=${encodeURIComponent(q)}`),
