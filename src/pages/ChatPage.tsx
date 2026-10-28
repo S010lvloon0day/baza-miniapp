@@ -926,7 +926,9 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const [fwdFor, setFwdFor] = useState<ChatMsg | null>(null)
   const [pollOpen, setPollOpen] = useState(false)
   const [galleryOpen, setGalleryOpen] = useState(false)
-  const [fmtOn, setFmtOn] = useState(false)
+  const [fmtOn, setFmtOn] = useState(false)          // есть выделение в поле ввода (подсветка кнопки «Aa»)
+  const [fmtBarOpen, setFmtBarOpen] = useState(false)  // панель форматирования открыта вручную
+  const savedRange = useRef<Range | null>(null)
   const [player, setPlayer] = useState<{ id: number; name: string; playing: boolean; cur: number; dur: number } | null>(null)
   const [mentionSeen, setMentionSeen] = useState<Set<number>>(new Set())
   const lrOpen = useRef(0)
@@ -1645,19 +1647,28 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     window.addEventListener('cv:state', onState); window.addEventListener('cv:ended', onEnded)
     return () => { window.removeEventListener('cv:state', onState); window.removeEventListener('cv:ended', onEnded) }
   }, [])
-  // панель форматирования: показываем, когда в поле ввода выделен текст
+  // запоминаем выделение в поле ввода (нужно, чтобы форматировать по кнопке, не мешая меню копирования)
   useEffect(() => {
     const h = () => {
       const sel = window.getSelection(); const el = taRef.current
-      setFmtOn(!!sel && !sel.isCollapsed && !!el && el.contains(sel.anchorNode) && el.contains(sel.focusNode))
+      const inside = !!sel && !sel.isCollapsed && !!el && el.contains(sel.anchorNode) && el.contains(sel.focusNode)
+      setFmtOn(inside)
+      if (inside) { try { savedRange.current = sel!.getRangeAt(0).cloneRange() } catch { /* */ } }
+      else if (!fmtBarOpen) savedRange.current = null
     }
     document.addEventListener('selectionchange', h); return () => document.removeEventListener('selectionchange', h)
-  }, [])
+  }, [fmtBarOpen])
   const applyFormat = (a: string, b: string) => {
-    const sel = window.getSelection(); if (!sel || sel.isCollapsed) return
-    const t = sel.toString()
+    const el = taRef.current; if (!el) return
+    const sel = window.getSelection()
+    // если выделение сбросилось (тап по кнопке на iOS) — восстанавливаем сохранённое
+    if (sel && (sel.isCollapsed || !el.contains(sel.anchorNode)) && savedRange.current) {
+      sel.removeAllRanges(); sel.addRange(savedRange.current)
+    }
+    const s2 = window.getSelection(); if (!s2 || s2.isCollapsed) { flash('Выделите текст, который нужно оформить'); return }
+    const t = s2.toString()
     document.execCommand('insertText', false, a + t + b)
-    refreshFromEditor(); setFmtOn(false)
+    refreshFromEditor(); setFmtBarOpen(false); savedRange.current = null
   }
   // выбор нескольких
   const exitSelect = () => { setSelectMode(false); setSelected(new Set()) }
@@ -2126,8 +2137,10 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center tabular-nums text-white" style={{ background: '#7657FF' }}>{atMeQ.length}</span>
           </button>
         )}
-        {fmtOn && (
+        {fmtBarOpen && (
           <div className="glass self-center mb-2 flex items-center gap-0.5 px-1 py-1 rounded-full" style={{ background: 'rgba(13,21,17,.96)' }}>
+            <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={() => setFmtBarOpen(false)}
+              className="w-9 h-9 rounded-full grid place-items-center text-gray active:bg-white/10"><Icon name="close" size={15} /></button>
             {FORMATS.map((f, i) => (
               <button key={i} title={f.title} onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()}
                 onClick={() => applyFormat(f.wrap[0], f.wrap[1])} onTouchEnd={(e) => { e.preventDefault(); applyFormat(f.wrap[0], f.wrap[1]) }}
@@ -2409,6 +2422,10 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                   className="text-[16px] text-fg outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
                   style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 12, paddingBottom: 12, minHeight: 22 }} />
               </div>
+              <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()}
+                onClick={() => { if (!fmtBarOpen && !fmtOn) { flash('Выделите текст, чтобы оформить его'); return } setFmtBarOpen(v => !v) }}
+                aria-label="Форматирование" className="shrink-0 w-[34px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform font-semibold text-[16px]"
+                style={{ color: fmtBarOpen ? '#17E584' : (fmtOn ? '#CFDAD4' : '#5E6F66') }}>Aa</button>
               <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} aria-label="Эмодзи и стикеры"
                 className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform" style={{ color: stickerOpen ? '#17E584' : '#CFDAD4' }}>
                 <Icon name="emoji" size={23} />
