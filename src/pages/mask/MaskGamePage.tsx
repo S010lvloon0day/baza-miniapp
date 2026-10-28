@@ -240,7 +240,6 @@ export default function MaskGamePage() {
               ))}
             </div>
             <p className="text-[12px] text-gray2 mt-3">Следи за ботом — объявим старт.</p>
-            {s.is_admin && <button onClick={() => setRunOpen(true)} className="btn-secondary w-full h-11 rounded-[14px] mt-3 text-[14px]">Тест: забег (видно только админу)</button>}
           </section>
         ) : !r ? (
           <section className="card p-4 text-center text-[14px] text-gray">Новый раунд скоро начнётся</section>
@@ -275,6 +274,10 @@ export default function MaskGamePage() {
             )}
             {note && <div className="text-[12.5px] text-gold mt-2">{note}</div>}
           </section>
+        )}
+
+        {s.is_admin && (
+          <button onClick={() => setRunOpen(true)} className="btn-primary w-full">Тест: забег (видно только админу)</button>
         )}
 
         <div className="flex gap-1.5">
