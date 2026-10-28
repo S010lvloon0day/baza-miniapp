@@ -134,7 +134,13 @@ export default function MaskGamePage() {
   const voice = useVoice()
   const greeted = useRef(false)
 
-  const load = useCallback(() => maskApi.state().then(d => { setS(d); setCool(c => Math.max(c, d.cooldown || 0)) }).catch(e => setErr(e?.status === 404 ? 'hidden' : 'error')), [])
+  const load = useCallback(() => maskApi.state().then((raw: unknown) => {
+    const d: MaskState = {
+      tries_left: 0, tries_per_day: 3, cooldown: 0, reset_in: 0, feed: [], clues: [], board: [], my_pts: 0, my_pos: null,
+      reveal: false, is_admin: false, hello: { kind: 'hello', variant: 1, line: 'Новый раунд скоро начнётся.', anim: 'wave' },
+      ...(raw as Partial<MaskState>), round: (raw as Partial<MaskState>)?.round ?? null, stats: { guesses: 0, players: 0, today: 0, ...((raw as Partial<MaskState>)?.stats || {}) },
+    }
+    setS(d); setCool(c => Math.max(c, d.cooldown || 0)) }).catch(e => setErr(e?.status === 404 ? 'hidden' : 'error')), [])
   useEffect(() => { load(); const t = window.setInterval(load, 15000); return () => window.clearInterval(t) }, [load])
   useEffect(() => { if (cool <= 0) return; const t = window.setTimeout(() => setCool(c => c - 1), 1000); return () => window.clearTimeout(t) }, [cool])
 
