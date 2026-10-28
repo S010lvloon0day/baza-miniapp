@@ -33,16 +33,27 @@ export interface MaskState {
   feed: { name: string; text: string; kind: string; at: string }[]
   clues: MaskClue[]; board: MaskBoardRow[]; my_pts: number; my_pos: number | null
   hello: MaskReact; reveal: boolean; is_admin: boolean
+  tasks?: {
+    run: { done: boolean; best: number; target: number }
+    cipher: { open: boolean; done: boolean; cipher?: string; reward?: string }
+    osint: { open: boolean; soon?: boolean }
+  }
+  secret?: string | null
+  teaser?: boolean
+  run_model?: { v0: number; a: number; vmax: number }
 }
 export interface GuessResult {
   ok: boolean; test?: boolean; solved?: boolean; kind?: string; tries_left?: number; cooldown?: number
-  reset_in?: number; react?: MaskReact; error?: string; days?: number
+  reset_in?: number; react?: MaskReact; error?: string; days?: number; secret?: string | null
 }
 
 export const maskApi = {
   state: () => req<MaskState>('GET', '/api/mask/state'),
   guess: (text: string) => req<GuessResult>('POST', '/api/mask/guess', { text }).catch((e: any) => (e.data || { ok: false, error: e.message }) as GuessResult),
   clue: (id: number, answer: string) => req<{ ok: boolean; reward?: string; points?: number; tries_left?: number }>('POST', `/api/mask/clue/${id}`, { answer }),
+  runStart: () => req<{ run_id: number; seed: number; target: number }>('POST', '/api/mask/run/start', {}),
+  runFinish: (run_id: number, score: number) => req<{ ok: boolean; done: boolean; score: number; flag: string | null }>('POST', '/api/mask/run/finish', { run_id, score }),
+  cipher: (answer: string) => req<{ ok: boolean; reward?: string | null; error?: string }>('POST', '/api/mask/cipher', { answer }),
   revealUrl: () => API_BASE + '/api/mask/reveal.glb',
   initData: () => tg?.initData || '',
 }
@@ -52,9 +63,11 @@ export interface AMaskRound {
   id: number; title: string; intro: string; prize: string; status: string; created_at: string
   started_at: string | null; solved_at: string | null; winner_id: number | null; winner_guess: string | null
   answers_count: number; guesses: number; players: number
+  secret_set?: boolean; osint_hint?: string; run_target?: number
+  progress?: { players: number; run_done: number; cipher_done: number; run_best: number }
 }
 export interface AMaskClue { id: number; round_id: number; pos: number; kind: string; question: string; options: string[]; reward: string; points: number; opens_at: string }
-export interface AMask { rounds: AMaskRound[]; clues: AMaskClue[]; visible: string; min_days: number; feed_text: boolean; reveal_uploaded: boolean }
+export interface AMask { rounds: AMaskRound[]; clues: AMaskClue[]; visible: string; min_days: number; feed_text: boolean; reveal_uploaded: boolean; teaser?: boolean }
 
 export const maskAdmin = {
   get: () => req<AMask>('GET', '/api/admin/mask'),

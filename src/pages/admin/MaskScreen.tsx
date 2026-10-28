@@ -83,6 +83,8 @@ export function MaskScreen() {
       <SectionTitle>Кто видит раздел</SectionTitle>
       <Segmented value={d.visible as '0' | 'admin' | '1'} onChange={setVis} items={[['admin', 'Только админы'], ['1', 'Все'], ['0', 'Скрыт']]} />
       <div className="list-group mt-3">
+        <Toggle label="Режим «Скоро»" sub="игроки видят персонажа и тизер, но не могут отвечать и проходить задания" value={d.teaser !== false} tone="gold"
+          onChange={v => maskAdmin.settings({ teaser: v }).then(load)} />
         <Toggle label="Показывать текст неверных попыток" sub="в ленте «Попытки» видно, что пробовали другие" value={d.feed_text}
           onChange={v => maskAdmin.settings({ feed_text: v }).then(load)} />
         <div className="px-4 py-3">

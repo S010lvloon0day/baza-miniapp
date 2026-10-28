@@ -151,7 +151,10 @@ export default function MaskGamePage() {
   }, [voice])
 
   useEffect(() => {
-    if (ready && s && !greeted.current) { greeted.current = true; setTimeout(() => say(s.hello), 400) }
+    if (ready && s && !greeted.current) {
+      greeted.current = true
+      setTimeout(() => say(s.teaser ? { kind: 'hello', variant: 1, line: 'Скоро узнаешь, кто я. Если сможешь.', anim: 'wave' } : s.hello), 400)
+    }
   }, [ready, s, say])
 
   const submit = async () => {
@@ -213,7 +216,24 @@ export default function MaskGamePage() {
       </div>
 
       <div className="px-4 -mt-1 flex flex-col gap-3">
-        {!r ? (
+        {s.teaser ? (
+          <section className="card px-4 py-4" style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(118,87,255,.28), transparent 65%), #111C17', borderColor: 'rgba(160,135,255,.32)' }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="font-display font-semibold text-[16px]">Скоро старт</div>
+              <span className="gold-metal sheen rounded-full px-2.5 h-7 flex items-center text-[12px] font-semibold text-[#2B1A02] relative shrink-0"><span className="relative z-[1]">Приз 80 USDT</span></span>
+            </div>
+            <p className="text-[13.5px] text-gray mt-1.5">Кто под маской? Три испытания — и первый, кто пройдёт их все, снимет маску и заберёт приз.</p>
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {['Забег', 'Шифр', '???'].map((t, i) => (
+                <div key={t} className="rounded-[14px] bg-white/[.05] border border-white/[.06] px-2 py-2.5 text-center">
+                  <Icon name="lock" size={16} accent="#6E8478" />
+                  <div className="text-[12.5px] mt-1">{i + 1}. {t}</div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[12px] text-gray2 mt-3">Следи за ботом — объявим старт.</p>
+          </section>
+        ) : !r ? (
           <section className="card p-4 text-center text-[14px] text-gray">Новый раунд скоро начнётся</section>
         ) : solved ? (
           <section className="card-gold p-4">
@@ -249,19 +269,19 @@ export default function MaskGamePage() {
         )}
 
         <div className="flex gap-1.5">
-          {([['clues', 'Улики'], ['board', 'Рейтинг недели'], ['feed', 'Попытки']] as const).map(([k, l]) => (
+          {!s.teaser && ([['clues', 'Улики'], ['board', 'Рейтинг недели'], ['feed', 'Попытки']] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={`chip ${tab === k ? 'on' : ''}`}>{l}</button>
           ))}
         </div>
 
-        {tab === 'clues' && (
+        {!s.teaser && tab === 'clues' && (
           <div className="flex flex-col gap-2.5">
             {s.clues.length === 0 ? <div className="card p-4 text-[13.5px] text-gray text-center">Улики появятся по ходу недели</div>
               : s.clues.map(c => <ClueCard key={c.id} c={c} onSolved={load} />)}
           </div>
         )}
 
-        {tab === 'board' && (
+        {!s.teaser && tab === 'board' && (
           <section className="card-gold px-3.5 py-3">
             <div className="flex items-center justify-between">
               <b className="text-[14px]">Рейтинг недели</b>
@@ -280,7 +300,7 @@ export default function MaskGamePage() {
           </section>
         )}
 
-        {tab === 'feed' && (
+        {!s.teaser && tab === 'feed' && (
           <div className="list-group">
             {s.feed.length === 0 ? <div className="px-5 py-8 text-center text-[13.5px] text-gray">Пока никто не пробовал</div> : s.feed.map((f, i) => (
               <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
