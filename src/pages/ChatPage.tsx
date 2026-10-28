@@ -315,7 +315,7 @@ function VoiceMsg({ url, mine }: { url: string; mine?: boolean }) {
   const accent = mine ? '#C8F7DD' : '#17E584'
   const dim = mine ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.18)'
   return (
-    <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 190, maxWidth: 260 }}>
+    <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 190, maxWidth: 260 }} onClick={(e) => e.stopPropagation()}>
       <button onClick={toggle} aria-label={playing ? 'Пауза' : 'Слушать'} className="shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: accent, color: '#03200F' }}>
         <Icon name={playing ? 'pause' : 'play'} size={15} accent="current" style={playing ? undefined : { marginLeft: 2 }} />
       </button>
@@ -540,8 +540,19 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
   // долгое нажатие на медиа → меню (ответить/удалить), обычный тап → просмотр
   const lpTimer = useRef<number | null>(null)
   const lpFired = useRef(false)
+  const lastTouch = useRef(0)
   const lpStart = () => { lpFired.current = false; lpTimer.current = window.setTimeout(() => { lpFired.current = true; onAction(m) }, 450) }
   const lpEnd = () => { if (lpTimer.current) { clearTimeout(lpTimer.current); lpTimer.current = null } }
+  // медиа: короткий тап — просмотр, долгое нажатие — меню сообщения
+  const tapMedia = (open: () => void) => ({
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } open() },
+    onTouchStart: () => { lastTouch.current = Date.now(); lpStart() }, onTouchEnd: lpEnd, onTouchMove: lpEnd,
+    // на телефоне после касания браузер шлёт ещё и мышиные события — их пропускаем
+    onMouseDown: () => { if (Date.now() - lastTouch.current > 900) lpStart() },
+    onMouseUp: () => { if (Date.now() - lastTouch.current > 900) lpEnd() }, onMouseLeave: lpEnd,
+    onContextMenu: (e: React.MouseEvent) => e.preventDefault(),
+    style: { WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none', cursor: 'pointer' } as React.CSSProperties,
+  })
 
   if (m.deleted) {
     return (
@@ -623,13 +634,33 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
                   className="block max-h-[230px] max-w-[66vw] w-auto object-cover select-none"
                   style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none', userSelect: 'none' }} />
               )}
-              {m.type === 'gif' && (m.media_url || src) && (
-                /\.(mp4|webm)(\?|$)/i.test(m.media_url || src)
-                  ? <video src={m.media_url || src} autoPlay loop muted playsInline className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none" />
-                  : <img src={m.media_url || src} alt="" draggable={false} className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none" />
-              )}
+              {m.type === 'gif' && (m.media_url || src) && (() => {
+                const u = m.media_url || src
+                const vid = /\.(mp4|webm)(\?|$)/i.test(u)
+                return (
+                  <div {...tapMedia(() => onMedia(u, vid, m))}>
+                    {vid
+                      ? <video src={u} autoPlay loop muted playsInline className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none pointer-events-none" />
+                      : <img src={u} alt="" draggable={false} className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none pointer-events-none" />}
+                  </div>
+                )
+              })()}
               {m.type === 'video' && src && (
-                <video src={src} controls controlsList="nodownload noplaybackrate" disablePictureInPicture className="block max-h-[260px] max-w-[66vw] w-auto select-none" />
+                // превью: тап — просмотр на весь экран, долгое нажатие — меню
+                <div className="relative" {...tapMedia(() => onMedia(src, true, m))}>
+                  <video src={src + '#t=0.1'} preload="metadata" muted playsInline disablePictureInPicture
+                    className="block max-h-[260px] min-h-[120px] min-w-[160px] max-w-[66vw] w-auto object-cover select-none pointer-events-none bg-black/40" />
+                  <span className="absolute inset-0 grid place-items-center pointer-events-none">
+                    <span className="w-12 h-12 rounded-full grid place-items-center text-white" style={{ background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)' }}>
+                      <Icon name="play" size={22} accent="#fff" />
+                    </span>
+                  </span>
+                  {m.dur > 0 && (
+                    <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded-full text-[11px] font-medium text-white tabular-nums pointer-events-none" style={{ background: 'rgba(0,0,0,.5)' }}>
+                      {Math.floor(m.dur / 60)}:{String(Math.floor(m.dur % 60)).padStart(2, '0')}
+                    </span>
+                  )}
+                </div>
               )}
               {m.type === 'voice' && src && <VoiceMsg url={src} mine={mine} />}
               {/* на медиа без подписи — время поверх картинки в тёмной плашке */}
