@@ -82,7 +82,7 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
     let idle2: THREE.AnimationAction | null = null
     let model: THREE.Object3D | null = null
     let model2: THREE.Object3D | null = null
-    let maskMesh: THREE.Mesh | null = null
+    const maskMeshes: THREE.Mesh[] = []
     let head: THREE.Object3D | null = null, head2: THREE.Object3D | null = null
     let speaking = false, shakeT = 0
     let current: THREE.AnimationAction | null = null
@@ -112,7 +112,7 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
       model = gltf.scene; clips = gltf.animations
       model.traverse(o => {
         const m = o as THREE.Mesh
-        if (m.isMesh) { m.frustumCulled = false; if (o.name.toLowerCase().startsWith('mask')) maskMesh = m }
+        if (m.isMesh) { m.frustumCulled = false; if (o.name.toLowerCase().startsWith('mask')) maskMeshes.push(m) }
       })
       scene.add(model)
       head = findHead(model)
@@ -182,8 +182,8 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
       shake: () => { shakeT = 0.35 },
       reveal: async () => {
         await loadReveal()
-        if (maskMesh) {
-          const mats = (Array.isArray(maskMesh.material) ? maskMesh.material : [maskMesh.material]) as THREE.MeshStandardMaterial[]
+        if (maskMeshes.length) {
+          const mats = maskMeshes.flatMap(mm => (Array.isArray(mm.material) ? mm.material : [mm.material])) as THREE.MeshStandardMaterial[]
           mats.forEach(m => { m.transparent = true })
           burst()
           const t0 = performance.now()
