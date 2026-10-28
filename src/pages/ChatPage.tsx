@@ -1043,12 +1043,33 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const stScrollRef = useRef<HTMLDivElement>(null)
   const dockRef = useRef<HTMLDivElement>(null)   // плавающая нижняя панель (поле ввода + листы)
   const [dockH, setDockH] = useState(84)
+  // мгновенно прижать ленту к низу (без анимации) — для изменений раскладки (клавиатура, панели)
+  const pinBottom = () => {
+    const el = scrollRef.current; if (!el) return
+    el.scrollTop = el.scrollHeight
+    requestAnimationFrame(() => { const e2 = scrollRef.current; if (e2) e2.scrollTop = e2.scrollHeight })
+  }
   useEffect(() => {
     const el = dockRef.current; if (!el || typeof ResizeObserver === 'undefined') return
-    const ro = new ResizeObserver(() => setDockH(el.offsetHeight))
+    const ro = new ResizeObserver(() => {
+      const was = atBottom.current          // панель/клавиатура изменили высоту ввода
+      setDockH(el.offsetHeight)
+      if (was) pinBottom()                  // был внизу — остаёмся внизу, иначе не трогаем
+    })
     ro.observe(el); setDockH(el.offsetHeight)
     return () => ro.disconnect()
   })
+  // клавиатура открылась/закрылась (viewport сжался) — остаёмся на последнем сообщении
+  useEffect(() => {
+    const onResize = () => { if (atBottom.current) pinBottom() }
+    const vv = (window as any).visualViewport
+    vv?.addEventListener('resize', onResize)
+    try { tg?.onEvent?.('viewportChanged', onResize) } catch { /* */ }
+    return () => {
+      vv?.removeEventListener('resize', onResize)
+      try { tg?.offEvent?.('viewportChanged', onResize) } catch { /* */ }
+    }
+  }, [])
 
   const byId = useMemo(() => new Map(msgs.map(m => [m.id, m])), [msgs])
   // последние разные авторы (для аватаров в шапке)
@@ -1065,9 +1086,13 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), t.length > 60 ? 5000 : 2500) }
 
   const scrollToBottom = (smooth = true) => {
+    atBottom.current = true; setShowDown(false); setNewBelow(0)   // явный переход вниз — держимся низа
     requestAnimationFrame(() => {
       const el = scrollRef.current
-      if (el) el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+      if (!el) return
+      el.scrollTo({ top: el.scrollHeight, behavior: smooth ? 'smooth' : 'auto' })
+      // ещё раз после отрисовки нового сообщения/медиа (высота могла измениться)
+      requestAnimationFrame(() => { const e2 = scrollRef.current; if (e2 && atBottom.current) e2.scrollTop = e2.scrollHeight })
     })
   }
   const jumpBottom = () => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight }
@@ -2378,6 +2403,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                 {!text && <div className="absolute left-1 top-[12px] text-[16px] text-[#8FA398] pointer-events-none select-none">Сообщение</div>}
                 <div ref={taRef} contentEditable suppressContentEditableWarning
                   onInput={onEditorInput}
+                  onFocus={() => { if (atBottom.current) { pinBottom(); setTimeout(() => { if (atBottom.current) pinBottom() }, 300) } }}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                   onPaste={e => { e.preventDefault(); insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
                   className="text-[16px] text-fg outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
