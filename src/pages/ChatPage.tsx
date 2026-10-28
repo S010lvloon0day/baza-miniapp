@@ -926,7 +926,6 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const [fwdFor, setFwdFor] = useState<ChatMsg | null>(null)
   const [pollOpen, setPollOpen] = useState(false)
   const [galleryOpen, setGalleryOpen] = useState(false)
-  const [fmtOn, setFmtOn] = useState(false)          // есть выделение в поле ввода (подсветка кнопки «Aa»)
   const [fmtBarOpen, setFmtBarOpen] = useState(false)  // панель форматирования открыта вручную
   const savedRange = useRef<Range | null>(null)
   const [player, setPlayer] = useState<{ id: number; name: string; playing: boolean; cur: number; dur: number } | null>(null)
@@ -1652,23 +1651,35 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     const h = () => {
       const sel = window.getSelection(); const el = taRef.current
       const inside = !!sel && !sel.isCollapsed && !!el && el.contains(sel.anchorNode) && el.contains(sel.focusNode)
-      setFmtOn(inside)
       if (inside) { try { savedRange.current = sel!.getRangeAt(0).cloneRange() } catch { /* */ } }
-      else if (!fmtBarOpen) savedRange.current = null
     }
     document.addEventListener('selectionchange', h); return () => document.removeEventListener('selectionchange', h)
   }, [fmtBarOpen])
   const applyFormat = (a: string, b: string) => {
     const el = taRef.current; if (!el) return
+    el.focus()
     const sel = window.getSelection()
-    // если выделение сбросилось (тап по кнопке на iOS) — восстанавливаем сохранённое
+    // восстанавливаем выделение, если iOS сбросил его при тапе по кнопке
     if (sel && (sel.isCollapsed || !el.contains(sel.anchorNode)) && savedRange.current) {
-      sel.removeAllRanges(); sel.addRange(savedRange.current)
+      try { sel.removeAllRanges(); sel.addRange(savedRange.current) } catch { /* */ }
     }
-    const s2 = window.getSelection(); if (!s2 || s2.isCollapsed) { flash('Выделите текст, который нужно оформить'); return }
-    const t = s2.toString()
-    document.execCommand('insertText', false, a + t + b)
-    refreshFromEditor(); setFmtBarOpen(false); savedRange.current = null
+    const s2 = window.getSelection()
+    if (s2 && !s2.isCollapsed && el.contains(s2.anchorNode)) {
+      // есть выделение — оборачиваем его
+      document.execCommand('insertText', false, a + s2.toString() + b)
+    } else {
+      // выделять не нужно: вставляем метки и ставим курсор между ними
+      const node = document.createTextNode(a + b)
+      const sc = window.getSelection()
+      if (sc && sc.rangeCount && el.contains(sc.anchorNode)) {
+        const r = sc.getRangeAt(0); r.deleteContents(); r.insertNode(node)
+      } else {
+        el.appendChild(node)
+      }
+      const caret = document.createRange(); caret.setStart(node, a.length); caret.collapse(true)
+      const s3 = window.getSelection(); if (s3) { s3.removeAllRanges(); s3.addRange(caret) }
+    }
+    refreshFromEditor(); savedRange.current = null
   }
   // выбор нескольких
   const exitSelect = () => { setSelectMode(false); setSelected(new Set()) }
@@ -2423,9 +2434,9 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                   style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 12, paddingBottom: 12, minHeight: 22 }} />
               </div>
               <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()}
-                onClick={() => { if (!fmtBarOpen && !fmtOn) { flash('Выделите текст, чтобы оформить его'); return } setFmtBarOpen(v => !v) }}
+                onClick={() => setFmtBarOpen(v => !v)}
                 aria-label="Форматирование" className="shrink-0 w-[34px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform font-semibold text-[16px]"
-                style={{ color: fmtBarOpen ? '#17E584' : (fmtOn ? '#CFDAD4' : '#5E6F66') }}>Aa</button>
+                style={{ color: fmtBarOpen ? '#17E584' : '#CFDAD4' }}>Aa</button>
               <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} aria-label="Эмодзи и стикеры"
                 className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform" style={{ color: stickerOpen ? '#17E584' : '#CFDAD4' }}>
                 <Icon name="emoji" size={23} />
