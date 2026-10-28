@@ -982,7 +982,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const [lockHint, setLockHint] = useState(0)   // 0..1 — насколько потянули вверх
   const [facing, setFacing] = useState<'user' | 'environment'>('user')
   const camStream = useRef<MediaStream | null>(null)
-  const camVideo = useRef<HTMLVideoElement | null>(null)   // скрытый источник для canvas
+  const [camReady, setCamReady] = useState(false)
   const camPreview = useRef<HTMLVideoElement | null>(null)
   const drawRaf = useRef(0)
   const lastMouseTouch = useRef(0)
@@ -1691,84 +1691,127 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     const c = camStream.current
     if (c) { c.getTracks().forEach(t => { try { t.stop() } catch { /* */ } }); camStream.current = null }
     if (camPreview.current) camPreview.current.srcObject = null
+    setCamReady(false)
   }
+  // превью в кружке — видимый <video>, он же источник кадров для записи (на iPhone скрытое видео не отдаёт кадры)
+  const attachPreview = async (cs: MediaStream) => {
+    for (let i = 0; i < 40 && !camPreview.current; i++) await new Promise(r => setTimeout(r, 16))
+    const v = camPreview.current; if (!v) return
+    v.srcObject = cs; v.muted = true
+    await v.play().catch(() => {})
+    for (let i = 0; i < 60 && !v.videoWidth; i++) await new Promise(r => setTimeout(r, 25))
+    setCamReady(true)
+  }
+  const camConstraints = (face: 'user' | 'environment') => ({ facingMode: face, width: { ideal: 640 }, height: { ideal: 640 }, frameRate: { ideal: 30 } })
   const openCam = async (face: 'user' | 'environment') => {
-    const cs = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face, width: { ideal: 640 }, height: { ideal: 640 } }, audio: false })
+    const cs = await navigator.mediaDevices.getUserMedia({ video: camConstraints(face), audio: false })
     const old = camStream.current
     camStream.current = cs
+    await attachPreview(cs)
     if (old) old.getTracks().forEach(t => { try { t.stop() } catch { /* */ } })
-    if (!camVideo.current) { const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); camVideo.current = v }
-    camVideo.current.srcObject = cs; await camVideo.current.play().catch(() => {})
-    if (camPreview.current) { camPreview.current.srcObject = cs; camPreview.current.play().catch(() => {}) }
   }
   const flipCam = async () => {
     const nf = facing === 'user' ? 'environment' : 'user'
-    try { await openCam(nf); setFacing(nf); try { localStorage.setItem('chat_cam', nf) } catch { /* */ } } catch { flash('Не удалось переключить камеру') }
+    setFacing(nf); try { localStorage.setItem('chat_cam', nf) } catch { /* */ }
+    try { tg?.HapticFeedback?.selectionChanged?.() } catch { /* */ }
+    try { await openCam(nf) } catch { flash('Не удалось переключить камеру') }
   }
-  const startRec = async (kind: 'voice' | 'round' = 'voice') => {
+  // доступ к микрофону/камере запрашиваем сразу при касании — пока решаем «тап или удержание», устройство уже включается
+  const acquire = (kind: 'voice' | 'round'): Promise<MediaStream> => {
+    let face: 'user' | 'environment' = 'user'
+    try { if (localStorage.getItem('chat_cam') === 'environment') face = 'environment' } catch { /* */ }
+    return navigator.mediaDevices.getUserMedia(kind === 'round' ? { audio: true, video: camConstraints(face) } : { audio: true })
+  }
+  const pending = useRef<Promise<MediaStream> | null>(null)
+  const dropPending = () => {
+    const pr = pending.current; pending.current = null
+    pr?.then(st => st.getTracks().forEach(t => t.stop())).catch(() => {})
+  }
+  const startRec = async (kind: 'voice' | 'round' = 'voice', pre?: Promise<MediaStream> | null) => {
     if (rec || micStream.current || wantRec.current) return   // уже идёт/готовится
     wantRec.current = true
+    let face: 'user' | 'environment' = 'user'
+    try { if (localStorage.getItem('chat_cam') === 'environment') face = 'environment' } catch { /* */ }
+    if (kind === 'round') {   // круг с камерой показываем сразу, не дожидаясь устройства
+      setFacing(face); setRecKind('round'); setCamReady(false); setRecElapsed(0); setRec(true)
+    }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      if (!wantRec.current) { stream.getTracks().forEach(t => t.stop()); return }   // палец отпустили до выдачи доступа
-      micStream.current = stream
-      let recStream: MediaStream = stream
+      const st = await (pre || acquire(kind))
+      if (!wantRec.current) { st.getTracks().forEach(t => t.stop()); return }   // палец отпустили до выдачи доступа
+      micStream.current = new MediaStream(st.getAudioTracks())
+      let recStream: MediaStream = micStream.current
+      let viaCanvas = false
       if (kind === 'round') {
-        let pref: 'user' | 'environment' = 'user'
-        try { if (localStorage.getItem('chat_cam') === 'environment') pref = 'environment' } catch { /* */ }
-        setFacing(pref)
-        await openCam(pref)
+        camStream.current = new MediaStream(st.getVideoTracks())
+        await attachPreview(camStream.current)
         if (!wantRec.current) { stopCam(); stopMic(); return }
-        // квадратный кадр: центр камеры, фронтальная — зеркально (как видит себя человек)
+        // квадратный кадр из превью: центр, фронтальная — зеркально (как человек видит себя)
         const cv = document.createElement('canvas'); cv.width = 480; cv.height = 480
         const ctx = cv.getContext('2d')
-        const canCap = typeof (cv as any).captureStream === 'function' && ctx
-        if (canCap) {
+        if (typeof (cv as any).captureStream === 'function' && ctx) {
           const draw = () => {
-            const v = camVideo.current
+            const v = camPreview.current
             if (v && v.videoWidth) {
               const sz = Math.min(v.videoWidth, v.videoHeight)
               const sx = (v.videoWidth - sz) / 2, sy = (v.videoHeight - sz) / 2
-              ctx!.save()
-              if ((camStream.current?.getVideoTracks()[0]?.getSettings().facingMode || 'user') !== 'environment') { ctx!.translate(480, 0); ctx!.scale(-1, 1) }
-              ctx!.drawImage(v, sx, sy, sz, sz, 0, 0, 480, 480)
-              ctx!.restore()
+              ctx.save()
+              if ((camStream.current?.getVideoTracks()[0]?.getSettings().facingMode || 'user') !== 'environment') { ctx.translate(480, 0); ctx.scale(-1, 1) }
+              ctx.drawImage(v, sx, sy, sz, sz, 0, 0, 480, 480)
+              ctx.restore()
             }
             drawRaf.current = requestAnimationFrame(draw)
           }
           draw()
-          recStream = new MediaStream([...(cv as any).captureStream(30).getVideoTracks(), ...stream.getAudioTracks()])
+          recStream = new MediaStream([...(cv as any).captureStream(30).getVideoTracks(), ...st.getAudioTracks()])
+          viaCanvas = true
         } else {
-          recStream = new MediaStream([...camStream.current!.getVideoTracks(), ...stream.getAudioTracks()])
+          recStream = new MediaStream([...camStream.current.getVideoTracks(), ...st.getAudioTracks()])
         }
       }
-      // выбираем поддерживаемый формат — иначе на части браузеров запись «зависает»
       const pref = kind === 'round'
         ? ['video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm']
         : ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4']
       const sup = (t: string) => { try { return (window as any).MediaRecorder?.isTypeSupported?.(t) } catch { return false } }
       const mime = pref.find(sup) || ''
-      const opts: MediaRecorderOptions = mime ? { mimeType: mime } : {}
-      if (kind === 'round') opts.videoBitsPerSecond = 1_000_000
-      const mr = new MediaRecorder(recStream, opts)
-      chunks.current = []
-      mr.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.current.push(ev.data) }
-      mr.onstop = () => {
-        const type = (mr.mimeType || mime || (kind === 'round' ? 'video/webm' : 'audio/webm'))
-        const blob = new Blob(chunks.current, { type })
-        stopMic(); stopCam()   // микрофон и камеру выключаем сразу
-        const dur = (Date.now() - recStart.current) / 1000
-        if (recCancelRef.current) { recCancelRef.current = false; return }   // отменено
-        if (kind === 'round') {
-          if (blob.size > 0 && dur >= 1) doUpload('round', blob, type.split(';')[0], Math.min(dur, ROUND_MAX))
-          else flash('Слишком короткий кружок — держи дольше')
-        } else if (blob.size > 0 && dur >= 0.2) doUpload('voice', blob, type, dur)
-        else flash('Пустая запись — зажми и говори')
+      const makeRec = (stream: MediaStream) => {
+        const opts: MediaRecorderOptions = mime ? { mimeType: mime } : {}
+        if (kind === 'round') opts.videoBitsPerSecond = 1_000_000
+        const mr = new MediaRecorder(stream, opts)
+        mr.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.current.push(ev.data) }
+        mr.onstop = () => {
+          if ((mr as any)._swap) return   // перезапуск на прямом потоке камеры — это не конец записи
+          const type = (mr.mimeType || mime || (kind === 'round' ? 'video/mp4' : 'audio/webm'))
+          const blob = new Blob(chunks.current, { type })
+          stopMic(); stopCam()   // микрофон и камеру выключаем сразу
+          const dur = (Date.now() - recStart.current) / 1000
+          if (recCancelRef.current) { recCancelRef.current = false; return }   // отменено
+          if (blob.size < 2000) { flash(kind === 'round' ? 'Не удалось записать видео — попробуй ещё раз' : 'Пустая запись — зажми и говори'); return }
+          if (kind === 'round') {
+            if (dur >= 0.7) doUpload('round', blob, type.split(';')[0], Math.min(dur, ROUND_MAX))
+            else flash('Слишком короткий кружок — держи дольше')
+          } else if (dur >= 0.3) doUpload('voice', blob, type, dur)
+          else flash('Слишком короткое голосовое')
+        }
+        return mr
       }
+      chunks.current = []
+      let mr = makeRec(recStream)
       mediaRec.current = mr; recStart.current = Date.now()
       recCancelRef.current = false; setRecCancel(false); setRecElapsed(0); setRecKind(kind)
-      mr.start(250); setRec(true)   // timeslice — данные копятся кусками, надёжнее
+      mr.start(250); setRec(true)
       try { tg?.HapticFeedback?.impactOccurred?.('medium') } catch { /* */ }
+      // страховка для iPhone: если запись с canvas не даёт данных — переключаемся на прямой поток камеры
+      if (viaCanvas) {
+        setTimeout(() => {
+          if (!wantRec.current || mediaRec.current !== mr || chunks.current.length) return
+          ;(mr as any)._swap = true
+          try { mr.stop() } catch { /* */ }
+          cancelAnimationFrame(drawRaf.current)
+          chunks.current = []
+          mr = makeRec(new MediaStream([...(camStream.current?.getVideoTracks() || []), ...st.getAudioTracks()]))
+          mediaRec.current = mr; mr.start(250)
+        }, 1200)
+      }
       recTimer.current = window.setInterval(() => {
         const el = (Date.now() - recStart.current) / 1000
         setRecElapsed(Math.floor(el))
@@ -1776,7 +1819,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         if (el >= (kind === 'round' ? ROUND_MAX : 300)) stopRec()   // кружок — до минуты, голос — страховка 5 мин
       }, 200)
     } catch {
-      wantRec.current = false; stopMic(); stopCam()
+      wantRec.current = false; stopMic(); stopCam(); setRec(false)
       flash(kind === 'round' ? 'Нет доступа к камере или микрофону' : 'Нет доступа к микрофону')
     }
   }
@@ -1786,23 +1829,19 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null }
     const s = micStream.current
     const mr = mediaRec.current
-    if (mr && mr.state !== 'inactive') { try { mr.stop() } catch { /* */ } }   // onstop выключит микрофон
+    if (mr && mr.state !== 'inactive') { try { mr.stop() } catch { /* */ } }   // onstop выключит устройства
     else { stopMic(); stopCam() }   // рекордер ещё не стартовал — глушим потоки напрямую
-    // страховка: если onstop не выключил этот конкретный поток — глушим его принудительно
     if (s) setTimeout(() => { s.getTracks().forEach(t => { try { t.stop() } catch { /* */ } }); if (micStream.current === s) micStream.current = null }, 600)
   }
   const cancelRec = () => { recCancelRef.current = true; stopRec() }
-  // превью камеры в кружке
-  useEffect(() => {
-    if (rec && recKind === 'round' && camPreview.current && camStream.current) {
-      camPreview.current.srcObject = camStream.current; camPreview.current.play().catch(() => {})
-    }
-  }, [rec, recKind])
   // жесты на кнопке записи
   const pressDown = (x: number, y: number) => {
     if (rec) return
+    const mode = recMode
+    pending.current = acquire(mode)
+    pending.current.catch(() => {})
     const st = { x, y, t: Date.now(), holding: false, timer: 0 }
-    st.timer = window.setTimeout(() => { st.holding = true; startRec(recMode) }, 230)
+    st.timer = window.setTimeout(() => { st.holding = true; const pr = pending.current; pending.current = null; startRec(mode, pr) }, 160)
     press.current = st
   }
   const pressMove = (x: number, y: number) => {
@@ -1819,7 +1858,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     const st = press.current; press.current = null
     if (!st) return
     clearTimeout(st.timer)
-    if (!st.holding) {   // короткое нажатие — переключаем режим
+    if (!st.holding) {   // короткое нажатие — переключаем режим, устройство выключаем
+      dropPending()
       wantRec.current = false
       const nm = recMode === 'voice' ? 'round' : 'voice'
       setRecMode(nm); try { localStorage.setItem('chat_rec_mode', nm) } catch { /* */ }
@@ -2553,6 +2593,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <motion.div initial={{ scale: 0.6 }} animate={{ scale: recCancel ? 0.86 : 1 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }}
               className="relative" style={{ width: 'min(72vw, 300px)', height: 'min(72vw, 300px)' }}>
+              {!camReady && <span className="absolute inset-0 grid place-items-center z-10 text-[13px] text-white/70">Камера включается…</span>}
               <video ref={camPreview} muted playsInline autoPlay className="w-full h-full rounded-full object-cover bg-black"
                 style={{ transform: facing === 'user' ? 'scaleX(-1)' : undefined, opacity: recCancel ? 0.55 : 1, transition: 'opacity .2s' }} />
               <svg className="absolute -inset-[6px]" viewBox="0 0 100 100" style={{ width: 'calc(100% + 12px)', height: 'calc(100% + 12px)', transform: 'rotate(-90deg)' }}>
@@ -2568,7 +2609,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             </div>
             <div className="mt-5 flex items-center gap-3 pointer-events-auto">
               {recLocked && <button onClick={cancelRec} className="h-11 px-5 rounded-full text-[14px] font-semibold text-[#FF8A8A] bg-white/[.08] active:bg-white/[.14]">Отмена</button>}
-              <button onClick={flipCam} onTouchStart={(e) => e.stopPropagation()} aria-label="Сменить камеру"
+              <button onClick={flipCam} onTouchStart={(e) => { e.stopPropagation(); e.preventDefault(); flipCam() }} aria-label="Сменить камеру"
                 className="h-11 px-4 rounded-full flex items-center gap-2 text-[13.5px] font-medium text-white bg-white/[.1] active:bg-white/[.18]">
                 <Icon name="refresh" size={18} accent="current" />{facing === 'user' ? 'Фронтальная' : 'Основная'}
               </button>
