@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 
 export interface StageHandle {
   play: (anim: string) => void
@@ -40,15 +41,15 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.05
+    renderer.toneMappingExposure = 1.0
     el.appendChild(renderer.domElement)
     renderer.domElement.style.touchAction = 'none'
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 50)
-    camera.position.set(0.55, 1.45, 3.6)
+    camera.position.set(0.45, 1.5, 3.2)
     const controls = new OrbitControls(camera, renderer.domElement)
-    controls.target.set(0, 1.18, 0)
+    controls.target.set(0, 1.3, 0)
     controls.enablePan = false
     controls.enableDamping = true
     controls.dampingFactor = 0.08
@@ -56,11 +57,13 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
     controls.minPolarAngle = 1.05; controls.maxPolarAngle = 1.78
     controls.rotateSpeed = 0.8
 
-    // свет: мягкий общий, тёплый ключ, изумрудный и фиолетовый контровые — фирменная гамма
-    scene.add(new THREE.HemisphereLight(0xdfeee7, 0x1a1f1c, 1.15))
-    const key = new THREE.DirectionalLight(0xfff2e2, 2.3); key.position.set(1.6, 2.6, 2.4); scene.add(key)
-    const rimV = new THREE.DirectionalLight(0x8a6bff, 2.2); rimV.position.set(-2.2, 2, -2); scene.add(rimV)
-    const rimG = new THREE.DirectionalLight(0x17e584, 1.4); rimG.position.set(2.4, 1.2, -2.2); scene.add(rimG)
+    // PBR-освещение: окружение студии (отражения ткани и кожи) + тёплый ключ + лёгкий холодный контровой
+    const pm = new THREE.PMREMGenerator(renderer)
+    const envTex = pm.fromScene(new RoomEnvironment(), 0.04).texture
+    scene.environment = envTex
+    scene.environmentIntensity = 0.9
+    const key = new THREE.DirectionalLight(0xfff4e8, 1.5); key.position.set(1.5, 3, 2.5); scene.add(key)
+    const rim = new THREE.DirectionalLight(0xc9c0ff, 0.9); rim.position.set(-2, 2.2, -2.4); scene.add(rim)
 
     // пятно на полу
     const g = document.createElement('canvas'); g.width = g.height = 128
@@ -92,7 +95,7 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
       const w = el.clientWidth || 1, h = el.clientHeight || 1
       renderer.setSize(w, h, false); renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px'
       camera.aspect = w / h
-      camera.position.z = w / h < 0.75 ? 4.2 : 3.6
+      camera.position.z = w / h < 0.75 ? 3.4 : 3.0
       camera.updateProjectionMatrix()
     }
     const ro = new ResizeObserver(fit); ro.observe(el); fit()
@@ -246,6 +249,7 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
         const mats = m.material ? (Array.isArray(m.material) ? m.material : [m.material]) : []
         mats.forEach((mt: any) => { Object.values(mt).forEach((v: any) => v?.isTexture && v.dispose()); mt.dispose?.() })
       })
+      envTex.dispose(); pm.dispose()
       renderer.dispose(); renderer.domElement.remove()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
