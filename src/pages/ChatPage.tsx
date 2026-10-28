@@ -17,7 +17,6 @@ type IcP = { s?: number }
 function IcEye({ s = 16 }: IcP) { return <Icon name="eye" size={s} accent="current" /> }
 function IcTimer({ s = 16 }: IcP) { return <Icon name="clock" size={s} /> }
 function IcPhoto({ s = 16 }: IcP) { return <Icon name="photo" size={s} /> }
-function IcVideo({ s = 16 }: IcP) { return <Icon name="video" size={s} /> }
 function IcReply({ s = 16 }: IcP) { return <Icon name="reply" size={s} /> }
 function IcUser({ s = 16 }: IcP) { return <Icon name="user" size={s} /> }
 function IcEdit({ s = 16 }: IcP) { return <Icon name="edit" size={s} /> }
@@ -1040,8 +1039,6 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const mediaRec = useRef<MediaRecorder | null>(null)
   const chunks = useRef<Blob[]>([])
   const recStart = useRef(0)
-  const photoInput = useRef<HTMLInputElement>(null)
-  const videoInput = useRef<HTMLInputElement>(null)
   const taRef = useRef<HTMLDivElement>(null)   // rich-поле ввода (contenteditable)
   const stScrollRef = useRef<HTMLDivElement>(null)
   const dockRef = useRef<HTMLDivElement>(null)   // плавающая нижняя панель (поле ввода + листы)
@@ -1384,38 +1381,36 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   }
 
   // галерея: несколько фото/видео — альбомом (до 10), одно фото — через редактор
-  const onPickGallery = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onPickAny = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).slice(0, 10); e.target.value = ''; setAttachOpen(false)
     if (!files.length) return
+    const kindOf = (f: File) => f.type.startsWith('image/') && !f.type.includes('gif') ? 'photo'
+      : f.type.startsWith('video/') ? 'video' : 'file'
+    // одно фото — через редактор; один видео/файл — сразу; иначе альбом из медиа, файлы по одному
     if (files.length === 1) {
-      const f = files[0]
-      if (f.type.startsWith('image/') && !f.type.includes('gif')) { setFilterIdx(0); setPhotoEdit({ url: URL.createObjectURL(f), file: f }) }
-      else doUpload(f.type.startsWith('video/') ? 'video' : 'photo', f, f.type || '')
+      const f = files[0], k = kindOf(f)
+      if (f.size > 30 * 1024 * 1024) { flash('Файл больше 30 МБ'); return }
+      if (k === 'photo') { setFilterIdx(0); setPhotoEdit({ url: URL.createObjectURL(f), file: f }) }
+      else doUpload(k, f, f.type || '')
       return
     }
-    const album = Math.random().toString(36).slice(2, 12)
-    let ok = 0
-    for (let i = 0; i < files.length; i++) {
-      const f = files[i]
-      setToast(`Загружаю ${i + 1} из ${files.length}…`)
+    const media = files.filter(f => kindOf(f) !== 'file')
+    const docs = files.filter(f => kindOf(f) === 'file')
+    const album = media.length > 1 ? Math.random().toString(36).slice(2, 12) : ''
+    let n = 0
+    for (let i = 0; i < media.length; i++) {
+      const f = media[i]
+      setToast(`Загружаю ${i + 1} из ${media.length}…`)
       api.chatTyping('upload').catch(() => {})
-      const r = await uploadMedia(f.type.startsWith('video/') ? 'video' : 'photo', f, f.type || '', 0, '', ttlSec, false, album)
+      const r = await uploadMedia(kindOf(f) === 'video' ? 'video' : 'photo', f, f.type || '', 0, '', ttlSec, false, album)
       if (r?.error) { flash(r.message || 'Не удалось загрузить'); break }
-      ok++
+      n++
     }
-    if (ok) { const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom(); setToast('') }
-  }
-  const onPickFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]; e.target.value = ''; setAttachOpen(false)
-    if (!f) return
-    if (f.size > 30 * 1024 * 1024) { flash('Файл больше 30 МБ'); return }
-    doUpload('file', f, f.type || '')
-  }
-  const onPick = (type: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0]; e.target.value = ''; setAttachOpen(false)
-    if (!f) return
-    if (type === 'photo') { setFilterIdx(0); setPhotoEdit({ url: URL.createObjectURL(f), file: f }) }
-    else doUpload(type, f, f.type || '')
+    for (const f of docs) {
+      if (f.size > 30 * 1024 * 1024) { flash(`«${f.name}» больше 30 МБ — пропущен`); continue }
+      await doUpload('file', f, f.type || '')
+    }
+    if (n) { const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom(); setToast('') }
   }
 
   const loadPacks = () => api.chatStickers().then(r => { const ps = r.packs || []; setPacks(ps); for (const p of ps) PACKCACHE[p.name] = p }).catch(() => {})
@@ -2162,17 +2157,11 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
         {attachOpen && (
           <div className="glass rounded-[22px] mb-2 p-2.5 flex flex-col gap-2" style={{ background: 'rgba(13,21,17,.97)' }}>
-            <div className="grid grid-cols-4 gap-2">
-              <button onClick={() => photoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
-                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(23,229,132,.16)', color: '#17E584' }}><IcPhoto s={19} /></span>Галерея
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => fileInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(23,229,132,.16)', color: '#17E584' }}><IcPhoto s={19} /></span>Прикрепить
               </button>
-              <button onClick={() => videoInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
-                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(118,87,255,.18)', color: VIOLET }}><IcVideo s={19} /></span>Видео
-              </button>
-              <button onClick={() => fileInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
-                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(127,211,255,.16)', color: '#7FD3FF' }}><Icon name="doc" size={19} accent="current" /></span>Файл
-              </button>
-              <button onClick={() => { setAttachOpen(false); setPollOpen(true) }} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[12.5px] font-medium text-fg">
+              <button onClick={() => { setAttachOpen(false); setPollOpen(true) }} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
                 <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(245,194,90,.16)', color: '#F5C25A' }}><Icon name="rating" size={19} accent="current" /></span>Опрос
               </button>
             </div>
@@ -2494,9 +2483,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         )}
       </AnimatePresence>
 
-      <input ref={photoInput} type="file" accept="image/*,video/*" multiple hidden onChange={onPickGallery} />
-      <input ref={fileInput} type="file" hidden onChange={onPickFile} />
-      <input ref={videoInput} type="file" accept="video/*" hidden onChange={onPick('video')} />
+      <input ref={fileInput} type="file" multiple hidden onChange={onPickAny} />
 
       <AnimatePresence>
         {viewerG && (
