@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import SplashPage from './pages/SplashPage'
 import HomePage from './pages/HomePage'
@@ -11,6 +11,7 @@ import ProfilePage from './pages/ProfilePage'
 import CompetePage from './pages/CompetePage'
 import ChatPage from './pages/ChatPage'
 import GiveawayPage from './pages/GiveawayPage'
+const MaskGamePage = lazy(() => import('./pages/mask/MaskGamePage'))
 import SubmitPage from './pages/SubmitPage'
 import CoursesListPage from './pages/courses/CoursesListPage'
 import CourseDetailPage from './pages/courses/CourseDetailPage'
@@ -59,9 +60,10 @@ type View =
   | { type: 'player'; courseId: number }
   | { type: 'feedback' }
   | { type: 'compete' }
+  | { type: 'mask' }
 
 /** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
-function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number } {
+function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean } {
   const qp = new URLSearchParams(location.search)
   const sp: string = tg?.initDataUnsafe?.start_param || ''
   const m = Number(qp.get('m') || (sp.match(/^m(\d+)$/)?.[1] ?? ''))
@@ -69,6 +71,7 @@ function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean
     material: Number.isInteger(m) && m > 0 ? m : undefined,
     feedback: qp.get('feedback') === '1' || sp === 'feedback',
     chat: qp.get('chat') === '1' || sp === 'chat' || !!qp.get('chat_msg'),
+    mask: qp.get('mask') === '1' || sp === 'mask',
     chatMsg: Number(qp.get('chat_msg')) || undefined,
   }
 }
@@ -84,6 +87,8 @@ export default function App() {
   const [upgradePending, setUpgradePending] = useState(false)
   // Квест виден только когда сервер разрешил (включён или текущий юзер — админ)
   const [giveawayVisible, setGiveawayVisible] = useState(false)
+  // Игра «Сними маску» — видимость решает сервер (сначала только админы)
+  const [maskVisible, setMaskVisible] = useState(false)
   // Вкладка конструктора — только для админов, признак приходит с сервера
   const [isAdmin, setIsAdmin] = useState(false)
   // Новые комментарии и оценки с прошлого просмотра ленты (только у админа)
@@ -114,6 +119,8 @@ export default function App() {
     api.config().then(c => {
       if (c.bot_username) setBotUsername(c.bot_username)
       setGiveawayVisible(!!c.giveaway_visible)
+      setMaskVisible(!!c.mask_visible)
+      if (c.mask_visible && deepLink.mask) setStack([{ type: 'mask' }])
       setIsAdmin(!!c.is_admin)
       if (c.is_admin && deepLink.feedback) setStack([{ type: 'feedback' }])
     }).catch(() => {})
@@ -226,6 +233,7 @@ export default function App() {
 
 
   const openCompete = () => setStack(s => [...s, { type: 'compete' }])
+  const openMask = () => setStack(s => [...s, { type: 'mask' }])
 
   const openCourse = (courseId: number, title = 'Курс') =>
     setStack(s => [...s, { type: 'course', courseId, title }])
@@ -249,7 +257,7 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} onCompete={openCompete} onChat={() => switchTab('chat')} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} onCompete={openCompete} onChat={() => switchTab('chat')} onMask={maskVisible ? openMask : undefined} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <LibraryPage bmTick={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
@@ -266,6 +274,10 @@ export default function App() {
     }
     if (top?.type === 'compete') {
       return <CompetePage />
+    }
+    if (top?.type === 'mask') {
+      if (!maskVisible) return null
+      return <Suspense fallback={null}><MaskGamePage /></Suspense>
     }
     if (top?.type === 'courses') {
       return <CoursesListPage sectionId={top.section.id} onOpen={openCourse} />
@@ -316,6 +328,9 @@ export default function App() {
     }
     if (top.type === 'compete') {
       return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Рейтинг" />
+    }
+    if (top.type === 'mask') {
+      return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Сними маску" />
     }
     if (top.type === 'courses') {
       const sid = top.section.id

@@ -18,6 +18,7 @@ interface Props {
   onSubmit?: () => void
   onCompete?: () => void
   onChat?: () => void
+  onMask?: () => void
 }
 
 const FEATURED_TITLE = 'Знания S010lvloon'
@@ -201,6 +202,20 @@ function Seg({ v, u }: { v: number; u: string }) {
   )
 }
 
+function MaskCard({ onOpen }: { onOpen: () => void }) {
+  return (
+    <button onClick={onOpen} className="card w-full text-left px-3.5 py-3.5 flex items-center gap-3 active:scale-[.99] transition-transform"
+      style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(118,87,255,.30), transparent 65%), radial-gradient(90% 120% at 100% 100%, rgba(23,229,132,.14), transparent 60%), #111C17', borderColor: 'rgba(160,135,255,.32)' }}>
+      <span className="tile-violet w-[44px] h-[44px] shrink-0"><Icon name="mask" size={22} accent="#fff" /></span>
+      <span className="flex-1 min-w-0">
+        <span className="block font-display font-semibold text-[15px]">Сними маску</span>
+        <span className="block text-[12.5px] text-gray mt-0.5">Назови моё имя — первый получает приз</span>
+      </span>
+      <span className="gold-metal sheen rounded-full px-2.5 h-7 flex items-center text-[12px] font-semibold text-[#2B1A02] relative shrink-0"><span className="relative z-[1]">80 USDT</span></span>
+    </button>
+  )
+}
+
 function WeekRating({ c, onOpen, onPlay }: { c: Compete; onOpen?: () => void; onPlay: () => void }) {
   const [left, setLeft] = useState(weekLeft)
   useEffect(() => { const t = window.setInterval(() => setLeft(weekLeft()), 30_000); return () => window.clearInterval(t) }, [])
@@ -282,7 +297,7 @@ function WeekRating({ c, onOpen, onPlay }: { c: Compete; onOpen?: () => void; on
   )
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, onChat }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, onChat, onMask }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -362,6 +377,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             <button onClick={onTabCats} className="btn-primary w-full">Выбрать раздел</button>
           )}
         </div>
+
+        {/* Игра «Сними маску» */}
+        {onMask && <MaskCard onOpen={onMask} />}
 
         {/* Живой чат */}
         <LiveChat onOpen={onChat} />

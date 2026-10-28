@@ -158,6 +158,7 @@ export interface Config {
   currency: string
   bot_username?: string
   giveaway_visible?: boolean
+  mask_visible?: boolean
   is_admin?: boolean
 }
 
