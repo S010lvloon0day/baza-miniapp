@@ -179,6 +179,53 @@ function InlineEmoji({ kind, eref, size }: { kind: string; eref: string; size: n
 }
 
 /** В превью (ответы/закреп) эмодзи-токены заменяем на 🙂, чтобы не светить код. */
+function attachLabel(m: ChatMsg) {
+  return ({ round: 'Видеосообщение', voice: 'Голосовое', video: 'Видео', photo: 'Фото', gif: 'GIF', sticker: 'Стикер' } as Record<string, string>)[m.type] || 'Вложение'
+}
+
+/** Видеокружок: тап — играть со звуком / пауза, долгое нажатие — меню. */
+function RoundMsg({ m, src, bind }: { m: ChatMsg; src: string; bind: (open: () => void) => Record<string, any> }) {
+  const ref = useRef<HTMLVideoElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [prog, setProg] = useState(0)
+  const toggle = () => {
+    const v = ref.current; if (!v) return
+    if (v.paused) {
+      // останавливаем другие кружки и голосовые
+      document.querySelectorAll('video[data-round], audio').forEach(el => { if (el !== v) (el as HTMLMediaElement).pause() })
+      if (v.ended || prog >= 0.99) v.currentTime = 0
+      v.muted = false; v.play().then(() => setPlaying(true)).catch(() => {})
+    } else { v.pause(); setPlaying(false) }
+  }
+  const size = playing ? 252 : 208
+  const R = size / 2 - 3, C = 2 * Math.PI * R
+  return (
+    <div className="relative rounded-full transition-[width,height] duration-200" {...(() => { const b = bind(toggle); return { ...b, style: { ...(b.style || {}), width: size, height: size } } })()}>
+      <video ref={ref} data-round src={src + '#t=0.1'} preload="metadata" playsInline disablePictureInPicture
+        onPause={() => setPlaying(false)} onEnded={() => { setPlaying(false); setProg(0) }}
+        onTimeUpdate={(e) => { const v = e.currentTarget; if (v.duration) setProg(v.currentTime / v.duration) }}
+        className="w-full h-full rounded-full object-cover bg-black/40 pointer-events-none select-none" />
+      <svg className="absolute inset-0 pointer-events-none" width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={size / 2} cy={size / 2} r={R} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="3" />
+        {playing && <circle cx={size / 2} cy={size / 2} r={R} fill="none" stroke="#17E584" strokeWidth="3" strokeLinecap="round"
+          strokeDasharray={C} strokeDashoffset={C * (1 - prog)} />}
+      </svg>
+      {!playing && (
+        <span className="absolute inset-0 grid place-items-center pointer-events-none">
+          <span className="w-11 h-11 rounded-full grid place-items-center text-white" style={{ background: 'rgba(0,0,0,.45)', backdropFilter: 'blur(6px)' }}>
+            <Icon name="play" size={20} accent="#fff" />
+          </span>
+        </span>
+      )}
+      {m.dur > 0 && (
+        <span className="absolute bottom-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full text-[11px] font-medium text-white tabular-nums pointer-events-none" style={{ background: 'rgba(0,0,0,.5)' }}>
+          {(() => { const t = playing ? Math.max(0, m.dur * (1 - prog)) : m.dur; return `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}` })()}
+        </span>
+      )}
+    </div>
+  )
+}
+
 function stripTokens(text: string) {
   const t = (text || '').replace(/\{e:[avi]:[A-Za-z0-9_#-]+\}/g, '🙂')
   const noMat = t.replace(/#m\d{1,7}\b/g, '').trim()
@@ -589,6 +636,25 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
     )
   }
 
+  if (m.type === 'round' && src) {
+    return (
+      <div className={`flex gap-2 px-2.5 ${grouped ? 'mt-1' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''}`}>
+        {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
+        <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+          {!grouped && !mine && <div className="text-[13px] font-semibold mb-1 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}<NameBadges m={m} /></div>}
+          {quoted && (
+            <div className="mb-1 px-2 py-1 rounded-[8px] text-[12px] max-w-[220px] truncate" style={{ background: 'rgba(23,229,132,.08)', borderLeft: '3px solid #17E584', color: '#A6B8AE' }}>
+              <span className="font-semibold" style={{ color: '#17E584' }}>{quoted.name}</span> · {stripTokens(quoted.text) || attachLabel(quoted)}
+            </div>
+          )}
+          <RoundMsg m={m} src={src} bind={tapMedia} />
+          <span className="mt-1 px-1.5 py-0.5 rounded-full flex items-center" style={{ background: 'rgba(0,0,0,.35)' }}><MsgMeta m={m} light /></span>
+          <Reactions m={m} onToggle={onReact} />
+        </div>
+      </div>
+    )
+  }
+
   const onlyMedia = m.has_media && !m.text && !(m.once && !mine)
 
   return (
@@ -610,7 +676,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
           {quoted && (
             <div className="mx-2 mt-2 px-2 py-1.5 rounded-[8px] text-[12.5px]" style={{ background: mine ? 'rgba(0,0,0,.2)' : 'rgba(23,229,132,.08)', borderLeft: '3px solid #17E584' }}>
               <span className="font-semibold text-[12px]" style={{ color: mine ? '#C8F7DD' : '#17E584' }}>{quoted.name}</span>
-              <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.78)' : '#A6B8AE' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || 'Вложение')}</div>
+              <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.78)' : '#A6B8AE' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || attachLabel(quoted))}</div>
             </div>
           )}
 
@@ -757,9 +823,22 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const [recCancel, setRecCancel] = useState(false)
   const recTimer = useRef<number | null>(null)
   const recCancelRef = useRef(false)
-  const touchStartX = useRef(0)
   const micStream = useRef<MediaStream | null>(null)
   const wantRec = useRef(false)
+  // как в Telegram: короткое нажатие переключает голосовое ↔ кружок, удержание — запись,
+  // влево — отмена, вверх — запись без рук
+  const [recMode, setRecMode] = useState<'voice' | 'round'>(() => { try { return localStorage.getItem('chat_rec_mode') === 'round' ? 'round' : 'voice' } catch { return 'voice' } })
+  const [recKind, setRecKind] = useState<'voice' | 'round'>('voice')
+  const [recLocked, setRecLocked] = useState(false)
+  const recLockedRef = useRef(false)
+  const [lockHint, setLockHint] = useState(0)   // 0..1 — насколько потянули вверх
+  const [facing, setFacing] = useState<'user' | 'environment'>('user')
+  const camStream = useRef<MediaStream | null>(null)
+  const camVideo = useRef<HTMLVideoElement | null>(null)   // скрытый источник для canvas
+  const camPreview = useRef<HTMLVideoElement | null>(null)
+  const drawRaf = useRef(0)
+  const lastMouseTouch = useRef(0)
+  const press = useRef<{ x: number; y: number; t: number; timer: number; holding: boolean } | null>(null)
   const [ttlSec, setTtlSec] = useState(0)
   const [onceOn, setOnceOn] = useState(false)
   const [gifEnabled, setGifEnabled] = useState(false)
@@ -1314,53 +1393,148 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     const s = micStream.current
     if (s) { s.getTracks().forEach(t => { try { t.enabled = false } catch { /* */ } try { t.stop() } catch { /* */ } }); micStream.current = null }
   }
-  const startRec = async () => {
+  const ROUND_MAX = 60
+  const stopCam = () => {
+    cancelAnimationFrame(drawRaf.current)
+    const c = camStream.current
+    if (c) { c.getTracks().forEach(t => { try { t.stop() } catch { /* */ } }); camStream.current = null }
+    if (camPreview.current) camPreview.current.srcObject = null
+  }
+  const openCam = async (face: 'user' | 'environment') => {
+    const cs = await navigator.mediaDevices.getUserMedia({ video: { facingMode: face, width: { ideal: 640 }, height: { ideal: 640 } }, audio: false })
+    const old = camStream.current
+    camStream.current = cs
+    if (old) old.getTracks().forEach(t => { try { t.stop() } catch { /* */ } })
+    if (!camVideo.current) { const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.setAttribute('playsinline', ''); camVideo.current = v }
+    camVideo.current.srcObject = cs; await camVideo.current.play().catch(() => {})
+    if (camPreview.current) { camPreview.current.srcObject = cs; camPreview.current.play().catch(() => {}) }
+  }
+  const flipCam = async () => {
+    const nf = facing === 'user' ? 'environment' : 'user'
+    try { await openCam(nf); setFacing(nf) } catch { flash('Не удалось переключить камеру') }
+  }
+  const startRec = async (kind: 'voice' | 'round' = 'voice') => {
     if (rec || micStream.current || wantRec.current) return   // уже идёт/готовится
     wantRec.current = true
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
       if (!wantRec.current) { stream.getTracks().forEach(t => t.stop()); return }   // палец отпустили до выдачи доступа
       micStream.current = stream
-      // выбираем поддерживаемый формат (opus предпочтительно) — иначе на части браузеров
-      // дефолт даёт битый/несовместимый контейнер и запись «зависает»
-      const pref = ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4']
+      let recStream: MediaStream = stream
+      if (kind === 'round') {
+        setFacing('user')
+        await openCam('user')
+        if (!wantRec.current) { stopCam(); stopMic(); return }
+        // квадратный кадр: центр камеры, фронтальная — зеркально (как видит себя человек)
+        const cv = document.createElement('canvas'); cv.width = 480; cv.height = 480
+        const ctx = cv.getContext('2d')
+        const canCap = typeof (cv as any).captureStream === 'function' && ctx
+        if (canCap) {
+          const draw = () => {
+            const v = camVideo.current
+            if (v && v.videoWidth) {
+              const sz = Math.min(v.videoWidth, v.videoHeight)
+              const sx = (v.videoWidth - sz) / 2, sy = (v.videoHeight - sz) / 2
+              ctx!.save()
+              if ((camStream.current?.getVideoTracks()[0]?.getSettings().facingMode || 'user') !== 'environment') { ctx!.translate(480, 0); ctx!.scale(-1, 1) }
+              ctx!.drawImage(v, sx, sy, sz, sz, 0, 0, 480, 480)
+              ctx!.restore()
+            }
+            drawRaf.current = requestAnimationFrame(draw)
+          }
+          draw()
+          recStream = new MediaStream([...(cv as any).captureStream(30).getVideoTracks(), ...stream.getAudioTracks()])
+        } else {
+          recStream = new MediaStream([...camStream.current!.getVideoTracks(), ...stream.getAudioTracks()])
+        }
+      }
+      // выбираем поддерживаемый формат — иначе на части браузеров запись «зависает»
+      const pref = kind === 'round'
+        ? ['video/mp4;codecs=avc1,mp4a', 'video/mp4', 'video/webm;codecs=vp8,opus', 'video/webm']
+        : ['audio/webm;codecs=opus', 'audio/ogg;codecs=opus', 'audio/webm', 'audio/mp4']
       const sup = (t: string) => { try { return (window as any).MediaRecorder?.isTypeSupported?.(t) } catch { return false } }
       const mime = pref.find(sup) || ''
-      const mr = mime ? new MediaRecorder(stream, { mimeType: mime }) : new MediaRecorder(stream)
+      const opts: MediaRecorderOptions = mime ? { mimeType: mime } : {}
+      if (kind === 'round') opts.videoBitsPerSecond = 1_000_000
+      const mr = new MediaRecorder(recStream, opts)
       chunks.current = []
       mr.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.current.push(ev.data) }
       mr.onstop = () => {
-        const type = mr.mimeType || mime || 'audio/webm'
+        const type = (mr.mimeType || mime || (kind === 'round' ? 'video/webm' : 'audio/webm'))
         const blob = new Blob(chunks.current, { type })
-        stopMic()   // микрофон выключаем сразу
+        stopMic(); stopCam()   // микрофон и камеру выключаем сразу
         const dur = (Date.now() - recStart.current) / 1000
         if (recCancelRef.current) { recCancelRef.current = false; return }   // отменено
-        // короткие голосовые тоже отправляем — нужно лишь, чтобы был звук
-        if (blob.size > 0 && dur >= 0.2) doUpload('voice', blob, type, dur)
+        if (kind === 'round') {
+          if (blob.size > 0 && dur >= 1) doUpload('round', blob, type.split(';')[0], Math.min(dur, ROUND_MAX))
+          else flash('Слишком короткий кружок — держи дольше')
+        } else if (blob.size > 0 && dur >= 0.2) doUpload('voice', blob, type, dur)
         else flash('Пустая запись — зажми и говори')
       }
       mediaRec.current = mr; recStart.current = Date.now()
-      recCancelRef.current = false; setRecCancel(false); setRecElapsed(0)
-      mr.start(200); setRec(true)   // timeslice — данные копятся кусками, надёжнее
+      recCancelRef.current = false; setRecCancel(false); setRecElapsed(0); setRecKind(kind)
+      mr.start(250); setRec(true)   // timeslice — данные копятся кусками, надёжнее
+      try { tg?.HapticFeedback?.impactOccurred?.('medium') } catch { /* */ }
       recTimer.current = window.setInterval(() => {
-        const el = Math.floor((Date.now() - recStart.current) / 1000)
-        setRecElapsed(el)
-        if (el >= 300) stopRec()   // авто-стоп на 5 минутах (страховка от «зависания»)
+        const el = (Date.now() - recStart.current) / 1000
+        setRecElapsed(Math.floor(el))
+        if (el >= (kind === 'round' ? ROUND_MAX : 300)) stopRec()   // кружок — до минуты, голос — страховка 5 мин
       }, 200)
-    } catch { wantRec.current = false; stopMic(); flash('Нет доступа к микрофону') }
+    } catch {
+      wantRec.current = false; stopMic(); stopCam()
+      flash(kind === 'round' ? 'Нет доступа к камере или микрофону' : 'Нет доступа к микрофону')
+    }
   }
   const stopRec = () => {
     wantRec.current = false
-    setRec(false); setRecCancel(false)
+    setRec(false); setRecCancel(false); setRecLocked(false); recLockedRef.current = false; setLockHint(0)
     if (recTimer.current) { clearInterval(recTimer.current); recTimer.current = null }
     const s = micStream.current
     const mr = mediaRec.current
     if (mr && mr.state !== 'inactive') { try { mr.stop() } catch { /* */ } }   // onstop выключит микрофон
-    else { stopMic() }   // рекордер ещё не стартовал — глушим поток напрямую
+    else { stopMic(); stopCam() }   // рекордер ещё не стартовал — глушим потоки напрямую
     // страховка: если onstop не выключил этот конкретный поток — глушим его принудительно
     if (s) setTimeout(() => { s.getTracks().forEach(t => { try { t.stop() } catch { /* */ } }); if (micStream.current === s) micStream.current = null }, 600)
   }
   const cancelRec = () => { recCancelRef.current = true; stopRec() }
+  // превью камеры в кружке
+  useEffect(() => {
+    if (rec && recKind === 'round' && camPreview.current && camStream.current) {
+      camPreview.current.srcObject = camStream.current; camPreview.current.play().catch(() => {})
+    }
+  }, [rec, recKind])
+  // жесты на кнопке записи
+  const pressDown = (x: number, y: number) => {
+    if (rec) return
+    const st = { x, y, t: Date.now(), holding: false, timer: 0 }
+    st.timer = window.setTimeout(() => { st.holding = true; startRec(recMode) }, 230)
+    press.current = st
+  }
+  const pressMove = (x: number, y: number) => {
+    const st = press.current; if (!st || !st.holding || recLockedRef.current) return
+    const dx = x - st.x, dy = y - st.y
+    const c = dx < -70; recCancelRef.current = c; setRecCancel(c)
+    setLockHint(Math.max(0, Math.min(1, -dy / 80)))
+    if (dy < -80 && !c) {   // потянули вверх — запись без рук
+      recLockedRef.current = true; setRecLocked(true); setLockHint(0)
+      try { tg?.HapticFeedback?.impactOccurred?.('light') } catch { /* */ }
+    }
+  }
+  const pressUp = () => {
+    const st = press.current; press.current = null
+    if (!st) return
+    clearTimeout(st.timer)
+    if (!st.holding) {   // короткое нажатие — переключаем режим
+      wantRec.current = false
+      const nm = recMode === 'voice' ? 'round' : 'voice'
+      setRecMode(nm); try { localStorage.setItem('chat_rec_mode', nm) } catch { /* */ }
+      try { tg?.HapticFeedback?.selectionChanged?.() } catch { /* */ }
+      flash(nm === 'round' ? 'Удерживай, чтобы записать кружок' : 'Удерживай, чтобы записать голосовое')
+      return
+    }
+    if (recLockedRef.current) return   // запись без рук — остановит кнопка «Отправить»
+    stopRec()
+  }
 
   let lastDay = ''
 
@@ -1483,7 +1657,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
           <span className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style={{ background: 'rgba(118,87,255,.18)', color: VIOLET }}><Icon name="pin" size={15} /></span>
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-semibold truncate" style={{ color: VIOLET }}>Закреплено · {pinned.name}</div>
-            <div className="text-[13.5px] text-fg truncate">{stripTokens(pinned.text) || 'Вложение'}</div>
+            <div className="text-[13.5px] text-fg truncate">{stripTokens(pinned.text) || attachLabel(pinned)}</div>
           </div>
           {isAdmin && <button onClick={(e) => { e.stopPropagation(); unpin() }} className="text-[12px] font-medium text-gray px-2 py-1 rounded-full active:bg-white/10 shrink-0">Открепить</button>}
         </div>
@@ -1552,7 +1726,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       </div>
 
       {/* плавающая нижняя панель: листы + стеклянная капсула ввода */}
-      <div ref={dockRef} className="absolute left-0 right-0 bottom-0 z-20 px-2.5 flex flex-col pointer-events-none [&>*]:pointer-events-auto"
+      <div ref={dockRef} className={`absolute left-0 right-0 bottom-0 ${rec && recKind === 'round' ? 'z-[60]' : 'z-20'} px-2.5 flex flex-col pointer-events-none [&>*]:pointer-events-auto`}
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 12px)' }}>
         {showDown && !searchOpen && (
           <button onClick={() => { scrollToBottom(true); setNewBelow(0) }} aria-label="К новым сообщениям"
@@ -1587,7 +1761,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             <span className="text-green shrink-0"><Icon name={editing ? 'edit' : 'reply'} size={17} /></span>
             <div className="flex-1 min-w-0 pl-2.5 border-l-[3px] border-green">
               <div className="text-[12px] font-semibold text-green">{editing ? 'Редактирование' : `Ответ ${reply!.name}`}</div>
-              <div className="text-[12.5px] text-gray truncate">{stripTokens((editing || reply)!.text) || 'Вложение'}</div>
+              <div className="text-[12.5px] text-gray truncate">{stripTokens((editing || reply)!.text) || attachLabel((editing || reply)!)}</div>
             </div>
             <button onClick={() => { setReply(null); setEditing(null); setComposer('') }} aria-label="Отменить" className="w-9 h-9 rounded-full flex items-center justify-center text-gray active:bg-white/10"><Icon name="close" size={17} /></button>
           </div>
@@ -1808,7 +1982,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                   <span key={i} className="vbar" style={{ width: 2.5, borderRadius: 2, background: recCancel ? '#FF8A8A' : '#17E584', animationDelay: `${((i * 7) % 24) * 0.045}s` }} />
                 ))}
               </div>
-              <span className="text-[12px] shrink-0" style={{ color: recCancel ? '#FF8A8A' : '#A6B8AE' }}>{recCancel ? 'отпустите — отмена' : 'отпустите — отправить'}</span>
+              <span className="text-[12px] shrink-0" style={{ color: recCancel ? '#FF8A8A' : '#A6B8AE' }}>{recLocked ? (recKind === 'round' ? 'кружок' : 'без рук') : recCancel ? 'отпустите — отмена' : '‹ влево — отмена'}</span>
               <button onClick={cancelRec} className="w-8 h-8 rounded-full flex items-center justify-center text-[#FF8A8A] active:bg-white/10 shrink-0" aria-label="Отмена"><Icon name="close" size={16} /></button>
             </div>
           ) : (
@@ -1839,17 +2013,44 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               <Icon name="send" size={20} accent="#021A0C" style={{ transform: 'translate(-1px,1px)' }} />
             </button>
           ) : (
-            <button onMouseDown={startRec} onMouseUp={stopRec} onMouseLeave={() => rec && stopRec()}
-              onTouchStart={(e) => { e.preventDefault(); touchStartX.current = e.touches[0].clientX; startRec() }}
-              onTouchMove={(e) => { const dx = e.touches[0].clientX - touchStartX.current; const c = dx < -70; recCancelRef.current = c; setRecCancel(c) }}
-              onTouchEnd={(e) => { e.preventDefault(); stopRec() }}
-              aria-label="Голосовое сообщение"
+            recLocked ? (
+            <button onClick={stopRec} aria-label="Отправить" className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center active:scale-90 transition-transform"
+              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #0FB866 45%, #088A4A 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#021A0C' }}>
+              <Icon name="send" size={20} accent="#021A0C" style={{ transform: 'translate(-1px,1px)' }} />
+            </button>
+            ) : (
+            <div className="relative shrink-0">
+            {rec && (
+              /* замок: потяни вверх — запись без рук */
+              <div className="absolute left-1/2 -translate-x-1/2 bottom-[58px] w-[38px] rounded-full flex flex-col items-center justify-start pt-2 gap-1 glass pointer-events-none"
+                style={{ height: 78 - lockHint * 24, color: '#CFDAD4' }}>
+                <Icon name="lock" size={17} accent="current" />
+                <Icon name="chevD" size={14} style={{ transform: 'rotate(180deg)', opacity: 1 - lockHint }} />
+              </div>
+            )}
+            <button onMouseDown={(e) => {
+                if (Date.now() - lastMouseTouch.current < 900) return   // эмуляция мыши после касания
+                pressDown(e.clientX, e.clientY)
+                // мышью можно уйти с кнопки (вверх — замок, влево — отмена) — слушаем окно
+                const mv = (ev: MouseEvent) => pressMove(ev.clientX, ev.clientY)
+                const upH = () => { window.removeEventListener('mousemove', mv); window.removeEventListener('mouseup', upH); pressUp() }
+                window.addEventListener('mousemove', mv); window.addEventListener('mouseup', upH)
+              }}
+              onTouchStart={(e) => { e.preventDefault(); lastMouseTouch.current = Date.now(); pressDown(e.touches[0].clientX, e.touches[0].clientY) }}
+              onTouchMove={(e) => { lastMouseTouch.current = Date.now(); pressMove(e.touches[0].clientX, e.touches[0].clientY) }}
+              onTouchEnd={(e) => { e.preventDefault(); lastMouseTouch.current = Date.now(); pressUp() }}
+              onContextMenu={(e) => e.preventDefault()}
+              aria-label={recMode === 'round' ? 'Видеосообщение' : 'Голосовое сообщение'}
               className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center active:scale-90 transition-transform"
               style={rec
                 ? { background: '#ff5050', color: '#fff' }
                 : { background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #0FB866 45%, #088A4A 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#021A0C' }}>
-              <Icon name="mic" size={21} accent={rec ? '#fff' : '#021A0C'} />
+              <motion.span key={recMode} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.18 }} className="flex">
+                <Icon name={recMode === 'round' ? 'video' : 'mic'} size={21} accent={rec ? '#fff' : '#021A0C'} />
+              </motion.span>
             </button>
+            </div>
+            )
           )}
         </div>
       </div>
@@ -1934,6 +2135,35 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       </AnimatePresence>
 
       <AnimatePresence>
+        {rec && recKind === 'round' && (
+          <motion.div className="fixed inset-0 z-[55] flex flex-col items-center justify-center pointer-events-none"
+            style={{ background: 'rgba(4,10,7,.62)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', paddingBottom: 120 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div initial={{ scale: 0.6 }} animate={{ scale: recCancel ? 0.86 : 1 }} transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+              className="relative" style={{ width: 'min(72vw, 300px)', height: 'min(72vw, 300px)' }}>
+              <video ref={camPreview} muted playsInline autoPlay className="w-full h-full rounded-full object-cover bg-black"
+                style={{ transform: facing === 'user' ? 'scaleX(-1)' : undefined, opacity: recCancel ? 0.55 : 1, transition: 'opacity .2s' }} />
+              <svg className="absolute -inset-[6px]" viewBox="0 0 100 100" style={{ width: 'calc(100% + 12px)', height: 'calc(100% + 12px)', transform: 'rotate(-90deg)' }}>
+                <circle cx="50" cy="50" r="48.5" fill="none" stroke="rgba(255,255,255,.12)" strokeWidth="1.6" />
+                <circle cx="50" cy="50" r="48.5" fill="none" stroke={recCancel ? '#FF8A8A' : '#ff5050'} strokeWidth="1.6" strokeLinecap="round"
+                  strokeDasharray={2 * Math.PI * 48.5} strokeDashoffset={2 * Math.PI * 48.5 * (1 - Math.min(1, recElapsed / 60))}
+                  style={{ transition: 'stroke-dashoffset .25s linear' }} />
+              </svg>
+            </motion.div>
+            <div className="mt-5 flex items-center gap-2 text-[14px] text-white/90 tabular-nums">
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: '#ff5050' }} />
+              {fmtDur(recElapsed)} / 1:00
+            </div>
+            {recLocked && (
+              <div className="mt-5 flex items-center gap-3 pointer-events-auto">
+                <button onClick={cancelRec} className="h-11 px-5 rounded-full text-[14px] font-semibold text-[#FF8A8A] bg-white/[.08] active:bg-white/[.14]">Отмена</button>
+                <button onClick={flipCam} aria-label="Сменить камеру" className="w-11 h-11 rounded-full grid place-items-center text-white bg-white/[.08] active:bg-white/[.14]">
+                  <Icon name="refresh" size={19} accent="current" />
+                </button>
+              </div>
+            )}
+          </motion.div>
+        )}
         {onlineList && (
           <motion.div className="fixed inset-0 z-[72] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.55)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOnlineList(null)}>

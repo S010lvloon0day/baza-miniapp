@@ -230,7 +230,7 @@ export interface ChatMsg {
   username: string
   avatar: string
   mine: boolean
-  type: 'text' | 'photo' | 'video' | 'voice' | 'gif' | 'sticker'
+  type: 'text' | 'photo' | 'video' | 'voice' | 'gif' | 'sticker' | 'round'
   text: string
   has_media: boolean
   media_url: string
