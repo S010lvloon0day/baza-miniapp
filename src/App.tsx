@@ -107,6 +107,8 @@ export default function App() {
 
   useEffect(() => {
     tg?.expand?.()
+    // не закрывать миниапп случайным смахиванием вниз (листание, фото и т.п.); закрыть можно крестиком
+    try { tg?.disableVerticalSwipes?.() } catch { /* старый клиент Telegram */ }
     tg?.ready?.()
     enterFullscreenOnDesktop()
     api.config().then(c => {

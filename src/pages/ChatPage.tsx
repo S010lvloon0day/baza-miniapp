@@ -772,6 +772,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const [packBusy, setPackBusy] = useState(false)
   const [menuFor, setMenuFor] = useState<ChatMsg | null>(null)
   const [profileFor, setProfileFor] = useState<number | null>(null)
+  const vSwipe = useRef<{ y: number; dy: number } | null>(null)
   const [viewer, setViewer] = useState<{ url: string; video: boolean; id?: number; mine?: boolean } | null>(null)
 
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -2008,8 +2009,27 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
       <AnimatePresence>
         {viewer && (
-          <motion.div className="fixed inset-0 z-[90] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.94)' }}
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewer(null)}>
+          <motion.div className="fixed inset-0 z-[90] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,.94)', touchAction: 'none' }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setViewer(null)}
+            // смахивание фото/видео вверх или вниз закрывает только просмотр, а не миниапп
+            onTouchStart={(e) => { vSwipe.current = { y: e.touches[0].clientY, dy: 0 } }}
+            onTouchMove={(e) => {
+              const st = vSwipe.current; if (!st) return
+              st.dy = e.touches[0].clientY - st.y
+              const el = e.currentTarget as HTMLElement
+              el.style.transition = 'none'
+              const media = el.querySelector('img,video') as HTMLElement | null
+              if (media) { media.style.transition = 'none'; media.style.transform = `translateY(${st.dy}px)` }
+              el.style.background = `rgba(0,0,0,${Math.max(0.35, 0.94 - Math.abs(st.dy) / 500)})`
+            }}
+            onTouchEnd={(e) => {
+              const st = vSwipe.current; vSwipe.current = null; if (!st) return
+              const el = e.currentTarget as HTMLElement
+              if (Math.abs(st.dy) > 90) { setViewer(null); return }
+              const media = el.querySelector('img,video') as HTMLElement | null
+              if (media) { media.style.transition = 'transform .2s ease'; media.style.transform = '' }
+              el.style.background = 'rgba(0,0,0,.94)'
+            }}>
             {/* верхняя панель: закрыть + удалить (для своих/админа) */}
             <div className="absolute top-0 left-0 right-0 flex items-center gap-2 px-4" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 12px)' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => setViewer(null)} aria-label="Закрыть" className="w-10 h-10 rounded-full flex items-center justify-center text-white glass"><Icon name="close" size={18} /></button>
