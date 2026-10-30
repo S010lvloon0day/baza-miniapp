@@ -68,7 +68,7 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
     const px = (x: number) => (x / W + 0.5) * 512
     c.fillStyle = '#eceae2'
     for (const s of [-1, 1]) c.fillRect(px(s * (LANE * 1.5 + 0.18)) - 5, 0, 10, 512)
-    for (const s of [-0.5, 0.5]) for (let y = 0; y < 512; y += 128) c.fillRect(px(s * LANE) - 4, y, 8, 70)
+    for (const s of [-0.5, 0.5]) c.fillRect(px(s * LANE) - 4, 0, 8, 192)   // штрих 3 м, разрыв 5 м
   }, 1, L / 8)
   const road = new THREE.Mesh(new THREE.PlaneGeometry(W, L), new THREE.MeshStandardMaterial({ map: roadT, roughness: 0.85, metalness: 0 }))
   road.rotation.x = -Math.PI / 2; road.position.set(0, 0, L / 2 - 10); S.add(road)
@@ -146,7 +146,7 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
   return {
     update(dz: number, dt = 0) {
       for (const it of scroll) { it.o.position.z -= dz; if (it.o.position.z < -10) it.o.position.z += it.span }
-      for (const s of texScroll) s.t.offset.y += dz * s.k
+      for (const s of texScroll) s.t.offset.y -= dz * s.k   // плоскость повёрнута: v растёт к камере
       anim(dt, dz)
     },
   }

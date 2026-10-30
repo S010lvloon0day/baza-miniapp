@@ -8,15 +8,44 @@ export function createRunnerSound() {
   let muted = false
   try { muted = localStorage.getItem('mg_mute') === '1' } catch { /* */ }
 
+  // iOS: WebAudio молчит при беззвучном режиме и до «разблокировки» жестом.
+  // Сессия «playback» + тихий <audio> в цикле переводят звук в режим медиа (как у видео).
+  let htmlAudio: HTMLAudioElement | null = null
+  const silentWav = () => {
+    const n = 4410, b = new ArrayBuffer(44 + n * 2), v = new DataView(b)
+    const w = (o: number, s: string) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)) }
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVE'); w(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true)
+    v.setUint32(24, 44100, true); v.setUint32(28, 88200, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true)
+    return URL.createObjectURL(new Blob([b], { type: 'audio/wav' }))
+  }
+  const unlock = () => {
+    try { const as = (navigator as any).audioSession; if (as) as.type = 'playback' } catch { /* */ }
+    try {
+      if (!htmlAudio) { htmlAudio = new Audio(silentWav()); htmlAudio.loop = true; (htmlAudio as any).playsInline = true; htmlAudio.volume = 0.01 }
+      htmlAudio.play().catch(() => {})
+    } catch { /* */ }
+    if (ctx) {
+      if (ctx.state !== 'running') ctx.resume().catch(() => {})
+      try { const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource(); s.buffer = b; s.connect(ctx.destination); s.start(0) } catch { /* */ }
+    }
+  }
+  let armed = false
+  const arm = () => {   // любое касание тоже будит звук (Telegram иногда приостанавливает контекст)
+    if (armed) return; armed = true
+    const h = () => { if (ctx && ctx.state !== 'running') unlock() }
+    for (const ev of ['touchend', 'pointerup', 'keydown']) window.addEventListener(ev, h, { passive: true })
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) h() })
+  }
   const init = () => {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return }
+    if (ctx) { unlock(); return }
     const AC = (window as any).AudioContext || (window as any).webkitAudioContext
     if (!AC) return
-    ctx = new AC() as AudioContext
+    ctx = new AC({ latencyHint: 'playback' }) as AudioContext
     master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ctx.destination)
     noise = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate)
     const d = noise.getChannelData(0)
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+    unlock(); arm()
   }
 
   /** шумовой всплеск через фильтр с огибающей */
@@ -166,6 +195,6 @@ export function createRunnerSound() {
     musicStop(fade = 0.6) { if (!ctx || !mbus) return; mbus.gain.setTargetAtTime(0, ctx.currentTime, fade / 3); const t = timer; timer = 0; setTimeout(() => { if (t) clearInterval(t) }, fade * 1000) },
     /** 0..1 — растёт со скоростью: быстрее темп, ярче фильтр */
     musicIntensity(x: number) { inten = Math.max(0, Math.min(1, x)) },
-    dispose() { if (timer) clearInterval(timer); try { wind?.stop() } catch { /* */ } ctx?.close() },
+    dispose() { if (timer) clearInterval(timer); try { wind?.stop() } catch { /* */ } try { htmlAudio?.pause() } catch { /* */ } ctx?.close() },
   }
 }
