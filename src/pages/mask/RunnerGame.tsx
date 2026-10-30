@@ -1,3 +1,4 @@
+import { MODEL_V } from '../../api/mask'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import * as THREE from 'three'
@@ -88,7 +89,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
     }
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
-    gl.load(BASE + 'mask/public.glb', g => {
+    gl.load(BASE + 'mask/public.glb?v=' + MODEL_V, g => {
       if (!alive) return
       g.scene.traverse(o => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false })
       hero.add(g.scene)

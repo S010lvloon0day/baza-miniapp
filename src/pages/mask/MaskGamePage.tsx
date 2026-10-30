@@ -1,3 +1,4 @@
+import { MODEL_V } from '../../api/mask'
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import Icon from '../../components/Icon'
 import { maskApi } from '../../api/mask'
@@ -201,7 +202,7 @@ export default function MaskGamePage() {
       {/* Сцена */}
       <div className="relative w-full" style={{ height: 'min(62vh, 560px)', background: 'radial-gradient(80% 70% at 50% 38%, rgba(118,87,255,.22), transparent 70%), radial-gradient(70% 50% at 50% 100%, rgba(23,229,132,.14), transparent 70%), #08100D' }}>
         <Suspense fallback={null}>
-          <MaskStage ref={stage} publicUrl={`${BASE}mask/public.glb`}
+          <MaskStage ref={stage} publicUrl={`${BASE}mask/public.glb?v=${MODEL_V}`}
             revealUrl={canReveal ? maskApi.revealUrl() : undefined}
             revealHeaders={{ 'X-Init-Data': maskApi.initData() }}
             revealed={solved && canReveal && !revealedNow}
