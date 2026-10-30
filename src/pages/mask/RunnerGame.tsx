@@ -126,22 +126,37 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const sfx = snd.current
     let rand = rnd(1), nextZ = 30
     const speed = () => Math.min(model.v0 + model.a * t, model.vmax)
+    // сложность растёт всё время: d = 0 на старте → 1 к ~2,5 мин (и скорость при этом не останавливается)
+    const KN = 30   // нормировка «насколько быстро» для эффектов и музыки
     const spawn = () => {
-      while (nextZ < dist + 70) {
-        const r = rand(), lanes = [-1, 0, 1]
-        const free = lanes[Math.floor(rand() * 3)]
-        if (r < 0.34) {                    // одно препятствие на дорожке
-          const l = lanes[Math.floor(rand() * 3)]
-          const k: Kind = rand() < 0.5 ? 'low' : 'high'
-          obs.push({ g: build(k), lane: l, z: nextZ, kind: k })
-        } else if (r < 0.7) {             // две стены, одна дорожка свободна
-          for (const l of lanes) if (l !== free) obs.push({ g: build('wall'), lane: l, z: nextZ, kind: 'wall' })
-        } else {                           // барьер во всю ширину — прыгать или подныривать
-          const k: Kind = rand() < 0.5 ? 'low' : 'high'
-          for (const l of lanes) obs.push({ g: build(k), lane: l, z: nextZ, kind: k })
+      while (nextZ < dist + 90) {
+        const vv = speed(), d = Math.min(1, t / 150), lanes = [-1, 0, 1]
+        const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)]
+        const lk = (): Kind => rand() < 0.5 ? 'low' : 'high'
+        const add = (l: number, k: Kind, dz = 0) => obs.push({ g: build(k), lane: l, z: nextZ + dz, kind: k })
+        const free = pick(lanes)
+        // веса узоров: простые уходят, сложные приходят
+        const w = [1.2 - d, 1, 0.8, 0.2 + d * 1.2, d * 1.1, d * 0.9]
+        let r = rand() * w.reduce((x, y) => x + y), p = 0
+        while (r > w[p]) { r -= w[p]; p++ }
+        let extra = 0
+        if (p === 0) add(pick(lanes), lk())                                              // одно препятствие
+        else if (p === 1) { for (const l of lanes) if (l !== free) add(l, 'wall') }    // две стены, проход один
+        else if (p === 2) { const k = lk(); for (const l of lanes) add(l, k) }          // барьер во всю ширину
+        else if (p === 3) { for (const l of lanes) add(l, l === free ? lk() : 'wall') } // проход есть, но в нём ещё барьер
+        else if (p === 4) {                                                            // зигзаг: стены заставляют перестраиваться дважды
+          const l1 = pick(lanes), l2 = pick(lanes.filter(x => x !== l1)), gap = Math.max(8, vv * (0.62 - d * 0.12))
+          for (const l of lanes) if (l !== l1) add(l, 'wall')
+          for (const l of lanes) if (l !== l2) add(l, 'wall', gap)
+          extra = gap
+        } else {                                                                       // коридор: длинный ряд контейнеров + барьеры в проходе
+          const gap = Math.max(7, vv * 0.4)
+          for (let i = 0; i < 3; i++) { for (const l of lanes) if (l !== free) add(l, 'wall', i * gap) }
+          add(free, lk(), gap * 1.5); extra = gap * 2
         }
-        // промежуток во времени, а не в метрах: на любой скорости ~0,8–1,3 с на реакцию
-        const vv = speed(); nextZ += Math.max(11, vv * 0.8) + rand() * vv * 0.5
+        // промежуток во времени сокращается: ~1,0 с на старте → ~0,6 с к концу
+        const react = Math.max(0.58, 1.0 - d * 0.42)
+        nextZ += extra + Math.max(10, vv * react) + rand() * vv * (0.45 - d * 0.2)
       }
     }
     const reset = (seed: number) => {
@@ -191,23 +206,26 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       mixer?.update(dt)
       if (run) {
         t += dt
-        const v = speed(); dist += v * dt
+        const v = speed(); const dPrev = dist; dist += v * dt
         x += (LX(lane) - x) * Math.min(1, dt * 14)
         vy -= 26 * dt; y = Math.max(0, y + vy * dt); if (y === 0) vy = 0
         if (air && y === 0) { air = false; sfx.land(); puff(7, 1.3); buzz('light') }
         world.update(v * dt, dt)
-        sfx.musicIntensity((v - model.v0) / (model.vmax - model.v0))
-        sfx.wind(0.015 + 0.05 * (v - model.v0) / (model.vmax - model.v0))
+        const kk = Math.min(1, (v - model.v0) / KN)
+        sfx.musicIntensity(kk)
+        sfx.wind(0.015 + 0.05 * kk)
         if (A.run && cur === A.run && y === 0) { stepT -= dt * A.run.timeScale; if (stepT <= 0) { stepT += 22 / 30 / 2; sfx.step(); if (Math.random() < 0.5) puff(1, 0.7) } } else stepT = 0.05
         if (slide > 0) { slide -= dt; if (slide <= 0 && y === 0) play('run', false, 1) }
         if (y === 0 && vy === 0 && slide <= 0 && cur !== A.run) play('run', false, 1)
-        if (A.run) A.run.timeScale = 0.8 + (v - model.v0) / (model.vmax - model.v0) * 0.6
+        if (A.run) A.run.timeScale = 0.8 + Math.min(1.2, (v - model.v0) / KN) * 0.6
         spawn()
         const hTop = slide > 0 ? 0.95 : 1.8
         for (const o of obs) {
           const rz = o.z - dist
           o.g.position.set(LX(o.lane), 0, rz)
-          if (o.lane === lane && Math.abs(rz) < (o.kind === 'wall' ? WALL_HALF + 0.1 : 0.45) && Math.abs(x - LX(lane)) < 0.6) {
+          const hz = o.kind === 'wall' ? WALL_HALF + 0.1 : 0.45, rzP = o.z - dPrev
+          // «сквозная» проверка: за кадр на большой скорости можно пролететь препятствие насквозь
+          if (o.lane === lane && rz < hz && rzP > -hz && Math.abs(x - LX(lane)) < 0.6) {
             const hit = o.kind === 'wall' || (o.kind === 'low' && y < 0.6) || (o.kind === 'high' && hTop > 1.2 && y < 0.9)
             if (hit) { end(); break }
           }
@@ -221,7 +239,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       hero.position.set(x, y, 0)
       hero.rotation.z += (((LX(lane) - x) * -0.18) - hero.rotation.z) * Math.min(1, dt * 10)   // наклон в повороте
       // ощущение скорости: шире угол, камера чуть дальше, лёгкая тряска, линии
-      const k = run ? Math.max(0, (speed() - model.v0) / (model.vmax - model.v0)) : 0
+      const k = run ? Math.min(1, Math.max(0, (speed() - model.v0) / KN)) : 0
       const fov = 55 + k * 16; if (Math.abs(cam.fov - fov) > 0.05) { cam.fov += (fov - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix() }
       const shake = run ? k * 0.035 : 0
       cam.position.x += (x * 0.5 - cam.position.x) * Math.min(1, dt * 6) + (Math.random() - 0.5) * shake
