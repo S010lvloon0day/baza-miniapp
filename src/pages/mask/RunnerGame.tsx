@@ -96,8 +96,10 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       for (const c of g.animations) {
         // прыжок/подкат/падение у Mixamo уезжают вперёд — оставляем только вертикаль
         for (const t of c.tracks) if (/Hips\.position$/.test(t.name)) {
-          const v = t.values; const x0 = v[0], z0 = v[2]
-          for (let i = 0; i < v.length; i += 3) { v[i] = x0; v[i + 2] = z0 }
+          // вертикальная ось — та, где у таза больше всего смещение покоя (высота таза)
+          const v = t.values; const up = [0, 1, 2].reduce((a, b) => Math.abs(v[b]) > Math.abs(v[a]) ? b : a, 0)
+          const r0 = [v[0], v[1], v[2]]
+          for (let i = 0; i < v.length; i += 3) for (let k = 0; k < 3; k++) if (k !== up) v[i + k] = r0[k]
         }
         A[c.name] = mixer.clipAction(c)
       }
