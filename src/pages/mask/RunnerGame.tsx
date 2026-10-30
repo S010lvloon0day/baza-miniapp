@@ -7,7 +7,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { maskApi } from '../../api/mask'
 import type { RunTop } from '../../api/mask'
-import { buildWorld, obstacleFactory } from './runnerWorld'
+import { buildWorld, obstacleFactory, loadDecor, WALL_HALF } from './runnerWorld'
 import { createRunnerSound } from './runnerSound'
 
 /** Задание 1: бег по трём дорожкам. Скорость v(t)=min(v0+a·t, vmax) — та же модель на сервере. */
@@ -69,6 +69,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
     }
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
+    loadDecor(BASE + 'mask/decor/', gl).then(lib => { if (!alive) return; world.applyDecor(lib); makeObs.setLib(lib) })
     gl.load(BASE + 'mask/public.glb?v=' + MODEL_V, g => {
       if (!alive) return
       g.scene.traverse(o => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).frustumCulled = false })
@@ -172,7 +173,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
         for (const o of obs) {
           const rz = o.z - dist
           o.g.position.set(LX(o.lane), 0, rz)
-          if (o.lane === lane && Math.abs(rz) < (o.kind === 'wall' ? 0.75 : 0.45) && Math.abs(x - LX(lane)) < 0.6) {
+          if (o.lane === lane && Math.abs(rz) < (o.kind === 'wall' ? WALL_HALF + 0.1 : 0.45) && Math.abs(x - LX(lane)) < 0.6) {
             const hit = o.kind === 'wall' || (o.kind === 'low' && y < 0.6) || (o.kind === 'high' && hTop > 1.2 && y < 0.9)
             if (hit) { end(); break }
           }

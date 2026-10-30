@@ -109,22 +109,22 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
     g.scale.setScalar(rnd(0.8, 1.6)); g.rotation.y = rnd(0, 6.3)
     return g
   }
-  for (let i = 0; i < 70; i++) {
-    const t = tree(); const s = i % 2 ? 1 : -1
+  for (let i = 0; i < 50; i++) {
+    const t = tree(); const s = i % 2 ? 1 : -1; t.userData.slot = 'tree'
     t.position.set(s * (W / 2 + rnd(3.2, 26)), 0, rnd(-8, SPAN - 8)); S.add(t); scroll.push({ o: t, span: SPAN })
   }
   const rockM = new THREE.MeshStandardMaterial({ color: 0x8b8580, roughness: 0.95, flatShading: true })
   const rockG = new THREE.DodecahedronGeometry(0.5, 0)
   for (let i = 0; i < 26; i++) {
-    const r = new THREE.Mesh(rockG, rockM); const s = i % 2 ? 1 : -1
+    const r = new THREE.Mesh(rockG, rockM); const s = i % 2 ? 1 : -1; r.userData.slot = 'rock'
     r.scale.set(rnd(0.5, 1.4), rnd(0.35, 0.8), rnd(0.5, 1.3)); r.rotation.y = rnd(0, 3)
     r.position.set(s * (W / 2 + rnd(2.2, 12)), 0.12, rnd(-8, SPAN - 8)); S.add(r); scroll.push({ o: r, span: SPAN })
   }
   // кусты цветов
   const flowerM = [0xe4c84a, 0xe58ac0, 0xf2f0e6].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 1, flatShading: true }))
   const bushG = new THREE.IcosahedronGeometry(0.35, 0)
-  for (let i = 0; i < 40; i++) {
-    const b = new THREE.Mesh(bushG, flowerM[i % 3]); const s = i % 2 ? 1 : -1
+  for (let i = 0; i < 30; i++) {
+    const b = new THREE.Mesh(bushG, flowerM[i % 3]); const s = i % 2 ? 1 : -1; b.userData.slot = 'bush'
     b.scale.set(1, 0.6, 1); b.position.set(s * (W / 2 + rnd(2.1, 9)), 0.15, rnd(-8, SPAN - 8)); S.add(b); scroll.push({ o: b, span: SPAN })
   }
   // фонари с тёплым светящимся плафоном
@@ -138,12 +138,56 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
     const arm = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.06), poleM); arm.position.set(-s * 0.42, 4.15, 0); g.add(arm)
     const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.1, 0.2), bulbM); bulb.position.set(-s * 0.82, 4.08, 0); g.add(bulb)
     const gl = new THREE.Sprite(glowM); gl.scale.setScalar(0.9); gl.position.set(-s * 0.82, 4.0, 0); g.add(gl)
+    g.userData = { slot: 'lamp', side: s }
     g.position.set(s * (W / 2 + 0.75), 0, i * 12 + (s > 0 ? 6 : 0)); S.add(g); scroll.push({ o: g, span: 192 })
   }
 
   const anim = addDetails(S, W, scroll, SPAN)
 
+  /** Подменяет простые фигуры моделями Tripo (если загрузились). Модели нормированы: высота 1, низ в 0. */
+  const applyDecor = (lib: DecorLib) => {
+    const H: Record<string, [string[], number, number]> = {   // слот: модели, мин. и макс. высота, м
+      tree: [['pine', 'pine', 'green', 'yellow'], 4.5, 7.5], rock: [['rock'], 0.45, 0.9], bush: [['bush'], 0.55, 1.0],
+      cottage: [['cottage'], 6, 7], barn: [['barn'], 5.5, 6.5], mill: [['mill'], 9, 11],
+    }
+    for (const it of scroll) {
+      const sl = it.o.userData.slot as string | undefined; if (!sl) continue
+      if (sl === 'lamp') {
+        const t = lib.lamp; if (!t) continue
+        const g = it.o as THREE.Group; const side = it.o.userData.side as number
+        g.clear(); const m = t.clone(); const h = 4.3; m.scale.setScalar(h)
+        const hd = (t.userData.head as THREE.Vector3) || new THREE.Vector3()
+        m.rotation.y = Math.atan2(hd.z, hd.x) - Math.atan2(0, -side)
+        g.add(m)
+        const gl = new THREE.Sprite(glowM); gl.scale.setScalar(1.1)
+        gl.position.set(-side * Math.hypot(hd.x, hd.z) * h, hd.y * h - 0.1, 0); g.add(gl)
+        continue
+      }
+      const spec = H[sl]; if (!spec) continue
+      const keys = spec[0].filter(k => lib[k]); if (!keys.length) continue
+      const m = lib[keys[Math.floor(Math.random() * keys.length)]].clone()
+      m.scale.setScalar(rnd(spec[1], spec[2]))
+      const g = new THREE.Group(); g.position.set(it.o.position.x, 0, it.o.position.z)
+      g.rotation.y = sl === 'cottage' || sl === 'barn' || sl === 'mill' ? (it.o.userData.side > 0 ? -Math.PI / 2 : Math.PI / 2) + rnd(-0.4, 0.4) : rnd(0, 6.3)
+      g.add(m); g.userData = it.o.userData; S.remove(it.o); S.add(g); it.o = g
+    }
+    // дополнительная ферма: колодцы, стога, сараи, указатели
+    const extra: [string, number, number, number, number, number][] = [   // модель, штук, высота, x от, x до
+      ['haystack', 10, 1.8, 2.3, 6, 22], ['well', 4, 2.6, 2.8, 8, 20], ['shed', 4, 3.2, 3.8, 10, 24], ['sign', 4, 2.2, 2.5, 2.6, 3.4],
+    ] as any
+    for (const [k, n, h0, h1, x0, x1] of extra) {
+      if (!lib[k]) continue
+      for (let i = 0; i < n; i++) {
+        const m = lib[k].clone(); m.scale.setScalar(rnd(h0, h1))
+        const g = new THREE.Group(); const s = (i + (k === 'sign' ? 0 : 1)) % 2 ? 1 : -1
+        g.position.set(s * (W / 2 + rnd(x0, x1)), 0, rnd(-8, SPAN - 8)); g.rotation.y = k === 'sign' ? (s > 0 ? -Math.PI / 2 : Math.PI / 2) : rnd(0, 6.3)
+        g.add(m); S.add(g); scroll.push({ o: g, span: SPAN })
+      }
+    }
+  }
+
   return {
+    applyDecor,
     update(dz: number, dt = 0) {
       for (const it of scroll) { it.o.position.z -= dz; if (it.o.position.z < -10) it.o.position.z += it.span }
       for (const s of texScroll) s.t.offset.y -= dz * s.k   // плоскость повёрнута: v растёт к камере
@@ -236,6 +280,7 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
   for (let i = 0; i < 9; i++) {
     const s = i % 2 ? 1 : -1; const k = i % 3
     const o = k === 0 ? house() : k === 1 ? barn() : mill()
+    o.userData = { slot: ['cottage', 'barn', 'mill'][k], side: s }
     o.position.set(s * (W / 2 + rnd(14, 30)), 0, i * (SPAN / 9) + rnd(0, 8)); o.rotation.y = s > 0 ? rnd(-0.4, 0.2) : rnd(-0.2, 0.4) + Math.PI * 0
     put(o)
   }
@@ -312,7 +357,32 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
 }
 
 /** Препятствия: шлагбаум (жёлтый, прыгать), арка с перекладиной (фиолетовая, подныривать), контейнер (красный, обегать). */
+export type DecorLib = Record<string, THREE.Object3D>
+export const DECOR_KEYS = ['pine', 'green', 'yellow', 'bush', 'rock', 'cottage', 'barn', 'mill', 'shed', 'well', 'haystack', 'sign', 'lamp', 'container', 'container2']
+
+/** Грузит модели декораций; ошибки по отдельным файлам не мешают остальным. */
+export async function loadDecor(base: string, loader: { loadAsync: (u: string) => Promise<{ scene: THREE.Object3D }> }): Promise<DecorLib> {
+  const lib: DecorLib = {}
+  await Promise.all(DECOR_KEYS.map(async k => {
+    try {
+      const g = await loader.loadAsync(base + k + '.glb'); const sc = g.scene
+      sc.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = false } })
+      if (k === 'lamp') {   // где плафон: центр вершин в верхних 12% высоты
+        sc.updateMatrixWorld(true); const v = new THREE.Vector3(), sum = new THREE.Vector3(); let n = 0
+        sc.traverse(o => { const m = o as THREE.Mesh; if (!m.isMesh) return; const p = m.geometry.attributes.position
+          for (let i = 0; i < p.count; i++) { v.fromBufferAttribute(p, i).applyMatrix4(m.matrixWorld); if (v.y > 0.88) { sum.add(v); n++ } } })
+        sc.userData.head = n ? sum.divideScalar(n) : new THREE.Vector3(0, 0.95, 0)
+      }
+      lib[k] = sc
+    } catch { /* нет файла — останется простая фигура */ }
+  }))
+  return lib
+}
+
+export const WALL_HALF = 1.3   // половина длины контейнера вдоль дороги
+
 export function obstacleFactory(LANE: number) {
+  let lib: DecorLib = {}
   const stripes = (a: string, b: string) => tex(256, 64, c => { for (let i = -1; i < 9; i++) { c.fillStyle = i % 2 ? a : b; c.beginPath(); c.moveTo(i * 32, 64); c.lineTo(i * 32 + 32, 64); c.lineTo(i * 32 + 64, 0); c.lineTo(i * 32 + 32, 0); c.fill() } })
   const lowM = new THREE.MeshStandardMaterial({ map: stripes('#f5c25a', '#1d1d1f'), roughness: 0.5, emissive: 0x3a2600, emissiveIntensity: 0.35 })
   const highM = new THREE.MeshStandardMaterial({ map: stripes('#9b7bff', '#f2f0ff'), roughness: 0.45, emissive: 0x24127a, emissiveIntensity: 0.5 })
@@ -324,7 +394,7 @@ export function obstacleFactory(LANE: number) {
     c.fillStyle = '#f2efe8'; c.font = 'bold 22px sans-serif'; c.fillText('S010', 18, 72)
   })
   const contM = new THREE.MeshStandardMaterial({ map: contT, roughness: 0.6, metalness: 0.3, emissive: 0x3a0a0c, emissiveIntensity: 0.3 })
-  return (k: 'low' | 'high' | 'wall') => {
+  const make = (k: 'low' | 'high' | 'wall') => {
     const g = new THREE.Group()
     if (k === 'low') {
       const b = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.86, 0.26, 0.14), lowM); b.position.y = 0.42; g.add(b)
@@ -336,8 +406,15 @@ export function obstacleFactory(LANE: number) {
       for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.6, 8), postM); p.position.set(sx * LANE * 0.44, 0.8, 0); g.add(p) }
     }
     if (k === 'wall') {
-      const w = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.88, 2.4, 1.3), contM); w.position.y = 1.2; g.add(w)
+      const keys = ['container', 'container2'].filter(x => lib[x])
+      if (keys.length) {
+        const t = lib[keys[Math.floor(Math.random() * keys.length)]]
+        const b = new THREE.Box3().setFromObject(t), sz = b.getSize(new THREE.Vector3())
+        const m = t.clone(); m.scale.set(LANE * 0.9 / sz.x, 2.3 / sz.y, WALL_HALF * 2 / sz.z); g.add(m)
+      } else { const w = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.88, 2.4, WALL_HALF * 2), contM); w.position.y = 1.2; g.add(w) }
     }
     return g
   }
+  make.setLib = (l: DecorLib) => { lib = l }
+  return make
 }
