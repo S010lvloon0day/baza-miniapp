@@ -314,19 +314,40 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
   anims.push((_dt, dz) => { if (!dz) return; for (let i = 0; i < N; i++) { tz[i] -= dz; if (tz[i] < -8) tz[i] += 118 } placeTufts() })
 
   // билборды
-  const boardT = (title: string, sub: string, a: string, b: string) => tex(512, 256, c => {
-    const g = c.createLinearGradient(0, 0, 512, 256); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(0, 0, 512, 256)
-    c.fillStyle = 'rgba(255,255,255,0.12)'; for (let i = 0; i < 6; i++) { c.beginPath(); c.arc(420 - i * 30, 60 + i * 20, 80 - i * 8, 0, 7); c.fill() }
-    c.fillStyle = '#fff'; c.font = 'bold 74px sans-serif'; c.fillText(title, 36, 130); c.font = '34px sans-serif'; c.fillText(sub, 38, 190)
+  // билборды — только про «Базу знаний»: заголовок, пояснение, плашка-ярлык
+  const boardT = (tag: string, title: string, sub: string, a: string, b: string, accent: string) => tex(1024, 512, c => {
+    const g = c.createLinearGradient(0, 0, 1024, 512); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(0, 0, 1024, 512)
+    const r = c.createRadialGradient(860, 80, 0, 860, 80, 520); r.addColorStop(0, 'rgba(255,255,255,0.16)'); r.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = r; c.fillRect(0, 0, 1024, 512)
+    c.strokeStyle = 'rgba(255,255,255,0.07)'; c.lineWidth = 2; for (let x = -512; x < 1024; x += 48) { c.beginPath(); c.moveTo(x, 512); c.lineTo(x + 512, 0); c.stroke() }
+    c.fillStyle = accent; c.fillRect(0, 0, 14, 512)
+    c.font = '600 30px sans-serif'; const tw = c.measureText(tag).width
+    c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); (c as any).roundRect ? (c as any).roundRect(64, 58, tw + 44, 54, 27) : c.rect(64, 58, tw + 44, 54); c.fill()
+    c.fillStyle = accent; c.fillText(tag, 86, 96)
+    c.fillStyle = '#fff'; let fs = 108; c.font = `800 ${fs}px sans-serif`; while (c.measureText(title).width > 900 && fs > 60) { fs -= 6; c.font = `800 ${fs}px sans-serif` }
+    c.fillText(title, 62, 250)
+    c.fillStyle = 'rgba(255,255,255,0.86)'; c.font = '500 44px sans-serif'; c.fillText(sub, 66, 330)
+    c.fillStyle = 'rgba(255,255,255,0.55)'; c.font = '500 30px sans-serif'; c.fillText('База знаний · Telegram', 66, 452)
   })
-  const ads = [boardT('S010 VPN', 'быстро · без логов', '#0f8f5a', '#17e584'), boardT('СНИМИ МАСКУ', 'приз 80 USDT', '#3a1f8f', '#8a6bff'), boardT('20 000', 'добеги до конца', '#a8322e', '#f5c25a')]
-  for (let i = 0; i < 6; i++) {
+  const EM = ['#0a5c3c', '#12a067', '#5ef0ad'], GD = ['#5a3d05', '#b07d16', '#ffd166'], VI = ['#24125e', '#5a3fc4', '#b9a6ff'], DK = ['#0f1720', '#1f3a32', '#5ef0ad']
+  const ads = [
+    boardT('БАЗА ЗНАНИЙ', '2 800+ материалов', 'видео, уроки и документы на русском', EM[0], EM[1], EM[2]),
+    boardT('КУРС', 'OSINT с нуля', '394 урока · от новичка до профи', DK[0], DK[1], DK[2]),
+    boardT('КУРС', 'Linux', '106 интерактивных уроков с практикой', EM[0], '#0f7a8a', EM[2]),
+    boardT('PREMIUM', 'Вся база сразу', 'от 12 $ в месяц · крипта или Stars', GD[0], GD[1], GD[2]),
+    boardT('РЕЙТИНГ НЕДЕЛИ', 'Учись — получай Premium', 'топ-3 недели — Premium в подарок', GD[0], '#8a4a12', GD[2]),
+    boardT('ПРАКТИКА', 'Тесты и задания', 'проверь себя после каждого урока', VI[0], VI[1], VI[2]),
+    boardT('СООБЩЕСТВО', 'Общий чат', 'вопросы, опыт и обсуждения', VI[0], '#3b2a8a', VI[2]),
+    boardT('ЗНАНИЯ S010LVLOON', 'Авторские курсы', 'то, чего нет в открытом доступе', DK[0], '#2a2140', GD[2]),
+    boardT('УДОБНО', 'Продолжай с места', 'прогресс, избранное и поиск', EM[0], EM[1], EM[2]),
+  ]
+  const NB = ads.length
+  for (let i = 0; i < NB; i++) {
     const g = new THREE.Group(); const s = i % 2 ? 1 : -1
-    const pane = new THREE.Mesh(new THREE.PlaneGeometry(6, 3), new THREE.MeshStandardMaterial({ map: ads[i % 3], roughness: 0.6, emissive: 0xffffff, emissiveMap: ads[i % 3], emissiveIntensity: 0.25 }))
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(6, 3), new THREE.MeshStandardMaterial({ map: ads[i], roughness: 0.6, emissive: 0xffffff, emissiveMap: ads[i], emissiveIntensity: 0.3 }))
     pane.position.y = 4.2; pane.rotation.y = Math.PI + s * 0.35; g.add(pane)
     const back = new THREE.Mesh(new THREE.BoxGeometry(6.2, 3.2, 0.15), std(0x2a2d33)); back.position.set(0, 4.2, 0.1); back.rotation.y = s * 0.35; g.add(back)
     for (const px of [-1.8, 1.8]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.8, 0.2), std(0x2a2d33)); p.position.set(px, 1.4, 0.2); g.add(p) }
-    g.position.set(s * (W / 2 + rnd(6, 9)), 0, i * 30 + 18); put(g, 180)
+    g.position.set(s * (W / 2 + rnd(6, 9)), 0, i * (198 / NB) + 14); put(g, 198)
   }
 
   // арка-мост над дорогой (декор, выше героя)
@@ -335,7 +356,7 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
   for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(1.2, 6, 2), archM); p.position.set(s * (W / 2 + 1.4), 3, 0); arch.add(p) }
   const deck = new THREE.Mesh(new THREE.BoxGeometry(W + 4, 1.1, 2.4), archM); deck.position.y = 6.4; arch.add(deck)
   const rail = new THREE.Mesh(new THREE.BoxGeometry(W + 4, 0.5, 0.15), std(0x3a3d44)); rail.position.set(0, 7.2, -1.1); arch.add(rail)
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.9), new THREE.MeshStandardMaterial({ map: tex(256, 64, c => { c.fillStyle = '#0f8f5a'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#fff'; c.font = 'bold 30px sans-serif'; c.fillText('▲ S010  ·  ВПЕРЁД', 14, 42) }), emissive: 0x0b6a40, emissiveIntensity: 0.6 }))
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.9), new THREE.MeshStandardMaterial({ map: tex(256, 64, c => { c.fillStyle = '#0f8f5a'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#fff'; c.font = 'bold 30px sans-serif'; c.fillText('БАЗА ЗНАНИЙ  ▸', 30, 42) }), emissive: 0x0b6a40, emissiveIntensity: 0.6 }))
   sign.position.set(0, 5.4, -1.25); sign.rotation.y = Math.PI; arch.add(sign)
   arch.position.z = 90; put(arch, 180)
 
