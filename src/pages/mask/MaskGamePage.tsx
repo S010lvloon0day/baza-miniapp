@@ -195,7 +195,7 @@ export default function MaskGamePage() {
     <div className="flex-1 overflow-y-auto pb-navsafe">
       {runOpen && (
         <Suspense fallback={null}>
-          <RunnerGame model={s.run_model ?? { v0: 10, a: 0.1, vmax: 28 }} target={s.tasks?.run.target ?? 20000}
+          <RunnerGame model={s.run_model ?? { v0: 12, a: 0.2, vmax: 34 }} target={s.tasks?.run.target ?? 50000}
             onClose={() => { setRunOpen(false); load() }} />
         </Suspense>
       )}
