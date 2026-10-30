@@ -6,6 +6,8 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { maskApi } from '../../api/mask'
+import { buildWorld, obstacleFactory } from './runnerWorld'
+import { createRunnerSound } from './runnerSound'
 
 /** Задание 1: бег по трём дорожкам. Скорость v(t)=min(v0+a·t, vmax) — та же модель на сервере. */
 interface Props { model: { v0: number; a: number; vmax: number }; target: number; onClose: (done: boolean) => void }
@@ -24,6 +26,8 @@ export default function RunnerGame({ model, target, onClose }: Props) {
   const [phase, setPhase] = useState<'load' | 'ready' | 'run' | 'end'>('load')
   const [res, setRes] = useState<{ score: number; done: boolean; flag?: string | null } | null>(null)
   const api = useRef({ start: () => {}, input: (_k: 'up' | 'down' | 'left' | 'right') => {} })
+  const snd = useRef(createRunnerSound())
+  const [muted, setMuted] = useState(snd.current.muted)
 
   useEffect(() => {
     const el = host.current!
@@ -34,46 +38,16 @@ export default function RunnerGame({ model, target, onClose }: Props) {
     R.toneMapping = THREE.ACESFilmicToneMapping
     el.appendChild(R.domElement)
     const S = new THREE.Scene()
-    S.background = new THREE.Color(0x07100c)
-    S.fog = new THREE.Fog(0x07100c, 20, 62)
     const pm = new THREE.PMREMGenerator(R)
     S.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture
-    S.environmentIntensity = 0.8
-    const sun = new THREE.DirectionalLight(0xfff4e8, 1.6); sun.position.set(2, 6, -3); S.add(sun)
-    const cam = new THREE.PerspectiveCamera(55, 1, 0.1, 120)
+    S.environmentIntensity = 0.35
+    const cam = new THREE.PerspectiveCamera(55, 1, 0.1, 500)
     cam.position.set(0, 3.1, -4.6); cam.lookAt(0, 1.2, 6)
-
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(LANE * 3 + 0.6, 150), new THREE.MeshStandardMaterial({ color: 0x0d1813, roughness: 0.9 }))
-    road.rotation.x = -Math.PI / 2; road.position.z = 65; S.add(road)
-    const edge = new THREE.MeshBasicMaterial({ color: 0x17e584 })
-    for (const x of [-1, 1]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 150), edge); l.position.set(x * (LANE * 1.5 + 0.15), 0.01, 65); S.add(l) }
-    const dashMat = new THREE.MeshBasicMaterial({ color: 0x2a4a3b })
-    const dashes: THREE.Mesh[] = []
-    for (let i = 0; i < 44; i++) for (const x of [-LANE / 2, LANE / 2]) {
-      const d = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.015, 1.2), dashMat); d.position.set(x, 0.012, i * 3.5); S.add(d); dashes.push(d)
-    }
-    const pilMat = new THREE.MeshStandardMaterial({ color: 0x14231c, roughness: 0.6, emissive: 0x0b3a26, emissiveIntensity: 0.7 })
-    const pillars: THREE.Mesh[] = []
-    for (let i = 0; i < 26; i++) for (const sx of [-1, 1]) {
-      const h = 2.4 + (i % 3) * 0.7
-      const p = new THREE.Mesh(new THREE.BoxGeometry(0.5, h, 0.5), pilMat); p.position.set(sx * (LANE * 1.5 + 1.4), h / 2, i * 6); S.add(p); pillars.push(p)
-    }
-
-    const mats: Record<Kind, THREE.MeshStandardMaterial> = {
-      low: new THREE.MeshStandardMaterial({ color: 0xf5c25a, roughness: 0.45, emissive: 0x3a2600, emissiveIntensity: 0.5 }),
-      high: new THREE.MeshStandardMaterial({ color: 0x8a6bff, roughness: 0.4, emissive: 0x1e1060, emissiveIntensity: 0.7 }),
-      wall: new THREE.MeshStandardMaterial({ color: 0xe5484d, roughness: 0.5, emissive: 0x3a0a0c, emissiveIntensity: 0.6 }),
-    }
-    const build = (k: Kind) => {
-      const g = new THREE.Group()
-      if (k === 'low') { const b = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.85, 0.55, 0.5), mats.low); b.position.y = 0.275; g.add(b) }
-      if (k === 'high') {
-        const b = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.9, 0.4, 0.4), mats.high); b.position.y = 1.4; g.add(b)
-        for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.6, 0.08), mats.high); p.position.set(sx * LANE * 0.43, 0.8, 0); g.add(p) }
-      }
-      if (k === 'wall') { const w = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.85, 2.4, 1.2), mats.wall); w.position.y = 1.2; g.add(w) }
-      S.add(g); return g
-    }
+    const world = buildWorld(S, LANE)
+    const makeObs = obstacleFactory(LANE)
+    const build = (k: Kind) => { const g = makeObs(k); S.add(g); return g }
+    // камера смотрит вдоль +Z, поэтому экранное «вправо» — это −X мира
+    const LX = (l: number) => -l * LANE
 
     // ── персонаж
     const hero = new THREE.Group(); S.add(hero)
@@ -110,6 +84,8 @@ export default function RunnerGame({ model, target, onClose }: Props) {
     // ── состояние забега
     let run = false, t = 0, dist = 0, lane = 0, x = 0, y = 0, vy = 0, slide = 0, runId = 0
     let obs: Obs[] = []
+    let air = false, stepT = 0
+    const sfx = snd.current
     let rand = rnd(1), nextZ = 30
     const speed = () => Math.min(model.v0 + model.a * t, model.vmax)
     const spawn = () => {
@@ -134,7 +110,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       obs = []; rand = rnd(seed); t = 0; dist = 0; lane = 0; x = 0; y = 0; vy = 0; slide = 0; nextZ = 30
     }
     const end = async () => {
-      run = false; buzz('heavy'); play('fall', true, 1.2)
+      run = false; buzz('heavy'); play('fall', true, 1.2); sfx.crash(); sfx.wind(0)
       const sc = Math.floor(dist * 10)
       setPhase('end')
       try { const r = await maskApi.runFinish(runId, sc); setRes({ score: r.score, done: r.done, flag: r.flag }) }
@@ -142,6 +118,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
     }
 
     api.current.start = async () => {
+      sfx.init()
       setRes(null); setScore(0)
       let seed = Math.floor(Math.random() * 1e9)
       try { const r = await maskApi.runStart(); runId = r.run_id; seed = r.seed } catch { runId = 0 }
@@ -149,10 +126,10 @@ export default function RunnerGame({ model, target, onClose }: Props) {
     }
     api.current.input = k => {
       if (!run) return
-      if (k === 'left' && lane > -1) { lane--; buzz('light') }
-      if (k === 'right' && lane < 1) { lane++; buzz('light') }
-      if (k === 'up' && y <= 0.001) { vy = 9.2; slide = 0; play('jump', true, 1.45) }
-      if (k === 'down') { if (y > 0.001) vy = -14; slide = 0.75; play('slide', true, 2.0) }
+      if (k === 'left' && lane > -1) { lane--; buzz('light'); sfx.swish() }
+      if (k === 'right' && lane < 1) { lane++; buzz('light'); sfx.swish() }
+      if (k === 'up' && y <= 0.001) { vy = 9.2; slide = 0; play('jump', true, 1.45); sfx.jump(); air = true }
+      if (k === 'down') { if (y > 0.001) vy = -14; if (slide <= 0) sfx.roll(); slide = 0.75; play('slide', true, 2.0) }
     }
 
     const fit = () => {
@@ -170,8 +147,12 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       if (run) {
         t += dt
         const v = speed(); dist += v * dt
-        x += (lane * LANE - x) * Math.min(1, dt * 14)
+        x += (LX(lane) - x) * Math.min(1, dt * 14)
         vy -= 26 * dt; y = Math.max(0, y + vy * dt); if (y === 0) vy = 0
+        if (air && y === 0) { air = false; sfx.land() }
+        world.update(v * dt)
+        sfx.wind(0.015 + 0.05 * (v - model.v0) / (model.vmax - model.v0))
+        if (A.run && cur === A.run && y === 0) { stepT -= dt * A.run.timeScale; if (stepT <= 0) { stepT += 22 / 30 / 2; sfx.step() } } else stepT = 0.05
         if (slide > 0) { slide -= dt; if (slide <= 0 && y === 0) play('run', false, 1) }
         if (y === 0 && vy === 0 && slide <= 0 && cur !== A.run) play('run', false, 1)
         if (A.run) A.run.timeScale = 0.8 + (v - model.v0) / (model.vmax - model.v0) * 0.6
@@ -179,15 +160,13 @@ export default function RunnerGame({ model, target, onClose }: Props) {
         const hTop = slide > 0 ? 0.95 : 1.8
         for (const o of obs) {
           const rz = o.z - dist
-          o.g.position.set(o.lane * LANE, 0, rz)
-          if (o.lane === lane && Math.abs(rz) < (o.kind === 'wall' ? 0.75 : 0.45) && Math.abs(x - lane * LANE) < 0.6) {
+          o.g.position.set(LX(o.lane), 0, rz)
+          if (o.lane === lane && Math.abs(rz) < (o.kind === 'wall' ? 0.75 : 0.45) && Math.abs(x - LX(lane)) < 0.6) {
             const hit = o.kind === 'wall' || (o.kind === 'low' && y < 0.6) || (o.kind === 'high' && hTop > 1.2 && y < 0.9)
             if (hit) { end(); break }
           }
         }
         obs = obs.filter(o => { if (o.z - dist < -6) { S.remove(o.g); return false } return true })
-        for (const d of dashes) { d.position.z = ((d.position.z - v * dt) % 154 + 154) % 154 - 3 }
-        for (const p of pillars) { p.position.z = ((p.position.z - v * dt) % 156 + 156) % 156 - 3 }
         if (performance.now() - lastUi > 100) { lastUi = performance.now(); setScore(Math.floor(dist * 10)) }
       }
       hero.position.set(x, y, 0)
@@ -219,7 +198,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       el.removeEventListener('touchstart', ts); el.removeEventListener('touchend', te)
       window.removeEventListener('keydown', kd); document.removeEventListener('visibilitychange', vis)
       S.traverse(o => { const m = o as THREE.Mesh; m.geometry?.dispose() })
-      pm.dispose(); R.dispose(); R.domElement.remove()
+      pm.dispose(); R.dispose(); R.domElement.remove(); sfx.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -230,6 +209,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       <div ref={host} className="absolute inset-0" />
       <div className="absolute top-0 left-0 right-0 p-3 flex items-center gap-3" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 12px)' }}>
         <button onClick={() => onClose(!!res?.done)} className="glass w-10 h-10 rounded-full grid place-items-center text-[18px]">✕</button>
+        <button onClick={() => { const m = !muted; snd.current.setMuted(m); setMuted(m) }} className="glass w-10 h-10 rounded-full grid place-items-center text-[17px]" aria-label="звук">{muted ? '🔇' : '🔊'}</button>
         <div className="glass flex-1 rounded-full h-10 px-4 flex items-center gap-3">
           <b className="font-display tabular-nums text-[16px] w-[74px]">{score.toLocaleString('ru-RU')}</b>
           <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-green" style={{ width: `${pct}%` }} /></div>
