@@ -141,12 +141,174 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
     g.position.set(s * (W / 2 + 0.75), 0, i * 12 + (s > 0 ? 6 : 0)); S.add(g); scroll.push({ o: g, span: 192 })
   }
 
+  const anim = addDetails(S, W, scroll, SPAN)
+
   return {
-    update(dz: number) {
+    update(dz: number, dt = 0) {
       for (const it of scroll) { it.o.position.z -= dz; if (it.o.position.z < -10) it.o.position.z += it.span }
       for (const s of texScroll) s.t.offset.y += dz * s.k
+      anim(dt, dz)
     },
   }
+}
+
+/** Детали: облака, птицы, воздушный шар, ферма с мельницей, заборы, озеро, трава, билборды, арки над дорогой, пыльца. */
+function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span: number }[], SPAN: number) {
+  const anims: ((dt: number, dz: number, t: number) => void)[] = []
+  let T = 0
+  const std = (c: number, o: Partial<THREE.MeshStandardMaterialParameters> = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.9, flatShading: true, ...o })
+  const put = (o: THREE.Object3D, span = SPAN) => { S.add(o); scroll.push({ o, span }) }
+
+  // облака — мягкие спрайты, медленно плывут
+  const cloudT = tex(128, 64, c => {
+    for (let i = 0; i < 14; i++) { const x = 20 + Math.random() * 88, y = 26 + Math.random() * 16, r = 10 + Math.random() * 16
+      const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, 'rgba(255,236,226,0.85)'); g.addColorStop(1, 'rgba(255,220,210,0)'); c.fillStyle = g; c.fillRect(0, 0, 128, 64) }
+  })
+  const clouds: THREE.Sprite[] = []
+  for (let i = 0; i < 14; i++) {
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: cloudT, transparent: true, depthWrite: false, fog: false, opacity: rnd(0.55, 0.9) }))
+    sp.scale.set(rnd(40, 80), rnd(14, 24), 1); sp.position.set(rnd(-160, 160), rnd(38, 80), rnd(140, 300)); S.add(sp); clouds.push(sp)
+  }
+  anims.push(dt => { for (const c of clouds) { c.position.x += dt * 1.2; if (c.position.x > 200) c.position.x = -200 } })
+
+  // птицы — стая «галочек», машут крыльями
+  const birdM = new THREE.MeshBasicMaterial({ color: 0x2a2030, side: THREE.DoubleSide, fog: false })
+  const birds: { g: THREE.Group; l: THREE.Mesh; r: THREE.Mesh; ph: number }[] = []
+  const flock = new THREE.Group(); flock.position.set(-60, 30, 120); S.add(flock)
+  const wingG = new THREE.BufferGeometry(); wingG.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0, 0.9, 0, 0.25, 0.9, 0, -0.1], 3))
+  for (let i = 0; i < 9; i++) {
+    const g = new THREE.Group(); const l = new THREE.Mesh(wingG, birdM), r = new THREE.Mesh(wingG, birdM); r.scale.x = -1; g.add(l, r)
+    g.position.set(-Math.abs(i - 4) * 1.6 + rnd(-0.3, 0.3), rnd(-0.6, 0.6), (i - 4) * 1.4); g.rotation.y = Math.PI / 2; g.scale.setScalar(1.3)
+    flock.add(g); birds.push({ g, l, r, ph: rnd(0, 6) })
+  }
+  anims.push((dt, _dz, t) => {
+    flock.position.x += dt * 5; flock.position.y = 30 + Math.sin(t * 0.3) * 2; if (flock.position.x > 90) flock.position.set(-90, 30, rnd(90, 150))
+    for (const b of birds) { const a = Math.sin(t * 7 + b.ph) * 0.7; b.l.rotation.z = a; b.r.rotation.z = -a }
+  })
+
+  // воздушный шар
+  const balloon = new THREE.Group()
+  const envT = tex(256, 128, c => { const cols = ['#e5484d', '#f5c25a', '#17e584', '#8a6bff']; for (let i = 0; i < 16; i++) { c.fillStyle = cols[i % 4]; c.fillRect(i * 16, 0, 16, 128) } })
+  const env = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 12), new THREE.MeshStandardMaterial({ map: envT, roughness: 0.6 }))
+  env.scale.y = 1.2; balloon.add(env)
+  const basket = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 1), std(0x7a5232)); basket.position.y = -4.6; balloon.add(basket)
+  balloon.position.set(26, 22, 95); S.add(balloon)
+  anims.push((dt, _dz, t) => { balloon.position.y = 22 + Math.sin(t * 0.4) * 1.5; balloon.position.x -= dt * 0.6; if (balloon.position.x < -40) balloon.position.x = 40 })
+
+  // озеро слева вдали, с бликами
+  const lakeT = tex(256, 256, c => { c.fillStyle = '#5c7fb0'; c.fillRect(0, 0, 256, 256); for (let i = 0; i < 260; i++) { c.fillStyle = `rgba(255,${200 + Math.random() * 40 | 0},170,${Math.random() * 0.5})`; c.fillRect(Math.random() * 256, Math.random() * 256, 6 + Math.random() * 14, 1.5) } }, 4, 4)
+  const lake = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshStandardMaterial({ map: lakeT, roughness: 0.15, metalness: 0.4 }))
+  lake.rotation.x = -Math.PI / 2; lake.scale.set(36, 22, 1); lake.position.set(52, 0.02, 120); S.add(lake)
+  anims.push(dt => { lakeT.offset.x += dt * 0.01 })
+
+  // ферма: домики, амбар, мельница — едут навстречу
+  const wallC = [0xe9dcc5, 0xd9c2a0, 0xc9d6e0], roofC = [0x8f3b2e, 0x4a5a6e, 0x6b3d2a]
+  const house = () => {
+    const g = new THREE.Group(); const k = Math.floor(rnd(0, 3))
+    const w = rnd(3, 4.5), d = rnd(3, 4), h = rnd(2.2, 3)
+    const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), std(wallC[k])); b.position.y = h / 2; g.add(b)
+    const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(w, d) * 0.78, 1.6, 4), std(roofC[k])); roof.position.y = h + 0.8; roof.rotation.y = Math.PI / 4; roof.scale.z = d / w; g.add(roof)
+    const winM = new THREE.MeshStandardMaterial({ color: 0xffd28a, emissive: 0xffb050, emissiveIntensity: 1.4 })
+    for (const sx of [-0.25, 0.25]) { const wn = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.6, 0.05), winM); wn.position.set(sx * w, h * 0.55, -d / 2 - 0.02); g.add(wn) }
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.3, 0.05), std(0x5a3a24)); door.position.set(0, 0.65, -d / 2 - 0.02); g.add(door)
+    const ch = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1, 0.4), std(0x7a5a4a)); ch.position.set(w * 0.25, h + 1.1, 0); g.add(ch)
+    return g
+  }
+  const barn = () => {
+    const g = new THREE.Group()
+    const b = new THREE.Mesh(new THREE.BoxGeometry(6, 3.6, 5), std(0xa8322e)); b.position.y = 1.8; g.add(b)
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(2.9, 2.9, 5.2, 4, 1, false, 0, Math.PI), std(0x3c3f46)); roof.rotation.z = Math.PI / 2; roof.rotation.y = Math.PI / 2; roof.position.y = 3.6; roof.scale.set(1, 1, 0.55); g.add(roof)
+    const dr = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.6, 0.05), std(0xeee6d8)); dr.position.set(0, 1.3, -2.53); g.add(dr)
+    const sil = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 6, 12), std(0xb9bec6, { metalness: 0.4, roughness: 0.5 })); sil.position.set(4, 3, 0); g.add(sil)
+    const sc = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), std(0xb9bec6, { metalness: 0.4, roughness: 0.5 })); sc.position.set(4, 6, 0); g.add(sc)
+    return g
+  }
+  const mills: THREE.Object3D[] = []
+  const mill = () => {
+    const g = new THREE.Group()
+    const tw = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.4, 7, 8), std(0xe8e0d0)); tw.position.y = 3.5; g.add(tw)
+    const cap = new THREE.Mesh(new THREE.ConeGeometry(1.1, 1.4, 8), std(0x6b3d2a)); cap.position.y = 7.7; g.add(cap)
+    const hub = new THREE.Group(); hub.position.set(0, 6.8, -1.1); g.add(hub)
+    for (let i = 0; i < 4; i++) { const bl = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.4, 0.06), std(0xf2ede4)); bl.position.y = 1.8; const arm = new THREE.Group(); arm.rotation.z = i * Math.PI / 2; arm.add(bl); hub.add(arm) }
+    mills.push(hub); return g
+  }
+  anims.push(dt => { for (const m of mills) m.rotation.z += dt * 1.1 })
+  for (let i = 0; i < 9; i++) {
+    const s = i % 2 ? 1 : -1; const k = i % 3
+    const o = k === 0 ? house() : k === 1 ? barn() : mill()
+    o.position.set(s * (W / 2 + rnd(14, 30)), 0, i * (SPAN / 9) + rnd(0, 8)); o.rotation.y = s > 0 ? rnd(-0.4, 0.2) : rnd(-0.2, 0.4) + Math.PI * 0
+    put(o)
+  }
+
+  // деревянный забор вдоль луга
+  const fenceM = std(0x8a6a48)
+  const fenceSeg = () => {
+    const g = new THREE.Group()
+    for (let i = 0; i < 4; i++) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 1, 0.12), fenceM); p.position.set(0, 0.5, i * 2); g.add(p) }
+    for (const y of [0.4, 0.8]) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.1, 6.2), fenceM); r.position.set(0, y, 3); g.add(r) }
+    return g
+  }
+  for (let i = 0; i < 26; i++) for (const s of [-1, 1]) { if (Math.random() < 0.25) continue; const f = fenceSeg(); f.position.set(s * (W / 2 + 2.9), 0, i * 7.2 - 6); put(f, 26 * 7.2) }
+
+  // трава пучками у обочины (инстансы)
+  const tuftG = new THREE.ConeGeometry(0.05, 0.34, 3); tuftG.translate(0, 0.17, 0)
+  const tuftM = new THREE.MeshStandardMaterial({ color: 0x5f9a3e, roughness: 1, flatShading: true })
+  const N = 900; const tufts = new THREE.InstancedMesh(tuftG, tuftM, N); const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler()
+  const tz = new Float32Array(N), tx = new Float32Array(N), ts = new Float32Array(N), tr = new Float32Array(N)
+  const col = new THREE.Color()
+  for (let i = 0; i < N; i++) {
+    tx[i] = (i % 2 ? 1 : -1) * (W / 2 + 0.4 + Math.random() * Math.random() * 14); tz[i] = rnd(-8, 110); ts[i] = rnd(0.5, 1.15); tr[i] = rnd(-0.35, 0.35)
+    tufts.setColorAt(i, col.setHSL(0.25 + rnd(-0.03, 0.05), 0.55, rnd(0.36, 0.52)))
+  }
+  S.add(tufts)
+  const placeTufts = () => {
+    for (let i = 0; i < N; i++) { e.set(tr[i], i, 0); q.setFromEuler(e); m4.compose(new THREE.Vector3(tx[i], 0, tz[i]), q, new THREE.Vector3(ts[i], ts[i], ts[i])); tufts.setMatrixAt(i, m4) }
+    tufts.instanceMatrix.needsUpdate = true
+  }
+  placeTufts()
+  anims.push((_dt, dz) => { if (!dz) return; for (let i = 0; i < N; i++) { tz[i] -= dz; if (tz[i] < -8) tz[i] += 118 } placeTufts() })
+
+  // билборды
+  const boardT = (title: string, sub: string, a: string, b: string) => tex(512, 256, c => {
+    const g = c.createLinearGradient(0, 0, 512, 256); g.addColorStop(0, a); g.addColorStop(1, b); c.fillStyle = g; c.fillRect(0, 0, 512, 256)
+    c.fillStyle = 'rgba(255,255,255,0.12)'; for (let i = 0; i < 6; i++) { c.beginPath(); c.arc(420 - i * 30, 60 + i * 20, 80 - i * 8, 0, 7); c.fill() }
+    c.fillStyle = '#fff'; c.font = 'bold 74px sans-serif'; c.fillText(title, 36, 130); c.font = '34px sans-serif'; c.fillText(sub, 38, 190)
+  })
+  const ads = [boardT('S010 VPN', 'быстро · без логов', '#0f8f5a', '#17e584'), boardT('СНИМИ МАСКУ', 'приз 80 USDT', '#3a1f8f', '#8a6bff'), boardT('20 000', 'добеги до конца', '#a8322e', '#f5c25a')]
+  for (let i = 0; i < 6; i++) {
+    const g = new THREE.Group(); const s = i % 2 ? 1 : -1
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(6, 3), new THREE.MeshStandardMaterial({ map: ads[i % 3], roughness: 0.6, emissive: 0xffffff, emissiveMap: ads[i % 3], emissiveIntensity: 0.25 }))
+    pane.position.y = 4.2; pane.rotation.y = Math.PI + s * 0.35; g.add(pane)
+    const back = new THREE.Mesh(new THREE.BoxGeometry(6.2, 3.2, 0.15), std(0x2a2d33)); back.position.set(0, 4.2, 0.1); back.rotation.y = s * 0.35; g.add(back)
+    for (const px of [-1.8, 1.8]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, 2.8, 0.2), std(0x2a2d33)); p.position.set(px, 1.4, 0.2); g.add(p) }
+    g.position.set(s * (W / 2 + rnd(6, 9)), 0, i * 30 + 18); put(g, 180)
+  }
+
+  // арка-мост над дорогой (декор, выше героя)
+  const archM = std(0x8c8378, { roughness: 0.95 })
+  const arch = new THREE.Group()
+  for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(1.2, 6, 2), archM); p.position.set(s * (W / 2 + 1.4), 3, 0); arch.add(p) }
+  const deck = new THREE.Mesh(new THREE.BoxGeometry(W + 4, 1.1, 2.4), archM); deck.position.y = 6.4; arch.add(deck)
+  const rail = new THREE.Mesh(new THREE.BoxGeometry(W + 4, 0.5, 0.15), std(0x3a3d44)); rail.position.set(0, 7.2, -1.1); arch.add(rail)
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.9), new THREE.MeshStandardMaterial({ map: tex(256, 64, c => { c.fillStyle = '#0f8f5a'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#fff'; c.font = 'bold 30px sans-serif'; c.fillText('▲ S010  ·  ВПЕРЁД', 14, 42) }), emissive: 0x0b6a40, emissiveIntensity: 0.6 }))
+  sign.position.set(0, 5.4, -1.25); sign.rotation.y = Math.PI; arch.add(sign)
+  arch.position.z = 90; put(arch, 180)
+
+  // пыльца в лучах солнца
+  const PN = 160; const pg = new THREE.BufferGeometry(); const pp = new Float32Array(PN * 3)
+  for (let i = 0; i < PN; i++) { pp[i * 3] = rnd(-12, 12); pp[i * 3 + 1] = rnd(0.3, 5); pp[i * 3 + 2] = rnd(-4, 40) }
+  pg.setAttribute('position', new THREE.BufferAttribute(pp, 3))
+  const pollen = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xffe0a0, size: 0.07, transparent: true, opacity: 0.8, depthWrite: false, blending: THREE.AdditiveBlending }))
+  S.add(pollen)
+  anims.push((dt, dz, t) => {
+    for (let i = 0; i < PN; i++) {
+      pp[i * 3 + 2] -= dz + dt * 0.3; pp[i * 3 + 1] += Math.sin(t + i) * dt * 0.15; pp[i * 3] += Math.cos(t * 0.7 + i) * dt * 0.1
+      if (pp[i * 3 + 2] < -4) { pp[i * 3 + 2] += 44; pp[i * 3] = rnd(-12, 12); pp[i * 3 + 1] = rnd(0.3, 5) }
+    }
+    pg.attributes.position.needsUpdate = true
+  })
+
+  return (dt: number, dz: number) => { T += dt; for (const a of anims) a(dt, dz, T) }
 }
 
 /** Препятствия: шлагбаум (жёлтый, прыгать), арка с перекладиной (фиолетовая, подныривать), контейнер (красный, обегать). */

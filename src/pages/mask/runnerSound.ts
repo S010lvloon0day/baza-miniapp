@@ -42,6 +42,66 @@ export function createRunnerSound() {
     os.connect(g); g.connect(master); os.start(t); os.stop(t + dur + 0.05)
   }
 
+  // ── музыка: ля минор, Am–F–C–G, бочка/малый/хэт, бас, арпеджио с эхом, пэд, мелодия каждые 8 тактов
+  const MUSIC_VOL = 0.3
+  let musicOn = true
+  try { musicOn = localStorage.getItem('mg_music') !== '0' } catch { /* */ }
+  let mbus: GainNode | null = null, dly: DelayNode | null = null, timer = 0, step16 = 0, nextT = 0, inten = 0
+  const hz = (m: number) => 440 * Math.pow(2, (m - 69) / 12)
+  const CH = [[57, 60, 64], [53, 57, 60], [48, 52, 55], [55, 59, 62]]            // Am F C G
+  const MEL = [76, -1, 74, 72, -1, 72, 71, 72, -1, -1, 69, -1, 71, -1, 72, 74,  // 2 такта мотива
+    72, -1, 71, 69, -1, 67, 69, -1, 64, -1, -1, -1, 67, -1, 69, -1]
+  const buildBus = () => {
+    if (!ctx || !master || mbus) return
+    mbus = ctx.createGain(); mbus.gain.value = 0
+    const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4
+    mbus.connect(comp); comp.connect(master)
+    dly = ctx.createDelay(1); dly.delayTime.value = 0.375
+    const fb = ctx.createGain(); fb.gain.value = 0.32; const dl = ctx.createBiquadFilter(); dl.type = 'lowpass'; dl.frequency.value = 2200
+    dly.connect(fb); fb.connect(dl); dl.connect(dly); dly.connect(mbus)
+  }
+  const tone = (t: number, type: OscillatorType, f: number, dur: number, vol: number, cut: number, o: { det?: number; att?: number; send?: number; glide?: number } = {}) => {
+    if (!ctx || !mbus) return
+    const os = ctx.createOscillator(); os.type = type; os.frequency.setValueAtTime(f, t); if (o.det) os.detune.value = o.det
+    if (o.glide) os.frequency.exponentialRampToValueAtTime(f * o.glide, t + dur)
+    const fl = ctx.createBiquadFilter(); fl.type = 'lowpass'; fl.frequency.value = cut; fl.Q.value = 3
+    const g = ctx.createGain(); const a = o.att ?? 0.005
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    os.connect(fl); fl.connect(g); g.connect(mbus); if (o.send && dly) { const sg = ctx.createGain(); sg.gain.value = o.send; g.connect(sg); sg.connect(dly) }
+    os.start(t); os.stop(t + dur + 0.05)
+  }
+  const hit = (t: number, type: BiquadFilterType, f: number, dur: number, vol: number) => {
+    if (!ctx || !mbus || !noise) return
+    const src = ctx.createBufferSource(); src.buffer = noise
+    const fl = ctx.createBiquadFilter(); fl.type = type; fl.frequency.value = f
+    const g = ctx.createGain(); g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    src.connect(fl); fl.connect(g); g.connect(mbus); src.start(t, Math.random()); src.stop(t + dur + 0.02)
+  }
+  const kick = (t: number) => { tone(t, 'sine', 140, 0.32, 0.9, 800, { glide: 0.32 }) }
+  const sched = () => {
+    if (!ctx) return
+    const bpm = 104 + inten * 18, s16 = 60 / bpm / 4
+    if (dly) dly.delayTime.setTargetAtTime(s16 * 3, ctx.currentTime, 0.1)
+    while (nextT < ctx.currentTime + 0.14) {
+      const t = nextT, st = step16 % 16, bar = Math.floor(step16 / 16), ch = CH[bar % 4]
+      const bright = 900 + inten * 2400
+      if (st % 4 === 0) kick(t)
+      if (st === 4 || st === 12) { hit(t, 'bandpass', 1800, 0.18, 0.5); tone(t, 'triangle', 190, 0.1, 0.25, 2000, { glide: 0.6 }) }
+      if (st % 2 === 1) hit(t, 'highpass', 7000, 0.04, st % 4 === 3 ? 0.16 : 0.09)
+      if (st === 14 && bar % 2 === 1) hit(t, 'highpass', 6000, 0.22, 0.12)
+      // бас: восьмые, на слабых — октава
+      if (st % 2 === 0) tone(t, 'sawtooth', hz(ch[0] - 24 + (st % 8 === 6 ? 12 : 0)), s16 * 1.8, 0.32, 380 + inten * 500)
+      // арпеджио 16-ми вверх-вниз
+      const arp = [0, 1, 2, 1, 0, 2, 1, 2][st % 8]
+      tone(t, 'square', hz(ch[arp] + 12), s16 * 0.9, 0.06, bright, { send: 0.5 })
+      // пэд на каждый такт
+      if (st === 0) for (const n of ch) for (const d of [-9, 9]) tone(t, 'sawtooth', hz(n), s16 * 16, 0.035, 1300, { det: d, att: 0.4 })
+      // мелодия: такты 4–7 из каждых 8
+      if (bar % 8 >= 4) { const n = MEL[((bar % 2) * 16 + st)]; if (n > 0) tone(t, 'triangle', hz(n), s16 * 1.9, 0.14, 3000, { send: 0.35, att: 0.01 }) }
+      nextT += s16; step16++
+    }
+  }
+
   let stepSide = 0
   return {
     init,
@@ -96,6 +156,16 @@ export function createRunnerSound() {
       }
       windGain!.gain.setTargetAtTime(level, ctx.currentTime, 0.3)
     },
-    dispose() { try { wind?.stop() } catch { /* */ } ctx?.close() },
+    /** фоновая музыка — свой синтвейв-трек, генерируется на лету */
+    get musicOn() { return musicOn },
+    setMusic(on: boolean) {
+      musicOn = on; try { localStorage.setItem('mg_music', on ? '1' : '0') } catch { /* */ }
+      if (ctx && mbus) mbus.gain.setTargetAtTime(on ? MUSIC_VOL : 0, ctx.currentTime, 0.2)
+    },
+    musicStart() { init(); if (!ctx || timer) return; buildBus(); step16 = 0; nextT = ctx.currentTime + 0.08; timer = window.setInterval(sched, 25); mbus!.gain.setTargetAtTime(musicOn ? MUSIC_VOL : 0, ctx.currentTime, 0.3) },
+    musicStop(fade = 0.6) { if (!ctx || !mbus) return; mbus.gain.setTargetAtTime(0, ctx.currentTime, fade / 3); const t = timer; timer = 0; setTimeout(() => { if (t) clearInterval(t) }, fade * 1000) },
+    /** 0..1 — растёт со скоростью: быстрее темп, ярче фильтр */
+    musicIntensity(x: number) { inten = Math.max(0, Math.min(1, x)) },
+    dispose() { if (timer) clearInterval(timer); try { wind?.stop() } catch { /* */ } ctx?.close() },
   }
 }

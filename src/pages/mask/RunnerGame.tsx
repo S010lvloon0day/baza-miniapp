@@ -6,6 +6,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { maskApi } from '../../api/mask'
+import type { RunTop } from '../../api/mask'
 import { buildWorld, obstacleFactory } from './runnerWorld'
 import { createRunnerSound } from './runnerSound'
 
@@ -28,6 +29,11 @@ export default function RunnerGame({ model, target, onClose }: Props) {
   const api = useRef({ start: () => {}, input: (_k: 'up' | 'down' | 'left' | 'right') => {} })
   const snd = useRef(createRunnerSound())
   const [muted, setMuted] = useState(snd.current.muted)
+  const [music, setMusic] = useState(snd.current.musicOn)
+  const [top, setTop] = useState<RunTop | null>(null)
+  const [rec, setRec] = useState(false)
+  const loadTop = () => maskApi.runTop().then(setTop).catch(() => {})
+  useEffect(() => { loadTop() }, [])
 
   useEffect(() => {
     const el = host.current!
@@ -84,7 +90,8 @@ export default function RunnerGame({ model, target, onClose }: Props) {
     // ── состояние забега
     let run = false, t = 0, dist = 0, lane = 0, x = 0, y = 0, vy = 0, slide = 0, runId = 0
     let obs: Obs[] = []
-    let air = false, stepT = 0
+    let air = false, stepT = 0, bestBefore = Infinity
+    maskApi.runTop().then(r => { bestBefore = r.my_best }).catch(() => { bestBefore = 0 })
     const sfx = snd.current
     let rand = rnd(1), nextZ = 30
     const speed = () => Math.min(model.v0 + model.a * t, model.vmax)
@@ -110,15 +117,18 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       obs = []; rand = rnd(seed); t = 0; dist = 0; lane = 0; x = 0; y = 0; vy = 0; slide = 0; nextZ = 30
     }
     const end = async () => {
-      run = false; buzz('heavy'); play('fall', true, 1.2); sfx.crash(); sfx.wind(0)
+      run = false; buzz('heavy'); play('fall', true, 1.2); sfx.crash(); sfx.wind(0); sfx.musicStop(1.5)
       const sc = Math.floor(dist * 10)
       setPhase('end')
-      try { const r = await maskApi.runFinish(runId, sc); setRes({ score: r.score, done: r.done, flag: r.flag }) }
+      try {
+        const r = await maskApi.runFinish(runId, sc); setRes({ score: r.score, done: r.done, flag: r.flag })
+        setRec(!r.flag && r.score > 0 && r.score > bestBefore); bestBefore = Math.max(bestBefore, r.score); loadTop()
+      }
       catch { setRes({ score: sc, done: false, flag: 'net' }) }
     }
 
     api.current.start = async () => {
-      sfx.init()
+      sfx.init(); sfx.musicStart(); setRec(false)
       setRes(null); setScore(0)
       let seed = Math.floor(Math.random() * 1e9)
       try { const r = await maskApi.runStart(); runId = r.run_id; seed = r.seed } catch { runId = 0 }
@@ -150,7 +160,8 @@ export default function RunnerGame({ model, target, onClose }: Props) {
         x += (LX(lane) - x) * Math.min(1, dt * 14)
         vy -= 26 * dt; y = Math.max(0, y + vy * dt); if (y === 0) vy = 0
         if (air && y === 0) { air = false; sfx.land() }
-        world.update(v * dt)
+        world.update(v * dt, dt)
+        sfx.musicIntensity((v - model.v0) / (model.vmax - model.v0))
         sfx.wind(0.015 + 0.05 * (v - model.v0) / (model.vmax - model.v0))
         if (A.run && cur === A.run && y === 0) { stepT -= dt * A.run.timeScale; if (stepT <= 0) { stepT += 22 / 30 / 2; sfx.step() } } else stepT = 0.05
         if (slide > 0) { slide -= dt; if (slide <= 0 && y === 0) play('run', false, 1) }
@@ -169,6 +180,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
         obs = obs.filter(o => { if (o.z - dist < -6) { S.remove(o.g); return false } return true })
         if (performance.now() - lastUi > 100) { lastUi = performance.now(); setScore(Math.floor(dist * 10)) }
       }
+      if (!run) world.update(0, dt)
       hero.position.set(x, y, 0)
       cam.position.x += (x * 0.5 - cam.position.x) * Math.min(1, dt * 6)
       R.render(S, cam)
@@ -210,6 +222,7 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       <div className="absolute top-0 left-0 right-0 p-3 flex items-center gap-3" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 12px)' }}>
         <button onClick={() => onClose(!!res?.done)} className="glass w-10 h-10 rounded-full grid place-items-center text-[18px]">✕</button>
         <button onClick={() => { const m = !muted; snd.current.setMuted(m); setMuted(m) }} className="glass w-10 h-10 rounded-full grid place-items-center text-[17px]" aria-label="звук">{muted ? '🔇' : '🔊'}</button>
+        <button onClick={() => { const m = !music; snd.current.setMusic(m); setMusic(m) }} className={`glass w-10 h-10 rounded-full grid place-items-center text-[17px] ${music ? '' : 'opacity-40'}`} aria-label="музыка">🎵</button>
         <div className="glass flex-1 rounded-full h-10 px-4 flex items-center gap-3">
           <b className="font-display tabular-nums text-[16px] w-[74px]">{score.toLocaleString('ru-RU')}</b>
           <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-green" style={{ width: `${pct}%` }} /></div>
@@ -224,11 +237,14 @@ export default function RunnerGame({ model, target, onClose }: Props) {
               <div className="font-display font-semibold text-[16px]">Беги до {target.toLocaleString('ru-RU')}</div>
               <p className="text-[13px] text-gray mt-1.5">Свайп вверх или тап — прыжок, вниз — подкат, влево/вправо — дорожка. На ПК — стрелки.</p>
               <p className="text-[12px] text-gray2 mt-1">Жёлтое — перепрыгни, фиолетовое — подныривай, красное — обеги.</p>
+              <Records top={top} />
               <button onClick={() => api.current.start()} className="btn-primary w-full mt-3">Старт</button>
             </>}
             {phase === 'end' && <>
               <div className="font-display font-semibold text-[18px]">{res?.done ? 'Задание выполнено!' : 'Упал'}</div>
               <p className="text-[14px] text-gray mt-1">Счёт: {(res?.score ?? score).toLocaleString('ru-RU')}{res?.flag === 'too_fast' ? ' — забег не засчитан' : ''}</p>
+              {rec && <p className="text-[14px] text-gold font-semibold mt-1">🏆 Новый личный рекорд!</p>}
+              <Records top={top} />
               <div className="flex gap-2 mt-3">
                 {!res?.done && <button onClick={() => api.current.start()} className="btn-primary flex-1">Ещё раз</button>}
                 <button onClick={() => onClose(!!res?.done)} className="btn-secondary flex-1 h-12 rounded-[16px]">{res?.done ? 'Дальше' : 'Выйти'}</button>
@@ -239,5 +255,29 @@ export default function RunnerGame({ model, target, onClose }: Props) {
       )}
     </div>,
     document.body,
+  )
+}
+
+function Records({ top }: { top: RunTop | null }) {
+  if (!top) return null
+  const medal = ['🥇', '🥈', '🥉']
+  return (
+    <div className="mt-3 text-left">
+      <div className="flex items-center justify-between mb-1.5">
+        <b className="text-[13px]">Рекорды забега</b>
+        {top.my_best > 0 && <span className="text-[12px] text-gray">мой: <b className="text-white tabular-nums">{top.my_best.toLocaleString('ru-RU')}</b>{top.my_pos ? ` · ${top.my_pos} место` : ''}</span>}
+      </div>
+      {top.top.length === 0 ? <p className="text-[12.5px] text-gray2">Пока никто не бежал — стань первым.</p> : (
+        <div className="max-h-[132px] overflow-y-auto rounded-[14px] bg-white/[.04]">
+          {top.top.map(r => (
+            <div key={r.rank} className={`flex items-center gap-2 px-3 py-[5px] text-[13px] ${r.is_me ? 'text-green' : ''}`}>
+              <span className="w-6 text-center">{medal[r.rank - 1] ?? r.rank}</span>
+              <span className="flex-1 truncate">{r.name}{r.is_me ? ' (ты)' : ''}</span>
+              <b className="tabular-nums">{r.score.toLocaleString('ru-RU')}</b>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }

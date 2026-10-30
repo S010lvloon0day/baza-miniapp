@@ -48,12 +48,15 @@ export interface GuessResult {
   reset_in?: number; react?: MaskReact; error?: string; days?: number; secret?: string | null
 }
 
+export interface RunTop { top: { rank: number; name: string; score: number; is_me: boolean }[]; my_best: number; my_pos: number | null; my_runs: number }
+
 export const maskApi = {
   state: () => req<MaskState>('GET', '/api/mask/state'),
   guess: (text: string) => req<GuessResult>('POST', '/api/mask/guess', { text }).catch((e: any) => (e.data || { ok: false, error: e.message }) as GuessResult),
   clue: (id: number, answer: string) => req<{ ok: boolean; reward?: string; points?: number; tries_left?: number }>('POST', `/api/mask/clue/${id}`, { answer }),
   runStart: () => req<{ run_id: number; seed: number; target: number }>('POST', '/api/mask/run/start', {}),
   runFinish: (run_id: number, score: number) => req<{ ok: boolean; done: boolean; score: number; flag: string | null }>('POST', '/api/mask/run/finish', { run_id, score }),
+  runTop: () => req<RunTop>('GET', '/api/mask/run/top'),
   cipher: (answer: string) => req<{ ok: boolean; reward?: string | null; error?: string }>('POST', '/api/mask/cipher', { answer }),
   revealUrl: () => API_BASE + '/api/mask/reveal.glb?v=' + MODEL_V,
   initData: () => tg?.initData || '',
