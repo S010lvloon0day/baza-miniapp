@@ -68,6 +68,24 @@ export const LV = [null,
   // бой с другом: всё поровну
   { bm: 100, pm: 100, br: 0, bp: 0, rs: 0, cd: 0, cdl: 1, cdh: 1, mg: 1000 },
 ] as const
+/** Стиль бойца в бою с другом (как в MK: у каждого своя сильная сторона, баланс проверен боями ботов).
+ *  hp — здоровье; dm — сила ударов, %; fw/bk — шаг вперёд/назад, см за тик; rc — к восстановлению после удара, кадры;
+ *  rh — к дальности ударов, см; mg — набор шкалы спецприёма, % */
+export interface Style { hp: number; dm: number; fw: number; bk: number; rc: number; rh: number; mg: number }
+export const ARCH: Record<string, Style> = {   // подобрано боями ботов (2 уровня мастерства): каждый стиль выигрывает 48–52 %
+  bal: { hp: 1000, dm: 106, fw: 4, bk: 3, rc: 0, rh: 0, mg: 100 },    // универсал
+  tank: { hp: 1150, dm: 81, fw: 3, bk: 2, rc: 1, rh: 0, mg: 95 },     // крепкий и медленный, бьёт слабее
+  fast: { hp: 900, dm: 125, fw: 5, bk: 4, rc: -2, rh: 0, mg: 105 },   // быстрый и резкий, но хрупкий
+  long: { hp: 950, dm: 86, fw: 4, bk: 3, rc: 1, rh: 2, mg: 100 },     // достаёт дальше
+  tech: { hp: 980, dm: 106, fw: 4, bk: 3, rc: 0, rh: 0, mg: 140 },    // спецприём заряжается быстрее
+  brute: { hp: 1000, dm: 120, fw: 4, bk: 2, rc: 3, rh: 0, mg: 85 },   // бьёт больнее всех, но долго восстанавливается
+}
+/** облик → стиль: 0 герой, 1 страж, 2 призрак, дальше новые бойцы */
+export const HERO_ARCH = ['bal', 'tank', 'long', 'fast', 'fast', 'long', 'bal', 'tech', 'tank', 'fast', 'brute', 'tech', 'bal']
+export const styleOf = (h: number): Style => ARCH[HERO_ARCH[h] ?? 'bal'] ?? ARCH.bal
+const SY = (s: Sim, i: number) => styleOf(s.sy[i])
+/** длина удара с учётом стиля бойца (бой с другом) */
+export const lenFor = (s: Sim, i: number, m: MoveId) => s.pvp ? MOVES[m].s + MOVES[m].a + Math.max(4, MOVES[m].r + SY(s, i).rc) : lenOf(i, m, s.lv)
 /** управление бойцом в бою с другом (у каждого своё) */
 export interface Ctl { prevIn: number; buf: number; bufT: number; tapF: number; lastP: number; read: number }
 const mkC = (): Ctl => ({ prevIn: 0, buf: 0, bufT: 0, tapF: 0, lastP: -999, read: 0 })
@@ -77,16 +95,17 @@ export interface Sim {
   f: [F, F]; rng: number; prevIn: number; buf: number; bufT: number; tapF: number; lastP: number
   pend: [0 | 1, MoveId][]   // попадания этого тика: применяются после хода обоих — так удары могут встретиться (размен)
   ai: { cd: number; read: number; rage: number }
-  lv: number; nextLv: number; ez: number; pvp: number; c: [Ctl, Ctl]   // pvp=1 — бой с другом (оба бойца — люди); ez=1 — облегчённый бой (админ); текущий страж и переход ко второму после победы над первым
+  lv: number; nextLv: number; ez: number; pvp: number; c: [Ctl, Ctl]; sy: [number, number]   // sy — облики (стили) бойцов в бою с другом   // pvp=1 — бой с другом (оба бойца — люди); ez=1 — облегчённый бой (админ); текущий страж и переход ко второму после победы над первым
   ev: Ev[]
 }
 
-const mkF = (x: number, dir: number): F => ({ x, hp: HP, st: 'idle', t: 0, mv: null, hitDone: 0, chain: 0, meter: 0, dir, hitKind: 0, y: 0, vy: 0, vx: 0, air: 0, cr: 0, jat: 0, stn: 0, k: 0 })
+const mkF = (x: number, dir: number, hp = HP): F => ({ x, hp, st: 'idle', t: 0, mv: null, hitDone: 0, chain: 0, meter: 0, dir, hitKind: 0, y: 0, vy: 0, vx: 0, air: 0, cr: 0, jat: 0, stn: 0, k: 0 })
 
-export function newSim(seed: number, lv = 1, ez = 0, pvp = 0): Sim {
+export function newSim(seed: number, lv = 1, ez = 0, pvp = 0, sy: [number, number] = [0, 2]): Sim {
+  const st0 = pvp ? styleOf(sy[0]).hp : HP, st1 = pvp ? styleOf(sy[1]).hp : HP
   return {
     tick: 0, rt: ROUND_TICKS, round: 1, wins: [0, 0], pause: 120, over: 0, lv: lv === 2 ? 2 : 1, nextLv: 0, ez: ez ? 1 : 0, pvp: pvp ? 1 : 0, c: [mkC(), mkC()],
-    f: [mkF(-START, 1), mkF(START, -1)], rng: (seed >>> 0) || 0x9e3779b9, prevIn: 0, buf: 0, bufT: 0, tapF: 0, lastP: -999, pend: [],
+    f: [mkF(-START, 1, st0), mkF(START, -1, st1)], rng: (seed >>> 0) || 0x9e3779b9, sy: [sy[0] | 0, sy[1] | 0], prevIn: 0, buf: 0, bufT: 0, tapF: 0, lastP: -999, pend: [],
     ai: { cd: 40, read: 0, rage: 0 }, ev: [{ k: 'round', who: 0 }],
   }
 }
@@ -118,7 +137,7 @@ function jump(s: Sim, i: 0 | 1, dirx: number) {
 
 function resetRound(s: Sim) {
   if (s.nextLv) { s.lv = s.nextLv; s.nextLv = 0; s.wins = [0, 0]; s.ev.push({ k: 'boss2', who: 1 }) }
-  s.f = [mkF(-START, 1), mkF(START, -1)]; s.rt = ROUND_TICKS; s.pause = 120; s.ai.cd = 40; s.ai.read = 0; s.tapF = 0; s.lastP = -999; s.buf = 0; s.bufT = 0; s.round++; s.c = [mkC(), mkC()]
+  s.f = [mkF(-START, 1, s.pvp ? SY(s, 0).hp : HP), mkF(START, -1, s.pvp ? SY(s, 1).hp : HP)]; s.rt = ROUND_TICKS; s.pause = 120; s.ai.cd = 40; s.ai.read = 0; s.tapF = 0; s.lastP = -999; s.buf = 0; s.bufT = 0; s.round++; s.c = [mkC(), mkC()]
   s.ev.push({ k: 'round', who: 0 })
 }
 
@@ -158,7 +177,7 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
   const boss = ai === 1 && !s.pvp
   // страж бьёт сильнее, игрок — слабее (по задумке страж почти непобедим)
   const P = lp(s)
-  let dmg = Math.floor((M.dmg * (boss ? P.bm : P.pm)) / 100)
+  let dmg = Math.floor((M.dmg * (boss ? P.bm : s.pvp ? SY(s, ai).dm : P.pm)) / 100)
   const sBlock = D.st === 'block' || (D.st === 'bstun' && D.cr === 0)
   const cBlock = D.st === 'cblock' || (D.st === 'bstun' && D.cr === 1)
   const blocking = !D.air && mv !== 'throw' && ((sBlock && M.h !== 'L') || (cBlock && M.h !== 'O'))
@@ -173,7 +192,7 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
     D.meter -= 300; D.st = 'dodge'; D.t = 0; D.cr = 0; s.ev.push({ k: 'dodge', who: 1 }); return
   }
   // сколько кадров нападающему ещё восстанавливаться: от этого считаются оглушение и преимущество
-  const rem = Math.max(0, lenOf(s.pvp ? 0 : ai, mv, s.lv) - A.t)
+  const rem = Math.max(0, lenFor(s, ai, mv) - A.t)
   if (blocking) {
     const chip = mv === 'special' ? dmg >> 3 : 0   // обычные удары в блок урона не наносят, спецприём — чуть-чуть
     D.hp = Math.max(0, D.hp - chip)
@@ -181,7 +200,7 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
     D.cr = cBlock ? 1 : 0; D.st = 'bstun'; D.t = 0; D.hitKind = 0; D.k = 0
     D.stn = mv === 'combo' ? Math.max(6, M.stun - 4) : Math.max(4, rem - 7 - (M.dmg >> 3))   // большинство ударов в блоке «минусовые», тяжёлые можно наказать
     shove(D, A, M.push >> 1)
-    A.meter = Math.min(1000, A.meter + (boss ? 40 : Math.floor(40 * P.mg / 1000))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(60 * P.mg / 1000) : 60))
+    A.meter = Math.min(1000, A.meter + (boss ? 40 : s.pvp ? Math.floor(40 * SY(s, ai).mg / 100) : Math.floor(40 * P.mg / 1000))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(60 * P.mg / 1000) : s.pvp ? Math.floor(60 * SY(s, di).mg / 100) : 60))
     if (mv === 'special') A.meter = Math.min(1000, A.meter + 150)   // спецприём в блок — небольшой возврат шкалы
     s.ev.push({ k: 'block', who: di, mv, dmg: chip })
   } else {
@@ -189,7 +208,7 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
     D.k = D.st === 'hit' || D.st === 'down' ? D.k + 1 : 0
     dmg = Math.floor((dmg * (100 - 10 * Math.min(D.k, 5))) / 100)
     D.hp = Math.max(0, D.hp - dmg)
-    A.meter = Math.min(1000, A.meter + (boss ? 90 : Math.floor(90 * P.mg / 1000))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(50 * P.mg / 1000) : 50))
+    A.meter = Math.min(1000, A.meter + (boss ? 90 : s.pvp ? Math.floor(90 * SY(s, ai).mg / 100) : Math.floor(90 * P.mg / 1000))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(50 * P.mg / 1000) : s.pvp ? Math.floor(50 * SY(s, di).mg / 100) : 50))
     shove(D, A, M.push)
     D.cr = 0
     if (D.hp <= 0) { D.st = 'ko'; D.t = 0; s.ev.push({ k: 'ko', who: di, mv, dmg }); endRound(s, ai); return }
@@ -225,18 +244,18 @@ function stepFighter(s: Sim, i: 0 | 1) {
   physics(s, i)
   if (f.st === 'atk' && f.mv) {
     const M = MOVES[f.mv]
-    const dist = Math.abs(o.x - f.x)
+    const dist = Math.abs(o.x - f.x), rch = M.reach + (s.pvp ? SY(s, i).rh : 0)
     // удар в прыжке (как в MK) держится вытянутым до приземления
     if (f.t > M.s && (f.t <= M.s + M.a || (M.air && f.air))) {
       if (f.mv === 'combo') {
-        if ((f.t - M.s) % COMBO_GAP === 1 && dist <= M.reach && connects(f, o, M)) s.pend.push([i, 'combo'])
-      } else if (!f.hitDone && dist <= M.reach && connects(f, o, M)) { f.hitDone = 1; s.pend.push([i, f.mv]) }
+        if ((f.t - M.s) % COMBO_GAP === 1 && dist <= rch && connects(f, o, M)) s.pend.push([i, 'combo'])
+      } else if (!f.hitDone && dist <= rch && connects(f, o, M)) { f.hitDone = 1; s.pend.push([i, f.mv]) }
       if (f.mv === 'special') f.x += f.dir * 6
     }
     if (f.st === 'atk' && f.mv) {
       if (f.t === M.s + M.a && !f.hitDone && f.mv !== 'combo' && !M.air) s.ev.push({ k: 'whiff', who: i, mv: f.mv })
       // после удара игрок остаётся сидеть, если держит «вниз»; страж встаёт (иначе он зацикливался на подсечках из приседа)
-      if (f.t >= lenOf(s.pvp ? 0 : i, f.mv, s.lv) && !f.air) { if (i === 1 && !s.pvp) f.cr = 0; f.st = f.cr ? 'crouch' : 'idle'; f.t = 0; f.mv = null }
+      if (f.t >= lenFor(s, i, f.mv) && !f.air) { if (i === 1 && !s.pvp) f.cr = 0; f.st = f.cr ? 'crouch' : 'idle'; f.t = 0; f.mv = null }
     }
   } else if (f.st === 'hit') { if (f.t >= f.stn) { f.st = 'idle'; f.t = 0; f.k = 0 } }
   else if (f.st === 'bstun') { if (f.t >= f.stn) { f.st = f.cr ? 'cblock' : 'block'; f.t = 0 } }
@@ -363,11 +382,11 @@ function playerPvp(s: Sim, i: 0 | 1, inp: number) {
   }
   if (inp & toward) {
     if ((press & toward) && c.tapF > 1 && c.tapF < 11) { f.st = 'dash'; f.t = 0; c.tapF = 0 }   // двойное «вперёд» — рывок
-    else { f.st = 'fwd'; f.x += f.dir * 4; if (press & toward) c.tapF = 1 }
+    else { f.st = 'fwd'; f.x += f.dir * SY(s, i).fw; if (press & toward) c.tapF = 1 }
   }
   else if (inp & away) {
     if ((press & away) && c.read > 1 && c.read < 10) { f.st = 'dodge'; f.t = 0; c.read = 0 }   // двойное «назад» — отскок
-    else { f.st = 'back'; f.x -= f.dir * 3; if (press & away) c.read = 1 }
+    else { f.st = 'back'; f.x -= f.dir * SY(s, i).bk; if (press & away) c.read = 1 }
   } else if (f.st === 'fwd' || f.st === 'back' || f.st === 'block' || f.st === 'crouch' || f.st === 'cblock') { f.st = 'idle'; f.t = 0 }
 }
 

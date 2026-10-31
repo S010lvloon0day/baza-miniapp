@@ -12,16 +12,22 @@ import { synthClips } from './poseSynth'
 import { createRunnerSound } from './runnerSound'
 import { GFX, GFX_LABEL, GFX_HINT, getGfx, setGfx, pixelRatioFor } from './gfxQuality'
 import type { GfxQ } from './gfxQuality'
-import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S, IN_U, IN_D, IN_P2, IN_K2, JV, GRAV, lenOf } from './fightSim'
+import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S, IN_U, IN_D, IN_P2, IN_K2, JV, GRAV, lenFor, styleOf, HERO_ARCH } from './fightSim'
 import type { Sim, InputLog, MoveId, F } from './fightSim'
 
 /** Задание 2: драка со стражем. Бой считает fightSim (то же на сервере), здесь — картинка, звук и управление. */
 interface Props { onClose: (done: boolean) => void; pvp?: string; startLv?: 1 | 2; watch?: boolean }   // watch — смотреть чужой бой зрителем   // startLv — выбранный соперник (после прохождения этапа)   // pvp — код вызова: бой с другом
 const BASE = import.meta.env.BASE_URL
 /** облик бойца в бою с другом (на силу и удары не влияет — у всех одинаковые) */
-const HEROES = ['Герой', 'Страж', 'Призрак']
+const HEROES = ['Герой', 'Страж', 'Призрак', 'Рин', 'Искра', 'Дюна', 'Тень', 'Центурион', 'Сержант', 'Пантера', 'Титан', 'Егерь', 'Кобра']
+const ARCH_TXT: Record<string, string> = {
+  bal: 'Универсал — всё поровну', tank: 'Крепыш — больше здоровья, но медленнее и бьёт слабее', fast: 'Быстрый — шустрый и больно бьёт, но хрупкий',
+  long: 'Дальнобой — достаёт дальше, удары легче', tech: 'Мастер спецприёма — шкала копится быстрее', brute: 'Громила — бьёт больнее всех, но долго восстанавливается',
+}
+const modelUrl = (h: number) => BASE + 'mask/' + (h === 0 ? 'fight_hero' : h === 1 ? 'fight_boss' : h === 2 ? 'fight_boss2' : 'fight_c' + String(h - 2).padStart(2, '0')) + '.glb?v=' + MODEL_V
+const faceUrl = (h: number) => BASE + 'mask/faces/h' + h + '.webp?v=1'
 const HERO_KEY = 'mg_pvp_hero'
-const readHero = () => { try { const v = Number(localStorage.getItem(HERO_KEY)); return v === 0 || v === 1 || v === 2 ? v : -1 } catch { return -1 } }
+const readHero = () => { try { const r = localStorage.getItem(HERO_KEY); const v = Number(r); return r !== null && Number.isInteger(v) && v >= 0 && v < HEROES.length ? v : -1 } catch { return -1 } }
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
 const CLIP: Record<MoveId, string> = { jab: 'f_bjab', cross: 'f_bcross', hook: 'f_hook', upper: 'f_upper', low: 'f_low', kick: 'f_mkick', round: 'f_mround', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
@@ -47,7 +53,7 @@ interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string
 export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<'load' | 'ready' | 'fight' | 'end'>('load')
-  const [hud, setHud] = useState({ hp: [HP, HP], meter: [0, 0], wins: [0, 0], lv: 1, time: 60, round: 1, combo: 0 })
+  const [hud, setHud] = useState({ hp: [HP, HP], mx: [HP, HP], meter: [0, 0], wins: [0, 0], lv: 1, time: 60, round: 1, combo: 0 })
   const [banner, setBanner] = useState<{ k: number; text: string; sub?: string; tone?: 'gold' | 'red' | 'white' } | null>(null)
   const [res, setRes] = useState<{ done: boolean; win: boolean; flag?: string | null } | null>(null)
   // бой с другом: имена, моя сторона, состояние связи
@@ -117,8 +123,9 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     // бойцы
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
-    const rigs: (Rig | null)[] = [null, null, null]   // герой, страж, призрак (второй босс)
-    const src: (THREE.Group | null)[] = [null, null, null]   // исходные сцены — для копии, если в бою с другом оба выбрали одного бойца
+    const rigs: (Rig | null)[] = HEROES.map(() => null)   // герой, страж, призрак (второй босс), дальше бойцы для боя с другом — грузятся по выбору
+    const src: (THREE.Group | null)[] = HEROES.map(() => null)
+    const loading = new Set<number>()   // исходные сцены — для копии, если в бою с другом оба выбрали одного бойца
     const prog = [0, 0, 0]
     const pct = () => setLoadPct(Math.round((prog[0] + prog[1] + prog[2]) / 3 * 100))
     const load = (url: string, i: number) => gl.load(url, g => {
@@ -134,22 +141,26 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         }
       }
       // у Призрака свой скелет (длинные руки): из клипов берём только повороты и положение таза
-      if (i === 2) for (const c of g.animations) c.tracks = c.tracks.filter(t => !/\.position$/.test(t.name) || /Hips\.position$/.test(t.name))
+      if (i >= 2) for (const c of g.animations) c.tracks = c.tracks.filter(t => !/\.position$/.test(t.name) || /Hips\.position$/.test(t.name))
       synthClips(g.animations, g.scene)
       for (const c of g.animations) A[c.name] = mixer.clipAction(c)
       src[i] = g.scene; clips[i] = g.animations
       rigs[i] = { root, mixer, A, cur: null, key: '', alt: 0 }
-      prog[i] = 1; pct(); if (i === 2) root.visible = false
+      if (i < 3) { prog[i] = 1; pct() }
+      root.visible = i < 2
+      if (i >= 3) { assignRigs(); applyPose(true); return }
       if (rigs[0] && rigs[1] && rigs[2]) { setPhase('ready'); assignRigs(); applyPose(true); if (pvp) startPvp() }
-    }, e => { if (e.total) { prog[i] = e.loaded / e.total * 0.95; pct() } })
+    }, e => { if (e.total && i < 3) { prog[i] = e.loaded / e.total * 0.95; pct() } })
+    /** модель бойца для боя с другом — подгружается, только когда его кто-то выбрал */
+    const need = (h: number) => { if (h >= 3 && h < HEROES.length && !rigs[h] && !loading.has(h)) { loading.add(h); load(modelUrl(h), h) } }
     load(BASE + 'mask/fight_hero.glb?v=' + MODEL_V, 0)
     load(BASE + 'mask/fight_boss.glb?v=' + MODEL_V, 1)
     load(BASE + 'mask/fight_boss2.glb?v=' + MODEL_V, 2)
     const two = () => !!pvp || sim.lv === 2   // правый боец — модель Призрака (у неё все клипы героя)
     const rigOf = (i: number) => pvp ? sideRig[i] : i === 0 ? rigs[0] : rigs[two() ? 2 : 1]
     // бой с другом: каждый выбирает облик; если оба взяли одного бойца — второму копия с красноватым оттенком
-    const clips: THREE.AnimationClip[][] = [[], [], []]
-    const clones: (Rig | null)[] = [null, null, null]
+    const clips: THREE.AnimationClip[][] = HEROES.map(() => [])
+    const clones: (Rig | null)[] = HEROES.map(() => null)
     const sideRig: (Rig | null)[] = [null, null]
     let heroes: [number, number] = [0, 2]
     const mkClone = (k: number): Rig => {
@@ -163,14 +174,16 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     }
     const assignRigs = () => {
       if (!pvp || !rigs[0] || !rigs[1] || !rigs[2]) return
-      const [a, b] = heroes
+      need(heroes[0]); need(heroes[1])
+      // пока модель выбранного бойца грузится — показываем стандартную
+      const a = rigs[heroes[0]] ? heroes[0] : 0, b = rigs[heroes[1]] ? heroes[1] : 2
       sideRig[0] = rigs[a]; sideRig[1] = a === b ? (clones[b] ||= mkClone(b)) : rigs[b]
       for (const r of [...rigs, ...clones]) if (r) r.root.visible = sideRig.includes(r)
       for (const r of sideRig) if (r) { r.key = ''; r.cur?.stop(); r.cur = null }
-      setHeroSel([a, b])
+      setHeroSel([heroes[0], heroes[1]])
     }
     const setHeroes = (h: unknown) => {
-      if (Array.isArray(h) && h.length === 2 && h.every(x => x === 0 || x === 1 || x === 2)) { heroes = [h[0], h[1]]; assignRigs(); applyPose(true) }
+      if (Array.isArray(h) && h.length === 2 && h.every(x => Number.isInteger(x) && x >= 0 && x < HEROES.length)) { heroes = [h[0], h[1]]; assignRigs(); applyPose(true) }
     }
 
     // ── симуляция
@@ -186,7 +199,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       const seg = (n: string, len: number): [string, number, boolean] => { const g = SEG[n]; return [n, g[0] + (g[1] - g[0]) * Math.min(1, T / len), true] }
       switch (f.st) {
         case 'atk': {
-          const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenOf(pvp ? 0 : i, f.mv!, sim.lv)
+          const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenFor(sim, i, f.mv!)
           if (!k) return [n, null, true]
           // замах с разгоном → удар держится в активных кадрах (как «стоп-кадр» в MK) → спокойный возврат в стойку
           const ease = (u: number) => u * u * (1.6 - 0.6 * u)
@@ -341,7 +354,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             sq[0].clear(); sq[1].clear()
             for (let t = 0; t < DL; t++) { sq[0].set(t, 0); sq[1].set(t, 0) }
             setRes(null); setRm({ me: false, opp: false, off: false })
-            base = newSim(d.seed, 1, 0, 1); sim = structuredClone(base); localT = 0
+            base = newSim(d.seed, 1, 0, 1, [heroes[0], heroes[1]]); sim = structuredClone(base); localT = 0   // стили бойцов — из выбора, одинаково у обоих
             ;(window as unknown as { __fs: unknown }).__fs = () => base
             myQ.clear(); remQ.clear(); played.clear()
             for (let t = 0; t < DL; t++) { myQ.set(t, 0); remQ.set(t, 0) }
@@ -506,7 +519,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         if (performance.now() - lastHud > 80) {
           lastHud = performance.now()
           if (comboT > 0) comboT -= 0.08; if (comboT <= 0) combo = 0
-          setHud({ hp: [sim.f[0].hp, sim.f[1].hp], meter: [sim.f[0].meter, sim.f[1].meter], wins: [...sim.wins], lv: sim.lv, time: Math.ceil(sim.rt / TPS), round: sim.wins[0] + sim.wins[1] + 1, combo: combo > 1 ? combo : 0 })
+          setHud({ hp: [sim.f[0].hp, sim.f[1].hp], mx: sim.pvp ? [styleOf(sim.sy[0]).hp, styleOf(sim.sy[1]).hp] : [HP, HP], meter: [sim.f[0].meter, sim.f[1].meter], wins: [...sim.wins], lv: sim.lv, time: Math.ceil(sim.rt / TPS), round: sim.wins[0] + sim.wins[1] + 1, combo: combo > 1 ? combo : 0 })
         }
         sfx.musicIntensity(Math.min(1, (HP * 2 - sim.f[0].hp - sim.f[1].hp) / (HP * 1.3)))
       } else if (rigs[0] && rigs[1] && rigs[2] && !sim.over) applyPose()
@@ -558,8 +571,8 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as any}>{icon && Ico({ k: icon })}{label && <span>{label}</span>}</button>
   )
   /** Шкала здоровья в духе MK11: стальная рамка с золотой кромкой, золотая заливка, красный след урона, медальон бойца */
-  const Health = ({ v, name, right, wins, meter, hue }: { v: number; name: string; right?: boolean; wins: number; meter: number; hue: 'c' | 'm' }) => {
-    const pct = Math.max(0, v / HP * 100), low = pct <= 25
+  const Health = ({ v, mx, name, right, wins, meter, hue }: { v: number; mx: number; name: string; right?: boolean; wins: number; meter: number; hue: 'c' | 'm' }) => {
+    const pct = Math.max(0, v / mx * 100), low = pct <= 25
     return (
       <div className={`mk-side ${right ? 'is-r' : ''} ${low ? 'is-low' : ''}`} style={{ ['--hp' as any]: `${pct}%` }}>
         <div className="mk-medal"><span>{hue === 'c' ? <svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 3l9 16H3z" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round" /><path d="M12 9.5l4 7.5H8z" fill="currentColor" /></svg> : <svg viewBox="0 0 24 24" width="20" height="20"><path d="M3 12c2.5-4.5 5.5-6.5 9-6.5s6.5 2 9 6.5c-2.5 4.5-5.5 6.5-9 6.5S5.5 16.5 3 12z" fill="none" stroke="currentColor" strokeWidth="2" /><circle cx="12" cy="12" r="3" fill="currentColor" /></svg>}</span></div>
@@ -596,17 +609,25 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     const mine = heroSel[mySide], theirs = heroSel[1 - mySide]
     return (
       <div className="mt-3 text-left">
-        <div className="text-[12.5px] text-gray mb-1.5">Твой боец <span className="text-gray2">· соперник выбрал: {HEROES[theirs]}</span></div>
-        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Твой боец">
+        <div className="flex items-baseline justify-between gap-2">
+          <div className="text-[13.5px] font-medium">{HEROES[mine]}</div>
+          <div className="text-[11.5px] text-gray2 truncate">соперник: {HEROES[theirs]}</div>
+        </div>
+        <div className="text-[11.5px] text-gray mt-0.5">{ARCH_TXT[HERO_ARCH[mine]] || ''}</div>
+        <div className="fg-roster mt-2" role="radiogroup" aria-label="Выбор бойца">
           {HEROES.map((n, h) => (
-            <button key={n} role="radio" aria-checked={mine === h} onClick={() => api.current.hero(h)}
-              className={`h-10 rounded-[12px] text-[13px] font-medium ${mine === h ? 'bg-green text-black' : 'bg-white/[.07]'}`}>{n}</button>
+            <button key={n} role="radio" aria-checked={mine === h} aria-label={n} title={n} onClick={() => api.current.hero(h)}
+              className={`fg-face ${mine === h ? 'is-me' : ''} ${theirs === h ? 'is-opp' : ''}`}>
+              <img src={faceUrl(h)} alt="" loading="lazy" draggable={false} />
+            </button>
           ))}
         </div>
-        <p className="text-[11px] text-gray2 mt-1">Меняется только облик — сила и удары у всех одинаковые.</p>
+        <p className="text-[11px] text-gray2 mt-1.5">У каждого свой стиль, шансы выровнены — побеждает тот, кто лучше дерётся.</p>
+        <style>{'.fg-roster{display:grid;grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:6px}.fg-face{position:relative;aspect-ratio:1;border-radius:50%;overflow:hidden;background:#1e1630;box-shadow:inset 0 0 0 2px rgba(255,255,255,.14);transition:transform .08s}.fg-face img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(.85) brightness(.85)}.fg-face.is-me{box-shadow:0 0 0 2px #34e8a0,0 0 12px rgba(52,232,160,.55);transform:scale(1.06)}.fg-face.is-me img{filter:none}.fg-face.is-opp::after{content:"";position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 2px #ff4a5a}.fg-face:focus-visible{outline:2px solid #fff;outline-offset:2px}'}</style>
       </div>
     )
   }
+
   const mySide: 0 | 1 = pv?.side === 1 ? 1 : 0
   const shareWatch = () => {
     if (!wLink) return
@@ -645,9 +666,9 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       {phase !== 'load' && (
         <div className="absolute top-0 inset-x-0 pointer-events-none" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 6px)', paddingLeft: 'calc(env(safe-area-inset-left,0px) + 14px)', paddingRight: 'calc(env(safe-area-inset-right,0px) + 14px)' }}>
           <div className="flex items-start gap-1.5">
-            {Health({ v: hud.hp[0], name: nm(0), wins: hud.wins[0], meter: hud.meter[0], hue: "c" })}
+            {Health({ v: hud.hp[0], mx: hud.mx[0], name: nm(0), wins: hud.wins[0], meter: hud.meter[0], hue: "c" })}
             <div className={`mk-timer ${hud.time <= 10 ? 'is-hot' : ''}`}><span>{hud.time}</span></div>
-            {Health({ v: hud.hp[1], name: nm(1), right: true, wins: hud.wins[1], meter: hud.meter[1], hue: "m" })}
+            {Health({ v: hud.hp[1], mx: hud.mx[1], name: nm(1), right: true, wins: hud.wins[1], meter: hud.meter[1], hue: "m" })}
           </div>
           {hud.combo > 1 && phase === 'fight' && <div key={hud.combo} className="mt-6 ml-2 font-display font-black italic text-[26px] text-gold" style={{ animation: 'fgPop .35s ease-out both', textShadow: '0 2px 0 #7a5212, 0 0 18px rgba(255,190,80,.6)' }}>{hud.combo} УДАРА</div>}
         </div>
@@ -712,7 +733,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       )}
       {(phase === 'load' || phase === 'ready' || phase === 'end') && (
         <div className="absolute inset-x-0 bottom-0 p-4 flex justify-center" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)' }}>
-          <div className="glass rounded-[22px] p-4 text-center w-full max-w-[460px]">
+          <div className="glass rounded-[22px] p-4 text-center w-full max-w-[460px] max-h-[calc(100dvh-28px)] overflow-y-auto">
             {phase === 'load' && <div className="py-3"><div className="text-[14px] text-gray mb-2">Загрузка арены… {loadPct}%</div><div className="h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-green" style={{ width: `${loadPct}%` }} /></div></div>}
             {phase === 'ready' && pv && isSpec && <>
               <div className="font-display font-semibold text-[17px]">Смотреть бой</div>
