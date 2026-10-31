@@ -57,7 +57,7 @@ export const maskApi = {
   guess: (text: string) => req<GuessResult>('POST', '/api/mask/guess', { text }).catch((e: any) => (e.data || { ok: false, error: e.message }) as GuessResult),
   clue: (id: number, answer: string) => req<{ ok: boolean; reward?: string; points?: number; tries_left?: number }>('POST', `/api/mask/clue/${id}`, { answer }),
   runStart: () => req<{ run_id: number; seed: number; target: number }>('POST', '/api/mask/run/start', {}),
-  runFinish: (run_id: number, score: number) => req<{ ok: boolean; done: boolean; score: number; flag: string | null }>('POST', '/api/mask/run/finish', { run_id, score }),
+  runFinish: (run_id: number, score: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; score: number; flag: string | null }>('POST', '/api/mask/run/finish', { run_id, score, log, ticks }),
   runTop: () => req<RunTop>('GET', '/api/mask/run/top'),
   fightStart: (lv?: number) => req<{ fight_id: number; seed: number; lv?: number; ez?: number }>('POST', '/api/mask/fight/start', lv ? { lv } : {}),
   fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks }),

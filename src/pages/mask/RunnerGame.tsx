@@ -7,19 +7,17 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { maskApi } from '../../api/mask'
 import type { RunTop } from '../../api/mask'
-import { buildWorld, obstacleFactory, loadDecor, WALL_HALF } from './runnerWorld'
+import { buildWorld, obstacleFactory, loadDecor } from './runnerWorld'
+import { newRun, runStep, runScore, RTPS, LANE, LX } from './runnerSim'
+import type { RSim, RIn, RunLog, Kind } from './runnerSim'
 import { createRunnerSound } from './runnerSound'
 
 /** Задание 1: бег по трём дорожкам. Скорость v(t)=min(v0+a·t, vmax) — та же модель на сервере. */
 interface Props { model: { v0: number; a: number; vmax: number }; target: number; onClose: (done: boolean) => void }
-type Kind = 'low' | 'high' | 'wall'
-interface Obs { g: THREE.Group; lane: number; z: number; kind: Kind }
 
 const BASE = import.meta.env.BASE_URL
-const LANE = 1.7
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
-const rnd = (seed: number) => { let x = seed >>> 0 || 7; return () => { x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return (x >>> 0) / 4294967296 } }
 
 export default function RunnerGame({ model, target: target0, onClose }: Props) {
   const host = useRef<HTMLDivElement>(null)
@@ -57,8 +55,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const world = buildWorld(S, LANE)
     const makeObs = obstacleFactory(LANE)
     const build = (k: Kind) => { const g = makeObs(k); g.traverse(o => { if ((o as THREE.Mesh).isMesh) (o as THREE.Mesh).castShadow = true }); S.add(g); return g }
-    // камера смотрит вдоль +Z, поэтому экранное «вправо» — это −X мира
-    const LX = (l: number) => -l * LANE
+    // камера смотрит вдоль +Z, поэтому экранное «вправо» — это −X мира (LX из runnerSim)
     S.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh && (m.geometry as any)?.type === 'PlaneGeometry') m.receiveShadow = true })
     // тени только вокруг героя: маленькая карта ездит вместе с ним
     const shSun = new THREE.DirectionalLight(0xffb27a, 1.7); shSun.castShadow = true
@@ -118,62 +115,28 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       play('idle'); setPhase('ready')
     })
 
-    // ── состояние забега
-    let run = false, t = 0, dist = 0, lane = 0, x = 0, y = 0, vy = 0, slide = 0, runId = 0
-    let obs: Obs[] = []
-    let air = false, stepT = 0, bestBefore = Infinity, mile = 0
+    // ── состояние забега: сама игра — детерминированная симуляция runnerSim (её же переигрывает сервер)
+    let run = false, runId = 0, sim: RSim = newRun(1, model), acc = 0, x = 0, y = 0, lane = 0
+    let log: RunLog = [], queue: RIn[] = []
+    const meshes = new Map<number, THREE.Group>()
+    let stepT = 0, bestBefore = Infinity, mile = 0
     maskApi.runTop().then(r => { bestBefore = r.my_best }).catch(() => { bestBefore = 0 })
     const sfx = snd.current
-    let rand = rnd(1), nextZ = 30
-    const speed = () => Math.min(model.v0 + model.a * t, model.vmax)
-    // сложность растёт всё время: d = 0 на старте → 1 к ~1,5 мин (и скорость при этом не останавливается)
+    const speed = () => Math.min(model.v0 + model.a * sim.t, model.vmax)
     const KN = 30   // нормировка «насколько быстро» для эффектов и музыки
-    const spawn = () => {
-      while (nextZ < dist + 90) {
-        const vv = speed(), d = Math.min(1, t / 95), lanes = [-1, 0, 1]
-        const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)]
-        const lk = (): Kind => rand() < 0.5 ? 'low' : 'high'
-        const add = (l: number, k: Kind, dz = 0) => obs.push({ g: build(k), lane: l, z: nextZ + dz, kind: k })
-        const free = pick(lanes)
-        // веса узоров: простые уходят, сложные приходят
-        const w = [1.1 - d * 1.1, 1, 0.8 - d * 0.3, 0.25 + d * 1.5, 0.1 + d * 1.6, d * 1.3, d * 1.2]
-        let r = rand() * w.reduce((x, y) => x + y), p = 0
-        while (r > w[p]) { r -= w[p]; p++ }
-        let extra = 0
-        if (p === 0) add(pick(lanes), lk())                                              // одно препятствие
-        else if (p === 1) { for (const l of lanes) if (l !== free) add(l, 'wall') }    // две стены, проход один
-        else if (p === 2) { const k = lk(); for (const l of lanes) add(l, k) }          // барьер во всю ширину
-        else if (p === 3) { for (const l of lanes) add(l, l === free ? lk() : 'wall') } // проход есть, но в нём ещё барьер
-        else if (p === 4) {                                                            // зигзаг: стены заставляют перестраиваться дважды
-          const l1 = pick(lanes), l2 = pick(lanes.filter(x => x !== l1)), gap = Math.max(8, vv * (0.62 - d * 0.12))
-          for (const l of lanes) if (l !== l1) add(l, 'wall')
-          for (const l of lanes) if (l !== l2) add(l, 'wall', gap)
-          extra = gap
-        } else if (p === 6) {                                                          // связка: низкий барьер, сразу за ним высокий — прыжок, в воздухе вниз
-          const gap = Math.max(7, vv * 0.45)
-          for (const l of lanes) add(l, 'low')
-          for (const l of lanes) add(l, 'high', gap)
-          extra = gap
-        } else {                                                                       // коридор: длинный ряд контейнеров + барьеры в проходе
-          const gap = Math.max(7, vv * 0.4)
-          for (let i = 0; i < 3; i++) { for (const l of lanes) if (l !== free) add(l, 'wall', i * gap) }
-          add(free, lk(), gap * 1.5); extra = gap * 2
-        }
-        // промежуток во времени сокращается: ~1,0 с на старте → ~0,6 с к концу
-        const react = Math.max(0.44, 0.95 - d * 0.51)
-        nextZ += extra + Math.max(10, vv * react) + rand() * vv * (0.35 - d * 0.27)
-      }
-    }
+    ;(window as unknown as { __rs: unknown }).__rs = () => ({ sim, log, seed: seed0 })
+    let seed0 = 1
     const reset = (seed: number) => {
-      for (const o of obs) S.remove(o.g)
-      obs = []; rand = rnd(seed); t = 0; dist = 0; lane = 0; x = 0; y = 0; vy = 0; slide = 0; nextZ = 30; mile = 0
+      seed0 = seed
+      for (const g of meshes.values()) S.remove(g)
+      meshes.clear(); sim = newRun(seed, model); log = []; queue = []; acc = 0; x = 0; y = 0; lane = 0; mile = 0
     }
     const end = async () => {
       run = false; buzz('heavy'); play('fall', true, 1.2); sfx.crash(); sfx.wind(0); sfx.musicStop(1.5)
-      const sc = Math.floor(dist * 10)
+      const sc = runScore(sim)
       setPhase('end')
       try {
-        const r = await maskApi.runFinish(runId, sc); setRes({ score: r.score, done: r.done, flag: r.flag })
+        const r = await maskApi.runFinish(runId, sc, log, sim.tick); setRes({ score: r.score, done: r.done, flag: r.flag })
         const nr = !r.flag && r.score > 0 && r.score > bestBefore; setRec(nr); if (nr) sfx.ui('record'); bestBefore = Math.max(bestBefore, r.score); loadTop()
       }
       catch { setRes({ score: sc, done: false, flag: 'net' }) }
@@ -190,11 +153,17 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       run = true; setPhase('run'); play('run', false, 1)
     }
     api.current.input = k => {
-      if (!run) return
-      if (k === 'left' && lane > -1) { lane--; buzz('light'); sfx.swish() }
-      if (k === 'right' && lane < 1) { lane++; buzz('light'); sfx.swish() }
-      if (k === 'up' && y <= 0.001) { vy = 9.2; slide = 0; play('jump', true, 1.45); sfx.jump(); air = true }
-      if (k === 'down') { if (y > 0.001) vy = -14; if (slide <= 0) { sfx.roll(); puff(5, 1.2) } slide = 0.75; play('slide', true, 2.0) }
+      if (!run || queue.length >= 4) return
+      queue.push(k === 'left' ? 1 : k === 'right' ? 2 : k === 'up' ? 3 : 4)
+    }
+    /** звуки и анимации по событиям симуляции */
+    const onEv = (e: string) => {
+      if (e === 'lane') { buzz('light'); sfx.swish() }
+      else if (e === 'jump') { play('jump', true, 1.45); sfx.jump() }
+      else if (e === 'roll') { sfx.roll(); puff(5, 1.2) }
+      else if (e === 'slide') play('slide', true, 2.0)
+      else if (e === 'land') { sfx.land(); puff(7, 1.3); buzz('light') }
+      else if (e === 'slideEnd') { if (sim.y === 0) play('run', false, 1) }
     }
 
     const fit = () => {
@@ -210,33 +179,34 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       const dt = Math.min(0.05, clock.getDelta())
       mixer?.update(dt)
       if (run) {
-        t += dt
-        const v = speed(); const dPrev = dist; dist += v * dt
-        x += (LX(lane) - x) * Math.min(1, dt * 14)
-        vy -= 26 * dt; y = Math.max(0, y + vy * dt); if (y === 0) vy = 0
-        if (air && y === 0) { air = false; sfx.land(); puff(7, 1.3); buzz('light') }
-        world.update(v * dt, dt)
+        const d0 = sim.dist
+        acc += dt * RTPS
+        while (acc >= 1) {
+          const inp = (queue.shift() ?? 0) as RIn
+          if (inp) log.push([sim.tick, inp])
+          runStep(sim, inp); acc -= 1
+          for (const e of sim.ev) onEv(e)
+          if (sim.dead) break
+        }
+        x = sim.x; y = sim.y; lane = sim.lane
+        const v = speed()
+        world.update(sim.dist - d0, dt)
         const kk = Math.min(1, (v - model.v0) / KN)
         sfx.musicIntensity(kk)
         sfx.wind(0.015 + 0.05 * kk)
         if (A.run && cur === A.run && y === 0) { stepT -= dt * A.run.timeScale; if (stepT <= 0) { stepT += 22 / 30 / 2; sfx.step(); if (Math.random() < 0.5) puff(1, 0.7) } } else stepT = 0.05
-        if (slide > 0) { slide -= dt; if (slide <= 0 && y === 0) play('run', false, 1) }
-        if (y === 0 && vy === 0 && slide <= 0 && cur !== A.run) play('run', false, 1)
+        if (y === 0 && sim.vy === 0 && sim.slide <= 0 && cur !== A.run) play('run', false, 1)
         if (A.run) A.run.timeScale = 0.8 + Math.min(1.2, (v - model.v0) / KN) * 0.6
-        spawn()
-        const hTop = slide > 0 ? 0.95 : 1.8
-        for (const o of obs) {
-          const rz = o.z - dist
-          o.g.position.set(LX(o.lane), 0, rz)
-          const hz = o.kind === 'wall' ? WALL_HALF + 0.1 : 0.45, rzP = o.z - dPrev
-          // «сквозная» проверка: за кадр на большой скорости можно пролететь препятствие насквозь
-          if (o.lane === lane && rz < hz && rzP > -hz && Math.abs(x - LX(lane)) < 0.6) {
-            const hit = o.kind === 'wall' || (o.kind === 'low' && y < 0.6) || (o.kind === 'high' && hTop > 1.2 && y < 0.9)
-            if (hit) { end(); break }
-          }
+        // препятствия: меши по id из симуляции
+        const alive2 = new Set<number>()
+        for (const o of sim.obs) {
+          alive2.add(o.id)
+          let g = meshes.get(o.id); if (!g) { g = build(o.kind); meshes.set(o.id, g) }
+          g.position.set(LX(o.lane), 0, o.z - sim.dist)
         }
-        obs = obs.filter(o => { if (o.z - dist < -6) { S.remove(o.g); return false } return true })
-        const sc = Math.floor(dist * 10)
+        for (const [id, g] of meshes) if (!alive2.has(id)) { S.remove(g); meshes.delete(id) }
+        if (sim.dead) end()
+        const sc = runScore(sim)
         if (sc >= (mile + 1) * 10000) { mile++; setToastM({ k: mile, text: (mile * 10000).toLocaleString('ru-RU') + '!' }); sfx.ui('record'); buzz('heavy'); setTimeout(() => setToastM(m => m && m.k === mile ? null : m), 1400) }
         if (performance.now() - lastUi > 100) { lastUi = performance.now(); setScore(sc); setKmh(Math.round(v * 3.6)) }
       }
@@ -331,7 +301,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
             </>}
             {phase === 'end' && <>
               <div className="font-display font-semibold text-[18px]">{res?.done ? 'Задание выполнено!' : 'Упал'}</div>
-              <p className="text-[14px] text-gray mt-1">Счёт: {(res?.score ?? score).toLocaleString('ru-RU')}{res?.flag === 'too_fast' ? ' — забег не засчитан' : ''}</p>
+              <p className="text-[14px] text-gray mt-1">Счёт: {(res?.score ?? score).toLocaleString('ru-RU')}{res?.flag && res.flag !== 'net' ? ' — забег не засчитан' : res?.flag === 'net' ? ' — нет связи, результат не сохранён' : ''}</p>
               {rec && <p className="text-[14px] text-gold font-semibold mt-1">🏆 Новый личный рекорд!</p>}
               <Records top={top} />
               <div className="flex gap-2 mt-3">
