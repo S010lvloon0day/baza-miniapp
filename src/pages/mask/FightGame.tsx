@@ -31,7 +31,7 @@ const KEYS: Record<string, [number, number, number]> = {
 /** отрезки клипов для состояний с известной длительностью */
 const SEG: Record<string, [number, number]> = {
   f_jump: [0.72, 1.42], f_ko: [1.05, 3.2], f_sweepfall: [0.75, 2.3], f_getup: [4.0, 5.7], f_blockhit: [0.05, 0.6], f_dodge: [0.9, 2.2],
-  f_hit: [0, 1.0], f_bblock: [0.3, 0.55], f_bdodge: [0.4, 1.3], f_hitbig: [0, 1.2], f_hitbody: [0, 1.0], f_hitup: [0.1, 1.5],
+  f_hit: [0, 1.0], f_bblock: [0.3, 0.55], f_guardhit: [0, 0.3], f_bdodge: [0.4, 1.3], f_hitbig: [0, 1.2], f_hitbody: [0, 1.0], f_hitup: [0.1, 1.5],
 }
 const AIR_CLIPS = /^f_(jump|jkick|jknee|jknee2)$/
 
@@ -150,9 +150,9 @@ export default function FightGame({ onClose }: Props) {
         case 'back': return ['f_back', null, false]
         case 'dash': return ['f_fwd', null, false]
         case 'crouch': return ['f_crouchg', null, false]
-        case 'cblock': return ['f_cblock2', 0.5, true]
-        case 'block': return ['f_bblock', 0.3, true]
-        case 'bstun': return f.cr ? ['f_cblock2', 0.5, true] : seg('f_bblock', Math.max(6, f.stn))
+        case 'cblock': return ['f_cguard', 0.5, true]
+        case 'block': return ['f_guard', 0.5, true]
+        case 'bstun': return f.cr ? ['f_cguard', 0.5, true] : seg('f_guardhit', Math.max(6, f.stn))
         case 'land': return ['f_crouchg', null, false]
         case 'jump': { const g = SEG.f_jump, up = f.air ? Math.min(1, (JV - f.vy) / (2 * JV)) : 1; return ['f_jump', g[0] + (g[1] - g[0]) * up, true] }
         case 'hit': return f.hitKind === 2 ? seg(rigOf(i)!.alt ? 'f_hitup' : 'f_hitbig', Math.max(10, f.stn)) : seg(f.hitKind === 1 ? 'f_hitbody' : 'f_hit', Math.max(10, f.stn))

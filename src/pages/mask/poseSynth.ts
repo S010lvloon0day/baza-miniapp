@@ -161,6 +161,35 @@ function kickIK(root: THREE.Object3D, base: Pose, ang: number, ext: number, lean
   return out
 }
 
+/** боксёрский блок: обе руки подняты, кулаки у лица, предплечья закрывают голову, локти вниз (двухзвенная IK рук) */
+function guardPose(root: THREE.Object3D, base: Pose, tight = 1): Pose {
+  applyPose(root, base)
+  const rq = new THREE.Quaternion(); root.getWorldQuaternion(rq)
+  const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(rq), up = new THREE.Vector3(0, 1, 0).applyQuaternion(rq), lat = new THREE.Vector3(1, 0, 0).applyQuaternion(rq)
+  const P = (o: THREE.Object3D) => new THREE.Vector3().setFromMatrixPosition(o.matrixWorld)
+  const head = findBone(root, 'Head'); if (!head) return base
+  const out: Pose = new Map(base)
+  for (const sd of ['Left', 'Right']) {
+    const sh = findBone(root, sd + 'Arm'), fa = findBone(root, sd + 'ForeArm'), hd = findBone(root, sd + 'Hand'); if (!sh || !fa || !hd) continue
+    const S0 = P(sh), l1 = P(fa).distanceTo(S0), l2 = P(hd).distanceTo(P(fa))
+    const sgn = Math.sign(lat.dot(S0.clone().sub(P(head)))) || (sd === 'Left' ? 1 : -1)
+    // кулак — перед лицом, чуть в сторону своего плеча, на уровне глаз/скулы
+    const T = P(head).add(fwd.clone().multiplyScalar(0.2 * tight + 0.08)).add(lat.clone().multiplyScalar(sgn * 0.08)).add(up.clone().multiplyScalar(0.04))   // кулаки перед лицом, не внутри маски
+    const pole = up.clone().multiplyScalar(-1).add(lat.clone().multiplyScalar(sgn * 0.35)).add(fwd.clone().multiplyScalar(0.25)).normalize()   // локоть вниз и чуть наружу
+    const dv = T.clone().sub(S0); const d = Math.min(l1 + l2 - 1e-3, Math.max(Math.abs(l1 - l2) + 1e-3, dv.length())); const dir = dv.normalize()
+    const a = Math.acos(Math.min(1, Math.max(-1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))))
+    const n = new THREE.Vector3().crossVectors(dir, pole).normalize()
+    let ed = dir.clone().applyAxisAngle(n, -a); if (ed.dot(pole) < dir.clone().applyAxisAngle(n, a).dot(pole)) ed = dir.clone().applyAxisAngle(n, a)
+    const E = S0.clone().add(ed.multiplyScalar(l1)), H = S0.clone().add(dir.clone().multiplyScalar(d))
+    const xA = new THREE.Vector3(1, 0, 0).applyQuaternion(sh.getWorldQuaternion(new THREE.Quaternion()))
+    orientBone(sh, E.clone().sub(S0), xA)
+    const xF = new THREE.Vector3(1, 0, 0).applyQuaternion(fa.getWorldQuaternion(new THREE.Quaternion()))
+    orientBone(fa, H.clone().sub(E), xF)
+    for (const b of [sh, fa]) { const k = b.name + '.quaternion'; if (base.has(k)) out.set(k, b.quaternion.toArray()) }
+  }
+  return out
+}
+
 export function synthClips(clips: THREE.AnimationClip[], root?: THREE.Object3D) {
   const C = Object.fromEntries(clips.map(c => [c.name, c]))
   const need = ['f_crouch', 'f_low', 'f_bblock', 'f_upper']
@@ -190,6 +219,15 @@ export function synthClips(clips: THREE.AnimationClip[], root?: THREE.Object3D) 
   if (jsrc) { const jb = (t: number) => mix(crouch, sample(jsrc, t), (b: string) => !LEG.test(b) && !/Hips$/.test(b))
     const k = jsrc === C.f_bcross ? [0.55, 0.68] : [0.35, 0.45]
     clips.push(build('f_cjab', [[0, crouch], [0.08, jb(k[0])], [0.16, jb(k[1])], [0.24, jb(k[1] + 0.02)], [0.5, crouch]])) }
+  // боксёрский блок стоя и в приседе (кулаки у лица), удар в блок — руки чуть прижимаются
+  if (root && C.f_idle) {
+    const st = sample(C.f_idle, 0.3)
+    const g = guardPose(root, st), g2 = guardPose(root, st, 0.6)
+    clips.push(build('f_guard', [[0, g], [1, g]]))
+    clips.push(build('f_guardhit', [[0, g], [0.06, g2], [0.3, g]]))
+    const cg = guardPose(root, crouch)
+    clips.push(build('f_cguard', [[0, cg], [1, cg]]))
+  }
   // блок в приседе: ноги из приседа, руки и корпус — высокий блок
   const cb = mix(crouch, sample(C.f_bblock, 0.3), upperBody)
   clips.push(build('f_cblock2', [[0, cb], [1, cb]]))

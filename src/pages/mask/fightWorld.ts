@@ -56,16 +56,19 @@ export function buildArena(S: THREE.Scene) {
   const cars: { m: THREE.Mesh; v: number }[] = []
   // неоновые вывески
   const neon = (text: string, col: string, w: number, h: number) => {
-    const t = canvasTex(512, 128, c => {
-      c.fillStyle = 'rgba(0,0,0,0)'; c.fillRect(0, 0, 512, 128)
-      c.font = '800 78px sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'
-      c.shadowColor = col; c.shadowBlur = 28; c.fillStyle = col; c.fillText(text, 256, 66); c.shadowBlur = 10; c.fillStyle = '#ffffff'; c.globalAlpha = 0.55; c.fillText(text, 256, 66)
+    // текст подгоняется по ширине холста с запасом под свечение — надпись не обрезается по краям
+    const t = canvasTex(1024, 256, c => {
+      c.fillStyle = 'rgba(0,0,0,0)'; c.fillRect(0, 0, 1024, 256)
+      let fs = 150; c.font = `800 ${fs}px sans-serif`
+      while (c.measureText(text).width > 1024 - 120 && fs > 40) { fs -= 4; c.font = `800 ${fs}px sans-serif` }
+      c.textAlign = 'center'; c.textBaseline = 'middle'
+      c.shadowColor = col; c.shadowBlur = 40; c.fillStyle = col; c.fillText(text, 512, 132); c.shadowBlur = 14; c.fillStyle = '#ffffff'; c.globalAlpha = 0.55; c.fillText(text, 512, 132)
     })
     return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: t, transparent: true, depthWrite: false, fog: true, side: THREE.DoubleSide }))
   }
   const signs: THREE.Mesh[] = []
   const frame = new THREE.MeshStandardMaterial({ color: 0x15161f, roughness: 0.4, metalness: 0.8 })
-  for (const [txt, col, x, y, z, w] of [['БАЗА ЗНАНИЙ', '#34e8ff', -5.3, 1.75, -5.2, 3.4], ['S010', '#ff3fb4', 6.4, 1.7, -5.2, 2.2]] as const) {
+  for (const [txt, col, x, y, z, w] of [['БАЗА ЗНАНИЙ', '#34e8ff', -3.6, 2.05, -5.2, 3.8], ['S010', '#ff3fb4', 3.9, 1.95, -5.2, 2.0]] as const) {
     const m = neon(txt, col, w, w / 4); m.position.set(x, y, z); S.add(m); signs.push(m)
     const fr = new THREE.Mesh(new THREE.BoxGeometry(w + 0.2, 0.06, 0.06), frame); fr.position.set(x, y - w / 8 - 0.05, z - 0.05); S.add(fr)
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, y, 0.15), frame); leg.position.set(x, y / 2, z - 0.1); S.add(leg)

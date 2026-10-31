@@ -386,7 +386,7 @@ export async function loadDecor(base: string, loader: { loadAsync: (u: string) =
   const lib: DecorLib = {}
   await Promise.all(DECOR_KEYS.map(async k => {
     try {
-      const g = await loader.loadAsync(base + k + '.glb'); const sc = g.scene
+      const g = await loader.loadAsync(base + k + '.glb?v=2'); const sc = g.scene
       sc.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = false } })
       if (k === 'lamp') {   // где плафон: центр вершин в верхних 12% высоты
         sc.updateMatrixWorld(true); const v = new THREE.Vector3(), sum = new THREE.Vector3(); let n = 0
