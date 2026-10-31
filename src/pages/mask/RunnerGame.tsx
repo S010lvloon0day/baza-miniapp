@@ -105,7 +105,13 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     }
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
-    loadDecor(BASE + 'mask/decor/', gl).then(lib => { if (!alive) return; world.applyDecor(lib); makeObs.setLib(lib) })
+    loadDecor(BASE + 'mask/decor/', gl).then(lib => {
+      if (!alive) return; world.applyDecor(lib); makeObs.setLib(lib)
+      // прогрев: заранее собираем шейдеры всех препятствий, иначе первое появление контейнера даёт рывок
+      const warm = (['low', 'high', 'wall', 'wall'] as Kind[]).map(k => { const g = build(k); g.position.set(0, -50, 20); return g })
+      try { R.compile(S, cam) } catch { /* */ }
+      for (const g of warm) S.remove(g)
+    })
     gl.load(BASE + 'mask/public.glb?v=' + MODEL_V, g => {
       if (!alive) return
       g.scene.traverse(o => { if ((o as THREE.Mesh).isMesh) { (o as THREE.Mesh).frustumCulled = false; (o as THREE.Mesh).castShadow = true } })
@@ -127,6 +133,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     // ── состояние забега: сама игра — детерминированная симуляция runnerSim (её же переигрывает сервер)
     let run = false, runId = 0, sim: RSim = newRun(1, model), acc = 0, x = 0, y = 0, lane = 0
     let log: RunLog = [], queue: RIn[] = []
+    let pd = 0, px = 0, py = 0, lastRD = 0   // предыдущий шаг — для плавного показа
     const meshes = new Map<number, THREE.Group>()
     let stepT = 0, bestBefore = Infinity, mile = 0
     maskApi.runTop().then(r => { bestBefore = r.my_best }).catch(() => { bestBefore = 0 })
@@ -138,7 +145,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const reset = (seed: number) => {
       seed0 = seed
       for (const g of meshes.values()) S.remove(g)
-      meshes.clear(); sim = newRun(seed, model); log = []; queue = []; acc = 0; x = 0; y = 0; lane = 0; mile = 0
+      meshes.clear(); sim = newRun(seed, model); log = []; queue = []; acc = 0; x = 0; y = 0; lane = 0; mile = 0; pd = 0; px = 0; py = 0; lastRD = 0
     }
     const end = async () => {
       run = false; buzz('heavy'); play('fall', true, 1.2); sfx.crash(); sfx.wind(0); sfx.musicStop(1.5)
@@ -191,18 +198,21 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       const dt = Math.min(0.05, clock.getDelta())
       mixer?.update(dt)
       if (run) {
-        const d0 = sim.dist
         acc += dt * RTPS
         while (acc >= 1) {
           const inp = (queue.shift() ?? 0) as RIn
           if (inp) log.push([sim.tick, inp])
+          pd = sim.dist; px = sim.x; py = sim.y
           runStep(sim, inp); acc -= 1
           for (const e of sim.ev) onEv(e)
           if (sim.dead) break
         }
-        x = sim.x; y = sim.y; lane = sim.lane
+        // плавность: показываем положение между двумя последними шагами симуляции (кадры и шаги не совпадают по времени)
+        const al = sim.dead ? 1 : Math.min(1, acc)
+        const rd = pd + (sim.dist - pd) * al
+        x = px + (sim.x - px) * al; y = py + (sim.y - py) * al; lane = sim.lane
         const v = speed()
-        world.update(sim.dist - d0, dt)
+        world.update(Math.max(0, rd - lastRD), dt); lastRD = rd
         const kk = Math.min(1, (v - model.v0) / KN)
         sfx.musicIntensity(kk)
         sfx.wind(0.015 + 0.05 * kk)
@@ -214,7 +224,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
         for (const o of sim.obs) {
           alive2.add(o.id)
           let g = meshes.get(o.id); if (!g) { g = build(o.kind); meshes.set(o.id, g) }
-          g.position.set(LX(o.lane), 0, o.z - sim.dist)
+          g.position.set(LX(o.lane), 0, o.z - rd)
         }
         for (const [id, g] of meshes) if (!alive2.has(id)) { S.remove(g); meshes.delete(id) }
         if (sim.dead) end()

@@ -172,13 +172,17 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
       }
     }
     void AIRT
+    const prevXY = [[0, 0], [0, 0]]
     const applyPose = (force = false) => {
       const fr = Math.min(0.99, Math.max(0, acc))
       for (const i of [0, 1] as const) {
         const r = rigOf(i); if (!r) continue
         if (i === 1) { const o = rigs[two() ? 1 : 2]; if (o) o.root.visible = false; r.root.visible = true }
         const f = sim.f[i]
-        r.root.position.set(f.x / 100, f.y / 400, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
+        // плавность: между двумя шагами симуляции (в бою с другом — как есть)
+        const pp = prevXY[i], lerpOk = !pvp && running && Math.abs(pp[0] - f.x) < 120
+        const fx = lerpOk ? pp[0] + (f.x - pp[0]) * fr : f.x, fy = lerpOk ? pp[1] + (f.y - pp[1]) * fr : f.y
+        r.root.position.set(fx / 100, fy / 400, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
         const [name, pt, once] = want(f, i, running ? fr : 0)
         const k = `${name}:${f.st}:${f.mv || ''}:${once ? sim.tick - f.t : 0}`
         const a = r.A[name]; if (!a) continue
@@ -386,6 +390,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
           let n = 0
           while (acc >= 1 && n < 6) {
             if (inp !== lastLogged) { log.push([sim.tick, inp]); lastLogged = inp }
+            prevXY[0][0] = sim.f[0].x; prevXY[0][1] = sim.f[0].y; prevXY[1][0] = sim.f[1].x; prevXY[1][1] = sim.f[1].y
             step(sim, inp)
             handleEvents(); acc -= 1; n++
             if (sim.over && running) { finish(); break }
