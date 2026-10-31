@@ -41,13 +41,40 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
   const scroll: { o: THREE.Object3D; span: number }[] = []
   const texScroll: { t: THREE.Texture; k: number }[] = []
 
-  // горы — статичный дальний план (туман делает их голубоватыми)
-  const mMat = new THREE.MeshStandardMaterial({ color: 0x5b4a72, roughness: 1, flatShading: true })
-  for (let i = 0; i < 22; i++) {
-    const r = rnd(18, 42), h = rnd(14, 34)
-    const m = new THREE.Mesh(new THREE.ConeGeometry(r, h, 6 + Math.floor(rnd(0, 3))), mMat)
-    const side = i % 2 ? 1 : -1
-    m.position.set(side * rnd(12, 140), h / 2 - 2, rnd(150, 260)); m.rotation.y = rnd(0, 3); S.add(m)
+  // горы — дальний план: два хребта со скалистыми гранями, снежными шапками и дымкой заката
+  // (туман на них не действует — иначе они сливались в одноцветные силуэты; дымку задаёт цвет по высоте и дальности)
+  {
+    const haze = new THREE.Color(0xf0a070), rockA = new THREE.Color(0x34284a), rockB = new THREE.Color(0x64496a), snow = new THREE.Color(0xfbe4d8)
+    const mMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true, fog: false })
+    const mk = (r: number, h: number, far: number) => {
+      const g = new THREE.ConeGeometry(r, h, 11, 5)
+      const pos = g.attributes.position as THREE.BufferAttribute, col = new Float32Array(pos.count * 3), c = new THREE.Color()
+      const seed = Math.random() * 100
+      for (let i = 0; i < pos.count; i++) {
+        let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
+        const u = (y + h / 2) / h   // 0 — подножие, 1 — вершина
+        if (u < 0.98) {             // скалистые неровности (у вершины меньше)
+          const n = Math.sin(x * 0.31 + seed) * Math.cos(z * 0.27 + seed * 1.7) + Math.sin((x + z) * 0.13 + seed * 0.5)
+          const k = 1 + n * 0.12 * (1 - u)
+          x *= k; z *= k; y += n * h * 0.035
+          pos.setXYZ(i, x, y, z)
+        }
+        c.copy(rockA).lerp(rockB, Math.min(1, u * 1.3))
+        if (u > 0.72) c.lerp(snow, Math.min(1, (u - 0.72) / 0.16))
+        c.lerp(haze, far)          // дальние — светлее и теплее, как в дымке
+        col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b
+      }
+      g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals()
+      return new THREE.Mesh(g, mMat)
+    }
+    for (let i = 0; i < 16; i++) {   // дальний хребет
+      const r = rnd(34, 60), h = rnd(38, 62), side = i % 2 ? 1 : -1
+      const m = mk(r, h, 0.34); m.position.set(side * rnd(30, 190), h / 2 - 3, rnd(230, 300)); m.rotation.y = rnd(0, 3); S.add(m)
+    }
+    for (let i = 0; i < 14; i++) {   // ближний хребет
+      const r = rnd(18, 36), h = rnd(18, 34), side = i % 2 ? 1 : -1
+      const m = mk(r, h, 0.12); m.position.set(side * rnd(26, 140), h / 2 - 2, rnd(150, 215)); m.rotation.y = rnd(0, 3); S.add(m)
+    }
   }
 
   // луг
@@ -145,7 +172,7 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
   const anim = addDetails(S, W, scroll, SPAN)
 
   /** Подменяет простые фигуры моделями Tripo (если загрузились). Модели нормированы: высота 1, низ в 0. */
-  const applyDecor = (lib: DecorLib) => {
+  const applyDecor = (lib: DecorLib, dens = 1) => {   // dens < 1 — часть деревьев, кустов и камней прячем (меньше нагрузка)
     const H: Record<string, [string[], number, number]> = {   // слот: модели, мин. и макс. высота, м
       tree: [['pine', 'pine', 'green', 'yellow'], 4.5, 7.5], rock: [['rock'], 0.45, 0.9], bush: [['bush'], 0.55, 1.0],
       cottage: [['cottage'], 6, 7], barn: [['barn'], 5.5, 6.5], mill: [['mill'], 9, 11],
@@ -164,6 +191,7 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
         continue
       }
       const spec = H[sl]; if (!spec) continue
+      if ((sl === 'tree' || sl === 'bush' || sl === 'rock') && Math.random() > dens) { it.o.visible = false; continue }
       const keys = spec[0].filter(k => lib[k]); if (!keys.length) continue
       const m = lib[keys[Math.floor(Math.random() * keys.length)]].clone()
       m.scale.setScalar(rnd(spec[1], spec[2]))
@@ -386,7 +414,7 @@ export async function loadDecor(base: string, loader: { loadAsync: (u: string) =
   const lib: DecorLib = {}
   await Promise.all(DECOR_KEYS.map(async k => {
     try {
-      const g = await loader.loadAsync(base + k + '.glb?v=6'); const sc = g.scene
+      const g = await loader.loadAsync(base + k + '.glb?v=7'); const sc = g.scene
       sc.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = false } })
       if (k === 'lamp') {   // где плафон: центр вершин в верхних 12% высоты
         sc.updateMatrixWorld(true); const v = new THREE.Vector3(), sum = new THREE.Vector3(); let n = 0

@@ -111,7 +111,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
     if (G0.decor) loadDecor(BASE + 'mask/decor/', gl).then(lib => {
-      if (!alive) return; world.applyDecor(lib); makeObs.setLib(lib)
+      if (!alive) return; world.applyDecor(lib, gq0.current === 'high' ? 1 : 0.62); makeObs.setLib(lib)
       // прогрев: заранее собираем шейдеры всех препятствий, иначе первое появление контейнера даёт рывок
       const warm = (['low', 'high', 'wall', 'wall'] as Kind[]).map(k => { const g = build(k); g.position.set(0, -50, 20); return g })
       try { R.compile(S, cam) } catch { /* */ }
