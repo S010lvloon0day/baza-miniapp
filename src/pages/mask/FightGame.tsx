@@ -114,6 +114,8 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
           for (let k = 0; k < v.length; k += 3) for (let j = 0; j < 3; j++) if (j !== up || air) v[k + j] = r0[j]
         }
       }
+      // у Призрака свой скелет (длинные руки): из клипов берём только повороты и положение таза
+      if (i === 2) for (const c of g.animations) c.tracks = c.tracks.filter(t => !/\.position$/.test(t.name) || /Hips\.position$/.test(t.name))
       synthClips(g.animations, g.scene)
       for (const c of g.animations) A[c.name] = mixer.clipAction(c)
       rigs[i] = { root, mixer, A, cur: null, key: '', alt: 0 }
@@ -297,7 +299,32 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
       step(sim, a, b); return true
     }
     ;(window as unknown as { __pvd: unknown }).__pvd = () => ({ me, tick: sim.tick, q0: [...qIn[0].keys()].slice(-4), q1: [...qIn[1].keys()].slice(-4), waitT, running, acc, ws: ws?.readyState, out: outBuf.length })
-    const flushPvp = () => { if (outBuf.length && ws && ws.readyState === 1) { ws.send(JSON.stringify({ i: outBuf })); outBuf = [] } }
+    // отправка пачкой не чаще ~30 раз в секунду (на мониторах 144 Гц иначе слишком много сообщений)
+    let lastFlush = 0
+    const flushPvp = (force = false) => {
+      const t = performance.now()
+      if (outBuf.length && ws && ws.readyState === 1 && (force || t - lastFlush >= 30 || outBuf.length >= 4)) { for (let j = 0; j < outBuf.length; j += 100) ws.send(JSON.stringify({ i: outBuf.slice(j, j + 100) })); outBuf = []; lastFlush = t }
+    }
+    /** бой с другом считается по своему таймеру, а не по кадрам: свёрнутое окно (rAF замирает) не останавливает соперника */
+    let pumpT = performance.now()
+    const pump = () => {
+      if (!pvp || !running) { pumpT = performance.now(); return }
+      const now = performance.now(), rdt = Math.min(1, (now - pumpT) / 1000); pumpT = now
+      if (rotRef.current) inp = 0   // в бою с другом паузы нет: пока телефон повёрнут, боец стоит
+      acc += rdt * (document.hidden ? 1 : slow) * TPS
+      let n = 0
+      while (acc >= 1 && n < 90) {
+        if (!pvpStep()) { acc = Math.min(acc, 2); waitT += rdt; break }
+        if (waitT > 0.6) setPv(p => p && p.st === 'lag' ? { ...p, st: 'fight' } : p)
+        waitT = 0
+        handleEvents(); acc -= 1; n++
+        if (sim.over && running) { flushPvp(true); finish(); break }
+      }
+      flushPvp()
+      if (waitT > 0.6) setPv(p => p && p.st === 'fight' ? { ...p, st: 'lag' } : p)
+      if (waitT > 20) { running = false; setPv(p => p && { ...p, st: 'gone' }); setRes({ done: false, win: false }); setPhase('end'); try { ws?.close() } catch { /* */ } }
+    }
+    const pumpI = pvp ? window.setInterval(pump, 8) : 0
 
     api.current.press = (b, d) => { inp = d ? (inp | b) : (inp & ~b) }
     api.current.dir = m => { inp = (inp & ~(IN_L | IN_R | IN_U | IN_D)) | m }
@@ -314,25 +341,16 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
       const dt = rdt * slow
       if (running && rotRef.current && !pvp) { inp = 0 }
       else if (running) {
-        if (rotRef.current) inp = 0   // в бою с другом паузы нет: пока телефон повёрнут, боец стоит
-        acc += dt * TPS
-        let n = 0
-        while (acc >= 1 && n < 6) {
-          if (pvp) {
-            if (!pvpStep()) { acc = Math.min(acc, 2); waitT += rdt; break }
-            if (waitT > 0.6) setPv(p => p && p.st === 'lag' ? { ...p, st: 'fight' } : p)
-            waitT = 0
-          } else {
+        if (pvp) pump()
+        else {
+          acc += dt * TPS
+          let n = 0
+          while (acc >= 1 && n < 6) {
             if (inp !== lastLogged) { log.push([sim.tick, inp]); lastLogged = inp }
             step(sim, inp)
+            handleEvents(); acc -= 1; n++
+            if (sim.over && running) { finish(); break }
           }
-          handleEvents(); acc -= 1; n++
-          if (sim.over && running) { finish(); break }
-        }
-        if (pvp) {
-          flushPvp()
-          if (waitT > 0.6) setPv(p => p && p.st === 'fight' ? { ...p, st: 'lag' } : p)
-          if (waitT > 20) { running = false; setPv(p => p && { ...p, st: 'gone' }); setRes({ done: false, win: false }); setPhase('end'); try { ws?.close() } catch { /* */ } }
         }
         applyPose()
         if (performance.now() - lastHud > 80) {
@@ -371,7 +389,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
     document.addEventListener('visibilitychange', vis)
 
     return () => {
-      alive = false; cancelAnimationFrame(raf); ro.disconnect(); try { ws?.close() } catch { /* */ }
+      alive = false; cancelAnimationFrame(raf); ro.disconnect(); window.clearInterval(pumpI); try { ws?.close() } catch { /* */ }
       window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); document.removeEventListener('visibilitychange', vis)
       S.traverse(o => { const m = o as THREE.Mesh; m.geometry?.dispose() })
       pm.dispose(); R.dispose(); R.domElement.remove(); sfx.dispose()
@@ -469,7 +487,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
         <button onClick={() => { const m = !music; snd.current.setMusic(m); setMusic(m) }} className={`w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur ${music ? '' : 'opacity-40'}`}>🎵</button>
       </div>
 
-      {pv && phase === 'fight' && pv.st === 'lag' && <div className="absolute top-[16%] inset-x-0 text-center text-[13px] text-white/80 pointer-events-none">Ждём соперника… слабая связь</div>}
+      {pv && phase === 'fight' && pv.st === 'lag' && <div className="absolute top-[18%] inset-x-0 grid place-items-center pointer-events-none"><div className="glass rounded-[14px] px-4 py-2.5 text-center text-[13.5px]">Соперник не отвечает…<div className="text-[12px] text-gray mt-0.5">слабая связь или он свернул игру — ждём до 20 секунд</div></div></div>}
       {banner && <div key={banner.k} className="absolute inset-x-0 top-[26%] grid place-items-center pointer-events-none text-center">
         <div className="font-display font-black italic text-[58px] leading-none tracking-wide" style={{ animation: 'fgBan 1.3s ease-out both', background: banner.tone === 'red' ? 'linear-gradient(180deg,#ffd0c4,#ff3b2f 45%,#7a0d0d)' : banner.tone === 'gold' ? 'linear-gradient(180deg,#fff6d0,#f1c24a 45%,#8a5a12)' : 'linear-gradient(180deg,#ffffff,#c9d4e8 50%,#5a6a88)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(0,0,0,.6))' }}>{banner.text}</div>
         {banner.sub && <div className="mt-2 text-[15px] text-white/80">{banner.sub}</div>}
@@ -496,7 +514,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
           <div>
             <div className="mx-auto w-14 h-24 rounded-[14px] border-[3px] border-white/80 relative" style={{ animation: 'fgRot 1.8s ease-in-out infinite' }}><i className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-1 rounded-full bg-white/70" /></div>
             <div className="font-display font-semibold text-[18px] mt-6">Поверни телефон</div>
-            <p className="text-[13.5px] text-gray mt-1.5">Драка идёт в горизонтальном режиме — так видно обоих бойцов{phase === 'fight' ? '. Бой на паузе.' : '.'}</p>
+            <p className="text-[13.5px] text-gray mt-1.5">Драка идёт в горизонтальном режиме — так видно обоих бойцов{phase === 'fight' ? (pvp ? '. Бой с другом не останавливается!' : '. Бой на паузе.') : '.'}</p>
             <button onClick={() => onClose(false)} className="btn-secondary h-11 rounded-[14px] px-5 mt-5 text-[14px]">Выйти</button>
           </div>
           <style>{'@keyframes fgRot{0%,20%{transform:rotate(0)}50%,80%{transform:rotate(-90deg)}100%{transform:rotate(0)}}'}</style>

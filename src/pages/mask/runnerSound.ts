@@ -206,23 +206,23 @@ export function createRunnerSound(opt: { fight?: boolean } = {}) {
     step() {
       stepSide ^= 1
       // шаги: записи Fantozzi (OpenGameArt, CC0), смягчены — без резких верхов, с плотным низом
-      if (!play('step', { vol: 0.16, jitter: 0.04, pan: stepSide ? 0.1 : -0.1 })) air(0.06, 1800, 1200, 0.1)
+      if (!play('step', { vol: 0.034, jitter: 0.04, pan: stepSide ? 0.1 : -0.1 })) air(0.06, 1800, 1200, 0.1)
     },
     jump() {
-      play('step', { vol: 0.35, rate: 0.85 })
+      play('step', { vol: 0.075, rate: 0.85 })
       play('cloth', { vol: 0.55, delay: 0.02, rate: 1.1 })
       air(0.38, 450, 2400, 0.07, 0.03)
     },
     land() {
       play('land', { vol: 0.75, rate: 0.95 })
-      play('step', { vol: 0.25, delay: 0.06 })
+      play('step', { vol: 0.055, delay: 0.06 })
     },
     roll() {
       play('cloth', { vol: 0.7, rate: 0.9 })
       play('thud', { vol: 0.6, delay: 0.12, rate: 1.05 })
       play('belt', { vol: 0.35, delay: 0.22 })
       play('cloth', { vol: 0.5, delay: 0.32, rate: 1.15 })
-      play('step', { vol: 0.28, delay: 0.55 })
+      play('step', { vol: 0.06, delay: 0.55 })
     },
     swish() { play('cloth', { vol: 0.32, rate: 1.35, jitter: 0.1 }); air(0.18, 800, 2200, 0.05) },
     crash() {
