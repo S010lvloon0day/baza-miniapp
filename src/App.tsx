@@ -63,7 +63,7 @@ type View =
   | { type: 'mask' }
 
 /** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
-function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean } {
+function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean; pvp?: string } {
   const qp = new URLSearchParams(location.search)
   const sp: string = tg?.initDataUnsafe?.start_param || ''
   const m = Number(qp.get('m') || (sp.match(/^m(\d+)$/)?.[1] ?? ''))
@@ -71,7 +71,8 @@ function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean
     material: Number.isInteger(m) && m > 0 ? m : undefined,
     feedback: qp.get('feedback') === '1' || sp === 'feedback',
     chat: qp.get('chat') === '1' || sp === 'chat' || !!qp.get('chat_msg'),
-    mask: qp.get('mask') === '1' || sp === 'mask',
+    mask: qp.get('mask') === '1' || sp === 'mask' || /^pvp_[A-Za-z0-9]{4,20}$/.test(sp),
+    pvp: sp.match(/^pvp_([A-Za-z0-9]{4,20})$/)?.[1],
     chatMsg: Number(qp.get('chat_msg')) || undefined,
   }
 }
@@ -277,7 +278,7 @@ export default function App() {
     }
     if (top?.type === 'mask') {
       if (!maskVisible) return null
-      return <Suspense fallback={null}><MaskGamePage /></Suspense>
+      return <Suspense fallback={null}><MaskGamePage pvpCode={deepLink.pvp} /></Suspense>
     }
     if (top?.type === 'courses') {
       return <CoursesListPage sectionId={top.section.id} onOpen={openCourse} />

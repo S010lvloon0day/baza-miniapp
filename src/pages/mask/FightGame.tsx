@@ -13,7 +13,7 @@ import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S, I
 import type { Sim, InputLog, MoveId, F } from './fightSim'
 
 /** Задание 2: драка со стражем. Бой считает fightSim (то же на сервере), здесь — картинка, звук и управление. */
-interface Props { onClose: (done: boolean) => void }
+interface Props { onClose: (done: boolean) => void; pvp?: string }   // pvp — код вызова: бой с другом
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
@@ -37,12 +37,14 @@ const AIR_CLIPS = /^f_(jump|jkick|jknee|jknee2)$/
 
 interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string, THREE.AnimationAction>; cur: THREE.AnimationAction | null; key: string; alt: number }
 
-export default function FightGame({ onClose }: Props) {
+export default function FightGame({ onClose, pvp }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<'load' | 'ready' | 'fight' | 'end'>('load')
   const [hud, setHud] = useState({ hp: [HP, HP], meter: [0, 0], wins: [0, 0], lv: 1, time: 60, round: 1, combo: 0 })
   const [banner, setBanner] = useState<{ k: number; text: string; sub?: string; tone?: 'gold' | 'red' | 'white' } | null>(null)
   const [res, setRes] = useState<{ done: boolean; win: boolean; flag?: string | null } | null>(null)
+  // бой с другом: имена, моя сторона, состояние связи
+  const [pv, setPv] = useState<{ names: [string, string]; side: 0 | 1; st: 'conn' | 'wait' | 'fight' | 'left' | 'lag' | 'gone' | 'err' } | null>(pvp ? { names: ['', ''], side: 0, st: 'conn' } : null)
   const [loadPct, setLoadPct] = useState(0)
   const snd = useRef(createRunnerSound({ fight: true }))
   const [muted, setMuted] = useState(snd.current.muted)
@@ -116,12 +118,13 @@ export default function FightGame({ onClose }: Props) {
       for (const c of g.animations) A[c.name] = mixer.clipAction(c)
       rigs[i] = { root, mixer, A, cur: null, key: '', alt: 0 }
       prog[i] = 1; pct(); if (i === 2) root.visible = false
-      if (rigs[0] && rigs[1] && rigs[2]) { setPhase('ready'); applyPose(true) }
+      if (rigs[0] && rigs[1] && rigs[2]) { setPhase('ready'); applyPose(true); if (pvp) startPvp() }
     }, e => { if (e.total) { prog[i] = e.loaded / e.total * 0.95; pct() } })
     load(BASE + 'mask/fight_hero.glb?v=' + MODEL_V, 0)
     load(BASE + 'mask/fight_boss.glb?v=' + MODEL_V, 1)
     load(BASE + 'mask/fight_boss2.glb?v=' + MODEL_V, 2)
-    const rigOf = (i: number) => i === 0 ? rigs[0] : rigs[sim.lv === 2 ? 2 : 1]
+    const two = () => !!pvp || sim.lv === 2   // правый боец — модель Призрака (у неё все клипы героя)
+    const rigOf = (i: number) => i === 0 ? rigs[0] : rigs[two() ? 2 : 1]
 
     // ── симуляция
     let sim: Sim = newSim(1)
@@ -136,7 +139,7 @@ export default function FightGame({ onClose }: Props) {
       const seg = (n: string, len: number): [string, number, boolean] => { const g = SEG[n]; return [n, g[0] + (g[1] - g[0]) * Math.min(1, T / len), true] }
       switch (f.st) {
         case 'atk': {
-          const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenOf(i, f.mv!, sim.lv)
+          const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenOf(pvp ? 0 : i, f.mv!, sim.lv)
           if (!k) return [n, null, true]
           // замах с разгоном → удар держится в активных кадрах (как «стоп-кадр» в MK) → спокойный возврат в стойку
           const ease = (u: number) => u * u * (1.6 - 0.6 * u)
@@ -160,7 +163,7 @@ export default function FightGame({ onClose }: Props) {
         case 'up': return seg('f_getup', 20)
         case 'dodge': return seg('f_bdodge', 24)
         case 'ko': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 90)
-        case 'win': return [i === 1 ? 'f_taunt' : 'f_win', null, false]
+        case 'win': return [i === 1 && !pvp ? 'f_taunt' : 'f_win', null, false]
         default: return ['f_idle', null, false]
       }
     }
@@ -169,7 +172,7 @@ export default function FightGame({ onClose }: Props) {
       const fr = Math.min(0.99, Math.max(0, acc))
       for (const i of [0, 1] as const) {
         const r = rigOf(i); if (!r) continue
-        if (i === 1) { const o = rigs[sim.lv === 2 ? 1 : 2]; if (o) o.root.visible = false; r.root.visible = true }
+        if (i === 1) { const o = rigs[two() ? 1 : 2]; if (o) o.root.visible = false; r.root.visible = true }
         const f = sim.f[i]
         r.root.position.set(f.x / 100, f.y / 400, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
         const [name, pt, once] = want(f, i, running ? fr : 0)
@@ -201,7 +204,7 @@ export default function FightGame({ onClose }: Props) {
           const heavy = e.k !== 'hit' || (e.dmg || 0) > 90
           sfx.hit(heavy ? 2 : (e.dmg || 0) > 50 ? 1 : 0, pan); burst(hp, heavy ? 18 : 9, e.who === 1 ? 0xffd27a : 0xff4a4a, heavy ? 1.4 : 1)
           shake = Math.max(shake, heavy ? 0.12 : 0.05); buzz(heavy ? 'heavy' : 'medium')
-          if (e.who === 1) { combo++; comboT = 1.2 } else combo = 0
+          if (e.who === 1 - me) { combo++; comboT = 1.2 } else combo = 0
           if (e.k === 'kd') setTimeout(() => sfx.fall(), 380)
           if (e.k === 'ko') { slow = 0.25; slowT = 1.4; arena.flash(0.8); setTimeout(() => sfx.fall(), 500); say('НОКАУТ', undefined, 'red', 1800) }
         } else if (e.k === 'block') { sfx.block(pan); burst(hp, 5, 0x7fe8ff, 0.7); shake = Math.max(shake, 0.02); buzz('light') }
@@ -210,7 +213,7 @@ export default function FightGame({ onClose }: Props) {
         else if (e.k === 'tech') { sfx.block(pan); say('ВЫРВАЛСЯ!', undefined, 'gold', 700) }
         else if (e.k === 'jump') sfx.jump()
         else if (e.k === 'land') sfx.land()
-        else if (e.k === 'special') { sfx.special(); arena.flash(1); say(e.who === 0 ? 'СПЕЦПРИЁМ!' : 'ЯРОСТЬ СТРАЖА', undefined, 'gold', 900) }
+        else if (e.k === 'special') { sfx.special(); arena.flash(1); say(pvp || e.who === 0 ? 'СПЕЦПРИЁМ!' : 'ЯРОСТЬ СТРАЖА', undefined, 'gold', 900) }
         else if (e.k === 'time') say('ВРЕМЯ!', undefined, 'white', 1500)
         else if (e.k === 'start') { sfx.gong(); say('БОЙ!', undefined, 'gold', 800) }
         else if (e.k === 'boss2') { arena.flash(1); sfx.gong(); say('ВТОРОЙ БОСС', 'Призрак: его ещё никто не победил', 'red', 2600); b2T = performance.now(); for (const r of rigs) if (r) r.key = '' }
@@ -220,6 +223,13 @@ export default function FightGame({ onClose }: Props) {
 
     const finish = async () => {
       running = false
+      if (pvp) {   // бой с другом не засчитывается — только итог на экране
+        const win = sim.over === me + 1
+        say(win ? 'ТЫ ПОБЕДИЛ' : 'ПОРАЖЕНИЕ', win ? 'друг повержен' : 'в следующий раз повезёт', win ? 'gold' : 'red', 2600)
+        sfx.musicStop(2); try { ws?.close() } catch { /* */ }
+        setTimeout(() => { setRes({ done: false, win }); setPhase('end') }, 2600)
+        return
+      }
       const win = sim.over === 1
       if (sim.lv === 2) ckpt.current = 2
       setTimeout(() => say(win ? 'ТЫ ПОБЕДИЛ' : 'ПОРАЖЕНИЕ', win ? 'оба босса повержены' : sim.lv === 2 ? 'призрак непобедим… пока' : 'страж непобедим… пока', win ? 'gold' : 'red', 2600), 1200)
@@ -230,6 +240,7 @@ export default function FightGame({ onClose }: Props) {
     }
 
     api.current.start = async () => {
+      if (pvp) return
       sfx.init(); sfx.musicStart(); setRes(null)
       let seed = Math.floor(Math.random() * 2 ** 31)
       let lv = ckpt.current, ez = 0
@@ -238,6 +249,56 @@ export default function FightGame({ onClose }: Props) {
       sim = newSim(seed, lv, ez); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
       running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
     }
+    // ── бой с другом: lockstep — шаг симуляции выполняется, когда известны нажатия обоих на этот тик
+    let ws: WebSocket | null = null, me: 0 | 1 = 0
+    const DELAY = 6   // задержка ввода в тиках (100 мс) — прячет пинг
+    const qIn: [Map<number, number>, Map<number, number>] = [new Map(), new Map()]
+    let outBuf: [number, number][] = [], waitT = 0
+    const startPvp = async () => {
+      try {
+        const j = await maskApi.pvpJoin(pvp!)
+        if (!alive) return
+        me = j.side
+        ws = new WebSocket(maskApi.pvpWsUrl(j.ticket))
+        ws.onmessage = ev => {
+          let d: any; try { d = JSON.parse(ev.data) } catch { return }
+          if (d.type === 'wait') setPv(p => p && { ...p, st: 'wait' })
+          else if (d.type === 'start') {
+            me = d.side
+            sim = newSim(d.seed, 1, 0, 1); (window as unknown as { __fs: unknown }).__fs = () => sim
+            for (const q of qIn) { q.clear(); for (let t = 0; t < DELAY; t++) q.set(t, 0) }
+            outBuf = []; inp = 0; combo = 0; acc = 0; waitT = 0
+            sfx.init(); sfx.musicStart()
+            setPv({ names: [String(d.names?.[0] || 'Игрок'), String(d.names?.[1] || 'Игрок')], side: me, st: 'fight' })
+            running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
+          } else if (d.type === 'left') {
+            if (running && !sim.over) { running = false; setPv(p => p && { ...p, st: 'left' }); say('СОПЕРНИК ВЫШЕЛ', undefined, 'white', 2200); setTimeout(() => { setRes({ done: false, win: true }); setPhase('end') }, 2200) }
+          } else if (Array.isArray(d.i)) {
+            for (const x of d.i) if (Array.isArray(x) && typeof x[0] === 'number') qIn[1 - me].set(x[0], (x[1] | 0) & 0xffff)
+          }
+        }
+        ws.onclose = () => {
+          if (!alive || sim.over) return
+          const was = running; running = false
+          setPv(p => p && p.st !== 'left' ? { ...p, st: was ? 'gone' : 'err' } : p)
+          if (was) { setRes({ done: false, win: false }); setPhase('end') }
+        }
+      } catch (e) {
+        setPv(p => p && { ...p, st: (e as { message?: string })?.message === 'gone' || (e as { message?: string })?.message === 'taken' ? 'gone' : 'err' })
+      }
+    }
+    /** один шаг боя с другом; false — ждём нажатия соперника */
+    const pvpStep = () => {
+      const k = sim.tick
+      if (!qIn[me].has(k + DELAY)) { qIn[me].set(k + DELAY, inp); outBuf.push([k + DELAY, inp]) }
+      if (!qIn[1 - me].has(k)) return false
+      const a = qIn[0].get(k)!, b = qIn[1].get(k)!
+      qIn[0].delete(k - 120); qIn[1].delete(k - 120)
+      step(sim, a, b); return true
+    }
+    ;(window as unknown as { __pvd: unknown }).__pvd = () => ({ me, tick: sim.tick, q0: [...qIn[0].keys()].slice(-4), q1: [...qIn[1].keys()].slice(-4), waitT, running, acc, ws: ws?.readyState, out: outBuf.length })
+    const flushPvp = () => { if (outBuf.length && ws && ws.readyState === 1) { ws.send(JSON.stringify({ i: outBuf })); outBuf = [] } }
+
     api.current.press = (b, d) => { inp = d ? (inp | b) : (inp & ~b) }
     api.current.dir = m => { inp = (inp & ~(IN_L | IN_R | IN_U | IN_D)) | m }
 
@@ -251,14 +312,27 @@ export default function FightGame({ onClose }: Props) {
       const rdt = Math.min(0.05, clock.getDelta())
       if (slowT > 0) { slowT -= rdt; if (slowT <= 0) slow = 1 }
       const dt = rdt * slow
-      if (running && rotRef.current) { inp = 0 }
+      if (running && rotRef.current && !pvp) { inp = 0 }
       else if (running) {
+        if (rotRef.current) inp = 0   // в бою с другом паузы нет: пока телефон повёрнут, боец стоит
         acc += dt * TPS
         let n = 0
         while (acc >= 1 && n < 6) {
-          if (inp !== lastLogged) { log.push([sim.tick, inp]); lastLogged = inp }
-          step(sim, inp); handleEvents(); acc -= 1; n++
+          if (pvp) {
+            if (!pvpStep()) { acc = Math.min(acc, 2); waitT += rdt; break }
+            if (waitT > 0.6) setPv(p => p && p.st === 'lag' ? { ...p, st: 'fight' } : p)
+            waitT = 0
+          } else {
+            if (inp !== lastLogged) { log.push([sim.tick, inp]); lastLogged = inp }
+            step(sim, inp)
+          }
+          handleEvents(); acc -= 1; n++
           if (sim.over && running) { finish(); break }
+        }
+        if (pvp) {
+          flushPvp()
+          if (waitT > 0.6) setPv(p => p && p.st === 'fight' ? { ...p, st: 'lag' } : p)
+          if (waitT > 20) { running = false; setPv(p => p && { ...p, st: 'gone' }); setRes({ done: false, win: false }); setPhase('end'); try { ws?.close() } catch { /* */ } }
         }
         applyPose()
         if (performance.now() - lastHud > 80) {
@@ -297,7 +371,7 @@ export default function FightGame({ onClose }: Props) {
     document.addEventListener('visibilitychange', vis)
 
     return () => {
-      alive = false; cancelAnimationFrame(raf); ro.disconnect()
+      alive = false; cancelAnimationFrame(raf); ro.disconnect(); try { ws?.close() } catch { /* */ }
       window.removeEventListener('keydown', kd); window.removeEventListener('keyup', ku); document.removeEventListener('visibilitychange', vis)
       S.traverse(o => { const m = o as THREE.Mesh; m.geometry?.dispose() })
       pm.dispose(); R.dispose(); R.domElement.remove(); sfx.dispose()
@@ -348,7 +422,9 @@ export default function FightGame({ onClose }: Props) {
       {k === 'r' && <path d="M9 5l7 7-7 7" />}
     </svg>
   )
-  const specReady = hud.meter[0] >= 1000
+  const mySide = pv?.side ?? 0
+  const specReady = hud.meter[mySide] >= 1000
+  const nm = (i: 0 | 1) => pv ? (i === mySide ? 'ТЫ' : (pv.names[i] || 'ДРУГ').toUpperCase().slice(0, 12)) : i === 0 ? 'ТЫ' : hud.lv === 2 ? 'ПРИЗРАК' : 'СТРАЖ'
   /** крестовина: одним пальцем 8 направлений (вверх — прыжок, вниз — присед), можно скользить не отрывая */
   const DPad = () => {
     const upd = (e: React.PointerEvent<HTMLDivElement>, on: boolean) => {
@@ -379,9 +455,9 @@ export default function FightGame({ onClose }: Props) {
       {phase !== 'load' && (
         <div className="absolute top-0 inset-x-0 pointer-events-none" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 6px)', paddingLeft: 'calc(env(safe-area-inset-left,0px) + 14px)', paddingRight: 'calc(env(safe-area-inset-right,0px) + 14px)' }}>
           <div className="flex items-start gap-1.5">
-            <Health v={hud.hp[0]} name="ТЫ" wins={hud.wins[0]} meter={hud.meter[0]} hue="c" />
+            <Health v={hud.hp[0]} name={nm(0)} wins={hud.wins[0]} meter={hud.meter[0]} hue="c" />
             <div className={`mk-timer ${hud.time <= 10 ? 'is-hot' : ''}`}><span>{hud.time}</span></div>
-            <Health v={hud.hp[1]} name={hud.lv === 2 ? "ПРИЗРАК" : "СТРАЖ"} right wins={hud.wins[1]} meter={hud.meter[1]} hue="m" />
+            <Health v={hud.hp[1]} name={nm(1)} right wins={hud.wins[1]} meter={hud.meter[1]} hue="m" />
           </div>
           {hud.combo > 1 && phase === 'fight' && <div key={hud.combo} className="mt-6 ml-2 font-display font-black italic text-[26px] text-gold" style={{ animation: 'fgPop .35s ease-out both', textShadow: '0 2px 0 #7a5212, 0 0 18px rgba(255,190,80,.6)' }}>{hud.combo} УДАРА</div>}
         </div>
@@ -393,6 +469,7 @@ export default function FightGame({ onClose }: Props) {
         <button onClick={() => { const m = !music; snd.current.setMusic(m); setMusic(m) }} className={`w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur ${music ? '' : 'opacity-40'}`}>🎵</button>
       </div>
 
+      {pv && phase === 'fight' && pv.st === 'lag' && <div className="absolute top-[16%] inset-x-0 text-center text-[13px] text-white/80 pointer-events-none">Ждём соперника… слабая связь</div>}
       {banner && <div key={banner.k} className="absolute inset-x-0 top-[26%] grid place-items-center pointer-events-none text-center">
         <div className="font-display font-black italic text-[58px] leading-none tracking-wide" style={{ animation: 'fgBan 1.3s ease-out both', background: banner.tone === 'red' ? 'linear-gradient(180deg,#ffd0c4,#ff3b2f 45%,#7a0d0d)' : banner.tone === 'gold' ? 'linear-gradient(180deg,#fff6d0,#f1c24a 45%,#8a5a12)' : 'linear-gradient(180deg,#ffffff,#c9d4e8 50%,#5a6a88)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(0,0,0,.6))' }}>{banner.text}</div>
         {banner.sub && <div className="mt-2 text-[15px] text-white/80">{banner.sub}</div>}
@@ -429,7 +506,13 @@ export default function FightGame({ onClose }: Props) {
         <div className="absolute inset-x-0 bottom-0 p-4 flex justify-center" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)' }}>
           <div className="glass rounded-[22px] p-4 text-center w-full max-w-[460px]">
             {phase === 'load' && <div className="py-3"><div className="text-[14px] text-gray mb-2">Загрузка арены… {loadPct}%</div><div className="h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-green" style={{ width: `${loadPct}%` }} /></div></div>}
-            {phase === 'ready' && <>
+            {phase === 'ready' && pv && <>
+              <div className="font-display font-semibold text-[17px]">Бой с другом</div>
+              <p className="text-[13.5px] text-gray mt-1.5">{pv.st === 'conn' ? 'Подключаемся…' : pv.st === 'wait' ? 'Ждём, пока соперник откроет вызов. Не закрывай экран.' : pv.st === 'gone' ? 'Вызов уже недействителен — создай новый.' : pv.st === 'err' ? 'Не удалось подключиться. Попробуй ещё раз.' : 'Начинаем…'}</p>
+              <p className="text-[12px] text-gray2 mt-1.5">Бой до двух побед. На прохождение этапа и приз не влияет.</p>
+              <button onClick={() => onClose(false)} className="btn-secondary w-full h-11 rounded-[14px] mt-3">Выйти</button>
+            </>}
+            {phase === 'ready' && !pv && <>
               <div className="font-display font-semibold text-[17px]">Победи стража и призрака</div>
               <p className="text-[13px] text-gray mt-1.5">Два босса подряд, каждый бой до двух побед. Страж читает каждый удар — бей, когда он открылся после атаки. Победишь его — выйдет Призрак, он ещё сильнее.</p>
               <div className="text-[12px] text-gray2 mt-2 text-left grid grid-cols-2 gap-x-3 gap-y-1">
@@ -442,7 +525,12 @@ export default function FightGame({ onClose }: Props) {
               <p className="text-[11.5px] text-gray2 mt-1.5">На ПК: ← → ↑ ↓ · U/I руки · J/K ноги · Shift/O блок · Пробел спец</p>
               <button onClick={() => api.current.start()} className="btn-primary w-full mt-3">В бой</button>
             </>}
-            {phase === 'end' && <>
+            {phase === 'end' && pv && <>
+              <div className="font-display font-semibold text-[18px]">{pv.st === 'left' ? 'Соперник вышел' : pv.st === 'gone' ? 'Связь потеряна' : res?.win ? 'Победа!' : 'Поражение'}</div>
+              <p className="text-[13.5px] text-gray mt-1">Бой с другом не засчитывается в задание — это тренировка.</p>
+              <button onClick={() => onClose(false)} className="btn-secondary w-full h-12 rounded-[16px] mt-3">Выйти</button>
+            </>}
+            {phase === 'end' && !pv && <>
               <div className="font-display font-semibold text-[18px]">{res?.done ? 'Задание выполнено!' : res?.win ? 'Победа!' : ckpt.current === 2 ? 'Призрак победил' : 'Страж победил'}</div>
               <p className="text-[13.5px] text-gray mt-1">{res?.flag === 'bad' ? 'Бой не засчитан сервером' : res?.flag === 'net' ? 'Нет связи с сервером — результат не сохранён' : res?.win ? 'Сервер подтвердил победу.' : 'Ищи момент, когда он раскрылся после удара.'}</p>
               <div className="flex gap-2 mt-3">

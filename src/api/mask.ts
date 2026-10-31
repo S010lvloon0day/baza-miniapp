@@ -38,8 +38,8 @@ export interface MaskState {
     run: { done: boolean; best: number; target: number }
     fight?: { open: boolean; done: boolean }
     cipher?: { open: boolean; done: boolean; cipher?: string; reward?: string }
-    final?: { open: boolean; soon?: boolean }
-    osint: { open: boolean; soon?: boolean }
+    final?: { open: boolean; soon?: boolean; premium?: boolean }
+    osint: { open: boolean; soon?: boolean; premium?: boolean }
   }
   secret?: string | null
   teaser?: boolean
@@ -66,6 +66,12 @@ export const maskApi = {
   /** голос владельца для победителя: отдаётся только победителю раунда и админам */
   voice: async () => { const r = await fetch(API_BASE + '/api/mask/voice.mp3', { headers: { 'X-Init-Data': tg?.initData || '' } }); if (!r.ok) throw new Error('voice'); return URL.createObjectURL(await r.blob()) },
   initData: () => tg?.initData || '',
+  /* бой с другом */
+  pvpPing: (visible: boolean) => req<{ online: { id: number; name: string }[]; inbox: { code: string; name: string }[] }>('POST', '/api/mask/pvp/ping', { visible }),
+  pvpCreate: (to?: number) => req<{ code: string; link: string }>('POST', '/api/mask/pvp/create', to ? { to } : {}),
+  pvpJoin: (code: string) => req<{ ticket: string; side: 0 | 1 }>('POST', '/api/mask/pvp/join', { code }),
+  pvpDecline: (code: string) => req<{ ok: boolean }>('POST', '/api/mask/pvp/decline', { code }),
+  pvpWsUrl: (ticket: string) => { const b = API_BASE || location.origin; return b.replace(/^http/, 'ws') + '/api/mask/pvp/ws?t=' + encodeURIComponent(ticket) },
 }
 
 /* ── админка ── */

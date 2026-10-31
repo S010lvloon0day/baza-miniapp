@@ -8,6 +8,7 @@ import type { StageHandle } from './MaskStage'
 const MaskStage = lazy(() => import('./MaskStage'))
 const RunnerGame = lazy(() => import('./RunnerGame'))
 const FightGame = lazy(() => import('./FightGame'))
+const PvpLobby = lazy(() => import('./PvpLobby'))
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const haptic = (t: 'error' | 'success' | 'warning') => { try { tg?.HapticFeedback?.notificationOccurred(t) } catch { /* */ } }
@@ -120,7 +121,7 @@ function ClueCard({ c, onSolved }: { c: MaskClue; onSolved: () => void }) {
   )
 }
 
-export default function MaskGamePage() {
+export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
   const [s, setS] = useState<MaskState | null>(null)
   const [err, setErr] = useState('')
   const [ready, setReady] = useState(false)
@@ -135,6 +136,8 @@ export default function MaskGamePage() {
   const [note, setNote] = useState('')
   const [runOpen, setRunOpen] = useState(false)
   const [fightOpen, setFightOpen] = useState(false)
+  const [lobby, setLobby] = useState(false)
+  const [pvpFight, setPvpFight] = useState<string | null>(() => { if (!pvpCode) return null; try { if (sessionStorage.getItem('pvp_' + pvpCode)) return null; sessionStorage.setItem('pvp_' + pvpCode, '1') } catch { /* */ } return pvpCode })   // бой с другом по коду вызова
   const stage = useRef<StageHandle>(null)
   const voice = useVoice()
   const greeted = useRef(false)
@@ -171,6 +174,7 @@ export default function MaskGamePage() {
     const r = await maskApi.guess(t)
     setBusy(false)
     if (r.error === 'too_new') { setNote(`Играть можно с аккаунтом старше нескольких дней — осталось ${r.days} дн.`); return }
+    if (r.error === 'premium') { setNote('Приз — только для Premium-подписчиков'); return }
     if (r.error === 'cooldown') { setNote('Не так быстро — подожди пару секунд'); return }
     if (r.error) { setNote('Не удалось отправить. Попробуй ещё раз'); return }
     setText('')
@@ -209,6 +213,12 @@ export default function MaskGamePage() {
           <RunnerGame model={s.run_model ?? { v0: 14, a: 0.3, vmax: 110 }} target={s.tasks?.run.target ?? 50000}
             onClose={() => { setRunOpen(false); load() }} />
         </Suspense>
+      )}
+      {lobby && (
+        <Suspense fallback={null}><PvpLobby onClose={() => setLobby(false)} onFight={c => { setLobby(false); setPvpFight(c) }} /></Suspense>
+      )}
+      {pvpFight && (
+        <Suspense fallback={null}><FightGame pvp={pvpFight} onClose={() => setPvpFight(null)} /></Suspense>
       )}
       {fightOpen && (
         <Suspense fallback={null}>
@@ -287,7 +297,8 @@ export default function MaskGamePage() {
                 return [
                   row(1, 'Забег', run?.done ? `пройден · рекорд ${run.best.toLocaleString('ru')}` : `набери ${(run?.target ?? 50000).toLocaleString('ru')} очков · рекорд ${(run?.best ?? 0).toLocaleString('ru')}`, run?.done ? 'done' : 'open', () => setRunOpen(true), run?.best ? 'Ещё раз' : 'Бежать'),
                   row(2, 'Драка', fight?.done ? 'Страж и Призрак повержены' : 'победи Стража, затем Призрака', fight?.done ? 'done' : fight?.open ? 'open' : 'lock', () => setFightOpen(true), 'В бой'),
-                  row(3, 'Назови моё имя', fin?.open ? 'фамилия, имя и отчество — полностью' : 'откроется после драки', fin?.open ? 'open' : 'lock'),
+                  row(3, 'Назови моё имя', fin?.open ? (fin.premium === false ? 'приз — только для Premium-подписчиков' : 'фамилия, имя и отчество — полностью') : 'откроется после забега и драки', fin?.open ? 'open' : 'lock'),
+                  (fight?.open || s.is_admin) ? <button key="pvp" onClick={() => setLobby(true)} className="btn-secondary w-full h-10 rounded-[12px] text-[13.5px]">🥊 Бой с другом</button> : null,
                 ]
               })()}
             </div>
@@ -303,6 +314,8 @@ export default function MaskGamePage() {
             {r.intro && <p className="text-[13.5px] text-gray mt-2 whitespace-pre-wrap">{r.intro}</p>}
             {!(s.tasks?.final?.open ?? s.tasks?.osint.open ?? true) ? (
               <div className="mt-3 rounded-[14px] bg-white/[.04] px-3.5 py-3 text-[13.5px] text-gray">Сначала пройди забег и драку — потом сможешь назвать моё имя.</div>
+            ) : s.tasks?.final?.premium === false ? (
+              <div className="mt-3 rounded-[14px] bg-gold/10 border border-gold/25 px-3.5 py-3 text-[13.5px] text-[#E9D9A8]">Играть могут все, но назвать моё имя и забрать приз может только Premium-подписчик. Оформи Premium — и возвращайся.</div>
             ) : s.tries_left > 0 ? (
               <div className="flex gap-2 mt-3">
                 <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} maxLength={60}
