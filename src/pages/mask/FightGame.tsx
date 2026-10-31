@@ -252,10 +252,18 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
       running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
     }
     // ── бой с другом: lockstep — шаг симуляции выполняется, когда известны нажатия обоих на этот тик
+    // ── бой с другом: rollback (как в GGPO). Свой боец откликается сразу; ход соперника предсказывается
+    // (повтор его последних нажатий), а когда приходят настоящие — бой пересчитывается от последнего подтверждённого тика.
     let ws: WebSocket | null = null, me: 0 | 1 = 0
-    const DELAY = 6   // задержка ввода в тиках (100 мс) — прячет пинг
-    const qIn: [Map<number, number>, Map<number, number>] = [new Map(), new Map()]
+    const DL = 2          // своя задержка ввода в тиках: 33 мс — почти незаметно, но даёт сети фору
+    const MAXAHEAD = 24   // насколько можно убежать вперёд без ответа соперника (400 мс), дальше ждём
+    let base: Sim = newSim(1, 1, 0, 1)   // состояние, посчитанное только по настоящим нажатиям обоих
+    let localT = 0        // до какого тика идёт показываемый бой
+    const myQ = new Map<number, number>(), remQ = new Map<number, number>()
+    let remTop = -1       // последний тик, для которого есть нажатие соперника
     let outBuf: [number, number][] = [], waitT = 0
+    const played = new Set<string>()
+    const remAt = (t: number) => { if (remQ.has(t)) return remQ.get(t)!; let k = Math.min(t, remTop); while (k >= 0 && !remQ.has(k)) k--; return k >= 0 ? remQ.get(k)! : 0 }
     const startPvp = async () => {
       try {
         const j = await maskApi.pvpJoin(pvp!)
@@ -267,20 +275,23 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
           if (d.type === 'wait') setPv(p => p && { ...p, st: 'wait' })
           else if (d.type === 'start') {
             me = d.side
-            sim = newSim(d.seed, 1, 0, 1); (window as unknown as { __fs: unknown }).__fs = () => sim
-            for (const q of qIn) { q.clear(); for (let t = 0; t < DELAY; t++) q.set(t, 0) }
+            base = newSim(d.seed, 1, 0, 1); sim = structuredClone(base); localT = 0
+            ;(window as unknown as { __fs: unknown }).__fs = () => base
+            myQ.clear(); remQ.clear(); played.clear()
+            for (let t = 0; t < DL; t++) { myQ.set(t, 0); remQ.set(t, 0) }
+            remTop = DL - 1
             outBuf = []; inp = 0; combo = 0; acc = 0; waitT = 0
             sfx.init(); sfx.musicStart()
             setPv({ names: [String(d.names?.[0] || 'Игрок'), String(d.names?.[1] || 'Игрок')], side: me, st: 'fight' })
             running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
           } else if (d.type === 'left') {
-            if (running && !sim.over) { running = false; setPv(p => p && { ...p, st: 'left' }); say('СОПЕРНИК ВЫШЕЛ', undefined, 'white', 2200); setTimeout(() => { setRes({ done: false, win: true }); setPhase('end') }, 2200) }
+            if (running && !base.over) { running = false; setPv(p => p && { ...p, st: 'left' }); say('СОПЕРНИК ВЫШЕЛ', undefined, 'white', 2200); setTimeout(() => { setRes({ done: false, win: true }); setPhase('end') }, 2200) }
           } else if (Array.isArray(d.i)) {
-            for (const x of d.i) if (Array.isArray(x) && typeof x[0] === 'number') qIn[1 - me].set(x[0], (x[1] | 0) & 0xffff)
+            for (const x of d.i) if (Array.isArray(x) && typeof x[0] === 'number') { remQ.set(x[0], (x[1] | 0) & 0xffff); if (x[0] > remTop) remTop = x[0] }
           }
         }
         ws.onclose = () => {
-          if (!alive || sim.over) return
+          if (!alive || base.over) return
           const was = running; running = false
           setPv(p => p && p.st !== 'left' ? { ...p, st: was ? 'gone' : 'err' } : p)
           if (was) { setRes({ done: false, win: false }); setPhase('end') }
@@ -289,17 +300,12 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
         setPv(p => p && { ...p, st: (e as { message?: string })?.message === 'gone' || (e as { message?: string })?.message === 'taken' ? 'gone' : 'err' })
       }
     }
-    /** один шаг боя с другом; false — ждём нажатия соперника */
-    const pvpStep = () => {
-      const k = sim.tick
-      if (!qIn[me].has(k + DELAY)) { qIn[me].set(k + DELAY, inp); outBuf.push([k + DELAY, inp]) }
-      if (!qIn[1 - me].has(k)) return false
-      const a = qIn[0].get(k)!, b = qIn[1].get(k)!
-      qIn[0].delete(k - 120); qIn[1].delete(k - 120)
-      step(sim, a, b); return true
+    const inputsAt = (t: number, pred: boolean): [number, number] => {
+      const mine = myQ.get(t) ?? 0, rem = pred ? remAt(t) : remQ.get(t)!
+      return me === 0 ? [mine, rem] : [rem, mine]
     }
-    ;(window as unknown as { __pvd: unknown }).__pvd = () => ({ me, tick: sim.tick, q0: [...qIn[0].keys()].slice(-4), q1: [...qIn[1].keys()].slice(-4), waitT, running, acc, ws: ws?.readyState, out: outBuf.length })
-    // отправка пачкой не чаще ~30 раз в секунду (на мониторах 144 Гц иначе слишком много сообщений)
+    ;(window as unknown as { __pvd: unknown }).__pvd = () => ({ me, base: base.tick, local: localT, remTop, waitT, running, ws: ws?.readyState })
+    // отправка пачкой не чаще ~30 раз в секунду
     let lastFlush = 0
     const flushPvp = (force = false) => {
       const t = performance.now()
@@ -311,18 +317,46 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
       if (!pvp || !running) { pumpT = performance.now(); return }
       const now = performance.now(), rdt = Math.min(1, (now - pumpT) / 1000); pumpT = now
       if (rotRef.current) inp = 0   // в бою с другом паузы нет: пока телефон повёрнут, боец стоит
-      acc += rdt * (document.hidden ? 1 : slow) * TPS
-      let n = 0
+      // 1) идём вперёд по своему времени, записывая свои нажатия
+      acc += rdt * TPS
+      let n = 0, stalled = false
       while (acc >= 1 && n < 90) {
-        if (!pvpStep()) { acc = Math.min(acc, 2); waitT += rdt; break }
-        if (waitT > 0.6) setPv(p => p && p.st === 'lag' ? { ...p, st: 'fight' } : p)
-        waitT = 0
-        handleEvents(); acc -= 1; n++
-        if (sim.over && running) { flushPvp(true); finish(); break }
+        if (localT - base.tick >= MAXAHEAD) { stalled = true; acc = Math.min(acc, 1); break }
+        const t = localT + DL
+        if (!myQ.has(t)) { myQ.set(t, inp); outBuf.push([t, inp]) }
+        localT++; acc -= 1; n++
       }
       flushPvp()
+      // 2) подтверждённое состояние: только тики, где известны нажатия обоих
+      let lastK = -1
+      while (base.tick < localT && remQ.has(base.tick) && myQ.has(base.tick) && !base.over) {
+        const k = base.tick, [a, b] = inputsAt(k, false)
+        step(base, a, b); lastK = k
+        myQ.delete(k - 240); remQ.delete(k - 240)
+      }
+      if (base.over) {   // итог — только по подтверждённому бою
+        sim = base; if (lastK >= 0) handleEv(base, lastK)
+        flushPvp(true); finish(); return
+      }
+      // 3) показываемое состояние: от подтверждённого вперёд с предсказанием соперника
+      const pred = structuredClone(base)
+      while (pred.tick < localT && !pred.over) {
+        const k = pred.tick, [a, b] = inputsAt(k, true)
+        step(pred, a, b); handleEv(pred, k)
+      }
+      sim = pred
+      waitT = stalled ? waitT + rdt : 0
       if (waitT > 0.6) setPv(p => p && p.st === 'fight' ? { ...p, st: 'lag' } : p)
+      else setPv(p => p && p.st === 'lag' ? { ...p, st: 'fight' } : p)
       if (waitT > 20) { running = false; setPv(p => p && { ...p, st: 'gone' }); setRes({ done: false, win: false }); setPhase('end'); try { ws?.close() } catch { /* */ } }
+      if (played.size > 4000) { const lim = base.tick - 120; for (const key of played) if (+key.split(':')[0] < lim) played.delete(key) }
+    }
+    /** звуки и эффекты событий — один раз на событие, даже если тик пересчитан заново */
+    const handleEv = (st: Sim, k: number) => {
+      const fresh = st.ev.filter(e => { const key = `${k}:${e.k}:${e.who}:${e.mv || ''}`; if (played.has(key)) return false; played.add(key); return true })
+      if (!fresh.length) return
+      const keep = sim, evs = st.ev
+      sim = st; st.ev = fresh; handleEvents(); st.ev = evs; sim = keep
     }
     const pumpI = pvp ? window.setInterval(pump, 8) : 0
 
