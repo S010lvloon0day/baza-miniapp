@@ -5,6 +5,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
+import { clone as skClone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { maskApi } from '../../api/mask'
 import { buildArena } from './fightWorld'
 import { synthClips } from './poseSynth'
@@ -17,6 +18,10 @@ import type { Sim, InputLog, MoveId, F } from './fightSim'
 /** Задание 2: драка со стражем. Бой считает fightSim (то же на сервере), здесь — картинка, звук и управление. */
 interface Props { onClose: (done: boolean) => void; pvp?: string; startLv?: 1 | 2; watch?: boolean }   // watch — смотреть чужой бой зрителем   // startLv — выбранный соперник (после прохождения этапа)   // pvp — код вызова: бой с другом
 const BASE = import.meta.env.BASE_URL
+/** облик бойца в бою с другом (на силу и удары не влияет — у всех одинаковые) */
+const HEROES = ['Герой', 'Страж', 'Призрак']
+const HERO_KEY = 'mg_pvp_hero'
+const readHero = () => { try { const v = Number(localStorage.getItem(HERO_KEY)); return v === 0 || v === 1 || v === 2 ? v : -1 } catch { return -1 } }
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
 const CLIP: Record<MoveId, string> = { jab: 'f_bjab', cross: 'f_bcross', hook: 'f_hook', upper: 'f_upper', low: 'f_low', kick: 'f_mkick', round: 'f_mround', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
@@ -51,13 +56,14 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
   const [rm, setRm] = useState({ me: false, opp: false, off: false })
   const [specN, setSpecN] = useState(0)
   const [wLink, setWLink] = useState('')
+  const [heroSel, setHeroSel] = useState<[number, number]>([0, 2])   // облики обоих бойцов (для экрана выбора)
   const [loadPct, setLoadPct] = useState(0)
   const snd = useRef(createRunnerSound({ fight: true }))
   const [muted, setMuted] = useState(snd.current.muted)
   const [music, setMusic] = useState(snd.current.musicOn)
   const padRef = useRef(0)
   const ckpt = useRef<number>(startLv ?? 1)   // с какого босса начинать: Страж побеждён — дальше сразу Призрак
-  const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {}, dir: (_m: number) => {}, gfx: (_q: GfxQ) => {}, again: () => {} })
+  const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {}, dir: (_m: number) => {}, gfx: (_q: GfxQ) => {}, again: () => {}, hero: (_h: number) => {} })
   const [gq, setGq] = useState<GfxQ>(getGfx)
   const gq0 = useRef(gq)
   const gqRef = useRef(gq); gqRef.current = gq
@@ -112,6 +118,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
     const rigs: (Rig | null)[] = [null, null, null]   // герой, страж, призрак (второй босс)
+    const src: (THREE.Group | null)[] = [null, null, null]   // исходные сцены — для копии, если в бою с другом оба выбрали одного бойца
     const prog = [0, 0, 0]
     const pct = () => setLoadPct(Math.round((prog[0] + prog[1] + prog[2]) / 3 * 100))
     const load = (url: string, i: number) => gl.load(url, g => {
@@ -130,15 +137,41 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       if (i === 2) for (const c of g.animations) c.tracks = c.tracks.filter(t => !/\.position$/.test(t.name) || /Hips\.position$/.test(t.name))
       synthClips(g.animations, g.scene)
       for (const c of g.animations) A[c.name] = mixer.clipAction(c)
+      src[i] = g.scene; clips[i] = g.animations
       rigs[i] = { root, mixer, A, cur: null, key: '', alt: 0 }
       prog[i] = 1; pct(); if (i === 2) root.visible = false
-      if (rigs[0] && rigs[1] && rigs[2]) { setPhase('ready'); applyPose(true); if (pvp) startPvp() }
+      if (rigs[0] && rigs[1] && rigs[2]) { setPhase('ready'); assignRigs(); applyPose(true); if (pvp) startPvp() }
     }, e => { if (e.total) { prog[i] = e.loaded / e.total * 0.95; pct() } })
     load(BASE + 'mask/fight_hero.glb?v=' + MODEL_V, 0)
     load(BASE + 'mask/fight_boss.glb?v=' + MODEL_V, 1)
     load(BASE + 'mask/fight_boss2.glb?v=' + MODEL_V, 2)
     const two = () => !!pvp || sim.lv === 2   // правый боец — модель Призрака (у неё все клипы героя)
-    const rigOf = (i: number) => i === 0 ? rigs[0] : rigs[two() ? 2 : 1]
+    const rigOf = (i: number) => pvp ? sideRig[i] : i === 0 ? rigs[0] : rigs[two() ? 2 : 1]
+    // бой с другом: каждый выбирает облик; если оба взяли одного бойца — второму копия с красноватым оттенком
+    const clips: THREE.AnimationClip[][] = [[], [], []]
+    const clones: (Rig | null)[] = [null, null, null]
+    const sideRig: (Rig | null)[] = [null, null]
+    let heroes: [number, number] = [0, 2]
+    const mkClone = (k: number): Rig => {
+      const sc = skClone(src[k]!) as THREE.Group
+      const tint = new THREE.Color(0xff5a4a)
+      sc.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) { m.frustumCulled = false; m.castShadow = true; const tc = (x: THREE.Material) => { const c = x.clone() as THREE.MeshStandardMaterial; c.color?.lerp(tint, 0.28); return c }; m.material = Array.isArray(m.material) ? m.material.map(tc) : tc(m.material) } })
+      const root = new THREE.Group(); root.add(sc); S.add(root)
+      const mixer = new THREE.AnimationMixer(sc); const A: Record<string, THREE.AnimationAction> = {}
+      for (const c of clips[k]) A[c.name] = mixer.clipAction(c)
+      return { root, mixer, A, cur: null, key: '', alt: 0 }
+    }
+    const assignRigs = () => {
+      if (!pvp || !rigs[0] || !rigs[1] || !rigs[2]) return
+      const [a, b] = heroes
+      sideRig[0] = rigs[a]; sideRig[1] = a === b ? (clones[b] ||= mkClone(b)) : rigs[b]
+      for (const r of [...rigs, ...clones]) if (r) r.root.visible = sideRig.includes(r)
+      for (const r of sideRig) if (r) { r.key = ''; r.cur?.stop(); r.cur = null }
+      setHeroSel([a, b])
+    }
+    const setHeroes = (h: unknown) => {
+      if (Array.isArray(h) && h.length === 2 && h.every(x => x === 0 || x === 1 || x === 2)) { heroes = [h[0], h[1]]; assignRigs(); applyPose(true) }
+    }
 
     // ── симуляция
     let sim: Sim = newSim(1)
@@ -187,7 +220,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       const fr = Math.min(0.99, Math.max(0, acc))
       for (const i of [0, 1] as const) {
         const r = rigOf(i); if (!r) continue
-        if (i === 1) { const o = rigs[two() ? 1 : 2]; if (o) o.root.visible = false; r.root.visible = true }
+        if (i === 1 && !pvp) { const o = rigs[two() ? 1 : 2]; if (o) o.root.visible = false; r.root.visible = true }
         const f = sim.f[i]
         // плавность: между двумя шагами симуляции (в бою с другом — как есть)
         const pp = prevXY[i], lerpOk = !pvp && running && Math.abs(pp[0] - f.x) < 120
@@ -291,7 +324,8 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     const remAt = (t: number) => { if (remQ.has(t)) return remQ.get(t)!; let k = Math.min(t, remTop); while (k >= 0 && !remQ.has(k)) k--; return k >= 0 ? remQ.get(k)! : 0 }
     const startPvp = async () => {
       try {
-        const j = await maskApi.pvpJoin(pvp!, wantWatch)
+        const pref = readHero()
+        const j = await maskApi.pvpJoin(pvp!, wantWatch, pref >= 0 ? pref : undefined)
         if (!alive) return
         spec = j.side === 2; me = j.side === 1 ? 1 : 0
         setWLink(j.watch || '')
@@ -299,10 +333,11 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         ws = new WebSocket(maskApi.pvpWsUrl(j.ticket))
         ws.onmessage = ev => {
           let d: any; try { d = JSON.parse(ev.data) } catch { return }
-          if (d.type === 'wait') setPv(p => p && { ...p, st: 'wait' })
+          if (d.type === 'wait') { setPv(p => p && { ...p, st: 'wait' }); setHeroes(d.heroes) }
           else if (d.type === 'start') {
             if (!spec) me = d.side === 1 ? 1 : 0
             pnames = [String(d.names?.[0] || 'Игрок'), String(d.names?.[1] || 'Игрок')]
+            setHeroes(d.heroes)
             sq[0].clear(); sq[1].clear()
             for (let t = 0; t < DL; t++) { sq[0].set(t, 0); sq[1].set(t, 0) }
             setRes(null); setRm({ me: false, opp: false, off: false })
@@ -316,6 +351,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             setPv({ names: pnames, side: spec ? 2 : me, st: 'fight' })
             running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
           } else if (d.type === 'again') setRm(r => ({ ...r, opp: true }))
+          else if (d.type === 'hero' && (d.side === 0 || d.side === 1)) { const h = [...heroes] as [number, number]; h[d.side as 0 | 1] = d.h; setHeroes(h) }
           else if (d.type === 'spec') setSpecN(Math.max(0, d.n | 0))
           else if (d.type === 'left') {
             setRm(r => ({ ...r, off: true }))
@@ -412,6 +448,12 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       sim = base
       if (base.over) finish()
     }
+    api.current.hero = h => {
+      if (spec || running) return
+      try { localStorage.setItem(HERO_KEY, String(h)) } catch { /* */ }
+      const x = [...heroes] as [number, number]; x[me] = h; setHeroes(x)
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'hero', h }))
+    }
     api.current.again = () => {
       if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: 'again' })); setRm(r => ({ ...r, me: true })) }
       else setRm(r => ({ ...r, off: true }))
@@ -468,7 +510,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         }
         sfx.musicIntensity(Math.min(1, (HP * 2 - sim.f[0].hp - sim.f[1].hp) / (HP * 1.3)))
       } else if (rigs[0] && rigs[1] && rigs[2] && !sim.over) applyPose()
-      for (const r of rigs) if (r && r.root.visible) r.mixer.update(dt)   // скрытый босс не анимируется
+      for (const r of [...rigs, ...clones]) if (r && r.root.visible) r.mixer.update(dt)   // скрытый босс не анимируется
       arena.update(rdt)
       for (const sp of sparks) if (sp.l > 0) { sp.l -= rdt; sp.v.y -= 9 * rdt; sp.s.position.addScaledVector(sp.v, rdt); (sp.s.material as THREE.SpriteMaterial).opacity = Math.min(1, sp.l * 4); if (sp.l <= 0) sp.s.visible = false }
       // камера: следит за серединой, отъезжает при большой дистанции, трясётся от ударов
@@ -549,6 +591,22 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     </svg>
   )
   const isSpec = pv?.side === 2
+  /** выбор облика в бою с другом: до начала и перед реваншем */
+  const HeroPick = () => {
+    const mine = heroSel[mySide], theirs = heroSel[1 - mySide]
+    return (
+      <div className="mt-3 text-left">
+        <div className="text-[12.5px] text-gray mb-1.5">Твой боец <span className="text-gray2">· соперник выбрал: {HEROES[theirs]}</span></div>
+        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Твой боец">
+          {HEROES.map((n, h) => (
+            <button key={n} role="radio" aria-checked={mine === h} onClick={() => api.current.hero(h)}
+              className={`h-10 rounded-[12px] text-[13px] font-medium ${mine === h ? 'bg-green text-black' : 'bg-white/[.07]'}`}>{n}</button>
+          ))}
+        </div>
+        <p className="text-[11px] text-gray2 mt-1">Меняется только облик — сила и удары у всех одинаковые.</p>
+      </div>
+    )
+  }
   const mySide: 0 | 1 = pv?.side === 1 ? 1 : 0
   const shareWatch = () => {
     if (!wLink) return
@@ -623,6 +681,8 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       </div>}
       <style>{'@keyframes fgBan{0%{transform:scale(2.2);opacity:0;filter:blur(6px)}18%{transform:scale(1);opacity:1;filter:blur(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.04)}}@keyframes fgPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}:root{--fg-c:#34E8FF;--fg-m:#FF3FB4;--fg-y:#FFD23F;--fg-ink:#0A0716}.mk-side{flex:1;min-width:0;display:flex;align-items:flex-start;gap:6px}.mk-side.is-r{flex-direction:row-reverse}.mk-col{flex:1;min-width:0;display:flex;flex-direction:column}.mk-medal{flex-shrink:0;width:40px;height:40px;border-radius:50%;padding:2px;margin-top:-2px;background:conic-gradient(from 210deg,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2);box-shadow:0 3px 10px rgba(0,0,0,.7)}.mk-medal span{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#4a4652,#16141a 70%);color:#e8d28f;box-shadow:inset 0 2px 4px rgba(255,255,255,.15),inset 0 -3px 6px rgba(0,0,0,.6)}.mk-bar{position:relative;height:22px;padding:2px;clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,0 100%);background:linear-gradient(180deg,#e9d18a 0,#7b5f27 2px,#3a3d46 3px,#1b1c22 55%,#0c0c10 100%)}.mk-side.is-r .mk-bar{clip-path:polygon(0 0,100% 0,100% 100%,16px 100%)}.mk-well{position:relative;height:100%;clip-path:inherit;background:linear-gradient(180deg,#2a0608,#120203);box-shadow:inset 0 2px 4px rgba(0,0,0,.8)}.mk-trail,.mk-fill{position:absolute;top:0;bottom:0;left:0;width:var(--hp)}.mk-side.is-r .mk-trail,.mk-side.is-r .mk-fill{left:auto;right:0}.mk-trail{background:linear-gradient(180deg,#ff6a5a,#c4121c 55%,#6e0408);transition:width .9s cubic-bezier(.3,.7,.2,1) .45s}.mk-fill{background:linear-gradient(180deg,#fffbe0 0%,#ffe36a 18%,#ffc21f 48%,#e58a06 78%,#9c5300 100%);box-shadow:2px 0 8px rgba(255,190,40,.55);transition:width .09s linear}.mk-side.is-r .mk-fill{box-shadow:-2px 0 8px rgba(255,190,40,.55)}.mk-gloss{position:absolute;left:0;right:0;top:0;height:42%;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0));pointer-events:none}.mk-side.is-low .mk-fill{background:linear-gradient(180deg,#ffe0d8 0%,#ff7a5a 22%,#e8321f 55%,#8a0a0a 100%);animation:mkPulse .6s ease-in-out infinite}@keyframes mkPulse{50%{filter:brightness(1.35)}}.mk-meta{display:flex;align-items:center;gap:8px;margin-top:3px;padding:0 3px}.mk-side.is-r .mk-meta{flex-direction:row-reverse}.mk-name{font-family:Unbounded,system-ui,sans-serif;font-weight:700;font-size:12px;letter-spacing:.16em;color:#f4efe2;text-shadow:0 1px 0 #000,0 0 8px rgba(0,0,0,.9)}.mk-wins{display:flex;gap:4px}.mk-side.is-r .mk-wins{flex-direction:row-reverse}.mk-wins i{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3a3a44,#101014);box-shadow:inset 0 0 0 1.5px #8a6a2a}.mk-wins i.on{background:radial-gradient(circle at 40% 35%,#fff3c0,#e3a824 55%,#7a4e0c);box-shadow:inset 0 0 0 1.5px #f6e2a2,0 0 8px rgba(255,200,80,.7)}.mk-meter{flex:1;max-width:130px;height:6px;background:#0d0d12;box-shadow:inset 0 0 0 1px rgba(233,209,138,.35);display:flex;overflow:hidden}.mk-side.is-r .mk-meter{justify-content:flex-end}.mk-meter b{display:block;height:100%}.mk-meter.c b{background:linear-gradient(180deg,#bff6ff,#2fb8e8 60%,#0a5e80)}.mk-meter.m b{background:linear-gradient(180deg,#ffd0ec,#e63aa0 60%,#7a0c4e)}.mk-meter b.full{animation:mkPulse .7s ease-in-out infinite}.mk-timer{flex-shrink:0;width:50px;height:50px;margin-top:-4px;border-radius:50%;padding:3px;background:conic-gradient(from 0deg,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2);box-shadow:0 4px 14px rgba(0,0,0,.75)}.mk-timer span{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#3d3a44,#121116 70%);box-shadow:inset 0 0 0 2px #1a1a1f,inset 0 3px 6px rgba(255,255,255,.12);font-family:Unbounded,system-ui,sans-serif;font-weight:800;font-size:19px;color:#f4efe2;font-variant-numeric:tabular-nums;text-shadow:0 1px 0 #000}.mk-timer.is-hot span{color:#ff5a4a;animation:mkPulse .5s steps(2) infinite}.fg-key{position:relative;display:grid;place-items:center;align-content:center;gap:1px;width:62px;height:62px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);color:#fff;font-family:Unbounded,system-ui,sans-serif;font-weight:700;font-size:10.5px;touch-action:none;user-select:none;transition:transform .06s,filter .06s;background:var(--kbg);box-shadow:inset 0 0 0 2px var(--kc)}.fg-key.is-big{width:80px;height:76px;font-size:11.5px}.fg-key svg{width:24px;height:24px}.fg-key.is-big svg{width:30px;height:30px}.fg-key::after{content:\"\";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 45%);pointer-events:none}.fg-key:active{transform:scale(.93);filter:brightness(1.35) drop-shadow(0 0 14px var(--kc))}.k-punch{--kc:var(--fg-y);--kbg:linear-gradient(180deg,rgba(255,210,63,.55),rgba(120,80,0,.6));color:#fff6d6}.k-kick{--kc:var(--fg-m);--kbg:linear-gradient(180deg,rgba(255,63,180,.55),rgba(110,10,70,.6))}.k-block{--kc:rgba(200,215,255,.8);--kbg:linear-gradient(180deg,rgba(150,165,210,.45),rgba(20,24,44,.7))}.k-spec{--kc:var(--fg-c);--kbg:linear-gradient(180deg,rgba(52,232,255,.5),rgba(4,70,90,.65))}.k-spec.is-off{opacity:.4;filter:saturate(.3)}.k-spec.is-ready{animation:fgReady 1s ease-in-out infinite}@keyframes fgReady{50%{filter:brightness(1.5) drop-shadow(0 0 16px var(--fg-c))}}.fg-cluster4{display:grid;grid-template-columns:auto auto;gap:3px 4px;justify-items:center;align-items:end}.fg-key.is-sm{width:52px;height:48px;font-size:9.5px}.fg-key.is-sm svg{width:19px;height:19px}.k-alt{filter:saturate(1.35) brightness(1.08)}.k-alt::before{content:\"\";position:absolute;right:13px;top:9px;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.8}.fg-cluster{display:grid;grid-template-columns:auto auto;gap:4px 2px;align-items:end;justify-items:center}.fg-cluster .k-spec{transform:translate(10px,8px)}.fg-cluster .k-block{transform:translate(-4px,8px)}.fg-rocker{display:flex;gap:2px;padding:4px;clip-path:polygon(12% 0,88% 0,100% 50%,88% 100%,12% 100%,0 50%);background:rgba(10,7,22,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}.fg-pad{position:relative;width:150px;height:150px;touch-action:none;user-select:none;border-radius:50%;background:radial-gradient(circle,rgba(20,18,30,.55) 0,rgba(10,8,20,.45) 62%,transparent 64%)}.fg-pad-a{position:absolute;width:52px;height:52px;display:grid;place-items:center;color:var(--fg-c);background:linear-gradient(180deg,rgba(40,44,80,.75),rgba(10,8,24,.85));box-shadow:inset 0 0 0 1.5px rgba(52,232,255,.45);border-radius:10px;transition:transform .05s,filter .05s;pointer-events:none}.fg-pad-a.u{left:49px;top:4px}.fg-pad-a.d{left:49px;bottom:4px}.fg-pad-a.l{left:4px;top:49px}.fg-pad-a.r{right:4px;top:49px}.fg-pad-a.on{filter:brightness(1.6) drop-shadow(0 0 10px var(--fg-c));transform:scale(.94)}.fg-pad-c{position:absolute;left:61px;top:61px;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3a3a48,#111018);box-shadow:inset 0 0 0 1.5px rgba(233,209,138,.4);pointer-events:none}.fg-dir{--kc:rgba(52,232,255,.55);--kbg:linear-gradient(180deg,rgba(40,44,80,.7),rgba(10,8,24,.8));color:var(--fg-c)}@media (prefers-reduced-motion:reduce){.k-spec.is-ready,.mk-meter b.full,.mk-side.is-low .mk-fill{animation:none}}'}</style>
 
+      {/* управление: на телефоне кнопки крупнее */}
+      <style>{'@media (pointer:coarse){.fg-key{width:78px;height:78px;font-size:12px}.fg-key svg{width:30px;height:30px}.fg-key.is-sm{width:64px;height:60px;font-size:11px}.fg-key.is-sm svg{width:24px;height:24px}.fg-cluster4{gap:5px 6px}.fg-pad{width:188px;height:188px}.fg-pad-a{width:64px;height:64px;border-radius:12px}.fg-pad-a svg{width:28px;height:28px}.fg-pad-a.u{left:62px;top:5px}.fg-pad-a.d{left:62px;bottom:5px}.fg-pad-a.l{left:5px;top:62px}.fg-pad-a.r{right:5px;top:62px}.fg-pad-c{left:78px;top:78px;width:32px;height:32px}}@media (pointer:coarse) and (max-height:340px){.fg-key{width:66px;height:66px}.fg-key.is-sm{width:56px;height:52px}.fg-pad{width:164px;height:164px}.fg-pad-a{width:56px;height:56px}.fg-pad-a.u{left:54px}.fg-pad-a.d{left:54px}.fg-pad-a.l{top:54px}.fg-pad-a.r{top:54px}.fg-pad-c{left:66px;top:66px}}'}</style>
       {/* управление */}
       {phase === 'fight' && isSpec && <div className="absolute top-[13%] inset-x-0 grid place-items-center pointer-events-none"><div className="rounded-full bg-black/45 border border-white/15 px-3 py-1 text-[12px] text-white/80">Ты зритель</div></div>}
       {phase === 'fight' && !isSpec && (
@@ -663,6 +723,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
               <div className="font-display font-semibold text-[17px]">Бой с другом</div>
               <p className="text-[13.5px] text-gray mt-1.5">{pv.st === 'conn' ? 'Подключаемся…' : pv.st === 'wait' ? 'Ждём, пока соперник откроет вызов. Не закрывай экран.' : pv.st === 'gone' ? 'Вызов уже недействителен — создай новый.' : pv.st === 'err' ? 'Не удалось подключиться. Попробуй ещё раз.' : 'Начинаем…'}</p>
               <p className="text-[12px] text-gray2 mt-1.5">Бой до двух побед. На прохождение этапа и приз не влияет.</p>
+              {(pv.st === 'conn' || pv.st === 'wait') && HeroPick()}
               <button onClick={() => onClose(false)} className="btn-secondary w-full h-11 rounded-[14px] mt-3">Выйти</button>
             </>}
             {phase === 'ready' && !pv && <>
@@ -686,6 +747,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             {phase === 'end' && pv && !isSpec && <>
               <div className="font-display font-semibold text-[18px]">{pv.st === 'left' ? 'Соперник вышел' : pv.st === 'gone' ? 'Связь потеряна' : res?.win ? 'Победа!' : 'Поражение'}</div>
               <p className="text-[13.5px] text-gray mt-1">{pv.st === 'left' || pv.st === 'gone' || rm.off ? 'Соперник ушёл — реванш недоступен.' : rm.me ? 'Ждём ответа соперника…' : rm.opp ? 'Соперник хочет реванш!' : 'Бой с другом не засчитывается в задание — это тренировка.'}</p>
+              {!(pv.st === 'left' || pv.st === 'gone' || rm.off) && !rm.me && HeroPick()}
               <div className="flex gap-2 mt-3">
                 {!(pv.st === 'left' || pv.st === 'gone' || rm.off) && <button onClick={() => api.current.again()} disabled={rm.me} className={`btn-primary flex-1 ${rm.me ? 'opacity-60' : ''}`}>{rm.me ? 'Ждём…' : rm.opp ? 'Принять реванш' : 'Ещё раз'}</button>}
                 <button onClick={() => onClose(false)} className="btn-secondary flex-1 h-12 rounded-[16px]">Выйти</button>
