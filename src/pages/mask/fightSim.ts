@@ -9,7 +9,7 @@ export const ROUND_TICKS = 60 * TPS          // раунд 60 с
 export const WIN_ROUNDS = 2                  // до двух побед
 export const HP = 1000
 export const ARENA = 520                     // половина ширины арены, см
-export const BODY = 52                       // ширина тела, см (минимальная дистанция между бойцами = 2·BODY)
+export const BODY = 40                       // половина «тела», см: ближе 80 см бойцы не сходятся (ближние удары достают)
 export const MAX_GAP = 420                   // дальше не разойтись — оба всегда в кадре (как в классических файтингах)
 export const START = 130                     // стартовая позиция, см от центра
 
@@ -28,12 +28,12 @@ export type Lvl = 'H' | 'M' | 'L' | 'O'
 export interface Move { s: number; a: number; r: number; dmg: number; reach: number; stun: number; kd: number; push: number; h: Lvl; aa?: 1; air?: 1; next?: MoveId }
 // s — подготовка, a — активные кадры, r — восстановление (кадры); reach — дальность, см; kd — сбивает с ног
 export const MOVES: Record<MoveId, Move> = {
-  jab: { s: 5, a: 3, r: 10, dmg: 45, reach: 96, stun: 15, kd: 0, push: 10, h: 'H', next: 'cross' },
-  cross: { s: 7, a: 3, r: 13, dmg: 70, reach: 104, stun: 17, kd: 0, push: 14, h: 'H', next: 'hook' },
-  hook: { s: 9, a: 3, r: 16, dmg: 90, reach: 94, stun: 19, kd: 0, push: 18, h: 'H', next: 'upper' },
-  upper: { s: 12, a: 4, r: 22, dmg: 125, reach: 86, stun: 0, kd: 1, push: 40, h: 'M', aa: 1 },
-  low: { s: 8, a: 3, r: 14, dmg: 55, reach: 124, stun: 15, kd: 0, push: 12, h: 'L', next: 'kick' },
-  kick: { s: 12, a: 4, r: 20, dmg: 105, reach: 136, stun: 20, kd: 0, push: 22, h: 'M', next: 'round' },
+  jab: { s: 5, a: 3, r: 10, dmg: 45, reach: 96, stun: 15, kd: 0, push: 4, h: 'H', next: 'cross' },
+  cross: { s: 7, a: 3, r: 13, dmg: 70, reach: 104, stun: 17, kd: 0, push: 6, h: 'H', next: 'hook' },
+  hook: { s: 9, a: 3, r: 16, dmg: 90, reach: 94, stun: 19, kd: 0, push: 10, h: 'H', next: 'upper' },
+  upper: { s: 12, a: 4, r: 22, dmg: 125, reach: 100, stun: 0, kd: 1, push: 40, h: 'M', aa: 1 },
+  low: { s: 8, a: 3, r: 14, dmg: 55, reach: 124, stun: 15, kd: 0, push: 4, h: 'L', next: 'kick' },
+  kick: { s: 12, a: 4, r: 20, dmg: 105, reach: 136, stun: 20, kd: 0, push: 8, h: 'M', next: 'round' },
   round: { s: 16, a: 5, r: 26, dmg: 150, reach: 142, stun: 0, kd: 1, push: 50, h: 'H', aa: 1 },
   special: { s: 18, a: 12, r: 28, dmg: 210, reach: 165, stun: 0, kd: 1, push: 70, h: 'M', aa: 1 },
   combo: { s: 6, a: 22, r: 18, dmg: 34, reach: 100, stun: 12, kd: 0, push: 6, h: 'H' },   // серия стража: бьёт каждые 4 кадра активной фазы
@@ -51,40 +51,42 @@ export const MOVES: Record<MoveId, Move> = {
 }
 export const COMBO_GAP = 4
 
-export type St = 'idle' | 'fwd' | 'back' | 'atk' | 'block' | 'bstun' | 'hit' | 'down' | 'up' | 'dodge' | 'dash' | 'ko' | 'win' | 'crouch' | 'cblock' | 'jump'
+export type St = 'idle' | 'fwd' | 'back' | 'atk' | 'block' | 'bstun' | 'hit' | 'down' | 'up' | 'dodge' | 'dash' | 'ko' | 'win' | 'crouch' | 'cblock' | 'jump' | 'land'
 export interface F {
   x: number; hp: number; st: St; t: number; mv: MoveId | null; hitDone: number; chain: number; meter: number
   dir: number; hitKind: number   // hitKind: 0 лёгкий, 1 в корпус, 2 сильный; при падении: 0 обычное, 3 подсечка, 4 апперкот
   y: number; vy: number; vx: number; air: number; cr: number; jat: number   // прыжок; cr — в приседе; jat — уже бил в этом прыжке
+  stn: number; k: number   // stn — длина оглушения (удар/блок, кадры); k — сколько ударов подряд пропущено (снижение урона в серии)
 }
-/** уровни: 1 — Страж (идеальный бот выигрывает ~5 %), 2 — Призрак (~2 %). mg — заряд спецприёма игрока, % */
+/** уровни: 1 — Страж (идеальный бот выигрывает ~5 %), 2 — Призрак (~2 %). mg — заряд спецприёма игрока, ‰; rs — страж восстанавливается в 2^rs раз быстрее */
 export const LV = [null,
-  { bm: 100, pm: 110, br: 220, bp: 850, rs: 1, cd: 6, cdl: 8, cdh: 16, mg: 124 },
-  { bm: 120, pm: 100, br: 380, bp: 930, rs: 1, cd: 4, cdl: 5, cdh: 9, mg: 108 },
+  { bm: 125, pm: 85, br: 250, bp: 915, rs: 2, cd: 6, cdl: 7, cdh: 14, mg: 1100 },
+  { bm: 135, pm: 80, br: 300, bp: 945, rs: 2, cd: 4, cdl: 5, cdh: 9, mg: 1100 },
 ] as const
-export interface Ev { k: 'hit' | 'block' | 'whiff' | 'kd' | 'ko' | 'round' | 'start' | 'special' | 'dodge' | 'time' | 'jump' | 'land' | 'boss2'; who: 0 | 1; mv?: MoveId; dmg?: number }
+export interface Ev { k: 'hit' | 'block' | 'whiff' | 'kd' | 'ko' | 'round' | 'start' | 'special' | 'dodge' | 'time' | 'jump' | 'land' | 'boss2' | 'tech'; who: 0 | 1; mv?: MoveId; dmg?: number }
 export interface Sim {
   tick: number; rt: number; round: number; wins: [number, number]; pause: number; over: number   // over: 0 идёт, 1 игрок победил, 2 страж
-  f: [F, F]; rng: number; prevIn: number; buf: number; bufT: number; tapF: number
-  ai: { cd: number; plan: number; read: number; rage: number }
+  f: [F, F]; rng: number; prevIn: number; buf: number; bufT: number; tapF: number; lastP: number
+  pend: [0 | 1, MoveId][]   // попадания этого тика: применяются после хода обоих — так удары могут встретиться (размен)
+  ai: { cd: number; read: number; rage: number }
   lv: number; nextLv: number   // текущий страж и переход ко второму после победы над первым
   ev: Ev[]
 }
 
-const mkF = (x: number, dir: number): F => ({ x, hp: HP, st: 'idle', t: 0, mv: null, hitDone: 0, chain: 0, meter: 0, dir, hitKind: 0, y: 0, vy: 0, vx: 0, air: 0, cr: 0, jat: 0 })
+const mkF = (x: number, dir: number): F => ({ x, hp: HP, st: 'idle', t: 0, mv: null, hitDone: 0, chain: 0, meter: 0, dir, hitKind: 0, y: 0, vy: 0, vx: 0, air: 0, cr: 0, jat: 0, stn: 0, k: 0 })
 
 export function newSim(seed: number, lv = 1): Sim {
   return {
     tick: 0, rt: ROUND_TICKS, round: 1, wins: [0, 0], pause: 120, over: 0, lv: lv === 2 ? 2 : 1, nextLv: 0,
-    f: [mkF(-START, 1), mkF(START, -1)], rng: (seed >>> 0) || 0x9e3779b9, prevIn: 0, buf: 0, bufT: 0, tapF: 0,
-    ai: { cd: 40, plan: 0, read: 0, rage: 0 }, ev: [{ k: 'round', who: 0 }],
+    f: [mkF(-START, 1), mkF(START, -1)], rng: (seed >>> 0) || 0x9e3779b9, prevIn: 0, buf: 0, bufT: 0, tapF: 0, lastP: -999, pend: [],
+    ai: { cd: 40, read: 0, rage: 0 }, ev: [{ k: 'round', who: 0 }],
   }
 }
 
 /** xorshift32 → 0..999 */
 const rnd = (s: Sim) => { let x = s.rng; x ^= (x << 13) >>> 0; x >>>= 0; x ^= x >>> 17; x ^= (x << 5) >>> 0; x >>>= 0; s.rng = x; return x % 1000 }
 
-const busy = (f: F) => f.st === 'atk' || f.st === 'dash' || f.st === 'hit' || f.st === 'bstun' || f.st === 'down' || f.st === 'up' || f.st === 'dodge' || f.st === 'ko' || f.st === 'win' || f.st === 'jump' || f.air === 1
+const busy = (f: F) => f.st === 'atk' || f.st === 'dash' || f.st === 'hit' || f.st === 'bstun' || f.st === 'down' || f.st === 'up' || f.st === 'dodge' || f.st === 'ko' || f.st === 'win' || f.st === 'jump' || f.st === 'land' || f.air === 1
 const moveLen = (m: MoveId) => MOVES[m].s + MOVES[m].a + MOVES[m].r
 /** длина удара у конкретного бойца: страж восстанавливается вдвое быстрее (его почти не наказать) */
 export const lenOf = (i: number, m: MoveId, lv = 1) => i === 1 ? MOVES[m].s + MOVES[m].a + (MOVES[m].r >> LV[lv]!.rs) : moveLen(m)
@@ -107,8 +109,14 @@ function jump(s: Sim, i: 0 | 1, dirx: number) {
 
 function resetRound(s: Sim) {
   if (s.nextLv) { s.lv = s.nextLv; s.nextLv = 0; s.wins = [0, 0]; s.ev.push({ k: 'boss2', who: 1 }) }
-  s.f = [mkF(-START, 1), mkF(START, -1)]; s.rt = ROUND_TICKS; s.pause = 120; s.ai.cd = 40; s.ai.plan = 0; s.buf = 0; s.bufT = 0
+  s.f = [mkF(-START, 1), mkF(START, -1)]; s.rt = ROUND_TICKS; s.pause = 120; s.ai.cd = 40; s.ai.read = 0; s.tapF = 0; s.lastP = -999; s.buf = 0; s.bufT = 0; s.round++
   s.ev.push({ k: 'round', who: 0 })
+}
+
+/** ничья по времени: раунд переигрывается, победа никому не засчитывается */
+function drawRound(s: Sim) {
+  for (const f of s.f) { f.st = 'idle'; f.t = 0; f.mv = null }
+  s.pause = -150
 }
 
 function endRound(s: Sim, winner: 0 | 1) {
@@ -125,7 +133,15 @@ function connects(A: F, D: F, M: Move) {
   if (D.air) return !!(M.aa || M.air)
   if (M.air && A.y > AIR_HIT_Y) return false
   if (M.h === 'H' && low(D)) return false
+  if (M === MOVES.throw && (low(D) || D.st === 'hit' || D.st === 'bstun')) return false   // бросок не берёт присевшего и оглушённого
   return true
+}
+
+/** толчок с учётом угла: если защитника уже некуда двигать (стена), отъезжает нападающий */
+function shove(D: F, A: F, d: number) {
+  D.x -= D.dir * d
+  const over = Math.abs(D.x) - ARENA
+  if (over > 0) { D.x = D.x > 0 ? ARENA : -ARENA; A.x -= A.dir * over }
 }
 
 function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
@@ -133,26 +149,39 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
   const boss = ai === 1
   // страж бьёт сильнее, игрок — слабее (по задумке страж почти непобедим)
   const P = LV[s.lv]!
-  let dmg = boss ? (M.dmg * P.bm) / 100 : (M.dmg * P.pm) / 100
-  dmg = Math.floor(dmg)
+  let dmg = Math.floor((M.dmg * (boss ? P.bm : P.pm)) / 100)
   const sBlock = D.st === 'block' || (D.st === 'bstun' && D.cr === 0)
   const cBlock = D.st === 'cblock' || (D.st === 'bstun' && D.cr === 1)
-  const blocking = !D.air && ((sBlock && M.h !== 'L') || (cBlock && M.h !== 'O'))
+  const blocking = !D.air && mv !== 'throw' && ((sBlock && M.h !== 'L') || (cBlock && M.h !== 'O'))
   if (D.st === 'dodge' && D.t < 14) { s.ev.push({ k: 'dodge', who: di }); return }
-  // страж «вырывается» из серии ударов
-  if (di === 1 && !blocking && !D.air && (mv === 'cross' || mv === 'hook' || mv === 'upper') && rnd(s) < P.br) {
-    D.st = 'dodge'; D.t = 0; D.cr = 0; s.ev.push({ k: 'dodge', who: 1 }); return
+  // выход из броска (как в MK): игрок нажал руку (без блока) незадолго до захвата
+  if (mv === 'throw' && di === 0 && s.tick - s.lastP <= 10) {
+    shove(D, A, 40); A.x -= A.dir * 40; s.ev.push({ k: 'tech', who: di }); return
   }
-  if (blocking && mv !== 'special' && mv !== 'throw') {
-    const chip = Math.floor(dmg / 8)
-    D.hp = Math.max(0, D.hp - chip); D.cr = cBlock ? 1 : 0; D.st = 'bstun'; D.t = 0; D.hitKind = 0
-    D.x -= D.dir * Math.floor(M.push / 2)
-    A.meter = Math.min(1000, A.meter + (boss ? 40 : Math.floor(40 * P.mg / 100))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(60 * P.mg / 100) : 60))
+  // страж «вырывается» из серии — только из свободного состояния и за счёт шкалы (как Breakaway в MK)
+  if (di === 1 && !blocking && !D.air && (D.st === 'idle' || D.st === 'fwd' || D.st === 'back') && D.meter >= 300
+      && (mv === 'cross' || mv === 'hook' || mv === 'upper') && rnd(s) < P.br) {
+    D.meter -= 300; D.st = 'dodge'; D.t = 0; D.cr = 0; s.ev.push({ k: 'dodge', who: 1 }); return
+  }
+  // сколько кадров нападающему ещё восстанавливаться: от этого считаются оглушение и преимущество
+  const rem = Math.max(0, lenOf(ai, mv, s.lv) - A.t)
+  if (blocking) {
+    const chip = mv === 'special' ? dmg >> 3 : 0   // обычные удары в блок урона не наносят, спецприём — чуть-чуть
+    D.hp = Math.max(0, D.hp - chip)
+    if (D.hp <= 0) { D.st = 'ko'; D.t = 0; s.ev.push({ k: 'ko', who: di, mv, dmg: chip }); endRound(s, ai); return }
+    D.cr = cBlock ? 1 : 0; D.st = 'bstun'; D.t = 0; D.hitKind = 0; D.k = 0
+    D.stn = mv === 'combo' ? Math.max(6, M.stun - 4) : Math.max(6, rem + (M.stun >> 2) - 8)
+    shove(D, A, M.push >> 1)
+    A.meter = Math.min(1000, A.meter + (boss ? 40 : Math.floor(40 * P.mg / 1000))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(60 * P.mg / 1000) : 60))
+    if (mv === 'special') A.meter = Math.min(1000, A.meter + 500)   // спецприём в блок — половина шкалы возвращается
     s.ev.push({ k: 'block', who: di, mv, dmg: chip })
   } else {
+    // серия: каждый следующий пропущенный подряд удар слабее на 10 % (до −50 %)
+    D.k = D.st === 'hit' || D.st === 'down' ? D.k + 1 : 0
+    dmg = Math.floor((dmg * (100 - 10 * Math.min(D.k, 5))) / 100)
     D.hp = Math.max(0, D.hp - dmg)
-    A.meter = Math.min(1000, A.meter + (boss ? 90 : Math.floor(90 * P.mg / 100))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(50 * P.mg / 100) : 50))
-    D.x -= D.dir * M.push
+    A.meter = Math.min(1000, A.meter + (boss ? 90 : Math.floor(90 * P.mg / 1000))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(50 * P.mg / 1000) : 50))
+    shove(D, A, M.push)
     D.cr = 0
     if (D.hp <= 0) { D.st = 'ko'; D.t = 0; s.ev.push({ k: 'ko', who: di, mv, dmg }); endRound(s, ai); return }
     if (M.kd || D.air) {
@@ -160,7 +189,11 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
       if (D.air) { D.vx = -D.dir * 3; if (D.vy < 12) D.vy = 12 }
       s.ev.push({ k: 'kd', who: di, mv, dmg })
     }
-    else { D.st = 'hit'; D.t = 0; D.hitKind = mv === 'low' || mv === 'kick' || mv === 'combo' || mv === 'knee' ? 1 : mv === 'hook' || mv === 'cross' || mv === 'high' || mv === 'elbow' ? 2 : 0; s.ev.push({ k: 'hit', who: di, mv, dmg }) }
+    else {
+      D.st = 'hit'; D.t = 0; D.stn = mv === 'combo' ? M.stun : Math.max(10, rem + (M.stun >> 2))
+      D.hitKind = mv === 'low' || mv === 'kick' || mv === 'combo' || mv === 'knee' || mv === 'ckick' ? 1 : mv === 'hook' || mv === 'cross' || mv === 'high' || mv === 'elbow' ? 2 : 0
+      s.ev.push({ k: 'hit', who: di, mv, dmg })
+    }
     D.mv = null; D.chain = 0
   }
 }
@@ -171,7 +204,8 @@ function physics(s: Sim, i: 0 | 1) {
   f.x += f.vx; f.y += f.vy; f.vy -= GRAV
   if (f.y <= 0) {
     f.y = 0; f.vy = 0; f.vx = 0; f.air = 0
-    if (f.st === 'jump' || (f.st === 'atk' && f.mv && MOVES[f.mv].air)) { f.st = 'idle'; f.t = 0; f.mv = null }
+    // приземление: короткая заминка (после удара в прыжке — дольше)
+    if (f.st === 'jump' || (f.st === 'atk' && f.mv && MOVES[f.mv].air)) { f.stn = f.st === 'atk' ? 5 : 2; f.st = 'land'; f.t = 0; f.mv = null }
     s.ev.push({ k: 'land', who: i })
   }
 }
@@ -186,21 +220,19 @@ function stepFighter(s: Sim, i: 0 | 1) {
     // удар в прыжке (как в MK) держится вытянутым до приземления
     if (f.t > M.s && (f.t <= M.s + M.a || (M.air && f.air))) {
       if (f.mv === 'combo') {
-        if ((f.t - M.s) % COMBO_GAP === 1 && dist <= M.reach && connects(f, o, M)) damage(s, i, (1 - i) as 0 | 1, 'combo')
-      } else if (!f.hitDone && dist <= M.reach && connects(f, o, M)) { f.hitDone = 1; damage(s, i, (1 - i) as 0 | 1, f.mv) }
+        if ((f.t - M.s) % COMBO_GAP === 1 && dist <= M.reach && connects(f, o, M)) s.pend.push([i, 'combo'])
+      } else if (!f.hitDone && dist <= M.reach && connects(f, o, M)) { f.hitDone = 1; s.pend.push([i, f.mv]) }
       if (f.mv === 'special') f.x += f.dir * 6
     }
     if (f.st === 'atk' && f.mv) {
       if (f.t === M.s + M.a && !f.hitDone && f.mv !== 'combo' && !M.air) s.ev.push({ k: 'whiff', who: i, mv: f.mv })
-      if (f.t >= lenOf(i, f.mv, s.lv) && !f.air) {
-        if (f.air) { f.st = 'jump'; f.mv = null }                  // удар в прыжке кончился — долетаем
-        else { f.st = f.cr ? 'crouch' : 'idle'; f.t = 0; f.mv = null }
-      }
+      if (f.t >= lenOf(i, f.mv, s.lv) && !f.air) { f.st = f.cr ? 'crouch' : 'idle'; f.t = 0; f.mv = null }
     }
-  } else if (f.st === 'hit') { if (f.t >= (f.hitKind === 2 ? 22 : 18)) { f.st = 'idle'; f.t = 0 } }
-  else if (f.st === 'bstun') { if (f.t >= 10) { f.st = f.cr ? 'cblock' : 'block'; f.t = 0 } }
-  else if (f.st === 'down') { if (f.t >= 70 && !f.air) { f.st = 'up'; f.t = 0 } }
-  else if (f.st === 'up') { if (f.t >= 50) { f.st = 'idle'; f.t = 0 } }
+  } else if (f.st === 'hit') { if (f.t >= f.stn) { f.st = 'idle'; f.t = 0; f.k = 0 } }
+  else if (f.st === 'bstun') { if (f.t >= f.stn) { f.st = f.cr ? 'cblock' : 'block'; f.t = 0 } }
+  else if (f.st === 'land') { if (f.t >= f.stn) { f.st = 'idle'; f.t = 0 } }
+  else if (f.st === 'down') { if (f.t >= 40 && !f.air) { f.st = 'up'; f.t = 0 } }
+  else if (f.st === 'up') { if (f.t >= 20) { f.st = 'idle'; f.t = 0; f.k = 0 } }
   else if (f.st === 'dodge') { f.x -= f.dir * (f.t < 12 ? 9 : 0); if (f.t >= 24) { f.st = 'idle'; f.t = 0 } }
   else if (f.st === 'dash') { f.x += f.dir * 13; if (f.t >= 9) { f.st = 'idle'; f.t = 0 } }
 }
@@ -219,6 +251,12 @@ function separate(s: Sim) {
 function player(s: Sim, inp: number) {
   const f = s.f[0], o = s.f[1]
   const press = inp & ~s.prevIn
+  // счётчики двойного нажатия идут всегда (раньше замирали, пока боец был занят)
+  if (s.ai.read > 0) s.ai.read++
+  if (s.ai.read > 12) s.ai.read = 0
+  if (s.tapF > 0) s.tapF++
+  if (s.tapF > 12) s.tapF = 0
+  if (press & ANYP && !(inp & IN_BLOCK)) s.lastP = s.tick   // для выхода из броска
   if (press & ATK) { s.buf = press & ATK; s.bufT = 10 }
   else if (s.bufT > 0) s.bufT--
   else s.buf = 0
@@ -257,18 +295,13 @@ function player(s: Sim, inp: number) {
     jump(s, 0, inp & toward ? f.dir : inp & away ? -f.dir : 0); return
   }
   if (inp & toward) {
-    if ((press & toward) && s.tapF > 0 && s.tapF < 10) { f.st = 'dash'; f.t = 0; s.tapF = 0 }   // двойное «вперёд» — рывок
+    if ((press & toward) && s.tapF > 1 && s.tapF < 11) { f.st = 'dash'; f.t = 0; s.tapF = 0 }   // двойное «вперёд» — рывок
     else { f.st = 'fwd'; f.x += f.dir * 4; if (press & toward) s.tapF = 1 }
   }
   else if (inp & away) {
-    if ((press & away) && s.ai.read > 0 && s.ai.read < 9) { f.st = 'dodge'; f.t = 0; s.ai.read = 0 }   // двойное «назад» — отскок
-    else { f.st = 'back'; f.x -= f.dir * 3 }
-    s.ai.read = press & away ? 1 : s.ai.read
+    if ((press & away) && s.ai.read > 1 && s.ai.read < 10) { f.st = 'dodge'; f.t = 0; s.ai.read = 0 }   // двойное «назад» — отскок
+    else { f.st = 'back'; f.x -= f.dir * 3; if (press & away) s.ai.read = 1 }
   } else if (f.st === 'fwd' || f.st === 'back' || f.st === 'block' || f.st === 'crouch' || f.st === 'cblock') { f.st = 'idle'; f.t = 0 }
-  if (s.ai.read > 0) s.ai.read++
-  if (s.ai.read > 12) s.ai.read = 0
-  if (s.tapF > 0) s.tapF++
-  if (s.tapF > 12) s.tapF = 0
 }
 
 /** Страж: читает подготовку ударов, ставит верхний или нижний блок, сбивает прыжки и наказывает промахи */
@@ -301,12 +334,12 @@ function boss(s: Sim) {
   // игрок в прыжке: апперкот навстречу или блок
   if (p.air && p.st !== 'down' && dist <= 190) {
     const r = rnd(s)
-    if (dist <= 100 && p.vy < 30 && r < 700 + ai.rage * 100) { startMove(s, 1, 'cupper'); return }
+    if (dist <= 100 && r < 700 + ai.rage * 100) { startMove(s, 1, 'cupper'); return }
     if (dist <= 140 && p.vy < 0 && r < 450) { startMove(s, 1, 'high'); return }
     if (p.st === 'atk' || r < 850) { f.st = 'block'; f.t = 0; f.cr = 0; return }
   }
   // бросок, если игрок долго стоит в блоке рядом (бросок берёт и присевшего)
-  if ((p.st === 'block' || p.st === 'cblock') && p.t > 28 && dist <= MOVES.throw.reach && rnd(s) < 600) { startMove(s, 1, 'throw'); return }
+  if (p.st === 'block' && p.t > 28 && dist <= MOVES.throw.reach && rnd(s) < 600) { startMove(s, 1, 'throw'); return }
   // защита: видит подготовку удара игрока и ставит нужный блок
   if (p.st === 'atk' && p.mv && !p.air && p.t <= MOVES[p.mv].s + 1 && dist <= MOVES[p.mv].reach + 30) {
     const r = rnd(s), M = MOVES[p.mv]
@@ -324,9 +357,12 @@ function boss(s: Sim) {
   // наказание: игрок промахнулся или восстанавливается
   if (p.st === 'atk' && p.mv && !p.air && p.t > MOVES[p.mv].s + MOVES[p.mv].a && dist <= 140) {
     const left = moveLen(p.mv) - p.t
-    startMove(s, 1, left > 14 ? (dist <= 88 ? 'cupper' : 'round') : left > 9 ? 'kick' : 'jab'); return
+    // наказание только тем, что успевает: подготовка удара короче, чем игроку осталось восстанавливаться
+    if (left >= 17) { startMove(s, 1, dist <= 88 ? 'cupper' : 'round'); return }
+    if (left >= 13) { startMove(s, 1, 'kick'); return }
+    if (left >= 6) { startMove(s, 1, 'jab'); return }
   }
-  if ((p.st === 'up' && p.t > 40) || p.st === 'hit') { if (dist <= 100) { startMove(s, 1, p.st === 'hit' ? 'hook' : 'combo'); return } }
+  if ((p.st === 'up' && p.t > 12) || p.st === 'hit') { if (dist <= 100) { startMove(s, 1, p.st === 'hit' ? 'hook' : 'combo'); return } }
   if (f.meter >= 1000 && dist <= 160 && p.st !== 'down' && p.st !== 'up' && rnd(s) < 120) { startMove(s, 1, 'special'); return }
   if (ai.cd > 0) { ai.cd--; if (dist > 150) { f.st = 'fwd'; f.x += f.dir * 5 } else if (f.st === 'fwd') { f.st = 'idle'; f.t = 0 } return }
   // нападение
@@ -336,11 +372,10 @@ function boss(s: Sim) {
   const pLow = p.st === 'crouch' || p.st === 'cblock'
   if (pLow) {   // игрок сидит: прыжок с ударом сверху, бросок или подсечка
     if (r < 300 && dist >= 90) jump(s, 1, f.dir)
-    else if (r < 550 && dist <= MOVES.throw.reach) startMove(s, 1, 'throw')
-    else if (r < 800) startMove(s, 1, dist <= 90 ? 'knee' : 'kick')
+    else if (r < 750) startMove(s, 1, dist <= 90 ? 'knee' : 'kick')   // средние удары: сидячий блок их держит, просто присед — нет
     else startMove(s, 1, 'sweep')
   } else if (dist <= 100) {
-    if (p.st === 'block') { if (r < 300) startMove(s, 1, 'low'); else if (r < 480) startMove(s, 1, 'sweep'); else if (r < 600) { f.st = 'back'; f.x -= f.dir * 30; ai.cd = 8 } else startMove(s, 1, 'combo') }
+    if (p.st === 'block') { if (r < 300) startMove(s, 1, 'low'); else if (r < 480) startMove(s, 1, 'sweep'); else if (r < 600) { f.st = 'back'; f.x -= f.dir * 5; ai.cd = 10; return } else startMove(s, 1, 'combo') }
     else if (r < 220) startMove(s, 1, 'jab')
     else if (r < 420) startMove(s, 1, 'combo')
     else if (r < 560) startMove(s, 1, 'elbow')
@@ -352,7 +387,7 @@ function boss(s: Sim) {
   } else if (dist <= 136) {
     if (r < 450) startMove(s, 1, 'kick'); else if (r < 750) startMove(s, 1, 'high'); else startMove(s, 1, 'sweep')
   } else {
-    if (r < 350) startMove(s, 1, 'round'); else if (r < 550) startMove(s, 1, 'high'); else { f.st = 'fwd'; f.x += f.dir * 8 }
+    if (r < 350) startMove(s, 1, 'round'); else if (r < 550) startMove(s, 1, 'high'); else { f.st = 'fwd'; f.x += f.dir * 5 }
   }
   ai.cd = LV[s.lv]!.cd + (rnd(s) % (lowHp ? LV[s.lv]!.cdl : LV[s.lv]!.cdh))
 }
@@ -366,11 +401,14 @@ export function step(s: Sim, inp: number) {
   if (s.pause < 0) { s.pause++; for (const i of [0, 1] as const) { s.f[i].t++; physics(s, i) } if (s.pause === 0) resetRound(s); s.prevIn = inp; return }
   player(s, inp)
   boss(s)
-  stepFighter(s, 0); if (s.pause < 0) { s.prevIn = inp; return }
-  stepFighter(s, 1); if (s.pause < 0) { s.prevIn = inp; return }
+  s.pend = []
+  stepFighter(s, 0)
+  stepFighter(s, 1)
+  for (const [i, mv] of s.pend) { if (s.pause < 0) break; damage(s, i, (1 - i) as 0 | 1, mv) }
+  if (s.pause < 0) { s.prevIn = inp; return }
   separate(s)
   s.rt--
-  if (s.rt <= 0) { s.ev.push({ k: 'time', who: 0 }); endRound(s, s.f[0].hp > s.f[1].hp ? 0 : 1) }
+  if (s.rt <= 0) { s.ev.push({ k: 'time', who: 0 }); if (s.f[0].hp === s.f[1].hp) drawRound(s); else endRound(s, s.f[0].hp > s.f[1].hp ? 0 : 1) }
   s.prevIn = inp
 }
 

@@ -152,11 +152,12 @@ export default function FightGame({ onClose }: Props) {
         case 'crouch': return ['f_crouchg', null, false]
         case 'cblock': return ['f_cblock2', 0.5, true]
         case 'block': return ['f_bblock', 0.3, true]
-        case 'bstun': return f.cr ? ['f_cblock2', 0.5, true] : seg('f_bblock', 10)
+        case 'bstun': return f.cr ? ['f_cblock2', 0.5, true] : seg('f_bblock', Math.max(6, f.stn))
+        case 'land': return ['f_crouchg', null, false]
         case 'jump': { const g = SEG.f_jump, up = f.air ? Math.min(1, (JV - f.vy) / (2 * JV)) : 1; return ['f_jump', g[0] + (g[1] - g[0]) * up, true] }
-        case 'hit': return f.hitKind === 2 ? seg(rigOf(i)!.alt ? 'f_hitup' : 'f_hitbig', 22) : seg(f.hitKind === 1 ? 'f_hitbody' : 'f_hit', 18)
-        case 'down': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 70)
-        case 'up': return seg('f_getup', 50)
+        case 'hit': return f.hitKind === 2 ? seg(rigOf(i)!.alt ? 'f_hitup' : 'f_hitbig', Math.max(10, f.stn)) : seg(f.hitKind === 1 ? 'f_hitbody' : 'f_hit', Math.max(10, f.stn))
+        case 'down': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 40)
+        case 'up': return seg('f_getup', 20)
         case 'dodge': return seg('f_bdodge', 24)
         case 'ko': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 90)
         case 'win': return [i === 1 ? 'f_taunt' : 'f_win', null, false]
@@ -206,6 +207,7 @@ export default function FightGame({ onClose }: Props) {
         } else if (e.k === 'block') { sfx.block(pan); burst(hp, 5, 0x7fe8ff, 0.7); shake = Math.max(shake, 0.02); buzz('light') }
         else if (e.k === 'whiff') sfx.whoosh(['round', 'kick', 'special', 'upper'].includes(e.mv || ''))
         else if (e.k === 'dodge') sfx.whoosh(false)
+        else if (e.k === 'tech') { sfx.block(pan); say('ВЫРВАЛСЯ!', undefined, 'gold', 700) }
         else if (e.k === 'jump') sfx.jump()
         else if (e.k === 'land') sfx.land()
         else if (e.k === 'special') { sfx.special(); arena.flash(1); say(e.who === 0 ? 'СПЕЦПРИЁМ!' : 'ЯРОСТЬ СТРАЖА', undefined, 'gold', 900) }
@@ -435,7 +437,7 @@ export default function FightGame({ onClose }: Props) {
                 <span>Нога 1 — низкий удар (серия), ▶ колено / удар ногой</span><span>Нога 2 — круговой, ▶ хай-кик, ◀ вертушка</span>
                 <span>▼ + Рука 1 — тычок, ▼ + Рука 2 — апперкот</span><span>▼ + Нога 1 — удар по ногам, ▼ + Нога 2 — подсечка</span>
                 <span>▲ — прыжок, в воздухе рука или нога</span><span>Блок — верх и середина, ▼ + Блок — низ</span>
-                <span>◀◀ отскок · ▶▶ рывок</span><span>Спец — когда шкала полна</span>
+                <span>◀◀ отскок · ▶▶ рывок · бросок сбрасывается нажатием руки</span><span>Спец — когда шкала полна</span>
               </div>
               <p className="text-[11.5px] text-gray2 mt-1.5">На ПК: ← → ↑ ↓ · U/I руки · J/K ноги · Shift/O блок · Пробел спец</p>
               <button onClick={() => api.current.start()} className="btn-primary w-full mt-3">В бой</button>
