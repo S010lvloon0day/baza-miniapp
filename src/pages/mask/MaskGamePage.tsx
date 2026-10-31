@@ -9,6 +9,8 @@ const MaskStage = lazy(() => import('./MaskStage'))
 const RunnerGame = lazy(() => import('./RunnerGame'))
 const FightGame = lazy(() => import('./FightGame'))
 const PvpLobby = lazy(() => import('./PvpLobby'))
+import { GFX_LABEL, GFX_HINT, getGfx, setGfx } from './gfxQuality'
+import type { GfxQ } from './gfxQuality'
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const haptic = (t: 'error' | 'success' | 'warning') => { try { tg?.HapticFeedback?.notificationOccurred(t) } catch { /* */ } }
@@ -138,6 +140,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
   const [runOpen, setRunOpen] = useState(false)
   const [fightOpen, setFightOpen] = useState<false | 1 | 2 | true>(false)
   const [lobby, setLobby] = useState(false)
+  const [gfx, setGfxS] = useState<GfxQ>(getGfx)
   const [pvpFight, setPvpFight] = useState<string | null>(() => { if (!pvpCode) return null; try { if (sessionStorage.getItem('pvp_' + pvpCode)) return null; sessionStorage.setItem('pvp_' + pvpCode, '1') } catch { /* */ } return pvpCode })   // бой с другом по коду вызова
   const stage = useRef<StageHandle>(null)
   const voice = useVoice()
@@ -233,7 +236,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
             revealUrl={canReveal ? maskApi.revealUrl() : undefined}
             revealHeaders={{ 'X-Init-Data': maskApi.initData() }}
             revealed={solved && canReveal && !revealedNow}
-            onReady={() => setReady(true)} onProgress={setProg} />
+            onReady={() => setReady(true)} onProgress={setProg} paused={runOpen || !!fightOpen || !!pvpFight} />
         </Suspense>
         {!ready && (
           <div className="absolute inset-0 grid place-items-center pointer-events-none">
@@ -392,6 +395,17 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
             ))}
           </div>
         )}
+
+        <section className="card px-3.5 py-3">
+          <div className="text-[13.5px] font-medium">Качество графики</div>
+          <div className="grid grid-cols-3 gap-1.5 mt-2" role="radiogroup" aria-label="Качество графики">
+            {(['low', 'mid', 'high'] as GfxQ[]).map(q => (
+              <button key={q} role="radio" aria-checked={gfx === q} onClick={() => { setGfx(q); setGfxS(q) }}
+                className={`h-9 rounded-[10px] text-[12.5px] font-medium ${gfx === q ? 'bg-green text-black' : 'bg-white/[.07]'}`}>{GFX_LABEL[q]}</button>
+            ))}
+          </div>
+          <p className="text-[11.5px] text-gray mt-1.5">{GFX_HINT[gfx]} · для всех этапов: забега, драки и персонажа</p>
+        </section>
 
         <details className="card px-3.5 py-3 text-[13px] text-gray">
           <summary className="text-[13.5px] text-fg font-medium cursor-pointer">Правила</summary>

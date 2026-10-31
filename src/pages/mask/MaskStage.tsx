@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import { GFX, getGfx, pixelRatioFor } from './gfxQuality'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
@@ -18,6 +19,7 @@ interface Props {
   revealed?: boolean        // сразу показать без маски
   onReady?: () => void
   onProgress?: (p: number) => void
+  paused?: boolean          // открыт забег или драка — сцену персонажа не рисуем (вдвое меньше нагрузки)
 }
 
 const BASE = import.meta.env.BASE_URL
@@ -27,7 +29,8 @@ function makeLoader() {
   const l = new GLTFLoader(); l.setDRACOLoader(d); return l
 }
 
-const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl, revealUrl, revealHeaders, revealed, onReady, onProgress }, ref) {
+const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl, revealUrl, revealHeaders, revealed, onReady, onProgress, paused }, ref) {
+  const pausedRef = useRef(!!paused); pausedRef.current = !!paused
   const host = useRef<HTMLDivElement>(null)
   const api = useRef<StageHandle>({ play: () => {}, speak: () => {}, shake: () => {}, reveal: async () => {} })
   useImperativeHandle(ref, () => ({
@@ -37,8 +40,13 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
   useEffect(() => {
     const el = host.current!
     let disposed = false
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' })
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
+    const gq = getGfx()
+    const renderer = new THREE.WebGLRenderer({ antialias: GFX[gq].aa, alpha: true, powerPreference: gq === 'low' ? 'low-power' : 'default' })
+    renderer.setPixelRatio(pixelRatioFor(gq))
+    // не рисуем, когда персонаж не на экране (прокрутили вниз)
+    let onScreen = true
+    const io = new IntersectionObserver(es => { onScreen = es[0]?.isIntersecting ?? true })
+    io.observe(el)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.0
@@ -202,8 +210,12 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
 
     let raf = 0
     const tmpQ = new THREE.Quaternion(), axY = new THREE.Vector3(0, 1, 0), axX = new THREE.Vector3(1, 0, 0)
+    let lastF = 0
     const tick = () => {
       raf = requestAnimationFrame(tick)
+      const nowF = performance.now()
+      if (pausedRef.current || !onScreen || nowF - lastF < GFX[getGfx()].frameMs) return
+      lastF = nowF
       const dt = Math.min(0.05, clock.getDelta())
       mixer?.update(dt); mixer2?.update(dt)
       // «живой» взгляд: голова слегка поворачивается к камере, при речи — кивки
@@ -241,7 +253,7 @@ const MaskStage = forwardRef<StageHandle, Props>(function MaskStage({ publicUrl,
 
     return () => {
       disposed = true
-      cancelAnimationFrame(raf); ro.disconnect(); document.removeEventListener('visibilitychange', onVis)
+      cancelAnimationFrame(raf); ro.disconnect(); io.disconnect(); document.removeEventListener('visibilitychange', onVis)
       controls.dispose()
       scene.traverse(o => {
         const m = o as THREE.Mesh

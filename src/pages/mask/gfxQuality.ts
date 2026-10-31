@@ -19,9 +19,11 @@ export const GFX_HINT: Record<GfxQ, string> = {
 
 const KEY = 'gfx_q'
 /** по умолчанию: телефон — среднее, компьютер — высокое */
+let cached: GfxQ | null = null
 export function getGfx(): GfxQ {
-  try { const v = localStorage.getItem(KEY); if (v === 'low' || v === 'mid' || v === 'high') return v } catch { /* */ }
-  return window.matchMedia?.('(pointer: coarse)').matches ? 'mid' : 'high'
+  if (cached) return cached
+  try { const v = localStorage.getItem(KEY); if (v === 'low' || v === 'mid' || v === 'high') return (cached = v) } catch { /* */ }
+  return (cached = window.matchMedia?.('(pointer: coarse)').matches ? 'mid' : 'high')
 }
-export function setGfx(q: GfxQ) { try { localStorage.setItem(KEY, q) } catch { /* */ } }
+export function setGfx(q: GfxQ) { cached = q; try { localStorage.setItem(KEY, q) } catch { /* */ } }
 export const pixelRatioFor = (q: GfxQ) => Math.min(GFX[q].pr, window.devicePixelRatio || 1)
