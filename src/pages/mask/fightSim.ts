@@ -53,10 +53,10 @@ export interface F {
   dir: number; hitKind: number   // hitKind: 0 лёгкий, 1 в корпус, 2 сильный; при падении: 0 обычное, 3 подсечка, 4 апперкот
   y: number; vy: number; vx: number; air: number; cr: number; jat: number   // прыжок; cr — в приседе; jat — уже бил в этом прыжке
 }
-/** уровни стража: 1 — Страж (очень сложный), 2 — Призрак (почти непобедимый) */
+/** уровни: 1 — Страж (идеальный бот выигрывает ~5 %), 2 — Призрак (~2 %). mg — заряд спецприёма игрока, % */
 export const LV = [null,
-  { bm: 10, pm: 11, br: 220, bp: 850, rs: 1, cd: 6, cdl: 8, cdh: 16 },
-  { bm: 13, pm: 8, br: 450, bp: 955, rs: 2, cd: 3, cdl: 4, cdh: 8 },
+  { bm: 100, pm: 110, br: 220, bp: 850, rs: 1, cd: 6, cdl: 8, cdh: 16, mg: 124 },
+  { bm: 120, pm: 100, br: 380, bp: 930, rs: 1, cd: 4, cdl: 5, cdh: 9, mg: 108 },
 ] as const
 export interface Ev { k: 'hit' | 'block' | 'whiff' | 'kd' | 'ko' | 'round' | 'start' | 'special' | 'dodge' | 'time' | 'jump' | 'land' | 'boss2'; who: 0 | 1; mv?: MoveId; dmg?: number }
 export interface Sim {
@@ -69,9 +69,9 @@ export interface Sim {
 
 const mkF = (x: number, dir: number): F => ({ x, hp: HP, st: 'idle', t: 0, mv: null, hitDone: 0, chain: 0, meter: 0, dir, hitKind: 0, y: 0, vy: 0, vx: 0, air: 0, cr: 0, jat: 0 })
 
-export function newSim(seed: number): Sim {
+export function newSim(seed: number, lv = 1): Sim {
   return {
-    tick: 0, rt: ROUND_TICKS, round: 1, wins: [0, 0], pause: 120, over: 0, lv: 1, nextLv: 0,
+    tick: 0, rt: ROUND_TICKS, round: 1, wins: [0, 0], pause: 120, over: 0, lv: lv === 2 ? 2 : 1, nextLv: 0,
     f: [mkF(-START, 1), mkF(START, -1)], rng: (seed >>> 0) || 0x9e3779b9, prevIn: 0, buf: 0, bufT: 0, tapF: 0,
     ai: { cd: 40, plan: 0, read: 0, rage: 0 }, ev: [{ k: 'round', who: 0 }],
   }
@@ -129,7 +129,7 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
   const boss = ai === 1
   // страж бьёт сильнее, игрок — слабее (по задумке страж почти непобедим)
   const P = LV[s.lv]!
-  let dmg = boss ? (M.dmg * P.bm) / 10 : (M.dmg * P.pm) / 10
+  let dmg = boss ? (M.dmg * P.bm) / 100 : (M.dmg * P.pm) / 100
   dmg = Math.floor(dmg)
   const sBlock = D.st === 'block' || (D.st === 'bstun' && D.cr === 0)
   const cBlock = D.st === 'cblock' || (D.st === 'bstun' && D.cr === 1)
@@ -143,11 +143,11 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
     const chip = Math.floor(dmg / 8)
     D.hp = Math.max(0, D.hp - chip); D.cr = cBlock ? 1 : 0; D.st = 'bstun'; D.t = 0; D.hitKind = 0
     D.x -= D.dir * Math.floor(M.push / 2)
-    A.meter = Math.min(1000, A.meter + 40); D.meter = Math.min(1000, D.meter + 60)
+    A.meter = Math.min(1000, A.meter + (boss ? 40 : Math.floor(40 * P.mg / 100))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(60 * P.mg / 100) : 60))
     s.ev.push({ k: 'block', who: di, mv, dmg: chip })
   } else {
     D.hp = Math.max(0, D.hp - dmg)
-    A.meter = Math.min(1000, A.meter + 90); D.meter = Math.min(1000, D.meter + 50)
+    A.meter = Math.min(1000, A.meter + (boss ? 90 : Math.floor(90 * P.mg / 100))); D.meter = Math.min(1000, D.meter + (boss ? Math.floor(50 * P.mg / 100) : 50))
     D.x -= D.dir * M.push
     D.cr = 0
     if (D.hp <= 0) { D.st = 'ko'; D.t = 0; s.ev.push({ k: 'ko', who: di, mv, dmg }); endRound(s, ai); return }
@@ -367,8 +367,8 @@ export function step(s: Sim, inp: number) {
 
 /** запись нажатий: [тик, маска] при каждом изменении */
 export type InputLog = [number, number][]
-export function replay(seed: number, log: InputLog, maxTicks = 60 * 60 * 16): Sim {
-  const s = newSim(seed); let li = 0, cur = 0
+export function replay(seed: number, log: InputLog, maxTicks = 60 * 60 * 16, lv = 1): Sim {
+  const s = newSim(seed, lv); let li = 0, cur = 0
   while (!s.over && s.tick < maxTicks) { while (li < log.length && log[li][0] <= s.tick) { cur = log[li][1]; li++ } step(s, cur) }
   return s
 }

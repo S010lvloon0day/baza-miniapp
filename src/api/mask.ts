@@ -1,4 +1,4 @@
-export const MODEL_V = 'mx4'
+export const MODEL_V = 'mx5'
 import { API_BASE } from './client'
 
 const tg = (window as any).Telegram?.WebApp
@@ -58,7 +58,7 @@ export const maskApi = {
   runStart: () => req<{ run_id: number; seed: number; target: number }>('POST', '/api/mask/run/start', {}),
   runFinish: (run_id: number, score: number) => req<{ ok: boolean; done: boolean; score: number; flag: string | null }>('POST', '/api/mask/run/finish', { run_id, score }),
   runTop: () => req<RunTop>('GET', '/api/mask/run/top'),
-  fightStart: () => req<{ fight_id: number; seed: number }>('POST', '/api/mask/fight/start', {}),
+  fightStart: (lv?: number) => req<{ fight_id: number; seed: number; lv?: number }>('POST', '/api/mask/fight/start', lv ? { lv } : {}),
   fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks }),
   cipher: (answer: string) => req<{ ok: boolean; reward?: string | null; error?: string }>('POST', '/api/mask/cipher', { answer }),
   revealUrl: () => API_BASE + '/api/mask/reveal.glb?v=' + MODEL_V,

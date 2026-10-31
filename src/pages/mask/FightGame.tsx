@@ -7,6 +7,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { maskApi } from '../../api/mask'
 import { buildArena } from './fightWorld'
+import { synthClips } from './poseSynth'
 import { createRunnerSound } from './runnerSound'
 import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S, IN_U, IN_D, JV, GRAV, lenOf } from './fightSim'
 import type { Sim, InputLog, MoveId, F } from './fightSim'
@@ -16,19 +17,21 @@ interface Props { onClose: (done: boolean) => void }
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
-const CLIP: Record<MoveId, string> = { jab: 'f_jab', cross: 'f_cross', hook: 'f_hook', upper: 'f_upper', low: 'f_low', kick: 'f_kick', round: 'f_round', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
-  elbow: 'f_elbow', knee: 'f_knee', high: 'f_kick', spin: 'f_spin', cupper: 'f_upper', sweep: 'f_sweep', jkick: 'f_jkick', jknee: 'f_jknee' }
+const CLIP: Record<MoveId, string> = { jab: 'f_bjab', cross: 'f_bcross', hook: 'f_bhook', upper: 'f_upper', low: 'f_low', kick: 'f_mkick', round: 'f_mround', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
+  elbow: 'f_elbow', knee: 'f_knee', high: 'f_kick', spin: 'f_spin', cupper: 'f_cupper', sweep: 'f_csweep', jkick: 'f_jkick', jknee: 'f_jknee' }
 /** ключевые моменты клипов (секунды): начало замаха → момент удара → возврат в стойку.
  *  Подготовка удара в симуляции растягивается на [начало, удар], остальное — на [удар, возврат]: кулак/нога доходят до цели ровно в кадр попадания */
 const KEYS: Record<string, [number, number, number]> = {
   f_jab: [0.5, 0.7, 0.95], f_cross: [0.92, 1.17, 1.45], f_hook: [0.25, 0.52, 0.95], f_upper: [0.25, 0.58, 0.95], f_kick: [0.33, 0.77, 1.3],
   f_low: [0.4, 0.63, 1.1], f_round: [0.75, 1.12, 1.55], f_special: [0.12, 0.5, 1.8], f_combo: [0.62, 0.9, 2.05], f_elbow: [0.48, 0.67, 1.0],
-  f_knee: [0.48, 0.77, 1.2], f_spin: [0.75, 0.98, 1.38], f_sweep: [0.62, 0.9, 1.72], f_jkick: [0.18, 0.45, 0.9], f_jknee: [1.05, 1.35, 1.6],
+  f_knee: [0.48, 0.77, 1.2], f_spin: [0.75, 0.98, 1.38],
+  f_bjab: [0.28, 0.45, 0.8], f_bcross: [0.5, 0.68, 0.95], f_bhook: [0.28, 0.5, 0.95], f_bupperl: [0.4, 0.8, 1.2], f_bupperb: [0.42, 0.75, 1.2],
+  f_mkick: [0.55, 0.7, 0.92], f_mround: [0.55, 0.87, 1.08], f_bsweep: [0.3, 0.7, 1.3], f_csweep: [0.05, 0.36, 1.05], f_cupper: [0.03, 0.3, 0.95], f_sweep: [0.62, 0.9, 1.72], f_jkick: [0.18, 0.45, 0.9], f_jknee: [1.05, 1.35, 1.6],
 }
 /** отрезки клипов для состояний с известной длительностью */
 const SEG: Record<string, [number, number]> = {
   f_jump: [0.72, 1.42], f_ko: [1.05, 3.2], f_sweepfall: [0.75, 2.3], f_getup: [4.0, 5.7], f_blockhit: [0.05, 0.6], f_dodge: [0.9, 2.2],
-  f_hit: [0, 1.0], f_hitbig: [0, 1.2], f_hitbody: [0, 1.0], f_hitup: [0.1, 1.5],
+  f_hit: [0, 1.0], f_bblock: [0.3, 0.55], f_bdodge: [0.4, 1.3], f_hitbig: [0, 1.2], f_hitbody: [0, 1.0], f_hitup: [0.1, 1.5],
 }
 const AIR_CLIPS = /^f_(jump|jkick|jknee)$/
 
@@ -45,6 +48,7 @@ export default function FightGame({ onClose }: Props) {
   const [muted, setMuted] = useState(snd.current.muted)
   const [music, setMusic] = useState(snd.current.musicOn)
   const padRef = useRef(0)
+  const ckpt = useRef(1)   // с какого босса начинать: Страж побеждён — дальше сразу Призрак
   const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {}, dir: (_m: number) => {} })
   // на телефоне играем только горизонтально
   const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
@@ -107,8 +111,9 @@ export default function FightGame({ onClose }: Props) {
           const air = AIR_CLIPS.test(c.name)   // в прыжке высоту задаёт симуляция
           for (let k = 0; k < v.length; k += 3) for (let j = 0; j < 3; j++) if (j !== up || air) v[k + j] = r0[j]
         }
-        A[c.name] = mixer.clipAction(c)
       }
+      synthClips(g.animations)
+      for (const c of g.animations) A[c.name] = mixer.clipAction(c)
       rigs[i] = { root, mixer, A, cur: null, key: '', alt: 0 }
       prog[i] = 1; pct(); if (i === 2) root.visible = false
       if (rigs[0] && rigs[1] && rigs[2]) { setPhase('ready'); applyPose(true) }
@@ -133,20 +138,26 @@ export default function FightGame({ onClose }: Props) {
         case 'atk': {
           const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenOf(i, f.mv!, sim.lv)
           if (!k) return [n, null, true]
-          const tt = T <= m.s ? k[0] + (k[1] - k[0]) * (T / m.s) : k[1] + (k[2] - k[1]) * Math.min(1, (T - m.s) / Math.max(1, len - m.s))
+          // замах с разгоном → удар держится в активных кадрах (как «стоп-кадр» в MK) → спокойный возврат в стойку
+          const ease = (u: number) => u * u * (1.6 - 0.6 * u)
+          const act = Math.min(m.a, 6), hold = (k[2] - k[1]) * 0.12
+          const tt = T <= m.s ? k[0] + (k[1] - k[0]) * ease(T / m.s)
+            : T <= m.s + act ? k[1] + hold * ((T - m.s) / act)
+            : k[1] + hold + (k[2] - k[1] - hold) * Math.min(1, (T - m.s - act) / Math.max(1, len - m.s - act))
           return [n, tt, true]
         }
         case 'fwd': return ['f_fwd', null, false]
         case 'back': return ['f_back', null, false]
         case 'dash': return ['f_fwd', null, false]
-        case 'crouch': case 'cblock': return ['f_crouch', null, false]
-        case 'block': return ['f_sblock', null, false]
-        case 'bstun': return f.cr ? ['f_crouch', null, false] : seg('f_blockhit', 10)
+        case 'crouch': return ['f_crouch', null, false]
+        case 'cblock': return ['f_cblock2', 0.5, true]
+        case 'block': return ['f_bblock', 0.3, true]
+        case 'bstun': return f.cr ? ['f_cblock2', 0.5, true] : seg('f_bblock', 10)
         case 'jump': { const g = SEG.f_jump, up = f.air ? Math.min(1, (JV - f.vy) / (2 * JV)) : 1; return ['f_jump', g[0] + (g[1] - g[0]) * up, true] }
         case 'hit': return f.hitKind === 2 ? seg(rigOf(i)!.alt ? 'f_hitup' : 'f_hitbig', 22) : seg(f.hitKind === 1 ? 'f_hitbody' : 'f_hit', 18)
         case 'down': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 70)
         case 'up': return seg('f_getup', 50)
-        case 'dodge': return seg('f_dodge', 24)
+        case 'dodge': return seg('f_bdodge', 24)
         case 'ko': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 90)
         case 'win': return [i === 1 ? 'f_taunt' : 'f_win', null, false]
         default: return ['f_idle', null, false]
@@ -173,6 +184,9 @@ export default function FightGame({ onClose }: Props) {
           a.play(); if (prev && prev !== a) prev.crossFadeTo(a, f.st === 'atk' ? 0.07 : f.st === 'crouch' || f.st === 'cblock' ? 0.1 : 0.14, false); r.cur = a
         }
         if (pt !== null) a.time = Math.min(a.getClip().duration - 0.001, Math.max(0, pt))
+        if (name === 'f_csweep' && pt !== null) {   // подсечка: полный оборот корпуса, нога метёт по полу перед собой
+          const u = Math.min(1, Math.max(0, (pt - 0.12) / 0.5)); r.root.rotation.y += f.dir * Math.PI * 2 * (u * u * (3 - 2 * u))
+        }
       }
     }
 
@@ -182,6 +196,7 @@ export default function FightGame({ onClose }: Props) {
         const hp = new THREE.Vector3((tgt.x + (src.x - tgt.x) * 0.35) / 100, e.mv === 'low' || e.mv === 'sweep' ? 0.35 : e.mv === 'kick' || e.mv === 'round' || e.mv === 'spin' || e.mv === 'knee' ? 1.15 : e.mv === 'jkick' || e.mv === 'jknee' ? 1.3 : 1.45, 0)
         const pan = Math.max(-0.8, Math.min(0.8, tgt.x / 400))
         if (e.k === 'hit' || e.k === 'kd' || e.k === 'ko') {
+          if (e.k !== 'ko') { slow = 0.08; slowT = Math.max(slowT, e.k === 'kd' || (e.dmg || 0) > 90 ? 0.11 : 0.065) }   // стоп-кадр удара
           const heavy = e.k !== 'hit' || (e.dmg || 0) > 90
           sfx.hit(heavy ? 2 : (e.dmg || 0) > 50 ? 1 : 0, pan); burst(hp, heavy ? 18 : 9, e.who === 1 ? 0xffd27a : 0xff4a4a, heavy ? 1.4 : 1)
           shake = Math.max(shake, heavy ? 0.12 : 0.05); buzz(heavy ? 'heavy' : 'medium')
@@ -197,13 +212,14 @@ export default function FightGame({ onClose }: Props) {
         else if (e.k === 'time') say('ВРЕМЯ!', undefined, 'white', 1500)
         else if (e.k === 'start') { sfx.gong(); say('БОЙ!', undefined, 'gold', 800) }
         else if (e.k === 'boss2') { arena.flash(1); sfx.gong(); say('ВТОРОЙ БОСС', 'Призрак: его ещё никто не победил', 'red', 2600); b2T = performance.now(); for (const r of rigs) if (r) r.key = '' }
-        else if (e.k === 'round') { const n = sim.wins[0] + sim.wins[1] + 1; setTimeout(() => { if (alive && running) say('РАУНД ' + n, n === 3 ? 'решающий' : undefined, 'white', 1600) }, performance.now() - b2T < 500 ? 2900 : 300) }
+        else if (e.k === 'round') { const n = sim.wins[0] + sim.wins[1] + 1; setTimeout(() => { if (alive && running) say('РАУНД ' + n, n === 3 ? 'счёт 1 : 1 — решающий' : n === 2 ? `счёт ${sim.wins[0]} : ${sim.wins[1]}` : sim.lv === 2 ? 'против Призрака' : undefined, 'white', 1600) }, performance.now() - b2T < 500 ? 2900 : 300) }
       }
     }
 
     const finish = async () => {
       running = false
       const win = sim.over === 1
+      if (sim.lv === 2) ckpt.current = 2
       setTimeout(() => say(win ? 'ТЫ ПОБЕДИЛ' : 'ПОРАЖЕНИЕ', win ? 'оба босса повержены' : sim.lv === 2 ? 'призрак непобедим… пока' : 'страж непобедим… пока', win ? 'gold' : 'red', 2600), 1200)
       sfx.musicStop(2)
       setTimeout(() => setPhase('end'), 2600)
@@ -214,9 +230,10 @@ export default function FightGame({ onClose }: Props) {
     api.current.start = async () => {
       sfx.init(); sfx.musicStart(); setRes(null)
       let seed = Math.floor(Math.random() * 2 ** 31)
-      try { const r = await maskApi.fightStart(); fightId = r.fight_id; seed = r.seed } catch { fightId = 0 }
+      let lv = ckpt.current
+      try { const r = await maskApi.fightStart(ckpt.current); fightId = r.fight_id; seed = r.seed; lv = r.lv ?? lv } catch { fightId = 0 }
       if (!alive) return
-      sim = newSim(seed); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
+      sim = newSim(seed, lv); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
       running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
     }
     api.current.press = (b, d) => { inp = d ? (inp | b) : (inp & ~b) }
@@ -422,10 +439,10 @@ export default function FightGame({ onClose }: Props) {
               <button onClick={() => api.current.start()} className="btn-primary w-full mt-3">В бой</button>
             </>}
             {phase === 'end' && <>
-              <div className="font-display font-semibold text-[18px]">{res?.done ? 'Задание выполнено!' : res?.win ? 'Победа!' : 'Страж победил'}</div>
+              <div className="font-display font-semibold text-[18px]">{res?.done ? 'Задание выполнено!' : res?.win ? 'Победа!' : ckpt.current === 2 ? 'Призрак победил' : 'Страж победил'}</div>
               <p className="text-[13.5px] text-gray mt-1">{res?.flag === 'bad' ? 'Бой не засчитан сервером' : res?.flag === 'net' ? 'Нет связи с сервером — результат не сохранён' : res?.win ? 'Сервер подтвердил победу.' : 'Ищи момент, когда он раскрылся после удара.'}</p>
               <div className="flex gap-2 mt-3">
-                {!res?.done && <button onClick={() => api.current.start()} className="btn-primary flex-1">Ещё раз</button>}
+                {!res?.done && <button onClick={() => api.current.start()} className="btn-primary flex-1">{ckpt.current === 2 ? 'Снова с Призраком' : 'Ещё раз'}</button>}
                 <button onClick={() => onClose(!!res?.done)} className="btn-secondary flex-1 h-12 rounded-[16px]">{res?.done ? 'Дальше' : 'Выйти'}</button>
               </div>
             </>}
