@@ -439,7 +439,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
       onPointerCancel={() => api.current.press(b, false)} onPointerLeave={() => api.current.press(b, false)}
       onContextMenu={e => e.preventDefault()}
       className={`fg-key ${big ? 'is-big' : ''} ${cls}`} aria-label={label}
-      style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as any}>{icon && <Ico k={icon} />}{label && <span>{label}</span>}</button>
+      style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as any}>{icon && Ico({ k: icon })}{label && <span>{label}</span>}</button>
   )
   /** Шкала здоровья в духе MK11: стальная рамка с золотой кромкой, золотая заливка, красный след урона, медальон бойца */
   const Health = ({ v, name, right, wins, meter, hue }: { v: number; name: string; right?: boolean; wins: number; meter: number; hue: 'c' | 'm' }) => {
@@ -507,9 +507,9 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
       {phase !== 'load' && (
         <div className="absolute top-0 inset-x-0 pointer-events-none" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 6px)', paddingLeft: 'calc(env(safe-area-inset-left,0px) + 14px)', paddingRight: 'calc(env(safe-area-inset-right,0px) + 14px)' }}>
           <div className="flex items-start gap-1.5">
-            <Health v={hud.hp[0]} name={nm(0)} wins={hud.wins[0]} meter={hud.meter[0]} hue="c" />
+            {Health({ v: hud.hp[0], name: nm(0), wins: hud.wins[0], meter: hud.meter[0], hue: "c" })}
             <div className={`mk-timer ${hud.time <= 10 ? 'is-hot' : ''}`}><span>{hud.time}</span></div>
-            <Health v={hud.hp[1]} name={nm(1)} right wins={hud.wins[1]} meter={hud.meter[1]} hue="m" />
+            {Health({ v: hud.hp[1], name: nm(1), right: true, wins: hud.wins[1], meter: hud.meter[1], hue: "m" })}
           </div>
           {hud.combo > 1 && phase === 'fight' && <div key={hud.combo} className="mt-6 ml-2 font-display font-black italic text-[26px] text-gold" style={{ animation: 'fgPop .35s ease-out both', textShadow: '0 2px 0 #7a5212, 0 0 18px rgba(255,190,80,.6)' }}>{hud.combo} УДАРА</div>}
         </div>
@@ -533,12 +533,12 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)', paddingLeft: 'calc(env(safe-area-inset-left,0px) + 18px)', paddingRight: 'calc(env(safe-area-inset-right,0px) + 18px)' }}>
           {DPad()}
           <div className="fg-cluster4">
-            <Btn b={IN_S} label="Спец" icon="bolt" cls={`k-spec is-sm ${specReady ? 'is-ready' : 'is-off'}`} />
-            <Btn b={IN_BLOCK} label="Блок" icon="shield" cls="k-block is-sm" />
-            <Btn b={IN_P} label="Рука 1" icon="fist" cls="k-punch" />
-            <Btn b={IN_P2} label="Рука 2" icon="fist" cls="k-punch k-alt" />
-            <Btn b={IN_K} label="Нога 1" icon="kick" cls="k-kick" />
-            <Btn b={IN_K2} label="Нога 2" icon="kick" cls="k-kick k-alt" />
+            {Btn({ b: IN_S, label: "Спец", icon: "bolt", cls: `k-spec is-sm ${specReady ? 'is-ready' : 'is-off'}` })}
+            {Btn({ b: IN_BLOCK, label: "Блок", icon: "shield", cls: "k-block is-sm" })}
+            {Btn({ b: IN_P, label: "Рука 1", icon: "fist", cls: "k-punch" })}
+            {Btn({ b: IN_P2, label: "Рука 2", icon: "fist", cls: "k-punch k-alt" })}
+            {Btn({ b: IN_K, label: "Нога 1", icon: "kick", cls: "k-kick" })}
+            {Btn({ b: IN_K2, label: "Нога 2", icon: "kick", cls: "k-kick k-alt" })}
           </div>
         </div>
       )}

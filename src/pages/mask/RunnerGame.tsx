@@ -32,6 +32,11 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
   const snd = useRef(createRunnerSound())
   const [muted, setMuted] = useState(snd.current.muted)
   const [music, setMusic] = useState(snd.current.musicOn)
+  // настройки эффектов: пыль из-под ног, линии скорости, тряска камеры (запоминаются на устройстве)
+  const [fx, setFx] = useState<{ dust: boolean; lines: boolean; shake: boolean }>(() => { try { return { dust: true, lines: true, shake: true, ...JSON.parse(localStorage.getItem('runner_fx') || '{}') } } catch { return { dust: true, lines: true, shake: true } } })
+  const [setOpen, setSetOpen] = useState(false)
+  const fxRef = useRef(fx); fxRef.current = fx
+  const toggleFx = (k: 'dust' | 'lines' | 'shake') => setFx(f => { const n = { ...f, [k]: !f[k] }; try { localStorage.setItem('runner_fx', JSON.stringify(n)) } catch { /* */ } return n })
   const [top, setTop] = useState<RunTop | null>(null)
   const [rec, setRec] = useState(false)
   const loadTop = () => maskApi.runTop().then(setTop).catch(() => {})
@@ -75,6 +80,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     for (let i = 0; i < 28; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dustT, transparent: true, depthWrite: false, opacity: 0 })); sp.visible = false; S.add(sp); dust.push({ s: sp, life: 0, vx: 0, vy: 0, vz: 0 }) }
     let dustI = 0
     const puff = (n: number, power = 1) => {
+      if (!fxRef.current.dust) return
       for (let i = 0; i < n; i++) {
         const d = dust[dustI++ % dust.length]; d.life = 0.6 + Math.random() * 0.4
         d.s.position.set(x + (Math.random() - 0.5) * 0.5, y + 0.1, (Math.random() - 0.5) * 0.4); d.s.scale.setScalar(0.3 * power)
@@ -92,7 +98,8 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       if (a === cur && !once) { a.timeScale = ts; return }
       a.reset(); a.timeScale = ts
       a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once
-      cur?.fadeOut(0.12); a.fadeIn(0.12).play(); cur = a
+      const fd = once ? 0.05 : 0.12   // прыжок и подкат — почти мгновенно
+      cur?.fadeOut(fd); a.fadeIn(fd).play(); cur = a
     }
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
@@ -216,13 +223,13 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       // ощущение скорости: шире угол, камера чуть дальше, лёгкая тряска, линии
       const k = run ? Math.min(1, Math.max(0, (speed() - model.v0) / KN)) : 0
       const fov = 55 + k * 16; if (Math.abs(cam.fov - fov) > 0.05) { cam.fov += (fov - cam.fov) * Math.min(1, dt * 3); cam.updateProjectionMatrix() }
-      const shake = run ? k * 0.035 : 0
+      const shake = run && fxRef.current.shake ? k * 0.035 : 0
       cam.position.x += (x * 0.5 - cam.position.x) * Math.min(1, dt * 6) + (Math.random() - 0.5) * shake
       cam.position.y = 3.1 + (Math.random() - 0.5) * shake
       cam.position.z = -4.6 - k * 0.5
       cam.lookAt(cam.position.x * 0.6, 1.2, 6)
       shSun.position.set(x - 3, 9, 14); shSun.target.position.set(x, 0, 2)
-      slM.opacity += ((run ? Math.max(0, k - 0.15) * 0.55 : 0) - slM.opacity) * Math.min(1, dt * 3)
+      slM.opacity += ((run && fxRef.current.lines ? Math.max(0, k - 0.15) * 0.55 : 0) - slM.opacity) * Math.min(1, dt * 3)
       if (slM.opacity > 0.01) {
         const v = run ? speed() : 0
         for (let i = 0; i < SL; i++) {
@@ -242,26 +249,33 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     tick()
 
     // ── управление: свайпы и клавиатура
-    let sx = 0, sy = 0
-    const ts = (e: TouchEvent) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY }
-    const te = (e: TouchEvent) => {
-      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy
-      if (Math.max(Math.abs(dx), Math.abs(dy)) < 24) { api.current.input('up'); return }
+    let sx = 0, sy = 0, swiped = false
+    const ts = (e: TouchEvent) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; swiped = false }
+    const tm = (e: TouchEvent) => {   // свайп засчитывается сразу, как только палец сдвинулся, — не дожидаясь отпускания
+      if (swiped) return
+      const dx = e.touches[0].clientX - sx, dy = e.touches[0].clientY - sy
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) return
+      swiped = true
       if (Math.abs(dx) > Math.abs(dy)) api.current.input(dx > 0 ? 'right' : 'left')
       else api.current.input(dy < 0 ? 'up' : 'down')
+    }
+    const te = (e: TouchEvent) => {
+      if (swiped) return
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < 22) api.current.input('up')   // тап — прыжок
     }
     const kd = (e: KeyboardEvent) => {
       const m: Record<string, 'up' | 'down' | 'left' | 'right'> = { ArrowUp: 'up', KeyW: 'up', Space: 'up', ArrowDown: 'down', KeyS: 'down', ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right' }
       if (m[e.code]) { e.preventDefault(); api.current.input(m[e.code]) }
     }
-    el.addEventListener('touchstart', ts, { passive: true }); el.addEventListener('touchend', te)
+    el.addEventListener('touchstart', ts, { passive: true }); el.addEventListener('touchmove', tm, { passive: true }); el.addEventListener('touchend', te)
     window.addEventListener('keydown', kd)
     const vis = () => { if (document.hidden && run) end() }
     document.addEventListener('visibilitychange', vis)
 
     return () => {
       alive = false; cancelAnimationFrame(raf); ro.disconnect()
-      el.removeEventListener('touchstart', ts); el.removeEventListener('touchend', te)
+      el.removeEventListener('touchstart', ts); el.removeEventListener('touchmove', tm); el.removeEventListener('touchend', te)
       window.removeEventListener('keydown', kd); document.removeEventListener('visibilitychange', vis)
       S.traverse(o => { const m = o as THREE.Mesh; m.geometry?.dispose() })
       pm.dispose(); R.dispose(); R.domElement.remove(); sfx.dispose()
@@ -270,14 +284,30 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
   }, [])
 
   const pct = Math.min(100, (score / target) * 100)
+  const Tg = ({ k, label, hint }: { k: 'dust' | 'lines' | 'shake'; label: string; hint: string }) => (
+    <button onClick={() => toggleFx(k)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[12px] bg-white/[.05] text-left" role="switch" aria-checked={fx[k]}>
+      <span className="flex-1"><span className="block text-[14px]">{label}</span><span className="block text-[11.5px] text-gray">{hint}</span></span>
+      <span className={`w-10 h-6 rounded-full p-0.5 transition-colors ${fx[k] ? 'bg-green' : 'bg-white/15'}`}><span className={`block w-5 h-5 rounded-full bg-white transition-transform ${fx[k] ? 'translate-x-4' : ''}`} /></span>
+    </button>
+  )
   return createPortal(
     <div className="fixed inset-0 bg-bg select-none" style={{ zIndex: 1000 }}>
+      {setOpen && (
+        <div className="absolute right-3 z-20 glass rounded-[18px] p-3 w-[280px] flex flex-col gap-2" style={{ top: 'calc(env(safe-area-inset-top,0px) + 62px)' }}>
+          <div className="font-display font-semibold text-[15px] px-1">Настройки</div>
+          {Tg({ k: 'dust', label: 'Пыль из-под ног', hint: 'облачка пыли при беге, прыжке и подкате' })}
+          {Tg({ k: 'lines', label: 'Линии скорости', hint: 'белые штрихи на большой скорости' })}
+          {Tg({ k: 'shake', label: 'Тряска камеры', hint: 'лёгкая дрожь камеры на скорости' })}
+          <p className="text-[11px] text-gray2 px-1">Отключи эффекты, если телефон тормозит. Настройки запоминаются.</p>
+        </div>
+      )}
       <div ref={host} className="absolute inset-0" />
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(120% 90% at 50% 55%, transparent 60%, rgba(10,6,20,0.45) 100%)' }} />
       <div className="absolute top-0 left-0 right-0 p-3 flex items-center gap-3" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 12px)' }}>
         <button onClick={() => onClose(!!res?.done)} className="glass w-10 h-10 rounded-full grid place-items-center text-[18px]">✕</button>
         <button onClick={() => { const m = !muted; snd.current.setMuted(m); setMuted(m) }} className="glass w-10 h-10 rounded-full grid place-items-center text-[17px]" aria-label="звук">{muted ? '🔇' : '🔊'}</button>
         <button onClick={() => { const m = !music; snd.current.setMusic(m); setMusic(m) }} className={`glass w-10 h-10 rounded-full grid place-items-center text-[17px] ${music ? '' : 'opacity-40'}`} aria-label="музыка">🎵</button>
+        <button onClick={() => setSetOpen(o => !o)} className="glass w-10 h-10 rounded-full grid place-items-center text-[17px]" aria-label="настройки" aria-expanded={setOpen}>⚙️</button>
         <div className="glass flex-1 rounded-full h-10 px-4 flex items-center gap-3">
           <b className="font-display tabular-nums text-[16px] w-[74px]">{score.toLocaleString('ru-RU')}</b>
           <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-green" style={{ width: `${pct}%` }} /></div>
