@@ -162,11 +162,8 @@ export default function MaskGamePage() {
     }
   }, [ready, s, say])
 
-  const voiceEl = useRef<HTMLAudioElement | null>(null)
-  /** голос владельца: «Ты выиграл…» — звучит, когда маска снята */
-  const playVoice = async () => {
-    try { const u = await maskApi.voice(); const a = voiceEl.current || new Audio(); voiceEl.current = a; a.src = u; await a.play() } catch { /* голос ещё не загружен */ }
-  }
+  /** послание победителю — показывается надписью, когда маска снята */
+  const [winMsg, setWinMsg] = useState(false)
   const submit = async () => {
     const t = text.trim()
     if (!t || busy || cool > 0 || !s) return
@@ -180,10 +177,10 @@ export default function MaskGamePage() {
     if (r.react) say(r.react)
     if (r.ok && !r.test) {
       haptic('success')
-      setTimeout(async () => { await stage.current?.reveal(); setRevealedNow(true); playVoice() }, 900)
+      setTimeout(async () => { await stage.current?.reveal(); setRevealedNow(true); setTimeout(() => setWinMsg(true), 1800) }, 900)
     } else if (r.ok && r.test) {
       haptic('success'); setNote('Тест админа: ответ верный (раунд не закрыт)')
-      setTimeout(async () => { await stage.current?.reveal(); playVoice() }, 900)
+      setTimeout(async () => { await stage.current?.reveal(); setTimeout(() => setWinMsg(true), 1800) }, 900)
     } else {
       haptic(r.kind === 'close' ? 'warning' : 'error'); stage.current?.shake()
     }
@@ -200,6 +197,13 @@ export default function MaskGamePage() {
   const canReveal = s.reveal
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
+      {winMsg && (
+        <div className="fixed inset-x-4 bottom-24 z-50 card-gold p-4 text-center shadow-2xl" role="dialog" aria-live="polite">
+          <div className="font-display font-bold text-[19px] text-[#FFE6A3]">Поздравляю тебя с победой!</div>
+          <p className="text-[14.5px] text-[#F1E2B8] mt-2 leading-snug">Теперь, чтобы забрать приз, напиши мне в личку имя и покажи лицо персонажа без маски.</p>
+          <button onClick={() => setWinMsg(false)} className="btn-primary w-full mt-3">Понятно</button>
+        </div>
+      )}
       {runOpen && (
         <Suspense fallback={null}>
           <RunnerGame model={s.run_model ?? { v0: 14, a: 0.3, vmax: 110 }} target={s.tasks?.run.target ?? 50000}
@@ -260,9 +264,9 @@ export default function MaskGamePage() {
           <section className="card-gold p-4">
             <div className="font-display font-semibold text-[16px]">Маску сняли</div>
             <p className="text-[13.5px] text-[#CDBB8E] mt-1">
-              {r.winner?.is_me ? 'Это ты! Администратор свяжется с тобой для выдачи приза.' : `Первым угадал ${r.winner?.name ?? 'игрок'}. Жди следующий раунд — новые персонажи уже на подходе.`}
+              {r.winner?.is_me ? 'Это ты!' : `Первым угадал ${r.winner?.name ?? 'игрок'}. Жди следующий раунд — новые персонажи уже на подходе.`}
             </p>
-            {s.voice && <button onClick={playVoice} className="btn-primary w-full mt-3">Послушать моё послание</button>}
+            {r.winner?.is_me && <p className="text-[14px] font-semibold text-[#F3E3B5] mt-2">Поздравляю тебя с победой! Теперь, чтобы забрать приз, напиши мне в личку имя и покажи лицо персонажа без маски.</p>}
           </section>
         ) : (<>
           <section className="card px-3.5 py-3.5">
