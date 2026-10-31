@@ -6,7 +6,7 @@
  * Контекст создаётся по нажатию «Старт» (иначе мобильные браузеры не дают звук).
  */
 const BASE = import.meta.env.BASE_URL + 'mask/sfx/'
-const SAMPLES: Record<string, number> = { step: 5, thud: 5, land: 3, metal: 3, punch: 5, cloth: 4, belt: 2, ok: 2, sel: 1, go: 1, drop: 1, hitm: 5, blk: 5, bell: 1, mlt: 3, hl: 6, hm: 8, hh: 8, bk: 5 }
+const SAMPLES: Record<string, number> = { step: 6, thud: 5, land: 3, metal: 3, punch: 5, cloth: 4, belt: 2, ok: 2, sel: 1, go: 1, drop: 1, hitm: 5, blk: 5, bell: 1, mlt: 3, hl: 6, hm: 8, hh: 8, bk: 5 }
 
 export function createRunnerSound(opt: { fight?: boolean } = {}) {
   const FIGHT = !!opt.fight
@@ -205,7 +205,8 @@ export function createRunnerSound(opt: { fight?: boolean } = {}) {
     },
     step() {
       stepSide ^= 1
-      if (!play('step', { vol: 0.55, jitter: 0.08, pan: stepSide ? 0.12 : -0.12 })) air(0.06, 1800, 1200, 0.1)
+      // шаги: записи Fantozzi (OpenGameArt, CC0), смягчены — без резких верхов, с плотным низом
+      if (!play('step', { vol: 0.42, jitter: 0.04, pan: stepSide ? 0.1 : -0.1 })) air(0.06, 1800, 1200, 0.1)
     },
     jump() {
       play('step', { vol: 0.7, rate: 0.85 })
