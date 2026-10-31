@@ -17,23 +17,23 @@ interface Props { onClose: (done: boolean) => void }
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
-const CLIP: Record<MoveId, string> = { jab: 'f_bjab', cross: 'f_bcross', hook: 'f_bhook', upper: 'f_upper', low: 'f_low', kick: 'f_mkick', round: 'f_mround', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
-  elbow: 'f_hook', knee: 'f_knee', high: 'f_kick', spin: 'f_spin', cupper: 'f_cupper', sweep: 'f_csweep', jkick: 'f_jkick', jknee: 'f_jknee', cjab: 'f_cjab', ckick: 'f_ckick' }
+const CLIP: Record<MoveId, string> = { jab: 'f_bjab', cross: 'f_bcross', hook: 'f_hook', upper: 'f_upper', low: 'f_low', kick: 'f_mkick', round: 'f_mround', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
+  elbow: 'f_bhook', knee: 'f_knee', high: 'f_kick', spin: 'f_spin', cupper: 'f_cupper', sweep: 'f_csweep', jkick: 'f_jkick', jknee: 'f_jknee2', cjab: 'f_cjab', ckick: 'f_ckick' }
 /** ключевые моменты клипов (секунды): начало замаха → момент удара → возврат в стойку.
  *  Подготовка удара в симуляции растягивается на [начало, удар], остальное — на [удар, возврат]: кулак/нога доходят до цели ровно в кадр попадания */
 const KEYS: Record<string, [number, number, number]> = {
-  f_jab: [0.5, 0.7, 0.95], f_cross: [0.92, 1.17, 1.45], f_hook: [0.25, 0.52, 0.95], f_upper: [0.3, 0.52, 0.85], f_kick: [0.33, 0.77, 1.3],
+  f_jab: [0.5, 0.7, 0.95], f_cross: [0.92, 1.17, 1.45], f_hook: [0.2, 0.42, 0.95], f_upper: [0.3, 0.52, 1.2], f_kick: [0.33, 0.77, 1.3],
   f_low: [0.4, 0.63, 1.1], f_round: [0.75, 1.12, 1.55], f_special: [0.12, 0.5, 1.8], f_combo: [0.62, 0.9, 2.05], f_elbow: [0.48, 0.67, 1.0],
-  f_knee: [0.45, 0.65, 1.0], f_spin: [0.5, 0.95, 1.5],
-  f_bjab: [0.28, 0.45, 0.8], f_bcross: [0.5, 0.68, 0.95], f_bhook: [0.28, 0.5, 0.95], f_bupperl: [0.4, 0.8, 1.2], f_bupperb: [0.42, 0.75, 1.2],
-  f_mkick: [0.35, 0.7, 1.2], f_mround: [0.4, 0.75, 1.3], f_bsweep: [0.3, 0.7, 1.3], f_csweep: [0.03, 0.4, 1.0], f_cupper: [0.03, 0.3, 0.95], f_ckick: [0.02, 0.2, 0.55], f_cjab: [0.02, 0.16, 0.5], f_sweep: [0.62, 0.9, 1.72], f_jkick: [0.18, 0.45, 0.9], f_jknee: [0.7, 0.95, 1.2],
+  f_knee: [0.45, 0.65, 1.3], f_spin: [0.5, 0.95, 1.5],
+  f_bjab: [0.28, 0.45, 0.8], f_bcross: [0.5, 0.68, 0.95], f_bhook: [0.3, 0.62, 0.95], f_bupperl: [0.4, 0.8, 1.2], f_bupperb: [0.42, 0.75, 1.2],
+  f_mkick: [0.35, 0.7, 1.2], f_mround: [0.4, 0.75, 1.3], f_bsweep: [0.3, 0.7, 1.3], f_csweep: [0.03, 0.4, 1.0], f_cupper: [0.03, 0.3, 0.95], f_ckick: [0.02, 0.18, 0.55], f_jknee2: [0.02, 0.22, 0.7], f_cjab: [0.02, 0.16, 0.5], f_sweep: [0.62, 0.9, 1.72], f_jkick: [0.18, 0.45, 0.9], f_jknee: [0.7, 0.95, 1.2],
 }
 /** отрезки клипов для состояний с известной длительностью */
 const SEG: Record<string, [number, number]> = {
   f_jump: [0.72, 1.42], f_ko: [1.05, 3.2], f_sweepfall: [0.75, 2.3], f_getup: [4.0, 5.7], f_blockhit: [0.05, 0.6], f_dodge: [0.9, 2.2],
   f_hit: [0, 1.0], f_bblock: [0.3, 0.55], f_bdodge: [0.4, 1.3], f_hitbig: [0, 1.2], f_hitbody: [0, 1.0], f_hitup: [0.1, 1.5],
 }
-const AIR_CLIPS = /^f_(jump|jkick|jknee)$/
+const AIR_CLIPS = /^f_(jump|jkick|jknee|jknee2)$/
 
 interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string, THREE.AnimationAction>; cur: THREE.AnimationAction | null; key: string; alt: number }
 
