@@ -14,12 +14,14 @@ export const MAX_GAP = 420                   // дальше не разойти
 export const START = 130                     // стартовая позиция, см от центра
 
 // кнопки игрока (битовая маска)
-export const IN_L = 1, IN_R = 2, IN_BLOCK = 4, IN_P = 8, IN_K = 16, IN_S = 32, IN_U = 64, IN_D = 128
+export const IN_L = 1, IN_R = 2, IN_BLOCK = 4, IN_P = 8, IN_K = 16, IN_S = 32, IN_U = 64, IN_D = 128, IN_P2 = 256, IN_K2 = 512
+/** четыре кнопки ударов, как в MK: передняя/задняя рука, передняя/задняя нога */
+const ANYP = IN_P | IN_P2, ANYK = IN_K | IN_K2, ATK = ANYP | ANYK | IN_S
 export const JV = 60, GRAV = 3               // прыжок: высота y в четвертях сантиметра (≈150 см, 40 тиков в воздухе)
 export const AIR_HIT_Y = 520                 // удар в прыжке достаёт стоящего, когда ниже 130 см
 
 export type MoveId = 'jab' | 'cross' | 'hook' | 'upper' | 'low' | 'kick' | 'round' | 'special' | 'combo' | 'throw'
-  | 'elbow' | 'knee' | 'high' | 'spin' | 'cupper' | 'sweep' | 'jkick' | 'jknee'
+  | 'elbow' | 'knee' | 'high' | 'spin' | 'cupper' | 'sweep' | 'jkick' | 'jknee' | 'cjab' | 'ckick'
 /** h — уровень удара: H верхний (над присевшим проходит мимо), M средний, L нижний (стоячий блок не держит), O сверху/в прыжке (присевший блок не держит)
  *  aa — достаёт противника в воздухе; air — удар в прыжке */
 export type Lvl = 'H' | 'M' | 'L' | 'O'
@@ -44,6 +46,8 @@ export const MOVES: Record<MoveId, Move> = {
   sweep: { s: 10, a: 4, r: 22, dmg: 90, reach: 140, stun: 0, kd: 1, push: 30, h: 'L' },     // присед + нога: подсечка
   jkick: { s: 5, a: 9, r: 6, dmg: 110, reach: 125, stun: 22, kd: 0, push: 30, h: 'O', air: 1 },
   jknee: { s: 4, a: 9, r: 6, dmg: 100, reach: 100, stun: 22, kd: 0, push: 24, h: 'O', air: 1 },
+  cjab: { s: 4, a: 3, r: 10, dmg: 35, reach: 92, stun: 12, kd: 0, push: 8, h: 'M' },        // присед + рука 1: тычок
+  ckick: { s: 6, a: 3, r: 13, dmg: 50, reach: 125, stun: 14, kd: 0, push: 12, h: 'L' },     // присед + нога 1: низкий удар вперёд по ногам
 }
 export const COMBO_GAP = 4
 
@@ -89,7 +93,7 @@ const low = (f: F) => f.st === 'crouch' || f.st === 'cblock' || ((f.st === 'atk'
 function startMove(s: Sim, i: 0 | 1, m: MoveId) {
   const f = s.f[i]
   if (m === 'special') { if (f.meter < 1000) return false; f.meter = 0; s.ev.push({ k: 'special', who: i }) }
-  f.cr = m === 'cupper' || m === 'sweep' ? 1 : 0
+  f.cr = m === 'cupper' || m === 'sweep' || m === 'cjab' || m === 'ckick' ? 1 : 0
   if (MOVES[m].air) f.jat = 1
   f.st = 'atk'; f.mv = m; f.t = 0; f.hitDone = 0
   return true
@@ -215,35 +219,39 @@ function separate(s: Sim) {
 function player(s: Sim, inp: number) {
   const f = s.f[0], o = s.f[1]
   const press = inp & ~s.prevIn
-  if (press & (IN_P | IN_K | IN_S)) { s.buf = press & (IN_P | IN_K | IN_S); s.bufT = 10 }
+  if (press & ATK) { s.buf = press & ATK; s.bufT = 10 }
   else if (s.bufT > 0) s.bufT--
   else s.buf = 0
   const toward = f.dir > 0 ? IN_R : IN_L, away = f.dir > 0 ? IN_L : IN_R
   if (f.st === 'atk' && f.mv && s.buf && !f.air) {   // цепочка: следующий удар в окне восстановления после попадания
     const M = MOVES[f.mv], into = f.t - M.s - M.a
-    if (f.hitDone && M.next && into >= 0 && into <= 8 && ((s.buf & IN_P && (f.mv === 'jab' || f.mv === 'cross' || f.mv === 'hook')) || (s.buf & IN_K && (f.mv === 'low' || f.mv === 'kick')))) {
+    if (f.hitDone && M.next && into >= 0 && into <= 8 && ((s.buf & ANYP && (f.mv === 'jab' || f.mv === 'cross' || f.mv === 'hook')) || (s.buf & ANYK && (f.mv === 'low' || f.mv === 'kick')))) {
       startMove(s, 0, M.next); s.buf = 0; s.bufT = 0; return
     }
   }
   if (f.st === 'jump') {   // в прыжке: один удар рукой или ногой
-    if (!f.jat && s.buf & IN_K) { startMove(s, 0, 'jkick'); s.buf = 0 }
-    else if (!f.jat && s.buf & IN_P) { startMove(s, 0, 'jknee'); s.buf = 0 }
+    if (!f.jat && s.buf & ANYK) { startMove(s, 0, 'jkick'); s.buf = 0 }
+    else if (!f.jat && s.buf & ANYP) { startMove(s, 0, 'jknee'); s.buf = 0 }
     return
   }
   if (busy(f)) return
   const dist = Math.abs(o.x - f.x)
   if (s.buf & IN_S && f.meter >= 1000) { startMove(s, 0, 'special'); s.buf = 0; return }
   if (inp & IN_D) {
-    if (s.buf & IN_P) { startMove(s, 0, 'cupper'); s.buf = 0; return }
-    if (s.buf & IN_K) { startMove(s, 0, 'sweep'); s.buf = 0; return }
+    if (s.buf & IN_P2) { startMove(s, 0, 'cupper'); s.buf = 0; return }
+    if (s.buf & IN_P) { startMove(s, 0, 'cjab'); s.buf = 0; return }
+    if (s.buf & IN_K2) { startMove(s, 0, 'sweep'); s.buf = 0; return }
+    if (s.buf & IN_K) { startMove(s, 0, 'ckick'); s.buf = 0; return }
     const want: St = inp & IN_BLOCK ? 'cblock' : 'crouch'
     if (f.st !== want) { f.st = want; f.t = 0 }
     f.cr = 1
     return
   }
   f.cr = 0
+  if (s.buf & IN_P2) { startMove(s, 0, inp & toward ? 'hook' : inp & away ? 'upper' : 'cross'); s.buf = 0; return }
   if (s.buf & IN_P) { startMove(s, 0, inp & toward ? 'elbow' : inp & away ? 'upper' : 'jab'); s.buf = 0; return }
-  if (s.buf & IN_K) { startMove(s, 0, inp & toward ? (dist <= 92 ? 'knee' : 'high') : inp & away ? 'spin' : 'low'); s.buf = 0; return }
+  if (s.buf & IN_K2) { startMove(s, 0, inp & toward ? 'high' : inp & away ? 'spin' : 'round'); s.buf = 0; return }
+  if (s.buf & IN_K) { startMove(s, 0, inp & toward ? (dist <= 92 ? 'knee' : 'kick') : inp & away ? 'spin' : 'low'); s.buf = 0; return }
   if (inp & IN_BLOCK) { if (f.st !== 'block') { f.st = 'block'; f.t = 0 } return }
   if (press & IN_U || (inp & IN_U && (f.st === 'idle' || f.st === 'fwd' || f.st === 'back'))) {
     jump(s, 0, inp & toward ? f.dir : inp & away ? -f.dir : 0); return
