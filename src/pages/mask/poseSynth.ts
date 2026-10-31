@@ -94,6 +94,73 @@ function kneeUp(root: THREE.Object3D, p: Pose, deg: number, side = 'Right'): Pos
   return out
 }
 
+/** повернуть кость так, чтобы её ось Y (вдоль кости) смотрела по dir, а ось шарнира X — как hinge (без скручивания бедра/голени) */
+function orientBone(b: THREE.Object3D, dir: THREE.Vector3, hinge: THREE.Vector3) {
+  const y = dir.clone().normalize()
+  const x = hinge.clone().sub(y.clone().multiplyScalar(hinge.dot(y))).normalize()
+  const z = new THREE.Vector3().crossVectors(x, y).normalize()
+  const want = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z))
+  const pq = new THREE.Quaternion(); b.parent!.getWorldQuaternion(pq)
+  b.quaternion.copy(pq.invert().multiply(want)); b.updateMatrixWorld(true)
+}
+/** анатомичный удар ногой из приседа: двухзвенная IK в сагиттальной плоскости.
+ *  ang — угол стопы относительно горизонтали (+ вниз), ext — насколько нога вытянута (1 — прямая), lean — отклон корпуса назад, ° */
+const LEAN_SIGN = 1
+function kickIK(root: THREE.Object3D, base: Pose, ang: number, ext: number, lean: number, side0 = 'Left', support = 1): Pose {
+  applyPose(root, base)
+  const ul = findBone(root, side0 + 'UpLeg'), lg = findBone(root, side0 + 'Leg'), ft = findBone(root, side0 + 'Foot'), sp = findBone(root, 'Spine')
+  if (!ul || !lg || !ft) return base
+  const rq = new THREE.Quaternion(); root.getWorldQuaternion(rq)
+  const fwd = new THREE.Vector3(0, 0, 1).applyQuaternion(rq), up = new THREE.Vector3(0, 1, 0).applyQuaternion(rq)
+  // ось шарнира колена берём из приседа: колено сгибается в ту же сторону, что и в живой позе
+  const hinge = new THREE.Vector3(1, 0, 0).applyQuaternion(lg.getWorldQuaternion(new THREE.Quaternion()))
+  const P = (o: THREE.Object3D) => new THREE.Vector3().setFromMatrixPosition(o.matrixWorld)
+  // опорная нога: таз опускается, пока заднее колено не встанет на пол; стопа остаётся на месте (двухзвенная IK)
+  const other = side0 === 'Left' ? 'Right' : 'Left'
+  const ru = findBone(root, other + 'UpLeg'), rl = findBone(root, other + 'Leg'), rf = findBone(root, other + 'Foot'), hips = findBone(root, 'Hips')
+  if (ru && rl && rf && hips && support) {
+    const floorY = (v: THREE.Vector3) => root.worldToLocal(v.clone()).y
+    const footW = P(rf), kneeY = floorY(P(rl)), drop = Math.max(0, kneeY - 0.07) * support
+    if (drop > 0) {
+      const hw = P(hips); const target = root.localToWorld(root.worldToLocal(hw.clone()).add(new THREE.Vector3(0, -drop, 0)))
+      hips.position.copy(hips.parent!.worldToLocal(target)); hips.updateMatrixWorld(true)
+      const rh = P(ru), m1 = P(rl).distanceTo(rh), m2 = P(rf).distanceTo(P(rl))
+      const kh = new THREE.Vector3(1, 0, 0).applyQuaternion(rl.getWorldQuaternion(new THREE.Quaternion()))
+      const dd = Math.min(m1 + m2 - 1e-3, footW.distanceTo(rh)), dirF = footW.clone().sub(rh).normalize()
+      const aa = Math.acos(Math.min(1, Math.max(-1, (m1 * m1 + dd * dd - m2 * m2) / (2 * m1 * dd))))
+      const ax = new THREE.Vector3().crossVectors(dirF, kh).normalize()
+      let kd = dirF.clone().applyAxisAngle(kh, aa); const kd2 = dirF.clone().applyAxisAngle(kh, -aa)
+      if (kd2.dot(fwd) > kd.dot(fwd)) kd = kd2   // колено опорной ноги — вперёд-вниз, к полу
+      void ax
+      const kn = rh.clone().add(kd.multiplyScalar(m1))
+      orientBone(ru, kn.clone().sub(rh), kh); orientBone(rl, footW.clone().sub(kn), kh)
+    }
+  }
+  const hip = P(ul), l1 = P(lg).distanceTo(hip), l2 = P(ft).distanceTo(P(lg))
+  const r = ang * Math.PI / 180, dir = fwd.clone().multiplyScalar(Math.cos(r)).add(up.clone().multiplyScalar(-Math.sin(r))).normalize()
+  const d = Math.max(Math.abs(l1 - l2) + 1e-3, Math.min(l1 + l2 - 1e-3, (l1 + l2) * ext))
+  const foot = hip.clone().add(dir.clone().multiplyScalar(d))
+  // колено — над линией бедро→стопа (сгиб вверх-вперёд, как у человека)
+  const a = Math.acos(Math.min(1, Math.max(-1, (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d))))
+  const side = new THREE.Vector3().crossVectors(dir, up).normalize()
+  const kneeDir = dir.clone().applyAxisAngle(side, a)
+  if (kneeDir.dot(up) < dir.dot(up)) kneeDir.copy(dir.clone().applyAxisAngle(side, -a))
+  const knee = hip.clone().add(kneeDir.multiplyScalar(l1))
+  orientBone(ul, knee.clone().sub(hip), hinge)
+  orientBone(lg, foot.clone().sub(knee), hinge)
+  // корпус выпрямляется и чуть отклоняется назад, подбородок поднят (вес уходит на опорную ногу)
+  const tilt = (b: THREE.Object3D | null, deg: number) => { if (!b || !deg) return
+    const q = new THREE.Quaternion().setFromAxisAngle(side, deg * Math.PI / 180)
+    const wq = b.getWorldQuaternion(new THREE.Quaternion()), pq = b.parent!.getWorldQuaternion(new THREE.Quaternion())
+    b.quaternion.copy(pq.invert().multiply(q.multiply(wq))); b.updateMatrixWorld(true) }
+  const sp1 = findBone(root, 'Spine1'), nk = findBone(root, 'Neck'), hd = findBone(root, 'Head')
+  tilt(sp, LEAN_SIGN * lean); tilt(sp1, LEAN_SIGN * lean * 0.5); tilt(nk, LEAN_SIGN * lean * 0.4); tilt(hd, LEAN_SIGN * lean * 0.4)
+  const out: Pose = new Map(base)
+  for (const b of [ul, lg, sp, sp1, nk, hd, ru, rl]) { if (!b) continue; const k = b.name + '.quaternion'; if (base.has(k)) out.set(k, b.quaternion.toArray()) }
+  if (hips) { const k = hips.name + '.position'; if (base.has(k)) out.set(k, hips.position.toArray()) }
+  return out
+}
+
 export function synthClips(clips: THREE.AnimationClip[], root?: THREE.Object3D) {
   const C = Object.fromEntries(clips.map(c => [c.name, c]))
   const need = ['f_crouch', 'f_low', 'f_bblock', 'f_upper']
@@ -103,13 +170,14 @@ export function synthClips(clips: THREE.AnimationClip[], root?: THREE.Object3D) 
   const crouch = C.f_idle ? mix(crouch0, sample(C.f_idle, 0.3), (b: string) => !LEG.test(b) && !/Hips$/.test(b)) : crouch0
   clips.push(build('f_crouchg', [[0, crouch], [1, crouch]]))
   const upperBody = (b: string) => !LEG.test(b) && !/Hips$/.test(b)
-  // подсечка из приседа: тело сидит, правая нога выстреливает вдоль пола и описывает круг
   if (root) {
-    const lk = (t: number, deg?: number, st = 0.7) => legWorld(root, crouch, sample(C.f_low, t), deg, st)
-    // удар ногой из приседа (присед + нога 1): колено подтянуто → нога выстреливает далеко вперёд у пола → обратно
-    clips.push(build('f_ckick', [[0, crouch], [0.09, kneeUp(root, crouch, 25)], [0.18, lk(0.63, 8, 0.85)], [0.3, lk(0.65, 8, 0.85)], [0.42, lk(0.55, 40, 0.2)], [0.58, crouch]]))
+    // удар ногой из приседа (присед + нога 1): бьёт передняя нога (опорная задняя остаётся на колене), как в MK:
+    // колено подтягивается → пятка выстреливает вперёд у пола → обратно; корпус чуть назад
+    const ik = (ang: number, ext: number, lean: number) => kickIK(root, crouch, ang, ext, lean)
+    clips.push(build('f_ckick', [[0, crouch], [0.09, ik(14, 0.6, 8)], [0.18, ik(24, 0.97, 18)], [0.3, ik(24, 0.97, 18)], [0.42, ik(18, 0.65, 8)], [0.58, crouch]]))
     // подсечка (присед + нога 2): нога вытянута у самого пола, корпус делает полный оборот (вращает FightGame)
-    clips.push(build('f_csweep', [[0, crouch], [0.1, lk(0.5, 45, 0.2)], [0.25, lk(0.64, 9, 0.95)], [0.75, lk(0.64, 9, 0.95)], [0.88, lk(0.55, 40, 0.2)], [1.0, crouch]]))
+    // подсечка (присед + нога 2): передняя нога вытянута низко над полом, корпус делает полный оборот (вращает FightGame)
+    clips.push(build('f_csweep', [[0, crouch], [0.1, ik(25, 0.7, 8)], [0.25, ik(24, 0.98, 14)], [0.75, ik(24, 0.98, 14)], [0.88, ik(25, 0.7, 8)], [1.0, crouch]]))
   }
   if (root && C.f_jump && C.f_knee) {
     const air = sample(C.f_jump, 1.05)
