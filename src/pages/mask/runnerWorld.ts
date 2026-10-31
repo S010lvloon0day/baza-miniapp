@@ -41,39 +41,48 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
   const scroll: { o: THREE.Object3D; span: number }[] = []
   const texScroll: { t: THREE.Texture; k: number }[] = []
 
-  // горы — дальний план: два хребта со скалистыми гранями, снежными шапками и дымкой заката
-  // (туман на них не действует — иначе они сливались в одноцветные силуэты; дымку задаёт цвет по высоте и дальности)
+  // горы — дальний план: два хребта. Гладкие склоны (без «осколков»), дымка заката, снег по неровной линии.
+  // Туман на них не действует — иначе сливались в силуэты; дымку задаёт цвет.
   {
-    const haze = new THREE.Color(0xf0a070), rockA = new THREE.Color(0x34284a), rockB = new THREE.Color(0x64496a), snow = new THREE.Color(0xfbe4d8)
-    const mMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, flatShading: true, fog: false })
+    const haze = new THREE.Color(0xe8a08a), rockA = new THREE.Color(0x3a2d4e), rockB = new THREE.Color(0x6e5570), snow = new THREE.Color(0xfbe7dc)
+    const mMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0, fog: false })
+    const hash = (x: number, y: number) => { const v = Math.sin(x * 127.1 + y * 311.7) * 43758.5453; return v - Math.floor(v) }
+    const vnoise = (x: number, y: number) => {   // плавный шум
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi
+      const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf)
+      const a = hash(xi, yi), b = hash(xi + 1, yi), c = hash(xi, yi + 1), d = hash(xi + 1, yi + 1)
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v
+    }
+    const fbm = (x: number, y: number) => vnoise(x, y) * 0.75 + vnoise(x * 1.9, y * 1.9) * 0.25   // только крупные формы — без ряби
     const mk = (r: number, h: number, far: number) => {
-      const g = new THREE.ConeGeometry(r, h, 11, 5)
+      const g = new THREE.CylinderGeometry(r * 0.015, r, h, 48, 20, true)   // не ConeGeometry: у открытого конуса пропадает половина треугольников
       const pos = g.attributes.position as THREE.BufferAttribute, col = new Float32Array(pos.count * 3), c = new THREE.Color()
-      const seed = Math.random() * 100
+      const sx = Math.random() * 50, sz = Math.random() * 50
       for (let i = 0; i < pos.count; i++) {
         let x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
-        const u = (y + h / 2) / h   // 0 — подножие, 1 — вершина
-        if (u < 0.98) {             // скалистые неровности (у вершины меньше)
-          const n = Math.sin(x * 0.31 + seed) * Math.cos(z * 0.27 + seed * 1.7) + Math.sin((x + z) * 0.13 + seed * 0.5)
-          const k = 1 + n * 0.12 * (1 - u)
-          x *= k; z *= k; y += n * h * 0.035
-          pos.setXYZ(i, x, y, z)
-        }
-        c.copy(rockA).lerp(rockB, Math.min(1, u * 1.3))
-        if (u > 0.72) c.lerp(snow, Math.min(1, (u - 0.72) / 0.16))
-        c.lerp(haze, far)          // дальние — светлее и теплее, как в дымке
+        const u = (y + h / 2) / h                       // 0 — подножие, 1 — вершина
+        const ang = Math.atan2(z, x)
+        const n = fbm(Math.cos(ang) * 1.3 + sx, Math.sin(ang) * 1.3 + u * 1.6 + sz)
+        const det = vnoise(Math.cos(ang) * 5 + sx * 2, u * 6 + sz) - 0.5   // мелкие гребни и осыпи
+        const k = 0.74 + n * 0.55 + det * 0.1 * (1 - u)   // неровный склон: отроги и седловины
+        x *= k; z *= k; y = y - (1 - k) * h * 0.25 * u  // вершина чуть ниже там, где склон «съеден»
+        pos.setXYZ(i, x, y, z)
+        c.copy(rockA).lerp(rockB, Math.min(1, u * 1.25 + det * 0.25))
+        const snowLine = 0.7 + (vnoise(Math.cos(ang) * 2 + sx, Math.sin(ang) * 2 + sz) - 0.5) * 0.16
+        if (u > snowLine) c.lerp(snow, Math.min(1, (u - snowLine) / 0.1))
+        c.lerp(haze, far * (1 - u * 0.4))
         col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b
       }
       g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.computeVertexNormals()
       return new THREE.Mesh(g, mMat)
     }
-    for (let i = 0; i < 16; i++) {   // дальний хребет
-      const r = rnd(34, 60), h = rnd(38, 62), side = i % 2 ? 1 : -1
-      const m = mk(r, h, 0.34); m.position.set(side * rnd(30, 190), h / 2 - 3, rnd(230, 300)); m.rotation.y = rnd(0, 3); S.add(m)
+    for (let i = 0; i < 12; i++) {   // дальний хребет
+      const r = rnd(40, 64), h = rnd(36, 56), side = i % 2 ? 1 : -1
+      const m = mk(r, h, 0.42); m.position.set(side * rnd(30, 190), h / 2 - 3, rnd(235, 300)); S.add(m)
     }
-    for (let i = 0; i < 14; i++) {   // ближний хребет
-      const r = rnd(18, 36), h = rnd(18, 34), side = i % 2 ? 1 : -1
-      const m = mk(r, h, 0.12); m.position.set(side * rnd(26, 140), h / 2 - 2, rnd(150, 215)); m.rotation.y = rnd(0, 3); S.add(m)
+    for (let i = 0; i < 10; i++) {   // ближний хребет
+      const r = rnd(22, 38), h = rnd(20, 32), side = i % 2 ? 1 : -1
+      const m = mk(r, h, 0.16); m.position.set(side * rnd(30, 140), h / 2 - 2, rnd(155, 215)); S.add(m)
     }
   }
 
@@ -407,14 +416,14 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
 
 /** Препятствия: шлагбаум (жёлтый, прыгать), арка с перекладиной (фиолетовая, подныривать), контейнер (красный, обегать). */
 export type DecorLib = Record<string, THREE.Object3D>
-export const DECOR_KEYS = ['pine', 'green', 'yellow', 'bush', 'rock', 'cottage', 'barn', 'mill', 'shed', 'well', 'haystack', 'sign', 'lamp', 'container', 'container2']
+export const DECOR_KEYS = ['pine', 'green', 'yellow', 'bush', 'rock', 'cottage', 'barn', 'mill', 'shed', 'well', 'haystack', 'sign', 'lamp']
 
 /** Грузит модели декораций; ошибки по отдельным файлам не мешают остальным. */
 export async function loadDecor(base: string, loader: { loadAsync: (u: string) => Promise<{ scene: THREE.Object3D }> }): Promise<DecorLib> {
   const lib: DecorLib = {}
   await Promise.all(DECOR_KEYS.map(async k => {
     try {
-      const g = await loader.loadAsync(base + k + '.glb?v=7'); const sc = g.scene
+      const g = await loader.loadAsync(base + k + '.glb?v=8'); const sc = g.scene
       sc.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) { m.castShadow = false; m.receiveShadow = false } })
       if (k === 'lamp') {   // где плафон: центр вершин в верхних 12% высоты
         sc.updateMatrixWorld(true); const v = new THREE.Vector3(), sum = new THREE.Vector3(); let n = 0
@@ -431,18 +440,41 @@ export async function loadDecor(base: string, loader: { loadAsync: (u: string) =
 export const WALL_HALF = 1.3   // половина длины контейнера вдоль дороги
 
 export function obstacleFactory(LANE: number) {
-  let lib: DecorLib = {}
   const stripes = (a: string, b: string) => tex(256, 64, c => { for (let i = -1; i < 9; i++) { c.fillStyle = i % 2 ? a : b; c.beginPath(); c.moveTo(i * 32, 64); c.lineTo(i * 32 + 32, 64); c.lineTo(i * 32 + 64, 0); c.lineTo(i * 32 + 32, 0); c.fill() } })
   const lowM = new THREE.MeshStandardMaterial({ map: stripes('#f5c25a', '#1d1d1f'), roughness: 0.5, emissive: 0x3a2600, emissiveIntensity: 0.35 })
   const highM = new THREE.MeshStandardMaterial({ map: stripes('#9b7bff', '#f2f0ff'), roughness: 0.45, emissive: 0x24127a, emissiveIntensity: 0.5 })
   const postM = new THREE.MeshStandardMaterial({ color: 0x3a3d44, roughness: 0.5, metalness: 0.5 })
-  const contT = tex(256, 128, c => {
-    c.fillStyle = '#b8383c'; c.fillRect(0, 0, 256, 128)
-    for (let x = 0; x < 256; x += 16) { c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(x, 0, 5, 128); c.fillStyle = 'rgba(255,255,255,0.08)'; c.fillRect(x + 6, 0, 3, 128) }
-    c.fillStyle = 'rgba(0,0,0,0.3)'; c.fillRect(0, 0, 256, 8); c.fillRect(0, 120, 256, 8)
-    c.fillStyle = '#f2efe8'; c.font = 'bold 22px sans-serif'; c.fillText('S010', 18, 72)
+  // ── контейнеры: текстуры рисуются один раз на цвет
+  const ribs = (base: string, dark: string, light: string, w: number, h: number, vertical: boolean, label?: string) => tex(w, h, c => {
+    c.fillStyle = base; c.fillRect(0, 0, w, h)
+    const step = vertical ? w / 24 : h / 10
+    for (let p = 0; p < (vertical ? w : h); p += step) {   // гофра: тень, грань, блик
+      const gr = vertical ? c.createLinearGradient(p, 0, p + step, 0) : c.createLinearGradient(0, p, 0, p + step)
+      gr.addColorStop(0, dark); gr.addColorStop(0.35, base); gr.addColorStop(0.55, light); gr.addColorStop(1, dark)
+      c.fillStyle = gr; if (vertical) c.fillRect(p, 0, step, h); else c.fillRect(0, p, w, step)
+    }
+    c.fillStyle = 'rgba(0,0,0,0.35)'; if (vertical) { c.fillRect(0, 0, w, h * 0.04); c.fillRect(0, h * 0.96, w, h * 0.04) }
+    for (let n = 0; n < 160; n++) { c.fillStyle = `rgba(${Math.random() < 0.5 ? '60,30,15' : '0,0,0'},${Math.random() * 0.12})`; c.fillRect(Math.random() * w, Math.random() * h, 2 + Math.random() * 10, 1 + Math.random() * 4) }
+    if (label) { c.fillStyle = 'rgba(245,242,232,0.92)'; c.font = `bold ${Math.round(h * 0.13)}px sans-serif`; c.fillText(label, w * 0.06, h * 0.24); c.font = `${Math.round(h * 0.06)}px monospace`; c.fillText('SOLU 401 772 5', w * 0.06, h * 0.33) }
   })
-  const contM = new THREE.MeshStandardMaterial({ map: contT, roughness: 0.6, metalness: 0.3, emissive: 0x3a0a0c, emissiveIntensity: 0.3 })
+  const doorT = (base: string, dark: string, light: string) => tex(256, 256, c => {
+    c.fillStyle = base; c.fillRect(0, 0, 256, 256)
+    for (const x0 of [8, 130]) {   // две створки с рёбрами
+      for (let y = 14; y < 242; y += 38) { const gr = c.createLinearGradient(0, y, 0, y + 38); gr.addColorStop(0, light); gr.addColorStop(0.5, base); gr.addColorStop(1, dark); c.fillStyle = gr; c.fillRect(x0, y, 118, 36) }
+      c.strokeStyle = dark; c.lineWidth = 3; c.strokeRect(x0, 12, 118, 232)
+    }
+    c.fillStyle = dark; c.fillRect(126, 8, 4, 240)
+    c.fillStyle = 'rgba(245,242,232,0.9)'; c.font = 'bold 15px monospace'; c.fillText('S010', 150, 40); c.font = '11px monospace'; c.fillText('MAX GR 30480 KG', 140, 58)
+    for (let n = 0; n < 120; n++) { c.fillStyle = `rgba(0,0,0,${Math.random() * 0.12})`; c.fillRect(Math.random() * 256, Math.random() * 256, 2 + Math.random() * 8, 1 + Math.random() * 3) }
+  })
+  const CONT = ([['#1f5fa8', '#123d70', '#3f86d0', 'S010 LINES'], ['#a8302e', '#6e1c1b', '#d0524c', 'BAZA CARGO'], ['#2f7a4a', '#1c4d2e', '#4fa06a', 'S010 LINES']] as const).map(([b, d, l, lab]) => {
+    const std = (t: THREE.Texture) => new THREE.MeshStandardMaterial({ map: t, roughness: 0.72, metalness: 0.2 })
+    return { side: std(ribs(b, d, l, 512, 256, true, lab)), roof: std(ribs(d, '#0c0c10', b, 256, 256, false)), door: std(doorT(b, d, l)), frame: new THREE.MeshStandardMaterial({ color: d, roughness: 0.6, metalness: 0.35 }) }
+  })
+  const postG = new THREE.BoxGeometry(0.1, 1, 0.1), fitG = new THREE.BoxGeometry(0.14, 0.12, 0.1)
+  const fitM = new THREE.MeshStandardMaterial({ color: 0x2a2a30, roughness: 0.5, metalness: 0.6 })
+  const barG = new THREE.CylinderGeometry(0.022, 0.022, 2.1, 6), handG = new THREE.BoxGeometry(0.12, 0.04, 0.04)
+  const barM = new THREE.MeshStandardMaterial({ color: 0xc9ccd2, roughness: 0.35, metalness: 0.8 })
   const make = (k: 'low' | 'high' | 'wall') => {
     const g = new THREE.Group()
     if (k === 'low') {
@@ -454,16 +486,23 @@ export function obstacleFactory(LANE: number) {
       const b = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.92, 0.34, 0.3), highM); b.position.y = 1.42; g.add(b)
       for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 1.6, 8), postM); p.position.set(sx * LANE * 0.44, 0.8, 0); g.add(p) }
     }
-    if (k === 'wall') {
-      const keys = ['container', 'container2'].filter(x => lib[x])
-      if (keys.length) {
-        const t = lib[keys[Math.floor(Math.random() * keys.length)]]
-        const b = new THREE.Box3().setFromObject(t), sz = b.getSize(new THREE.Vector3())
-        const m = t.clone(); m.scale.set(LANE * 0.9 / sz.x, 2.3 / sz.y, WALL_HALF * 2 / sz.z); g.add(m)
-      } else { const w = new THREE.Mesh(new THREE.BoxGeometry(LANE * 0.88, 2.4, WALL_HALF * 2), contM); w.position.y = 1.2; g.add(w) }
+    if (k === 'wall') {   // морской контейнер: свой, чёткий (модели Tripo на близком расстоянии выглядели «мятыми»)
+      const v = CONT[Math.floor(Math.random() * CONT.length)]
+      const w = LANE * 0.9, h = 2.3, d = WALL_HALF * 2
+      const body = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [v.side, v.side, v.roof, v.frame, v.door, v.door]); body.position.y = h / 2; g.add(body)
+      // угловые стойки и фитинги
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+        const post = new THREE.Mesh(postG, v.frame); post.scale.set(1, h, 1); post.position.set(sx * (w / 2 - 0.05), h / 2, sz * (d / 2 - 0.05)); g.add(post)
+        for (const yy of [0.06, h - 0.06]) { const ft = new THREE.Mesh(fitG, fitM); ft.position.set(sx * (w / 2 - 0.05), yy, sz * (d / 2 - 0.04)); g.add(ft) }
+      }
+      // запорные штанги на дверях (обе торцевые стороны)
+      for (const sz of [-1, 1]) for (const bx of [-0.36, -0.14, 0.14, 0.36]) {
+        const bar = new THREE.Mesh(barG, barM); bar.position.set(bx * w, h / 2, sz * (d / 2 + 0.025)); g.add(bar)
+        const hd = new THREE.Mesh(handG, barM); hd.position.set(bx * w + 0.05, h * 0.42, sz * (d / 2 + 0.05)); g.add(hd)
+      }
     }
     return g
   }
-  make.setLib = (l: DecorLib) => { lib = l }
+  make.setLib = (_l: DecorLib) => { /* контейнеры теперь свои, модели не нужны */ }
   return make
 }
