@@ -248,37 +248,45 @@ export default function FightGame({ onClose }: Props) {
   }, [])
 
   // кнопки: удержание — через pointer-события (работает и мультитач)
-  const Btn = ({ b, label, cls, big }: { b: number; label: string; cls: string; big?: boolean }) => (
+  const Btn = ({ b, label, cls, big, icon }: { b: number; label: string; cls: string; big?: boolean; icon?: 'fist' | 'kick' | 'shield' | 'bolt' | 'l' | 'r' }) => (
     <button
       onPointerDown={e => { e.preventDefault(); (e.target as HTMLElement).setPointerCapture?.(e.pointerId); api.current.press(b, true) }}
       onPointerUp={e => { e.preventDefault(); api.current.press(b, false) }}
       onPointerCancel={() => api.current.press(b, false)} onPointerLeave={() => api.current.press(b, false)}
       onContextMenu={e => e.preventDefault()}
-      className={`rounded-full grid place-items-center font-display font-bold select-none touch-none active:scale-95 transition-transform ${big ? 'w-[74px] h-[74px] text-[14px]' : 'w-[62px] h-[62px] text-[12.5px]'} ${cls}`}
-      style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as any}>{label}</button>
+      className={`fg-key ${big ? 'is-big' : ''} ${cls}`} aria-label={label}
+      style={{ WebkitUserSelect: 'none', WebkitTouchCallout: 'none' } as any}>{icon && <Ico k={icon} />}{label && <span>{label}</span>}</button>
   )
-  /** шкала здоровья в стиле файтинга: металлическая рамка, «след урона», имя внутри */
-  const Health = ({ v, name, right, wins, meter, meterCol }: { v: number; name: string; right?: boolean; wins: number; meter: number; meterCol: string }) => {
-    const pct = Math.max(0, v / HP * 100)
-    const col = pct > 50 ? 'from-[#ffe27a] via-[#ffc23d] to-[#ff9a1f]' : pct > 25 ? 'from-[#ffb03d] via-[#ff7a1f] to-[#ff4d1f]' : 'from-[#ff5a4a] via-[#e8222f] to-[#b3101c]'
+  /** Голографическая шкала: скошенные края, 20 сегментов, след урона, развёртка; при малом здоровье мерцает */
+  const Health = ({ v, name, right, wins, meter, hue }: { v: number; name: string; right?: boolean; wins: number; meter: number; hue: 'c' | 'm' }) => {
+    const pct = Math.max(0, v / HP * 100), low = pct <= 25
+    const main = hue === 'c' ? 'var(--fg-c)' : 'var(--fg-m)'
     return (
-      <div className={`flex-1 min-w-0 ${right ? 'items-end' : ''} flex flex-col`}>
-        <div className="relative w-full h-[18px] rounded-[3px] p-[2px]" style={{ background: 'linear-gradient(180deg,#d9c38a,#7a6230 45%,#3b2e14)', boxShadow: '0 2px 10px rgba(0,0,0,.6)', transform: right ? 'skewX(18deg)' : 'skewX(-18deg)' }}>
-          <div className="relative w-full h-full rounded-[2px] overflow-hidden" style={{ background: 'linear-gradient(180deg,#1b0d10,#0b0507)' }}>
-            <div className={`absolute inset-y-0 bg-white/80 transition-[width] duration-700 delay-300 ${right ? 'right-0' : 'left-0'}`} style={{ width: `${pct}%` }} />
-            <div className={`absolute inset-y-0 bg-gradient-to-b ${col} transition-[width] duration-100 ${right ? 'right-0' : 'left-0'}`} style={{ width: `${pct}%`, boxShadow: 'inset 0 -4px 6px rgba(0,0,0,.25), inset 0 3px 4px rgba(255,255,255,.35)' }} />
-          </div>
+      <div className={`fg-hp ${right ? 'is-r' : ''} ${low ? 'is-low' : ''}`} style={{ ['--hp' as any]: `${pct}%`, ['--main' as any]: main }}>
+        <div className="fg-hp-frame">
+          <div className="fg-hp-trail" />
+          <div className="fg-hp-fill" />
+          <div className="fg-hp-seg" />
+          <div className="fg-hp-scan" />
         </div>
-        <div className={`w-full flex items-center gap-2 mt-1 ${right ? 'flex-row-reverse' : ''}`}>
-          <span className="font-display font-black text-[12px] tracking-[.12em] text-white" style={{ textShadow: '0 1px 4px #000, 0 0 10px rgba(0,0,0,.8)' }}>{name}</span>
-          <span className={`flex gap-1 ${right ? 'flex-row-reverse' : ''}`}>{[0, 1].map(i => <i key={i} className="w-3 h-3 rounded-full border border-[#d9c38a]" style={{ background: wins > i ? 'radial-gradient(circle at 35% 35%,#fff3c4,#e0a72a 60%,#7a5212)' : 'rgba(0,0,0,.45)' }} />)}</span>
-          <div className="flex-1 h-[5px] rounded-full bg-black/55 border border-white/10 overflow-hidden" style={{ maxWidth: 150 }}>
-            <div className={`h-full ${right ? 'ml-auto' : ''} ${meterCol} ${meter >= 1000 ? 'animate-pulse' : ''}`} style={{ width: `${meter / 10}%` }} />
-          </div>
+        <div className="fg-hp-meta">
+          <span className="fg-hp-name">{name}</span>
+          <span className="fg-hp-wins">{[0, 1].map(i => <i key={i} className={wins > i ? 'on' : ''} />)}</span>
+          <span className="fg-hp-meter"><b style={{ width: `${meter / 10}%` }} className={meter >= 1000 ? 'full' : ''} /></span>
         </div>
       </div>
     )
   }
+  const Ico = ({ k }: { k: 'fist' | 'kick' | 'shield' | 'bolt' | 'l' | 'r' }) => (
+    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {k === 'fist' && <><path d="M7 11V7.5a1.5 1.5 0 0 1 3 0V11" /><path d="M10 10V6.5a1.5 1.5 0 0 1 3 0V10" /><path d="M13 10V7a1.5 1.5 0 0 1 3 0v3.5" /><path d="M16 10.5a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1.5A5.5 5.5 0 0 1 6 14.5V12a1.5 1.5 0 0 1 3 0" /></>}
+      {k === 'kick' && <path d="M7 3h4.5v8.5l6.6 3.3c1.1.55 1.9 1.6 1.9 2.8V19H5v-3.2l2-2.8z" fill="currentColor" stroke="none" />}
+      {k === 'shield' && <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />}
+      {k === 'bolt' && <path d="M13 2L4 14h7l-1 8 9-12h-7z" fill="currentColor" stroke="none" />}
+      {k === 'l' && <path d="M15 5l-7 7 7 7" />}
+      {k === 'r' && <path d="M9 5l7 7-7 7" />}
+    </svg>
+  )
   const specReady = hud.meter[0] >= 1000
 
   return createPortal(
@@ -288,12 +296,10 @@ export default function FightGame({ onClose }: Props) {
       {/* верх: здоровье и таймер — у самого края экрана, чтобы не закрывать бойцов */}
       {phase !== 'load' && (
         <div className="absolute top-0 inset-x-0 pointer-events-none" style={{ paddingTop: 'calc(env(safe-area-inset-top,0px) + 6px)', paddingLeft: 'calc(env(safe-area-inset-left,0px) + 14px)', paddingRight: 'calc(env(safe-area-inset-right,0px) + 14px)' }}>
-          <div className="flex items-start gap-3">
-            <Health v={hud.hp[0]} name="ТЫ" wins={hud.wins[0]} meter={hud.meter[0]} meterCol="bg-gradient-to-r from-[#1fb6ff] to-[#34e8ff]" />
-            <div className="shrink-0 -mt-[2px] w-[46px] h-[40px] grid place-items-center rounded-[10px]" style={{ background: 'linear-gradient(180deg,#d9c38a,#7a6230 50%,#3b2e14)', padding: 2, boxShadow: '0 3px 12px rgba(0,0,0,.6)' }}>
-              <div className="w-full h-full rounded-[8px] grid place-items-center font-display font-black text-[20px] tabular-nums" style={{ background: 'radial-gradient(circle at 50% 30%,#2b1d2e,#0b0507)', color: hud.time <= 10 ? '#ff5a4a' : '#f3e3b0', textShadow: '0 0 8px rgba(255,200,120,.35)' }}>{hud.time}</div>
-            </div>
-            <Health v={hud.hp[1]} name="СТРАЖ" right wins={hud.wins[1]} meter={hud.meter[1]} meterCol="bg-gradient-to-l from-[#ff3fb4] to-[#ff7ad1]" />
+          <div className="flex items-start gap-2.5">
+            <Health v={hud.hp[0]} name="Ты" wins={hud.wins[0]} meter={hud.meter[0]} hue="c" />
+            <div className={`fg-timer ${hud.time <= 10 ? 'is-hot' : ''}`}><span>{hud.time}</span></div>
+            <Health v={hud.hp[1]} name="Страж" right wins={hud.wins[1]} meter={hud.meter[1]} hue="m" />
           </div>
           {hud.combo > 1 && phase === 'fight' && <div key={hud.combo} className="mt-6 ml-2 font-display font-black italic text-[26px] text-gold" style={{ animation: 'fgPop .35s ease-out both', textShadow: '0 2px 0 #7a5212, 0 0 18px rgba(255,190,80,.6)' }}>{hud.combo} УДАРА</div>}
         </div>
@@ -309,20 +315,20 @@ export default function FightGame({ onClose }: Props) {
         <div className="font-display font-black italic text-[58px] leading-none tracking-wide" style={{ animation: 'fgBan 1.3s ease-out both', background: banner.tone === 'red' ? 'linear-gradient(180deg,#ffd0c4,#ff3b2f 45%,#7a0d0d)' : banner.tone === 'gold' ? 'linear-gradient(180deg,#fff6d0,#f1c24a 45%,#8a5a12)' : 'linear-gradient(180deg,#ffffff,#c9d4e8 50%,#5a6a88)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(0,0,0,.6))' }}>{banner.text}</div>
         {banner.sub && <div className="mt-2 text-[15px] text-white/80">{banner.sub}</div>}
       </div>}
-      <style>{'@keyframes fgBan{0%{transform:scale(2.2);opacity:0;filter:blur(6px)}18%{transform:scale(1);opacity:1;filter:blur(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.04)}}@keyframes fgPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}.fg-pad{background:radial-gradient(circle at 50% 35%,rgba(60,62,90,.75),rgba(10,10,20,.75));border:2px solid rgba(217,195,138,.55);box-shadow:0 4px 14px rgba(0,0,0,.5),inset 0 2px 6px rgba(255,255,255,.12);color:#f3e3b0;backdrop-filter:blur(6px)}.fg-btn{border:2px solid rgba(255,255,255,.35);box-shadow:0 5px 16px rgba(0,0,0,.55),inset 0 -6px 10px rgba(0,0,0,.35),inset 0 3px 6px rgba(255,255,255,.45);letter-spacing:.06em;text-shadow:0 1px 2px rgba(0,0,0,.45)}.fg-gold{background:radial-gradient(circle at 50% 30%,#fff1b8,#f1b52e 55%,#9a6410);color:#2b1703;text-shadow:none}.fg-pink{background:radial-gradient(circle at 50% 30%,#ffc1e6,#ff3fb4 55%,#8a0f5c);color:#fff}.fg-steel{background:radial-gradient(circle at 50% 30%,#d9e2f2,#6c7a96 55%,#262c3d);color:#fff}.fg-cyan{background:radial-gradient(circle at 50% 30%,#d8fbff,#34e8ff 55%,#0b6c86);color:#03222b;text-shadow:none}.fg-ready{box-shadow:0 0 26px #34e8ff,0 5px 16px rgba(0,0,0,.55);animation:fgGlow 1s ease-in-out infinite}@keyframes fgGlow{50%{transform:scale(1.07)}}'}</style>
+      <style>{'@keyframes fgBan{0%{transform:scale(2.2);opacity:0;filter:blur(6px)}18%{transform:scale(1);opacity:1;filter:blur(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.04)}}@keyframes fgPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}:root{--fg-c:#34E8FF;--fg-m:#FF3FB4;--fg-y:#FFD23F;--fg-ink:#0A0716}.fg-hp{flex:1;min-width:0;display:flex;flex-direction:column}.fg-hp-frame{position:relative;height:20px;clip-path:polygon(0 0,100% 0,calc(100% - 14px) 100%,0 100%);background:linear-gradient(180deg,rgba(20,14,40,.85),rgba(6,4,14,.9));box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);overflow:hidden}.fg-hp.is-r .fg-hp-frame{clip-path:polygon(0 0,100% 0,100% 100%,14px 100%)}.fg-hp-trail,.fg-hp-fill{position:absolute;top:2px;bottom:2px;left:2px;width:calc(var(--hp) - 4px)}.fg-hp.is-r .fg-hp-trail,.fg-hp.is-r .fg-hp-fill{left:auto;right:2px}.fg-hp-trail{background:var(--fg-y);transition:width .7s cubic-bezier(.3,.7,.2,1) .35s}.fg-hp-fill{background:linear-gradient(180deg,#fff 0%,var(--main) 38%,color-mix(in srgb,var(--main) 55%,#000) 100%);box-shadow:0 0 14px var(--main);transition:width .08s linear}.fg-hp-seg{position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(5% - 2px),rgba(6,4,14,.85) calc(5% - 2px) 5%)}.fg-hp-scan{position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);width:22%;animation:fgScan 2.6s linear infinite;mix-blend-mode:overlay}.fg-hp.is-r .fg-hp-scan{animation-direction:reverse}.fg-hp.is-low .fg-hp-fill{--main:#ff3b3b;animation:fgLow .5s steps(2) infinite}@keyframes fgScan{from{transform:translateX(-120%)}to{transform:translateX(560%)}}@keyframes fgLow{50%{opacity:.55}}.fg-hp-meta{display:flex;align-items:center;gap:8px;margin-top:4px;padding:0 2px}.fg-hp.is-r .fg-hp-meta{flex-direction:row-reverse}.fg-hp-name{font-family:Unbounded,system-ui,sans-serif;font-weight:800;font-size:13px;color:#fff;letter-spacing:.01em;text-shadow:0 0 10px var(--main),0 1px 2px #000}.fg-hp-wins{display:flex;gap:4px}.fg-hp.is-r .fg-hp-wins{flex-direction:row-reverse}.fg-hp-wins i{width:9px;height:9px;transform:rotate(45deg);border:1.5px solid rgba(255,255,255,.55);background:rgba(0,0,0,.4)}.fg-hp-wins i.on{background:var(--fg-y);border-color:var(--fg-y);box-shadow:0 0 10px var(--fg-y)}.fg-hp-meter{flex:1;max-width:140px;height:5px;background:rgba(0,0,0,.5);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12);overflow:hidden;display:flex}.fg-hp.is-r .fg-hp-meter{justify-content:flex-end}.fg-hp-meter b{display:block;height:100%;background:var(--main);opacity:.75}.fg-hp-meter b.full{opacity:1;box-shadow:0 0 10px var(--main);animation:fgLow .7s ease-in-out infinite}.fg-timer{flex-shrink:0;width:52px;height:44px;margin-top:-3px;display:grid;place-items:center;clip-path:polygon(18% 0,82% 0,100% 50%,82% 100%,18% 100%,0 50%);background:linear-gradient(180deg,rgba(52,232,255,.55),rgba(255,63,180,.55));padding:2px}.fg-timer span{width:100%;height:100%;display:grid;place-items:center;clip-path:inherit;background:radial-gradient(circle at 50% 30%,#1c1436,#07050f);font-family:Unbounded,system-ui,sans-serif;font-weight:800;font-size:19px;color:#fff;font-variant-numeric:tabular-nums}.fg-timer.is-hot span{color:#ff5a4a;animation:fgLow .5s steps(2) infinite}.fg-key{position:relative;display:grid;place-items:center;align-content:center;gap:1px;width:62px;height:62px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);color:#fff;font-family:Unbounded,system-ui,sans-serif;font-weight:700;font-size:10.5px;touch-action:none;user-select:none;transition:transform .06s,filter .06s;background:var(--kbg);box-shadow:inset 0 0 0 2px var(--kc)}.fg-key.is-big{width:80px;height:76px;font-size:11.5px}.fg-key svg{width:24px;height:24px}.fg-key.is-big svg{width:30px;height:30px}.fg-key::after{content:\"\";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 45%);pointer-events:none}.fg-key:active{transform:scale(.93);filter:brightness(1.35) drop-shadow(0 0 14px var(--kc))}.k-punch{--kc:var(--fg-y);--kbg:linear-gradient(180deg,rgba(255,210,63,.55),rgba(120,80,0,.6));color:#fff6d6}.k-kick{--kc:var(--fg-m);--kbg:linear-gradient(180deg,rgba(255,63,180,.55),rgba(110,10,70,.6))}.k-block{--kc:rgba(200,215,255,.8);--kbg:linear-gradient(180deg,rgba(150,165,210,.45),rgba(20,24,44,.7))}.k-spec{--kc:var(--fg-c);--kbg:linear-gradient(180deg,rgba(52,232,255,.5),rgba(4,70,90,.65))}.k-spec.is-off{opacity:.4;filter:saturate(.3)}.k-spec.is-ready{animation:fgReady 1s ease-in-out infinite}@keyframes fgReady{50%{filter:brightness(1.5) drop-shadow(0 0 16px var(--fg-c))}}.fg-cluster{display:grid;grid-template-columns:auto auto;gap:4px 2px;align-items:end;justify-items:center}.fg-cluster .k-spec{transform:translate(10px,8px)}.fg-cluster .k-block{transform:translate(-4px,8px)}.fg-rocker{display:flex;gap:2px;padding:4px;clip-path:polygon(12% 0,88% 0,100% 50%,88% 100%,12% 100%,0 50%);background:rgba(10,7,22,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}.fg-dir{--kc:rgba(52,232,255,.55);--kbg:linear-gradient(180deg,rgba(40,44,80,.7),rgba(10,8,24,.8));color:var(--fg-c)}@media (prefers-reduced-motion:reduce){.fg-hp-scan,.k-spec.is-ready,.fg-hp-meter b.full{animation:none}}'}</style>
 
       {/* управление */}
       {phase === 'fight' && (
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)', paddingLeft: 'calc(env(safe-area-inset-left,0px) + 18px)', paddingRight: 'calc(env(safe-area-inset-right,0px) + 18px)' }}>
-          <div className="flex gap-2.5 items-end">
-            <Btn b={IN_L} label="◀" cls="fg-pad text-[22px]" big />
-            <Btn b={IN_R} label="▶" cls="fg-pad text-[22px]" big />
+          <div className="fg-rocker">
+            <Btn b={IN_L} label="" icon="l" cls="fg-dir" big />
+            <Btn b={IN_R} label="" icon="r" cls="fg-dir" big />
           </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <Btn b={IN_S} label="СПЕЦ" cls={specReady ? 'fg-btn fg-cyan fg-ready' : 'fg-btn fg-cyan opacity-45'} />
-            <Btn b={IN_BLOCK} label="БЛОК" cls="fg-btn fg-steel" />
-            <Btn b={IN_K} label="НОГА" cls="fg-btn fg-pink" big />
-            <Btn b={IN_P} label="УДАР" cls="fg-btn fg-gold" big />
+          <div className="fg-cluster">
+            <Btn b={IN_S} label="Спец" icon="bolt" cls={`k-spec ${specReady ? 'is-ready' : 'is-off'}`} />
+            <Btn b={IN_BLOCK} label="Блок" icon="shield" cls="k-block" />
+            <Btn b={IN_K} label="Нога" icon="kick" cls="k-kick" big />
+            <Btn b={IN_P} label="Удар" icon="fist" cls="k-punch" big />
           </div>
         </div>
       )}
