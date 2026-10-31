@@ -232,10 +232,10 @@ export default function FightGame({ onClose }: Props) {
     api.current.start = async () => {
       sfx.init(); sfx.musicStart(); setRes(null)
       let seed = Math.floor(Math.random() * 2 ** 31)
-      let lv = ckpt.current
-      try { const r = await maskApi.fightStart(ckpt.current); fightId = r.fight_id; seed = r.seed; lv = r.lv ?? lv } catch { fightId = 0 }
+      let lv = ckpt.current, ez = 0
+      try { const r = await maskApi.fightStart(ckpt.current); fightId = r.fight_id; seed = r.seed; lv = r.lv ?? lv; ez = r.ez ? 1 : 0 } catch { fightId = 0 }
       if (!alive) return
-      sim = newSim(seed, lv); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
+      sim = newSim(seed, lv, ez); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
       running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
     }
     api.current.press = (b, d) => { inp = d ? (inp | b) : (inp & ~b) }
