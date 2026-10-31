@@ -244,7 +244,7 @@ export default function FightGame({ onClose, pvp }: Props) {
       sfx.init(); sfx.musicStart(); setRes(null)
       let seed = Math.floor(Math.random() * 2 ** 31)
       let lv = ckpt.current, ez = 0
-      try { const r = await maskApi.fightStart(ckpt.current); fightId = r.fight_id; seed = r.seed; lv = r.lv ?? lv; ez = r.ez ? 1 : 0 } catch { fightId = 0 }
+      try { const r = await maskApi.fightStart(ckpt.current); fightId = r.fight_id; seed = r.seed; lv = r.lv ?? lv; ez = r.ez ? 1 : 0 } catch (e) { fightId = 0; if ((e as { message?: string })?.message === 'daily_limit') { sfx.musicStop(0.5); const tgA = (window as any).Telegram?.WebApp; const m = 'На сегодня попытки закончились (99 в сутки). Новые — после полуночи по Москве.'; if (tgA?.showAlert) tgA.showAlert(m); else window.alert(m); return } }
       if (!alive) return
       sim = newSim(seed, lv, ez); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
       running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)

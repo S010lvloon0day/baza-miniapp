@@ -183,7 +183,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       sfx.init(); sfx.musicStart(); setRec(false)
       setRes(null); setScore(0)
       let seed = Math.floor(Math.random() * 1e9)
-      try { const r = await maskApi.runStart(); runId = r.run_id; seed = r.seed; if (r.target) setTarget(r.target) } catch { runId = 0 }
+      try { const r = await maskApi.runStart(); runId = r.run_id; seed = r.seed; if (r.target) setTarget(r.target) } catch (e) { runId = 0; if ((e as { message?: string })?.message === 'daily_limit') { sfx.musicStop(0.5); const tgA = (window as any).Telegram?.WebApp; const m = 'На сегодня попытки закончились (99 в сутки). Новые — после полуночи по Москве.'; if (tgA?.showAlert) tgA.showAlert(m); else window.alert(m); return } }
       reset(seed); setPhase('count')
       for (const c of ['3', '2', '1']) { setCount(c); sfx.ui('tick'); buzz('light'); await new Promise(r => setTimeout(r, 650)); if (!alive) return }
       setCount('Вперёд!'); sfx.ui('go'); buzz('heavy'); setTimeout(() => setCount(null), 600)
