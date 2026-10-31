@@ -18,15 +18,15 @@ const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
 const CLIP: Record<MoveId, string> = { jab: 'f_bjab', cross: 'f_bcross', hook: 'f_bhook', upper: 'f_upper', low: 'f_low', kick: 'f_mkick', round: 'f_mround', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
-  elbow: 'f_elbow', knee: 'f_knee', high: 'f_kick', spin: 'f_spin', cupper: 'f_cupper', sweep: 'f_csweep', jkick: 'f_jkick', jknee: 'f_jknee', cjab: 'f_cjab', ckick: 'f_ckick' }
+  elbow: 'f_hook', knee: 'f_knee', high: 'f_kick', spin: 'f_spin', cupper: 'f_cupper', sweep: 'f_csweep', jkick: 'f_jkick', jknee: 'f_jknee', cjab: 'f_cjab', ckick: 'f_ckick' }
 /** ключевые моменты клипов (секунды): начало замаха → момент удара → возврат в стойку.
  *  Подготовка удара в симуляции растягивается на [начало, удар], остальное — на [удар, возврат]: кулак/нога доходят до цели ровно в кадр попадания */
 const KEYS: Record<string, [number, number, number]> = {
-  f_jab: [0.5, 0.7, 0.95], f_cross: [0.92, 1.17, 1.45], f_hook: [0.25, 0.52, 0.95], f_upper: [0.25, 0.58, 0.95], f_kick: [0.33, 0.77, 1.3],
+  f_jab: [0.5, 0.7, 0.95], f_cross: [0.92, 1.17, 1.45], f_hook: [0.25, 0.52, 0.95], f_upper: [0.3, 0.52, 0.85], f_kick: [0.33, 0.77, 1.3],
   f_low: [0.4, 0.63, 1.1], f_round: [0.75, 1.12, 1.55], f_special: [0.12, 0.5, 1.8], f_combo: [0.62, 0.9, 2.05], f_elbow: [0.48, 0.67, 1.0],
-  f_knee: [0.48, 0.77, 1.2], f_spin: [0.75, 0.98, 1.38],
+  f_knee: [0.45, 0.65, 1.0], f_spin: [0.5, 0.95, 1.5],
   f_bjab: [0.28, 0.45, 0.8], f_bcross: [0.5, 0.68, 0.95], f_bhook: [0.28, 0.5, 0.95], f_bupperl: [0.4, 0.8, 1.2], f_bupperb: [0.42, 0.75, 1.2],
-  f_mkick: [0.55, 0.7, 0.92], f_mround: [0.55, 0.87, 1.08], f_bsweep: [0.3, 0.7, 1.3], f_csweep: [0.03, 0.4, 1.0], f_cupper: [0.03, 0.3, 0.95], f_ckick: [0.02, 0.2, 0.55], f_cjab: [0.02, 0.16, 0.5], f_sweep: [0.62, 0.9, 1.72], f_jkick: [0.18, 0.45, 0.9], f_jknee: [1.05, 1.35, 1.6],
+  f_mkick: [0.35, 0.7, 1.2], f_mround: [0.4, 0.75, 1.3], f_bsweep: [0.3, 0.7, 1.3], f_csweep: [0.03, 0.4, 1.0], f_cupper: [0.03, 0.3, 0.95], f_ckick: [0.02, 0.2, 0.55], f_cjab: [0.02, 0.16, 0.5], f_sweep: [0.62, 0.9, 1.72], f_jkick: [0.18, 0.45, 0.9], f_jknee: [0.7, 0.95, 1.2],
 }
 /** отрезки клипов для состояний с известной длительностью */
 const SEG: Record<string, [number, number]> = {
@@ -149,7 +149,7 @@ export default function FightGame({ onClose }: Props) {
         case 'fwd': return ['f_fwd', null, false]
         case 'back': return ['f_back', null, false]
         case 'dash': return ['f_fwd', null, false]
-        case 'crouch': return ['f_crouch', null, false]
+        case 'crouch': return ['f_crouchg', null, false]
         case 'cblock': return ['f_cblock2', 0.5, true]
         case 'block': return ['f_bblock', 0.3, true]
         case 'bstun': return f.cr ? ['f_cblock2', 0.5, true] : seg('f_bblock', 10)

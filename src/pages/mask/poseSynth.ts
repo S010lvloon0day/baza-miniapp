@@ -52,19 +52,34 @@ function applyPose(root: THREE.Object3D, p: Pose) {
   }
   root.updateMatrixWorld(true)
 }
-/** присед, правая нога вытянута вперёд под углом deg вниз от горизонтали (как в MK) */
-function legOut(root: THREE.Object3D, base: Pose, deg: number, bend: number): Pose {
+const findBone = (root: THREE.Object3D, n: string) => { let r: THREE.Object3D | null = null; root.traverse(o => { if (!r && (o as THREE.Bone).isBone && o.name.endsWith(n)) r = o }); return r as THREE.Object3D | null }
+/** нога из живого удара (мокап), пересаженная на присед: у бедра, голени и стопы сохраняется их поворот в мире,
+ *  поэтому колено гнётся естественно (не «ломается»), а нога бьёт вперёд, на соперника */
+function legWorld(root: THREE.Object3D, base: Pose, kick: Pose, deg?: number, straight = 0.7): Pose {
+  const names = ['RightUpLeg', 'RightLeg', 'RightFoot', 'RightToeBase']
+  applyPose(root, kick)
+  const rq = new THREE.Quaternion(); root.getWorldQuaternion(rq); const rqi = rq.clone().invert()
+  const want = names.map(n => { const b = findBone(root, n); if (!b) return null; const q = new THREE.Quaternion(); b.getWorldQuaternion(q); return rqi.clone().multiply(q) })
   applyPose(root, base)
-  const f = (n: string) => { let r: THREE.Object3D | null = null; root.traverse(o => { if (!r && (o as THREE.Bone).isBone && o.name.endsWith(n)) r = o }); return r as THREE.Object3D | null }
-  const ul = f('RightUpLeg'), lg = f('RightLeg'), ft = f('RightFoot')
-  if (!ul || !lg || !ft) return base
-  // направление задано в пространстве модели (вперёд = +Z), переводим в мир с учётом поворота модели
-  const wq = new THREE.Quaternion(); root.getWorldQuaternion(wq)
-  const r = deg * Math.PI / 180, dir = new THREE.Vector3(0, -Math.sin(r), Math.cos(r)).applyQuaternion(wq)
-  aimBone(ul, lg, dir)
-  aimBone(lg, ft, dir.clone().add(new THREE.Vector3(0, -bend, 0).applyQuaternion(wq)))
   const out: Pose = new Map(base)
-  for (const o of [ul, lg]) { const k = [...base.keys()].find(x => x === o.name + '.quaternion'); if (k) out.set(k, o.quaternion.toArray()) }
+  names.forEach((n, i) => {
+    const b = findBone(root, n), w = want[i]; if (!b || !w) return
+    const pq = new THREE.Quaternion(); b.parent!.getWorldQuaternion(pq)
+    b.quaternion.copy(rqi.clone().multiply(pq).invert().multiply(w)); b.updateMatrixWorld(true)
+    const k = b.name + '.quaternion'; if (base.has(k)) out.set(k, b.quaternion.toArray())
+  })
+  if (deg !== undefined) {   // довернуть всю ногу (колено сохраняет естественный изгиб), чтобы стопа ушла далеко вперёд у пола
+    const ul = findBone(root, 'RightUpLeg'), lg = findBone(root, 'RightLeg'), ft = findBone(root, 'RightFoot')
+    if (ul && lg && ft) {
+      const r = deg * Math.PI / 180, dir = new THREE.Vector3(0, -Math.sin(r), Math.cos(r)).applyQuaternion(rq)
+      // колено почти в струну: голень продолжает бедро с небольшим (как в MK) изгибом
+      const th = new THREE.Vector3().setFromMatrixPosition(lg.matrixWorld).sub(new THREE.Vector3().setFromMatrixPosition(ul.matrixWorld)).normalize()
+      const shin = new THREE.Vector3().setFromMatrixPosition(ft.matrixWorld).sub(new THREE.Vector3().setFromMatrixPosition(lg.matrixWorld)).normalize()
+      aimBone(lg, ft, th.clone().lerp(shin, 1 - straight).normalize())
+      aimBone(ul, ft, dir)
+      for (const b of [ul, lg]) { const k = b.name + '.quaternion'; if (base.has(k)) out.set(k, b.quaternion.toArray()) }
+    }
+  }
   return out
 }
 
@@ -72,23 +87,28 @@ export function synthClips(clips: THREE.AnimationClip[], root?: THREE.Object3D) 
   const C = Object.fromEntries(clips.map(c => [c.name, c]))
   const need = ['f_crouch', 'f_low', 'f_bblock', 'f_upper']
   if (!need.every(n => C[n])) return
-  const crouch = sample(C.f_crouch, 0.5)
+  // присед с нормальной стойкой рук (кулаки перед лицом), а не как в исходном клипе
+  const crouch0 = sample(C.f_crouch, 0.5)
+  const crouch = C.f_idle ? mix(crouch0, sample(C.f_idle, 0.3), (b: string) => !LEG.test(b) && !/Hips$/.test(b) && !/Spine$/.test(b)) : crouch0
+  clips.push(build('f_crouchg', [[0, crouch], [1, crouch]]))
   const upperBody = (b: string) => !LEG.test(b) && !/Hips$/.test(b)
   // подсечка из приседа: тело сидит, правая нога выстреливает вдоль пола и описывает круг
   if (root) {
-    const lk = (deg: number, bend: number) => legOut(root, crouch, deg, bend)
-    // удар ногой из приседа (присед + нога 1): нога выстреливает вперёд вдоль пола, колено в струну
-    clips.push(build('f_ckick', [[0, crouch], [0.08, lk(50, 0.9)], [0.18, lk(18, 0)], [0.3, lk(18, 0)], [0.55, crouch]]))
+    const lk = (t: number, deg?: number, st = 0.7) => legWorld(root, crouch, sample(C.f_low, t), deg, st)
+    // удар ногой из приседа (присед + нога 1): колено подтянуто → нога выстреливает далеко вперёд у пола → обратно
+    clips.push(build('f_ckick', [[0, crouch], [0.08, lk(0.52)], [0.18, lk(0.63, 14)], [0.3, lk(0.65, 14)], [0.42, lk(0.55)], [0.58, crouch]]))
     // подсечка (присед + нога 2): нога вытянута у самого пола, корпус делает полный оборот (вращает FightGame)
-    clips.push(build('f_csweep', [[0, crouch], [0.1, lk(40, 0.6)], [0.25, lk(26, 0.05)], [0.75, lk(26, 0.05)], [1.0, crouch]]))
+    clips.push(build('f_csweep', [[0, crouch], [0.1, lk(0.55)], [0.25, lk(0.64, 22, 0.95)], [0.75, lk(0.64, 22, 0.95)], [0.88, lk(0.55)], [1.0, crouch]]))
   }
   // тычок рукой из приседа: ноги сидят, руки — джеб
-  if (C.f_bjab) { const jb = (t: number) => mix(crouch, sample(C.f_bjab, t), (b: string) => !LEG.test(b) && !/Hips$/.test(b))
-    clips.push(build('f_cjab', [[0, crouch], [0.08, jb(0.35)], [0.16, jb(0.45)], [0.24, jb(0.47)], [0.5, crouch]])) }
+  const jsrc = C.f_bcross ?? C.f_bjab
+  if (jsrc) { const jb = (t: number) => mix(crouch, sample(jsrc, t), (b: string) => !LEG.test(b) && !/Hips$/.test(b))
+    const k = jsrc === C.f_bcross ? [0.55, 0.68] : [0.35, 0.45]
+    clips.push(build('f_cjab', [[0, crouch], [0.08, jb(k[0])], [0.16, jb(k[1])], [0.24, jb(k[1] + 0.02)], [0.5, crouch]])) }
   // блок в приседе: ноги из приседа, руки и корпус — высокий блок
   const cb = mix(crouch, sample(C.f_bblock, 0.3), upperBody)
   clips.push(build('f_cblock2', [[0, cb], [1, cb]]))
   // апперкот из приседа (как в MK): сидит → замах вниз → взрыв вверх с рукой над головой
   const up = (t: number) => sample(C.f_upper, t)
-  clips.push(build('f_cupper', [[0, crouch], [0.14, mix(crouch, up(0.45), upperBody)], [0.3, up(0.6)], [0.4, up(0.64)], [0.75, up(0.85)], [1.0, up(0.95)]]))
+  clips.push(build('f_cupper', [[0, crouch], [0.14, mix(crouch, up(0.45), upperBody)], [0.3, up(0.53)], [0.4, up(0.57)], [0.75, up(0.8)], [1.0, crouch]]))
 }
