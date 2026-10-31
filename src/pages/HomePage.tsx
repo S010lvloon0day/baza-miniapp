@@ -209,7 +209,7 @@ function MaskCard({ onOpen }: { onOpen: () => void }) {
       <span className="tile-violet w-[44px] h-[44px] shrink-0"><Icon name="mask" size={22} accent="#fff" /></span>
       <span className="flex-1 min-w-0">
         <span className="block font-display font-semibold text-[15px]">Сними маску</span>
-        <span className="block text-[12.5px] text-gray mt-0.5">Назови моё имя — первый получает приз</span>
+        <span className="block text-[12.5px] text-gray mt-0.5">Пройди испытания — первый получает приз</span>
       </span>
       <span className="gold-metal sheen rounded-full px-2.5 h-7 flex items-center text-[12px] font-semibold text-[#2B1A02] relative shrink-0"><span className="relative z-[1]">80 USDT</span></span>
     </button>

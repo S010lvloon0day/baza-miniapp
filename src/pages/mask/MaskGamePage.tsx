@@ -258,9 +258,9 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
               <div className="font-display font-semibold text-[16px]">Скоро старт</div>
               <span className="gold-metal sheen rounded-full px-2.5 h-7 flex items-center text-[12px] font-semibold text-[#2B1A02] relative shrink-0"><span className="relative z-[1]">Приз 80 USDT</span></span>
             </div>
-            <p className="text-[13.5px] text-gray mt-1.5">Кто под маской? Три испытания: забег, драка с двумя боссами и главное — назвать моё настоящее имя, фамилию и отчество. Первый, кто это сделает, увидит моё лицо и заберёт приз.</p>
+            <p className="text-[13.5px] text-gray mt-1.5">Кто под маской? Три испытания: забег, драка с двумя боссами и третье — сними маску и раскрой личность. Первый, кто пройдёт все три, увидит моё лицо и заберёт приз.</p>
             <div className="grid grid-cols-3 gap-2 mt-3">
-              {['Забег', 'Драка', 'ФИО'].map((t, i) => (
+              {['Забег', 'Драка', 'Личность'].map((t, i) => (
                 <div key={t} className="rounded-[14px] bg-white/[.05] border border-white/[.06] px-2 py-2.5 text-center">
                   <Icon name="lock" size={16} accent="#6E8478" />
                   <div className="text-[12.5px] mt-1">{i + 1}. {t}</div>
@@ -303,13 +303,13 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
                       <button onClick={() => setFightOpen(1)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Страж</button>
                       <button onClick={() => setFightOpen(2)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Призрак</button>
                     </span>),
-                  row(3, 'Назови моё имя', fin?.open ? (fin.premium === false ? 'приз — только для Premium-подписчиков' : 'фамилия, имя и отчество — полностью') : 'откроется после забега и драки', fin?.open ? 'open' : 'lock'),
+                  row(3, 'Сними маску и раскрой личность', fin?.open ? (fin.premium === false ? 'приз — только для Premium-подписчиков' : 'фамилия, имя и отчество — полностью') : 'откроется после забега и драки', fin?.open ? 'open' : 'lock'),
                   (fight?.open || s.is_admin) ? <button key="pvp" onClick={() => setLobby(true)} className="btn-secondary w-full h-10 rounded-[12px] text-[13.5px]">🥊 Бой с другом</button> : null,
                 ]
               })()}
             </div>
           </section>
-          <section className="card px-3.5 pt-3.5 pb-3">
+          {(s.tasks?.final?.open ?? s.tasks?.osint.open ?? false) && <section className="card px-3.5 pt-3.5 pb-3">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-display font-semibold text-[15px]">{r.title || 'Сними маску'}</div>
@@ -335,7 +335,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
               <div className="mt-3 rounded-[14px] bg-white/[.04] px-3.5 py-3 text-[13.5px] text-gray">Попытки на сегодня закончились. Новые через {fmtLeft(s.reset_in)}. Пока — разгадывай улики.</div>
             )}
             {note && <div className="text-[12.5px] text-gold mt-2">{note}</div>}
-          </section>
+          </section>}
         </>)}
 
         {s.is_admin && (
@@ -348,7 +348,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
         )}
 
         <div className="flex gap-1.5">
-          {!s.teaser && ([['clues', 'Улики'], ['board', 'Рейтинг недели'], ['feed', 'Попытки']] as const).map(([k, l]) => (
+          {!s.teaser && ([['clues', 'Улики'], ['board', 'Рейтинг недели'], ...((s.tasks?.final?.open ?? false) ? [['feed', 'Попытки']] : [])] as [typeof tab, string][]).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={`chip ${tab === k ? 'on' : ''}`}>{l}</button>
           ))}
         </div>
@@ -379,7 +379,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
           </section>
         )}
 
-        {!s.teaser && tab === 'feed' && (
+        {!s.teaser && tab === 'feed' && (s.tasks?.final?.open ?? false) && (
           <div className="list-group">
             {s.feed.length === 0 ? <div className="px-5 py-8 text-center text-[13.5px] text-gray">Пока никто не пробовал</div> : s.feed.map((f, i) => (
               <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
@@ -396,8 +396,8 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
         <details className="card px-3.5 py-3 text-[13px] text-gray">
           <summary className="text-[13.5px] text-fg font-medium cursor-pointer">Правила</summary>
           <ul className="mt-2 flex flex-col gap-1.5 list-disc pl-4">
-            <li>{s.tries_per_day} попытки в сутки, обновляются в 00:00 по Москве.</li>
-            <li>Приз получает первый, кто назовёт имя. Выплату проверяет и делает администратор вручную.</li>
+            <li>Забег и драка — до 99 попыток в сутки, обновляются в 00:00 по Москве.</li>
+            <li>Приз получает первый, кто пройдёт все три испытания. Выплату проверяет и делает администратор вручную.</li>
             <li>Улики дают подсказки и очки в рейтинг недели.</li>
             <li>Мультиаккаунты и подбор ботами — дисквалификация.</li>
           </ul>
