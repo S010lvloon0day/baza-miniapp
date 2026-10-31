@@ -339,10 +339,11 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
         </>)}
 
         {s.is_admin && (
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <button onClick={() => setRunOpen(true)} className="btn-primary w-full">Тест: забег</button>
-            <button onClick={() => setFightOpen(true)} className="btn-primary w-full">Тест: драка</button>
-            <p className="col-span-2 text-[11.5px] text-gray2 text-center -mt-0.5">кнопки видно только админу</p>
+            <button onClick={() => setFightOpen(1)} className="btn-primary w-full">Тест: Страж</button>
+            <button onClick={() => setFightOpen(2)} className="btn-primary w-full">Тест: Призрак</button>
+            <p className="col-span-3 text-[11.5px] text-gray2 text-center -mt-0.5">кнопки видно только админу</p>
           </div>
         )}
 
