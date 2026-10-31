@@ -37,7 +37,7 @@ interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string
 export default function FightGame({ onClose }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<'load' | 'ready' | 'fight' | 'end'>('load')
-  const [hud, setHud] = useState({ hp: [HP, HP], meter: [0, 0], wins: [0, 0], time: 60, round: 1, combo: 0 })
+  const [hud, setHud] = useState({ hp: [HP, HP], meter: [0, 0], wins: [0, 0], lv: 1, time: 60, round: 1, combo: 0 })
   const [banner, setBanner] = useState<{ k: number; text: string; sub?: string; tone?: 'gold' | 'red' | 'white' } | null>(null)
   const [res, setRes] = useState<{ done: boolean; win: boolean; flag?: string | null } | null>(null)
   const [loadPct, setLoadPct] = useState(0)
@@ -93,8 +93,9 @@ export default function FightGame({ onClose }: Props) {
     // бойцы
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
-    const rigs: (Rig | null)[] = [null, null]
-    const prog = [0, 0]
+    const rigs: (Rig | null)[] = [null, null, null]   // герой, страж, призрак (второй босс)
+    const prog = [0, 0, 0]
+    const pct = () => setLoadPct(Math.round((prog[0] + prog[1] + prog[2]) / 3 * 100))
     const load = (url: string, i: number) => gl.load(url, g => {
       if (!alive) return
       g.scene.traverse(o => { const m = o as THREE.Mesh; if (m.isMesh) { m.frustumCulled = false; m.castShadow = true } })
@@ -109,16 +110,18 @@ export default function FightGame({ onClose }: Props) {
         A[c.name] = mixer.clipAction(c)
       }
       rigs[i] = { root, mixer, A, cur: null, key: '', alt: 0 }
-      prog[i] = 1; setLoadPct(Math.round((prog[0] + prog[1]) * 50))
-      if (rigs[0] && rigs[1]) { setPhase('ready'); applyPose(true) }
-    }, e => { if (e.total) { prog[i] = e.loaded / e.total * 0.95; setLoadPct(Math.round((prog[0] + prog[1]) * 50)) } })
+      prog[i] = 1; pct(); if (i === 2) root.visible = false
+      if (rigs[0] && rigs[1] && rigs[2]) { setPhase('ready'); applyPose(true) }
+    }, e => { if (e.total) { prog[i] = e.loaded / e.total * 0.95; pct() } })
     load(BASE + 'mask/fight_hero.glb?v=' + MODEL_V, 0)
     load(BASE + 'mask/fight_boss.glb?v=' + MODEL_V, 1)
+    load(BASE + 'mask/fight_boss2.glb?v=' + MODEL_V, 2)
+    const rigOf = (i: number) => i === 0 ? rigs[0] : rigs[sim.lv === 2 ? 2 : 1]
 
     // ── симуляция
     let sim: Sim = newSim(1)
     let fightId = 0, running = false, acc = 0, inp = 0, log: InputLog = [], lastLogged = -1, combo = 0, comboT = 0, slow = 1, slowT = 0, shake = 0
-    let bk = 0
+    let bk = 0, b2T = -1e9
     const say = (text: string, sub?: string, tone?: 'gold' | 'red' | 'white', ms = 1300) => { const k = ++bk; setBanner({ k, text, sub, tone }); setTimeout(() => setBanner(b => b && b.k === k ? null : b), ms) }
 
     /** состояние бойца → клип; p — положение в клипе (секунды) или null, если клип просто крутится */
@@ -128,7 +131,7 @@ export default function FightGame({ onClose }: Props) {
       const seg = (n: string, len: number): [string, number, boolean] => { const g = SEG[n]; return [n, g[0] + (g[1] - g[0]) * Math.min(1, T / len), true] }
       switch (f.st) {
         case 'atk': {
-          const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenOf(i, f.mv!)
+          const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenOf(i, f.mv!, sim.lv)
           if (!k) return [n, null, true]
           const tt = T <= m.s ? k[0] + (k[1] - k[0]) * (T / m.s) : k[1] + (k[2] - k[1]) * Math.min(1, (T - m.s) / Math.max(1, len - m.s))
           return [n, tt, true]
@@ -140,7 +143,7 @@ export default function FightGame({ onClose }: Props) {
         case 'block': return ['f_sblock', null, false]
         case 'bstun': return f.cr ? ['f_crouch', null, false] : seg('f_blockhit', 10)
         case 'jump': { const g = SEG.f_jump, up = f.air ? Math.min(1, (JV - f.vy) / (2 * JV)) : 1; return ['f_jump', g[0] + (g[1] - g[0]) * up, true] }
-        case 'hit': return f.hitKind === 2 ? seg(rigs[i]!.alt ? 'f_hitup' : 'f_hitbig', 22) : seg(f.hitKind === 1 ? 'f_hitbody' : 'f_hit', 18)
+        case 'hit': return f.hitKind === 2 ? seg(rigOf(i)!.alt ? 'f_hitup' : 'f_hitbig', 22) : seg(f.hitKind === 1 ? 'f_hitbody' : 'f_hit', 18)
         case 'down': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 70)
         case 'up': return seg('f_getup', 50)
         case 'dodge': return seg('f_dodge', 24)
@@ -153,7 +156,8 @@ export default function FightGame({ onClose }: Props) {
     const applyPose = (force = false) => {
       const fr = Math.min(0.99, Math.max(0, acc))
       for (const i of [0, 1] as const) {
-        const r = rigs[i]; if (!r) continue
+        const r = rigOf(i); if (!r) continue
+        if (i === 1) { const o = rigs[sim.lv === 2 ? 1 : 2]; if (o) o.root.visible = false; r.root.visible = true }
         const f = sim.f[i]
         r.root.position.set(f.x / 100, f.y / 400, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
         const [name, pt, once] = want(f, i, running ? fr : 0)
@@ -192,14 +196,15 @@ export default function FightGame({ onClose }: Props) {
         else if (e.k === 'special') { sfx.special(); arena.flash(1); say(e.who === 0 ? 'СПЕЦПРИЁМ!' : 'ЯРОСТЬ СТРАЖА', undefined, 'gold', 900) }
         else if (e.k === 'time') say('ВРЕМЯ!', undefined, 'white', 1500)
         else if (e.k === 'start') { sfx.gong(); say('БОЙ!', undefined, 'gold', 800) }
-        else if (e.k === 'round') { const n = sim.wins[0] + sim.wins[1] + 1; setTimeout(() => { if (alive && running) say('РАУНД ' + n, n === 3 ? 'решающий' : undefined, 'white', 1600) }, 300) }
+        else if (e.k === 'boss2') { arena.flash(1); sfx.gong(); say('ВТОРОЙ БОСС', 'Призрак: его ещё никто не победил', 'red', 2600); b2T = performance.now(); for (const r of rigs) if (r) r.key = '' }
+        else if (e.k === 'round') { const n = sim.wins[0] + sim.wins[1] + 1; setTimeout(() => { if (alive && running) say('РАУНД ' + n, n === 3 ? 'решающий' : undefined, 'white', 1600) }, performance.now() - b2T < 500 ? 2900 : 300) }
       }
     }
 
     const finish = async () => {
       running = false
       const win = sim.over === 1
-      setTimeout(() => say(win ? 'ТЫ ПОБЕДИЛ' : 'ПОРАЖЕНИЕ', win ? 'страж повержен' : 'страж непобедим… пока', win ? 'gold' : 'red', 2600), 1200)
+      setTimeout(() => say(win ? 'ТЫ ПОБЕДИЛ' : 'ПОРАЖЕНИЕ', win ? 'оба босса повержены' : sim.lv === 2 ? 'призрак непобедим… пока' : 'страж непобедим… пока', win ? 'gold' : 'red', 2600), 1200)
       sfx.musicStop(2)
       setTimeout(() => setPhase('end'), 2600)
       try { const r = await maskApi.fightFinish(fightId, log, sim.tick); setRes({ done: r.done, win: r.win, flag: r.flag }) }
@@ -240,10 +245,10 @@ export default function FightGame({ onClose }: Props) {
         if (performance.now() - lastHud > 80) {
           lastHud = performance.now()
           if (comboT > 0) comboT -= 0.08; if (comboT <= 0) combo = 0
-          setHud({ hp: [sim.f[0].hp, sim.f[1].hp], meter: [sim.f[0].meter, sim.f[1].meter], wins: [...sim.wins], time: Math.ceil(sim.rt / TPS), round: sim.wins[0] + sim.wins[1] + 1, combo: combo > 1 ? combo : 0 })
+          setHud({ hp: [sim.f[0].hp, sim.f[1].hp], meter: [sim.f[0].meter, sim.f[1].meter], wins: [...sim.wins], lv: sim.lv, time: Math.ceil(sim.rt / TPS), round: sim.wins[0] + sim.wins[1] + 1, combo: combo > 1 ? combo : 0 })
         }
         sfx.musicIntensity(Math.min(1, (HP * 2 - sim.f[0].hp - sim.f[1].hp) / (HP * 1.3)))
-      } else if (rigs[0] && rigs[1] && !sim.over) applyPose()
+      } else if (rigs[0] && rigs[1] && rigs[2] && !sim.over) applyPose()
       for (const r of rigs) r?.mixer.update(dt)
       arena.update(rdt)
       for (const sp of sparks) if (sp.l > 0) { sp.l -= rdt; sp.v.y -= 9 * rdt; sp.s.position.addScaledVector(sp.v, rdt); (sp.s.material as THREE.SpriteMaterial).opacity = Math.min(1, sp.l * 4); if (sp.l <= 0) sp.s.visible = false }
@@ -357,7 +362,7 @@ export default function FightGame({ onClose }: Props) {
           <div className="flex items-start gap-1.5">
             <Health v={hud.hp[0]} name="ТЫ" wins={hud.wins[0]} meter={hud.meter[0]} hue="c" />
             <div className={`mk-timer ${hud.time <= 10 ? 'is-hot' : ''}`}><span>{hud.time}</span></div>
-            <Health v={hud.hp[1]} name="СТРАЖ" right wins={hud.wins[1]} meter={hud.meter[1]} hue="m" />
+            <Health v={hud.hp[1]} name={hud.lv === 2 ? "ПРИЗРАК" : "СТРАЖ"} right wins={hud.wins[1]} meter={hud.meter[1]} hue="m" />
           </div>
           {hud.combo > 1 && phase === 'fight' && <div key={hud.combo} className="mt-6 ml-2 font-display font-black italic text-[26px] text-gold" style={{ animation: 'fgPop .35s ease-out both', textShadow: '0 2px 0 #7a5212, 0 0 18px rgba(255,190,80,.6)' }}>{hud.combo} УДАРА</div>}
         </div>
@@ -404,8 +409,8 @@ export default function FightGame({ onClose }: Props) {
           <div className="glass rounded-[22px] p-4 text-center w-full max-w-[460px]">
             {phase === 'load' && <div className="py-3"><div className="text-[14px] text-gray mb-2">Загрузка арены… {loadPct}%</div><div className="h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-green" style={{ width: `${loadPct}%` }} /></div></div>}
             {phase === 'ready' && <>
-              <div className="font-display font-semibold text-[17px]">Победи стража</div>
-              <p className="text-[13px] text-gray mt-1.5">Бой до двух побед. Страж читает каждый удар — бей, когда он открылся после своей атаки.</p>
+              <div className="font-display font-semibold text-[17px]">Победи стража и призрака</div>
+              <p className="text-[13px] text-gray mt-1.5">Два босса подряд, каждый бой до двух побед. Страж читает каждый удар — бей, когда он открылся после атаки. Победишь его — выйдет Призрак, он ещё сильнее.</p>
               <div className="text-[12px] text-gray2 mt-2 text-left grid grid-cols-2 gap-x-3 gap-y-1">
                 <span>УДАР ×3 — серия руками</span><span>НОГА ×2 — серия ногами</span>
                 <span>▲ — прыжок, в прыжке УДАР / НОГА</span><span>▼ — присед: под верхние удары</span>

@@ -126,17 +126,17 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const sfx = snd.current
     let rand = rnd(1), nextZ = 30
     const speed = () => Math.min(model.v0 + model.a * t, model.vmax)
-    // сложность растёт всё время: d = 0 на старте → 1 к ~2,5 мин (и скорость при этом не останавливается)
+    // сложность растёт всё время: d = 0 на старте → 1 к ~1,5 мин (и скорость при этом не останавливается)
     const KN = 30   // нормировка «насколько быстро» для эффектов и музыки
     const spawn = () => {
       while (nextZ < dist + 90) {
-        const vv = speed(), d = Math.min(1, t / 150), lanes = [-1, 0, 1]
+        const vv = speed(), d = Math.min(1, t / 95), lanes = [-1, 0, 1]
         const pick = <T,>(a: T[]) => a[Math.floor(rand() * a.length)]
         const lk = (): Kind => rand() < 0.5 ? 'low' : 'high'
         const add = (l: number, k: Kind, dz = 0) => obs.push({ g: build(k), lane: l, z: nextZ + dz, kind: k })
         const free = pick(lanes)
         // веса узоров: простые уходят, сложные приходят
-        const w = [1.2 - d, 1, 0.8, 0.2 + d * 1.2, d * 1.1, d * 0.9]
+        const w = [1.1 - d * 1.1, 1, 0.8 - d * 0.3, 0.25 + d * 1.5, 0.1 + d * 1.6, d * 1.3, d * 1.2]
         let r = rand() * w.reduce((x, y) => x + y), p = 0
         while (r > w[p]) { r -= w[p]; p++ }
         let extra = 0
@@ -149,14 +149,19 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
           for (const l of lanes) if (l !== l1) add(l, 'wall')
           for (const l of lanes) if (l !== l2) add(l, 'wall', gap)
           extra = gap
+        } else if (p === 6) {                                                          // связка: низкий барьер, сразу за ним высокий — прыжок, в воздухе вниз
+          const gap = Math.max(7, vv * 0.45)
+          for (const l of lanes) add(l, 'low')
+          for (const l of lanes) add(l, 'high', gap)
+          extra = gap
         } else {                                                                       // коридор: длинный ряд контейнеров + барьеры в проходе
           const gap = Math.max(7, vv * 0.4)
           for (let i = 0; i < 3; i++) { for (const l of lanes) if (l !== free) add(l, 'wall', i * gap) }
           add(free, lk(), gap * 1.5); extra = gap * 2
         }
         // промежуток во времени сокращается: ~1,0 с на старте → ~0,6 с к концу
-        const react = Math.max(0.58, 1.0 - d * 0.42)
-        nextZ += extra + Math.max(10, vv * react) + rand() * vv * (0.45 - d * 0.2)
+        const react = Math.max(0.44, 0.95 - d * 0.51)
+        nextZ += extra + Math.max(10, vv * react) + rand() * vv * (0.35 - d * 0.27)
       }
     }
     const reset = (seed: number) => {

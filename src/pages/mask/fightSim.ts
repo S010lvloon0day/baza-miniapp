@@ -53,11 +53,17 @@ export interface F {
   dir: number; hitKind: number   // hitKind: 0 лёгкий, 1 в корпус, 2 сильный; при падении: 0 обычное, 3 подсечка, 4 апперкот
   y: number; vy: number; vx: number; air: number; cr: number; jat: number   // прыжок; cr — в приседе; jat — уже бил в этом прыжке
 }
-export interface Ev { k: 'hit' | 'block' | 'whiff' | 'kd' | 'ko' | 'round' | 'start' | 'special' | 'dodge' | 'time' | 'jump' | 'land'; who: 0 | 1; mv?: MoveId; dmg?: number }
+/** уровни стража: 1 — Страж (очень сложный), 2 — Призрак (почти непобедимый) */
+export const LV = [null,
+  { bm: 10, pm: 11, br: 220, bp: 850, rs: 1, cd: 6, cdl: 8, cdh: 16 },
+  { bm: 13, pm: 8, br: 450, bp: 955, rs: 2, cd: 3, cdl: 4, cdh: 8 },
+] as const
+export interface Ev { k: 'hit' | 'block' | 'whiff' | 'kd' | 'ko' | 'round' | 'start' | 'special' | 'dodge' | 'time' | 'jump' | 'land' | 'boss2'; who: 0 | 1; mv?: MoveId; dmg?: number }
 export interface Sim {
   tick: number; rt: number; round: number; wins: [number, number]; pause: number; over: number   // over: 0 идёт, 1 игрок победил, 2 страж
   f: [F, F]; rng: number; prevIn: number; buf: number; bufT: number; tapF: number
   ai: { cd: number; plan: number; read: number; rage: number }
+  lv: number; nextLv: number   // текущий страж и переход ко второму после победы над первым
   ev: Ev[]
 }
 
@@ -65,7 +71,7 @@ const mkF = (x: number, dir: number): F => ({ x, hp: HP, st: 'idle', t: 0, mv: n
 
 export function newSim(seed: number): Sim {
   return {
-    tick: 0, rt: ROUND_TICKS, round: 1, wins: [0, 0], pause: 120, over: 0,
+    tick: 0, rt: ROUND_TICKS, round: 1, wins: [0, 0], pause: 120, over: 0, lv: 1, nextLv: 0,
     f: [mkF(-START, 1), mkF(START, -1)], rng: (seed >>> 0) || 0x9e3779b9, prevIn: 0, buf: 0, bufT: 0, tapF: 0,
     ai: { cd: 40, plan: 0, read: 0, rage: 0 }, ev: [{ k: 'round', who: 0 }],
   }
@@ -77,7 +83,7 @@ const rnd = (s: Sim) => { let x = s.rng; x ^= (x << 13) >>> 0; x >>>= 0; x ^= x 
 const busy = (f: F) => f.st === 'atk' || f.st === 'dash' || f.st === 'hit' || f.st === 'bstun' || f.st === 'down' || f.st === 'up' || f.st === 'dodge' || f.st === 'ko' || f.st === 'win' || f.st === 'jump' || f.air === 1
 const moveLen = (m: MoveId) => MOVES[m].s + MOVES[m].a + MOVES[m].r
 /** длина удара у конкретного бойца: страж восстанавливается вдвое быстрее (его почти не наказать) */
-export const lenOf = (i: number, m: MoveId) => i === 1 ? MOVES[m].s + MOVES[m].a + (MOVES[m].r >> 1) : moveLen(m)
+export const lenOf = (i: number, m: MoveId, lv = 1) => i === 1 ? MOVES[m].s + MOVES[m].a + (MOVES[m].r >> LV[lv]!.rs) : moveLen(m)
 const low = (f: F) => f.st === 'crouch' || f.st === 'cblock' || ((f.st === 'atk' || f.st === 'bstun') && f.cr === 1)
 
 function startMove(s: Sim, i: 0 | 1, m: MoveId) {
@@ -96,6 +102,7 @@ function jump(s: Sim, i: 0 | 1, dirx: number) {
 }
 
 function resetRound(s: Sim) {
+  if (s.nextLv) { s.lv = s.nextLv; s.nextLv = 0; s.wins = [0, 0]; s.ev.push({ k: 'boss2', who: 1 }) }
   s.f = [mkF(-START, 1), mkF(START, -1)]; s.rt = ROUND_TICKS; s.pause = 120; s.ai.cd = 40; s.ai.plan = 0; s.buf = 0; s.bufT = 0
   s.ev.push({ k: 'round', who: 0 })
 }
@@ -104,7 +111,7 @@ function endRound(s: Sim, winner: 0 | 1) {
   s.wins[winner]++
   s.f[winner].st = 'win'; s.f[winner].t = 0
   if (s.f[1 - winner].st !== 'ko') { s.f[1 - winner].st = 'ko'; s.f[1 - winner].t = 0 }
-  if (s.wins[winner] >= WIN_ROUNDS) s.over = winner === 0 ? 1 : 2
+  if (s.wins[winner] >= WIN_ROUNDS) { if (winner === 0 && s.lv === 1) s.nextLv = 2; else s.over = winner === 0 ? 1 : 2 }
   s.pause = -180   // отрицательная пауза = заставка после раунда
 }
 
@@ -121,14 +128,15 @@ function damage(s: Sim, ai: 0 | 1, di: 0 | 1, mv: MoveId) {
   const A = s.f[ai], D = s.f[di], M = MOVES[mv]
   const boss = ai === 1
   // страж бьёт сильнее, игрок — слабее (по задумке страж почти непобедим)
-  let dmg = boss ? (M.dmg * 10) / 10 : (M.dmg * 11) / 10
+  const P = LV[s.lv]!
+  let dmg = boss ? (M.dmg * P.bm) / 10 : (M.dmg * P.pm) / 10
   dmg = Math.floor(dmg)
   const sBlock = D.st === 'block' || (D.st === 'bstun' && D.cr === 0)
   const cBlock = D.st === 'cblock' || (D.st === 'bstun' && D.cr === 1)
   const blocking = !D.air && ((sBlock && M.h !== 'L') || (cBlock && M.h !== 'O'))
   if (D.st === 'dodge' && D.t < 14) { s.ev.push({ k: 'dodge', who: di }); return }
   // страж «вырывается» из серии ударов
-  if (di === 1 && !blocking && !D.air && (mv === 'cross' || mv === 'hook' || mv === 'upper') && rnd(s) < 220) {
+  if (di === 1 && !blocking && !D.air && (mv === 'cross' || mv === 'hook' || mv === 'upper') && rnd(s) < P.br) {
     D.st = 'dodge'; D.t = 0; D.cr = 0; s.ev.push({ k: 'dodge', who: 1 }); return
   }
   if (blocking && mv !== 'special' && mv !== 'throw') {
@@ -179,7 +187,7 @@ function stepFighter(s: Sim, i: 0 | 1) {
     }
     if (f.st === 'atk' && f.mv) {
       if (f.t === M.s + M.a && !f.hitDone && f.mv !== 'combo') s.ev.push({ k: 'whiff', who: i, mv: f.mv })
-      if (f.t >= lenOf(i, f.mv)) {
+      if (f.t >= lenOf(i, f.mv, s.lv)) {
         if (f.air) { f.st = 'jump'; f.mv = null }                  // удар в прыжке кончился — долетаем
         else { f.st = f.cr ? 'crouch' : 'idle'; f.t = 0; f.mv = null }
       }
@@ -293,7 +301,7 @@ function boss(s: Sim) {
   // защита: видит подготовку удара игрока и ставит нужный блок
   if (p.st === 'atk' && p.mv && !p.air && p.t <= MOVES[p.mv].s + 1 && dist <= MOVES[p.mv].reach + 30) {
     const r = rnd(s), M = MOVES[p.mv]
-    const blockP = 850 + ai.rage * 50       // ~88–93 % защита
+    const blockP = LV[s.lv]!.bp + ai.rage * 30       // страж ~88–91 %, призрак ~96–98 %
     if (r < blockP) {
       if (M.h === 'L') { f.st = 'cblock'; f.cr = 1 }
       else if (M.h === 'H' && r < 300) { f.st = 'crouch'; f.cr = 1 }   // подныривает под верхний удар
@@ -337,7 +345,7 @@ function boss(s: Sim) {
   } else {
     if (r < 350) startMove(s, 1, 'round'); else if (r < 550) startMove(s, 1, 'high'); else { f.st = 'fwd'; f.x += f.dir * 8 }
   }
-  ai.cd = 6 + (rnd(s) % (lowHp ? 8 : 16))
+  ai.cd = LV[s.lv]!.cd + (rnd(s) % (lowHp ? LV[s.lv]!.cdl : LV[s.lv]!.cdh))
 }
 
 /** один тик симуляции; inp — кнопки игрока на этом тике */
@@ -359,7 +367,7 @@ export function step(s: Sim, inp: number) {
 
 /** запись нажатий: [тик, маска] при каждом изменении */
 export type InputLog = [number, number][]
-export function replay(seed: number, log: InputLog, maxTicks = 60 * 60 * 8): Sim {
+export function replay(seed: number, log: InputLog, maxTicks = 60 * 60 * 16): Sim {
   const s = newSim(seed); let li = 0, cur = 0
   while (!s.over && s.tick < maxTicks) { while (li < log.length && log[li][0] <= s.tick) { cur = log[li][1]; li++ } step(s, cur) }
   return s
