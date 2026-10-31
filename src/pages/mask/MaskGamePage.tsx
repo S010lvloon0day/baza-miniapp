@@ -7,6 +7,7 @@ import type { StageHandle } from './MaskStage'
 
 const MaskStage = lazy(() => import('./MaskStage'))
 const RunnerGame = lazy(() => import('./RunnerGame'))
+const FightGame = lazy(() => import('./FightGame'))
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const haptic = (t: 'error' | 'success' | 'warning') => { try { tg?.HapticFeedback?.notificationOccurred(t) } catch { /* */ } }
@@ -133,6 +134,7 @@ export default function MaskGamePage() {
   const [revealedNow, setRevealedNow] = useState(false)
   const [note, setNote] = useState('')
   const [runOpen, setRunOpen] = useState(false)
+  const [fightOpen, setFightOpen] = useState(false)
   const stage = useRef<StageHandle>(null)
   const voice = useVoice()
   const greeted = useRef(false)
@@ -199,6 +201,11 @@ export default function MaskGamePage() {
             onClose={() => { setRunOpen(false); load() }} />
         </Suspense>
       )}
+      {fightOpen && (
+        <Suspense fallback={null}>
+          <FightGame onClose={() => { setFightOpen(false); load() }} />
+        </Suspense>
+      )}
       {/* Сцена */}
       <div className="relative w-full" style={{ height: 'min(62vh, 560px)', background: 'radial-gradient(80% 70% at 50% 38%, rgba(118,87,255,.22), transparent 70%), radial-gradient(70% 50% at 50% 100%, rgba(23,229,132,.14), transparent 70%), #08100D' }}>
         <Suspense fallback={null}>
@@ -231,9 +238,9 @@ export default function MaskGamePage() {
               <div className="font-display font-semibold text-[16px]">Скоро старт</div>
               <span className="gold-metal sheen rounded-full px-2.5 h-7 flex items-center text-[12px] font-semibold text-[#2B1A02] relative shrink-0"><span className="relative z-[1]">Приз 80 USDT</span></span>
             </div>
-            <p className="text-[13.5px] text-gray mt-1.5">Кто под маской? Три испытания — и первый, кто пройдёт их все, снимет маску и заберёт приз.</p>
+            <p className="text-[13.5px] text-gray mt-1.5">Кто под маской? Три испытания: забег, драка со стражем и шифр. Первый, кто пройдёт их все, снимет маску и заберёт приз.</p>
             <div className="grid grid-cols-3 gap-2 mt-3">
-              {['Забег', 'Шифр', '???'].map((t, i) => (
+              {['Забег', 'Драка', 'Шифр'].map((t, i) => (
                 <div key={t} className="rounded-[14px] bg-white/[.05] border border-white/[.06] px-2 py-2.5 text-center">
                   <Icon name="lock" size={16} accent="#6E8478" />
                   <div className="text-[12.5px] mt-1">{i + 1}. {t}</div>
@@ -278,7 +285,11 @@ export default function MaskGamePage() {
         )}
 
         {s.is_admin && (
-          <button onClick={() => setRunOpen(true)} className="btn-primary w-full">Тест: забег (видно только админу)</button>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => setRunOpen(true)} className="btn-primary w-full">Тест: забег</button>
+            <button onClick={() => setFightOpen(true)} className="btn-primary w-full">Тест: драка</button>
+            <p className="col-span-2 text-[11.5px] text-gray2 text-center -mt-0.5">кнопки видно только админу</p>
+          </div>
         )}
 
         <div className="flex gap-1.5">
