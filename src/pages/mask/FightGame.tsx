@@ -8,7 +8,7 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { maskApi } from '../../api/mask'
 import { buildArena } from './fightWorld'
 import { createRunnerSound } from './runnerSound'
-import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S } from './fightSim'
+import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S, IN_U, IN_D, JV, GRAV, lenOf } from './fightSim'
 import type { Sim, InputLog, MoveId, F } from './fightSim'
 
 /** Задание 2: драка со стражем. Бой считает fightSim (то же на сервере), здесь — картинка, звук и управление. */
@@ -16,9 +16,23 @@ interface Props { onClose: (done: boolean) => void }
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
-const CLIP: Record<MoveId, string> = { jab: 'f_jab', cross: 'f_cross', hook: 'f_hook', upper: 'f_upper', low: 'f_low', kick: 'f_kick', round: 'f_round', special: 'f_special', combo: 'f_combo', throw: 'f_upper' }
+const CLIP: Record<MoveId, string> = { jab: 'f_jab', cross: 'f_cross', hook: 'f_hook', upper: 'f_upper', low: 'f_low', kick: 'f_kick', round: 'f_round', special: 'f_special', combo: 'f_combo', throw: 'f_upper',
+  elbow: 'f_elbow', knee: 'f_knee', high: 'f_kick', spin: 'f_spin', cupper: 'f_upper', sweep: 'f_sweep', jkick: 'f_jkick', jknee: 'f_jknee' }
+/** ключевые моменты клипов (секунды): начало замаха → момент удара → возврат в стойку.
+ *  Подготовка удара в симуляции растягивается на [начало, удар], остальное — на [удар, возврат]: кулак/нога доходят до цели ровно в кадр попадания */
+const KEYS: Record<string, [number, number, number]> = {
+  f_jab: [0.5, 0.7, 0.95], f_cross: [0.92, 1.17, 1.45], f_hook: [0.25, 0.52, 0.95], f_upper: [0.25, 0.58, 0.95], f_kick: [0.33, 0.77, 1.3],
+  f_low: [0.4, 0.63, 1.1], f_round: [0.75, 1.12, 1.55], f_special: [0.12, 0.5, 1.8], f_combo: [0.62, 0.9, 2.05], f_elbow: [0.48, 0.67, 1.0],
+  f_knee: [0.48, 0.77, 1.2], f_spin: [0.75, 0.98, 1.38], f_sweep: [0.62, 0.9, 1.72], f_jkick: [0.18, 0.45, 0.9], f_jknee: [1.05, 1.35, 1.6],
+}
+/** отрезки клипов для состояний с известной длительностью */
+const SEG: Record<string, [number, number]> = {
+  f_jump: [0.72, 1.42], f_ko: [1.05, 3.2], f_sweepfall: [0.75, 2.3], f_getup: [4.0, 5.7], f_blockhit: [0.05, 0.6], f_dodge: [0.9, 2.2],
+  f_hit: [0, 1.0], f_hitbig: [0, 1.2], f_hitbody: [0, 1.0], f_hitup: [0.1, 1.5],
+}
+const AIR_CLIPS = /^f_(jump|jkick|jknee)$/
 
-interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string, THREE.AnimationAction>; cur: THREE.AnimationAction | null; key: string }
+interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string, THREE.AnimationAction>; cur: THREE.AnimationAction | null; key: string; alt: number }
 
 export default function FightGame({ onClose }: Props) {
   const host = useRef<HTMLDivElement>(null)
@@ -30,7 +44,8 @@ export default function FightGame({ onClose }: Props) {
   const snd = useRef(createRunnerSound({ fight: true }))
   const [muted, setMuted] = useState(snd.current.muted)
   const [music, setMusic] = useState(snd.current.musicOn)
-  const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {} })
+  const padRef = useRef(0)
+  const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {}, dir: (_m: number) => {} })
   // на телефоне играем только горизонтально
   const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const [portrait, setPortrait] = useState(() => window.innerHeight > window.innerWidth)
@@ -88,11 +103,12 @@ export default function FightGame({ onClose }: Props) {
       for (const c of g.animations) {
         for (const t of c.tracks) if (/Hips\.position$/.test(t.name)) {   // убрать уход таза в сторону: позицию задаёт симуляция
           const v = t.values; const up = [0, 1, 2].reduce((a, b) => Math.abs(v[b]) > Math.abs(v[a]) ? b : a, 0); const r0 = [v[0], v[1], v[2]]
-          for (let k = 0; k < v.length; k += 3) for (let j = 0; j < 3; j++) if (j !== up) v[k + j] = r0[j]
+          const air = AIR_CLIPS.test(c.name)   // в прыжке высоту задаёт симуляция
+          for (let k = 0; k < v.length; k += 3) for (let j = 0; j < 3; j++) if (j !== up || air) v[k + j] = r0[j]
         }
         A[c.name] = mixer.clipAction(c)
       }
-      rigs[i] = { root, mixer, A, cur: null, key: '' }
+      rigs[i] = { root, mixer, A, cur: null, key: '', alt: 0 }
       prog[i] = 1; setLoadPct(Math.round((prog[0] + prog[1]) * 50))
       if (rigs[0] && rigs[1]) { setPhase('ready'); applyPose(true) }
     }, e => { if (e.total) { prog[i] = e.loaded / e.total * 0.95; setLoadPct(Math.round((prog[0] + prog[1]) * 50)) } })
@@ -105,46 +121,61 @@ export default function FightGame({ onClose }: Props) {
     let bk = 0
     const say = (text: string, sub?: string, tone?: 'gold' | 'red' | 'white', ms = 1300) => { const k = ++bk; setBanner({ k, text, sub, tone }); setTimeout(() => setBanner(b => b && b.k === k ? null : b), ms) }
 
-    /** состояние бойца → клип и его скорость */
-    const want = (f: F, i: number): [string, number, boolean, number?] => {
+    /** состояние бойца → клип; p — положение в клипе (секунды) или null, если клип просто крутится */
+    const AIRT = Math.round(2 * JV / GRAV)
+    const want = (f: F, i: number, fr: number): [string, number | null, boolean] => {
+      const T = f.t + fr
+      const seg = (n: string, len: number): [string, number, boolean] => { const g = SEG[n]; return [n, g[0] + (g[1] - g[0]) * Math.min(1, T / len), true] }
       switch (f.st) {
-        case 'atk': { const m = MOVES[f.mv!]; return [CLIP[f.mv!], (m.s + m.a + m.r) / TPS, true] }
-        case 'fwd': return ['f_fwd', 0, false]
-        case 'back': return ['f_back', 0, false]
-        case 'dash': return ['f_fwd', 0.35, true]
-        case 'block': case 'bstun': return ['f_block', 0, false, 0.32]
-        case 'hit': return [f.hitKind === 2 ? 'f_hitbig' : f.hitKind === 1 ? 'f_hitbody' : 'f_hit', f.hitKind === 2 ? 22 / TPS : 18 / TPS, true]
-        case 'down': return ['f_ko', 70 / TPS * 1.6, true]
-        case 'up': return ['f_getup', 50 / TPS, true]
-        case 'dodge': return ['f_dodge', 24 / TPS, true]
-        case 'ko': return ['f_ko', 2.4, true]
-        case 'win': return [i === 1 ? 'f_taunt' : 'f_win', 0, false]
-        default: return ['f_idle', 0, false]
+        case 'atk': {
+          const m = MOVES[f.mv!], n = CLIP[f.mv!], k = KEYS[n], len = lenOf(i, f.mv!)
+          if (!k) return [n, null, true]
+          const tt = T <= m.s ? k[0] + (k[1] - k[0]) * (T / m.s) : k[1] + (k[2] - k[1]) * Math.min(1, (T - m.s) / Math.max(1, len - m.s))
+          return [n, tt, true]
+        }
+        case 'fwd': return ['f_fwd', null, false]
+        case 'back': return ['f_back', null, false]
+        case 'dash': return ['f_fwd', null, false]
+        case 'crouch': case 'cblock': return ['f_crouch', null, false]
+        case 'block': return ['f_sblock', null, false]
+        case 'bstun': return f.cr ? ['f_crouch', null, false] : seg('f_blockhit', 10)
+        case 'jump': { const g = SEG.f_jump, up = f.air ? Math.min(1, (JV - f.vy) / (2 * JV)) : 1; return ['f_jump', g[0] + (g[1] - g[0]) * up, true] }
+        case 'hit': return f.hitKind === 2 ? seg(rigs[i]!.alt ? 'f_hitup' : 'f_hitbig', 22) : seg(f.hitKind === 1 ? 'f_hitbody' : 'f_hit', 18)
+        case 'down': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 70)
+        case 'up': return seg('f_getup', 50)
+        case 'dodge': return seg('f_dodge', 24)
+        case 'ko': return seg(f.hitKind === 3 ? 'f_sweepfall' : 'f_ko', 90)
+        case 'win': return [i === 1 ? 'f_taunt' : 'f_win', null, false]
+        default: return ['f_idle', null, false]
       }
     }
+    void AIRT
     const applyPose = (force = false) => {
+      const fr = Math.min(0.99, Math.max(0, acc))
       for (const i of [0, 1] as const) {
         const r = rigs[i]; if (!r) continue
         const f = sim.f[i]
-        r.root.position.set(f.x / 100, 0, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
-        const [name, dur, once, hold] = want(f, i)
+        r.root.position.set(f.x / 100, f.y / 400, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
+        const [name, pt, once] = want(f, i, running ? fr : 0)
         const k = `${name}:${f.st}:${f.mv || ''}:${once ? sim.tick - f.t : 0}`
-        if (k === r.key && !force) continue
-        r.key = k
         const a = r.A[name]; if (!a) continue
-        const prev = r.cur
-        a.reset(); a.enabled = true
-        a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once
-        a.timeScale = dur ? Math.max(0.5, Math.min(3, a.getClip().duration / dur)) : 1
-        if (hold !== undefined) { a.time = a.getClip().duration * hold; a.timeScale = 0 }
-        a.play(); if (prev && prev !== a) prev.crossFadeTo(a, f.st === 'atk' ? 0.06 : 0.12, false); r.cur = a
+        if (k !== r.key || force) {
+          if (f.st === 'hit' && k !== r.key) r.alt ^= 1
+          r.key = k
+          const prev = r.cur
+          a.reset(); a.enabled = true
+          a.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity); a.clampWhenFinished = once
+          a.timeScale = pt === null ? 1 : 0
+          a.play(); if (prev && prev !== a) prev.crossFadeTo(a, f.st === 'atk' ? 0.07 : f.st === 'crouch' || f.st === 'cblock' ? 0.1 : 0.14, false); r.cur = a
+        }
+        if (pt !== null) a.time = Math.min(a.getClip().duration - 0.001, Math.max(0, pt))
       }
     }
 
     const handleEvents = () => {
       for (const e of sim.ev) {
         const tgt = sim.f[e.who], src = sim.f[1 - e.who]
-        const hp = new THREE.Vector3((tgt.x + (src.x - tgt.x) * 0.35) / 100, e.mv === 'low' ? 0.6 : e.mv === 'kick' || e.mv === 'round' ? 1.2 : 1.45, 0)
+        const hp = new THREE.Vector3((tgt.x + (src.x - tgt.x) * 0.35) / 100, e.mv === 'low' || e.mv === 'sweep' ? 0.35 : e.mv === 'kick' || e.mv === 'round' || e.mv === 'spin' || e.mv === 'knee' ? 1.15 : e.mv === 'jkick' || e.mv === 'jknee' ? 1.3 : 1.45, 0)
         const pan = Math.max(-0.8, Math.min(0.8, tgt.x / 400))
         if (e.k === 'hit' || e.k === 'kd' || e.k === 'ko') {
           const heavy = e.k !== 'hit' || (e.dmg || 0) > 90
@@ -156,6 +187,8 @@ export default function FightGame({ onClose }: Props) {
         } else if (e.k === 'block') { sfx.block(pan); burst(hp, 5, 0x7fe8ff, 0.7); shake = Math.max(shake, 0.02); buzz('light') }
         else if (e.k === 'whiff') sfx.whoosh(['round', 'kick', 'special', 'upper'].includes(e.mv || ''))
         else if (e.k === 'dodge') sfx.whoosh(false)
+        else if (e.k === 'jump') sfx.jump()
+        else if (e.k === 'land') sfx.land()
         else if (e.k === 'special') { sfx.special(); arena.flash(1); say(e.who === 0 ? 'СПЕЦПРИЁМ!' : 'ЯРОСТЬ СТРАЖА', undefined, 'gold', 900) }
         else if (e.k === 'time') say('ВРЕМЯ!', undefined, 'white', 1500)
         else if (e.k === 'start') { sfx.gong(); say('БОЙ!', undefined, 'gold', 800) }
@@ -178,10 +211,11 @@ export default function FightGame({ onClose }: Props) {
       let seed = Math.floor(Math.random() * 2 ** 31)
       try { const r = await maskApi.fightStart(); fightId = r.fight_id; seed = r.seed } catch { fightId = 0 }
       if (!alive) return
-      sim = newSim(seed); log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
+      sim = newSim(seed); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
       running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
     }
     api.current.press = (b, d) => { inp = d ? (inp | b) : (inp & ~b) }
+    api.current.dir = m => { inp = (inp & ~(IN_L | IN_R | IN_U | IN_D)) | m }
 
     const fit = () => { const w = el.clientWidth || 1, h = el.clientHeight || 1; R.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix() }
     const ro = new ResizeObserver(fit); ro.observe(el); fit()
@@ -231,7 +265,7 @@ export default function FightGame({ onClose }: Props) {
     tick()
 
     // клавиатура
-    const KM: Record<string, number> = { ArrowLeft: IN_L, KeyA: IN_L, ArrowRight: IN_R, KeyD: IN_R, ArrowDown: IN_BLOCK, KeyS: IN_BLOCK, ShiftLeft: IN_BLOCK, KeyJ: IN_P, KeyK: IN_K, KeyL: IN_S, Space: IN_S }
+    const KM: Record<string, number> = { ArrowLeft: IN_L, KeyA: IN_L, ArrowRight: IN_R, KeyD: IN_R, ArrowUp: IN_U, KeyW: IN_U, ArrowDown: IN_D, KeyS: IN_D, ShiftLeft: IN_BLOCK, KeyI: IN_BLOCK, KeyJ: IN_P, KeyK: IN_K, KeyL: IN_S, Space: IN_S }
     const kd = (e: KeyboardEvent) => { const b = KM[e.code]; if (b) { e.preventDefault(); inp |= b } }
     const ku = (e: KeyboardEvent) => { const b = KM[e.code]; if (b) { e.preventDefault(); inp &= ~b } }
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku)
@@ -291,6 +325,27 @@ export default function FightGame({ onClose }: Props) {
     </svg>
   )
   const specReady = hud.meter[0] >= 1000
+  /** крестовина: одним пальцем 8 направлений (вверх — прыжок, вниз — присед), можно скользить не отрывая */
+  const DPad = () => {
+    const upd = (e: React.PointerEvent<HTMLDivElement>, on: boolean) => {
+      const el = e.currentTarget, r = el.getBoundingClientRect(), dx = (e.clientX - r.left) / r.width - 0.5, dy = (e.clientY - r.top) / r.height - 0.5
+      let m = 0
+      if (on) { if (dx < -0.16) m |= IN_L; if (dx > 0.16) m |= IN_R; if (dy < -0.16) m |= IN_U; if (dy > 0.16) m |= IN_D }
+      const d = padRef.current
+      if (m !== d) {
+        padRef.current = m; api.current.dir(m); if (m & ~d) buzz('light')
+        el.querySelectorAll<HTMLElement>('.fg-pad-a').forEach(n => n.classList.toggle('on', !!(m & Number(n.dataset.b))))
+      }
+    }
+    const arm = (b: number, cls: string, path: string) => <span data-b={b} className={`fg-pad-a ${cls}`}><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d={path} /></svg></span>
+    return (
+      <div className="fg-pad" onPointerDown={e => { e.preventDefault(); e.currentTarget.setPointerCapture?.(e.pointerId); upd(e, true) }}
+        onPointerMove={e => { if (padRef.current || e.buttons) upd(e, true) }} onPointerUp={e => upd(e, false)} onPointerCancel={e => upd(e, false)}>
+        {arm(IN_U, 'u', 'M5 15l7-7 7 7')}{arm(IN_L, 'l', 'M15 5l-7 7 7 7')}{arm(IN_R, 'r', 'M9 5l7 7-7 7')}{arm(IN_D, 'd', 'M5 9l7 7 7-7')}
+        <i className="fg-pad-c" />
+      </div>
+    )
+  }
 
   return createPortal(
     <div className="fixed inset-0 bg-black select-none" style={{ zIndex: 1000, touchAction: 'none' }}>
@@ -318,15 +373,12 @@ export default function FightGame({ onClose }: Props) {
         <div className="font-display font-black italic text-[58px] leading-none tracking-wide" style={{ animation: 'fgBan 1.3s ease-out both', background: banner.tone === 'red' ? 'linear-gradient(180deg,#ffd0c4,#ff3b2f 45%,#7a0d0d)' : banner.tone === 'gold' ? 'linear-gradient(180deg,#fff6d0,#f1c24a 45%,#8a5a12)' : 'linear-gradient(180deg,#ffffff,#c9d4e8 50%,#5a6a88)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(0,0,0,.6))' }}>{banner.text}</div>
         {banner.sub && <div className="mt-2 text-[15px] text-white/80">{banner.sub}</div>}
       </div>}
-      <style>{'@keyframes fgBan{0%{transform:scale(2.2);opacity:0;filter:blur(6px)}18%{transform:scale(1);opacity:1;filter:blur(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.04)}}@keyframes fgPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}:root{--fg-c:#34E8FF;--fg-m:#FF3FB4;--fg-y:#FFD23F;--fg-ink:#0A0716}.mk-side{flex:1;min-width:0;display:flex;align-items:flex-start;gap:6px}.mk-side.is-r{flex-direction:row-reverse}.mk-col{flex:1;min-width:0;display:flex;flex-direction:column}.mk-medal{flex-shrink:0;width:40px;height:40px;border-radius:50%;padding:2px;margin-top:-2px;background:conic-gradient(from 210deg,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2);box-shadow:0 3px 10px rgba(0,0,0,.7)}.mk-medal span{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#4a4652,#16141a 70%);color:#e8d28f;box-shadow:inset 0 2px 4px rgba(255,255,255,.15),inset 0 -3px 6px rgba(0,0,0,.6)}.mk-bar{position:relative;height:22px;padding:2px;clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,0 100%);background:linear-gradient(180deg,#e9d18a 0,#7b5f27 2px,#3a3d46 3px,#1b1c22 55%,#0c0c10 100%)}.mk-side.is-r .mk-bar{clip-path:polygon(0 0,100% 0,100% 100%,16px 100%)}.mk-well{position:relative;height:100%;clip-path:inherit;background:linear-gradient(180deg,#2a0608,#120203);box-shadow:inset 0 2px 4px rgba(0,0,0,.8)}.mk-trail,.mk-fill{position:absolute;top:0;bottom:0;left:0;width:var(--hp)}.mk-side.is-r .mk-trail,.mk-side.is-r .mk-fill{left:auto;right:0}.mk-trail{background:linear-gradient(180deg,#ff6a5a,#c4121c 55%,#6e0408);transition:width .9s cubic-bezier(.3,.7,.2,1) .45s}.mk-fill{background:linear-gradient(180deg,#fffbe0 0%,#ffe36a 18%,#ffc21f 48%,#e58a06 78%,#9c5300 100%);box-shadow:2px 0 8px rgba(255,190,40,.55);transition:width .09s linear}.mk-side.is-r .mk-fill{box-shadow:-2px 0 8px rgba(255,190,40,.55)}.mk-gloss{position:absolute;left:0;right:0;top:0;height:42%;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0));pointer-events:none}.mk-side.is-low .mk-fill{background:linear-gradient(180deg,#ffe0d8 0%,#ff7a5a 22%,#e8321f 55%,#8a0a0a 100%);animation:mkPulse .6s ease-in-out infinite}@keyframes mkPulse{50%{filter:brightness(1.35)}}.mk-meta{display:flex;align-items:center;gap:8px;margin-top:3px;padding:0 3px}.mk-side.is-r .mk-meta{flex-direction:row-reverse}.mk-name{font-family:Unbounded,system-ui,sans-serif;font-weight:700;font-size:12px;letter-spacing:.16em;color:#f4efe2;text-shadow:0 1px 0 #000,0 0 8px rgba(0,0,0,.9)}.mk-wins{display:flex;gap:4px}.mk-side.is-r .mk-wins{flex-direction:row-reverse}.mk-wins i{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3a3a44,#101014);box-shadow:inset 0 0 0 1.5px #8a6a2a}.mk-wins i.on{background:radial-gradient(circle at 40% 35%,#fff3c0,#e3a824 55%,#7a4e0c);box-shadow:inset 0 0 0 1.5px #f6e2a2,0 0 8px rgba(255,200,80,.7)}.mk-meter{flex:1;max-width:130px;height:6px;background:#0d0d12;box-shadow:inset 0 0 0 1px rgba(233,209,138,.35);display:flex;overflow:hidden}.mk-side.is-r .mk-meter{justify-content:flex-end}.mk-meter b{display:block;height:100%}.mk-meter.c b{background:linear-gradient(180deg,#bff6ff,#2fb8e8 60%,#0a5e80)}.mk-meter.m b{background:linear-gradient(180deg,#ffd0ec,#e63aa0 60%,#7a0c4e)}.mk-meter b.full{animation:mkPulse .7s ease-in-out infinite}.mk-timer{flex-shrink:0;width:50px;height:50px;margin-top:-4px;border-radius:50%;padding:3px;background:conic-gradient(from 0deg,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2);box-shadow:0 4px 14px rgba(0,0,0,.75)}.mk-timer span{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#3d3a44,#121116 70%);box-shadow:inset 0 0 0 2px #1a1a1f,inset 0 3px 6px rgba(255,255,255,.12);font-family:Unbounded,system-ui,sans-serif;font-weight:800;font-size:19px;color:#f4efe2;font-variant-numeric:tabular-nums;text-shadow:0 1px 0 #000}.mk-timer.is-hot span{color:#ff5a4a;animation:mkPulse .5s steps(2) infinite}.fg-key{position:relative;display:grid;place-items:center;align-content:center;gap:1px;width:62px;height:62px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);color:#fff;font-family:Unbounded,system-ui,sans-serif;font-weight:700;font-size:10.5px;touch-action:none;user-select:none;transition:transform .06s,filter .06s;background:var(--kbg);box-shadow:inset 0 0 0 2px var(--kc)}.fg-key.is-big{width:80px;height:76px;font-size:11.5px}.fg-key svg{width:24px;height:24px}.fg-key.is-big svg{width:30px;height:30px}.fg-key::after{content:\"\";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 45%);pointer-events:none}.fg-key:active{transform:scale(.93);filter:brightness(1.35) drop-shadow(0 0 14px var(--kc))}.k-punch{--kc:var(--fg-y);--kbg:linear-gradient(180deg,rgba(255,210,63,.55),rgba(120,80,0,.6));color:#fff6d6}.k-kick{--kc:var(--fg-m);--kbg:linear-gradient(180deg,rgba(255,63,180,.55),rgba(110,10,70,.6))}.k-block{--kc:rgba(200,215,255,.8);--kbg:linear-gradient(180deg,rgba(150,165,210,.45),rgba(20,24,44,.7))}.k-spec{--kc:var(--fg-c);--kbg:linear-gradient(180deg,rgba(52,232,255,.5),rgba(4,70,90,.65))}.k-spec.is-off{opacity:.4;filter:saturate(.3)}.k-spec.is-ready{animation:fgReady 1s ease-in-out infinite}@keyframes fgReady{50%{filter:brightness(1.5) drop-shadow(0 0 16px var(--fg-c))}}.fg-cluster{display:grid;grid-template-columns:auto auto;gap:4px 2px;align-items:end;justify-items:center}.fg-cluster .k-spec{transform:translate(10px,8px)}.fg-cluster .k-block{transform:translate(-4px,8px)}.fg-rocker{display:flex;gap:2px;padding:4px;clip-path:polygon(12% 0,88% 0,100% 50%,88% 100%,12% 100%,0 50%);background:rgba(10,7,22,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}.fg-dir{--kc:rgba(52,232,255,.55);--kbg:linear-gradient(180deg,rgba(40,44,80,.7),rgba(10,8,24,.8));color:var(--fg-c)}@media (prefers-reduced-motion:reduce){.k-spec.is-ready,.mk-meter b.full,.mk-side.is-low .mk-fill{animation:none}}'}</style>
+      <style>{'@keyframes fgBan{0%{transform:scale(2.2);opacity:0;filter:blur(6px)}18%{transform:scale(1);opacity:1;filter:blur(0)}80%{opacity:1}100%{opacity:0;transform:scale(1.04)}}@keyframes fgPop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}:root{--fg-c:#34E8FF;--fg-m:#FF3FB4;--fg-y:#FFD23F;--fg-ink:#0A0716}.mk-side{flex:1;min-width:0;display:flex;align-items:flex-start;gap:6px}.mk-side.is-r{flex-direction:row-reverse}.mk-col{flex:1;min-width:0;display:flex;flex-direction:column}.mk-medal{flex-shrink:0;width:40px;height:40px;border-radius:50%;padding:2px;margin-top:-2px;background:conic-gradient(from 210deg,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2);box-shadow:0 3px 10px rgba(0,0,0,.7)}.mk-medal span{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 40% 30%,#4a4652,#16141a 70%);color:#e8d28f;box-shadow:inset 0 2px 4px rgba(255,255,255,.15),inset 0 -3px 6px rgba(0,0,0,.6)}.mk-bar{position:relative;height:22px;padding:2px;clip-path:polygon(0 0,100% 0,calc(100% - 16px) 100%,0 100%);background:linear-gradient(180deg,#e9d18a 0,#7b5f27 2px,#3a3d46 3px,#1b1c22 55%,#0c0c10 100%)}.mk-side.is-r .mk-bar{clip-path:polygon(0 0,100% 0,100% 100%,16px 100%)}.mk-well{position:relative;height:100%;clip-path:inherit;background:linear-gradient(180deg,#2a0608,#120203);box-shadow:inset 0 2px 4px rgba(0,0,0,.8)}.mk-trail,.mk-fill{position:absolute;top:0;bottom:0;left:0;width:var(--hp)}.mk-side.is-r .mk-trail,.mk-side.is-r .mk-fill{left:auto;right:0}.mk-trail{background:linear-gradient(180deg,#ff6a5a,#c4121c 55%,#6e0408);transition:width .9s cubic-bezier(.3,.7,.2,1) .45s}.mk-fill{background:linear-gradient(180deg,#fffbe0 0%,#ffe36a 18%,#ffc21f 48%,#e58a06 78%,#9c5300 100%);box-shadow:2px 0 8px rgba(255,190,40,.55);transition:width .09s linear}.mk-side.is-r .mk-fill{box-shadow:-2px 0 8px rgba(255,190,40,.55)}.mk-gloss{position:absolute;left:0;right:0;top:0;height:42%;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0));pointer-events:none}.mk-side.is-low .mk-fill{background:linear-gradient(180deg,#ffe0d8 0%,#ff7a5a 22%,#e8321f 55%,#8a0a0a 100%);animation:mkPulse .6s ease-in-out infinite}@keyframes mkPulse{50%{filter:brightness(1.35)}}.mk-meta{display:flex;align-items:center;gap:8px;margin-top:3px;padding:0 3px}.mk-side.is-r .mk-meta{flex-direction:row-reverse}.mk-name{font-family:Unbounded,system-ui,sans-serif;font-weight:700;font-size:12px;letter-spacing:.16em;color:#f4efe2;text-shadow:0 1px 0 #000,0 0 8px rgba(0,0,0,.9)}.mk-wins{display:flex;gap:4px}.mk-side.is-r .mk-wins{flex-direction:row-reverse}.mk-wins i{width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3a3a44,#101014);box-shadow:inset 0 0 0 1.5px #8a6a2a}.mk-wins i.on{background:radial-gradient(circle at 40% 35%,#fff3c0,#e3a824 55%,#7a4e0c);box-shadow:inset 0 0 0 1.5px #f6e2a2,0 0 8px rgba(255,200,80,.7)}.mk-meter{flex:1;max-width:130px;height:6px;background:#0d0d12;box-shadow:inset 0 0 0 1px rgba(233,209,138,.35);display:flex;overflow:hidden}.mk-side.is-r .mk-meter{justify-content:flex-end}.mk-meter b{display:block;height:100%}.mk-meter.c b{background:linear-gradient(180deg,#bff6ff,#2fb8e8 60%,#0a5e80)}.mk-meter.m b{background:linear-gradient(180deg,#ffd0ec,#e63aa0 60%,#7a0c4e)}.mk-meter b.full{animation:mkPulse .7s ease-in-out infinite}.mk-timer{flex-shrink:0;width:50px;height:50px;margin-top:-4px;border-radius:50%;padding:3px;background:conic-gradient(from 0deg,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2,#8a6a2a,#2a2014,#b08a3c,#f6e2a2);box-shadow:0 4px 14px rgba(0,0,0,.75)}.mk-timer span{width:100%;height:100%;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 50% 30%,#3d3a44,#121116 70%);box-shadow:inset 0 0 0 2px #1a1a1f,inset 0 3px 6px rgba(255,255,255,.12);font-family:Unbounded,system-ui,sans-serif;font-weight:800;font-size:19px;color:#f4efe2;font-variant-numeric:tabular-nums;text-shadow:0 1px 0 #000}.mk-timer.is-hot span{color:#ff5a4a;animation:mkPulse .5s steps(2) infinite}.fg-key{position:relative;display:grid;place-items:center;align-content:center;gap:1px;width:62px;height:62px;clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);color:#fff;font-family:Unbounded,system-ui,sans-serif;font-weight:700;font-size:10.5px;touch-action:none;user-select:none;transition:transform .06s,filter .06s;background:var(--kbg);box-shadow:inset 0 0 0 2px var(--kc)}.fg-key.is-big{width:80px;height:76px;font-size:11.5px}.fg-key svg{width:24px;height:24px}.fg-key.is-big svg{width:30px;height:30px}.fg-key::after{content:\"\";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.28),transparent 45%);pointer-events:none}.fg-key:active{transform:scale(.93);filter:brightness(1.35) drop-shadow(0 0 14px var(--kc))}.k-punch{--kc:var(--fg-y);--kbg:linear-gradient(180deg,rgba(255,210,63,.55),rgba(120,80,0,.6));color:#fff6d6}.k-kick{--kc:var(--fg-m);--kbg:linear-gradient(180deg,rgba(255,63,180,.55),rgba(110,10,70,.6))}.k-block{--kc:rgba(200,215,255,.8);--kbg:linear-gradient(180deg,rgba(150,165,210,.45),rgba(20,24,44,.7))}.k-spec{--kc:var(--fg-c);--kbg:linear-gradient(180deg,rgba(52,232,255,.5),rgba(4,70,90,.65))}.k-spec.is-off{opacity:.4;filter:saturate(.3)}.k-spec.is-ready{animation:fgReady 1s ease-in-out infinite}@keyframes fgReady{50%{filter:brightness(1.5) drop-shadow(0 0 16px var(--fg-c))}}.fg-cluster{display:grid;grid-template-columns:auto auto;gap:4px 2px;align-items:end;justify-items:center}.fg-cluster .k-spec{transform:translate(10px,8px)}.fg-cluster .k-block{transform:translate(-4px,8px)}.fg-rocker{display:flex;gap:2px;padding:4px;clip-path:polygon(12% 0,88% 0,100% 50%,88% 100%,12% 100%,0 50%);background:rgba(10,7,22,.55);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}.fg-pad{position:relative;width:150px;height:150px;touch-action:none;user-select:none;border-radius:50%;background:radial-gradient(circle,rgba(20,18,30,.55) 0,rgba(10,8,20,.45) 62%,transparent 64%)}.fg-pad-a{position:absolute;width:52px;height:52px;display:grid;place-items:center;color:var(--fg-c);background:linear-gradient(180deg,rgba(40,44,80,.75),rgba(10,8,24,.85));box-shadow:inset 0 0 0 1.5px rgba(52,232,255,.45);border-radius:10px;transition:transform .05s,filter .05s;pointer-events:none}.fg-pad-a.u{left:49px;top:4px}.fg-pad-a.d{left:49px;bottom:4px}.fg-pad-a.l{left:4px;top:49px}.fg-pad-a.r{right:4px;top:49px}.fg-pad-a.on{filter:brightness(1.6) drop-shadow(0 0 10px var(--fg-c));transform:scale(.94)}.fg-pad-c{position:absolute;left:61px;top:61px;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#3a3a48,#111018);box-shadow:inset 0 0 0 1.5px rgba(233,209,138,.4);pointer-events:none}.fg-dir{--kc:rgba(52,232,255,.55);--kbg:linear-gradient(180deg,rgba(40,44,80,.7),rgba(10,8,24,.8));color:var(--fg-c)}@media (prefers-reduced-motion:reduce){.k-spec.is-ready,.mk-meter b.full,.mk-side.is-low .mk-fill{animation:none}}'}</style>
 
       {/* управление */}
       {phase === 'fight' && (
         <div className="absolute inset-x-0 bottom-0 flex items-end justify-between" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)', paddingLeft: 'calc(env(safe-area-inset-left,0px) + 18px)', paddingRight: 'calc(env(safe-area-inset-right,0px) + 18px)' }}>
-          <div className="fg-rocker">
-            <Btn b={IN_L} label="" icon="l" cls="fg-dir" big />
-            <Btn b={IN_R} label="" icon="r" cls="fg-dir" big />
-          </div>
+          {DPad()}
           <div className="fg-cluster">
             <Btn b={IN_S} label="Спец" icon="bolt" cls={`k-spec ${specReady ? 'is-ready' : 'is-off'}`} />
             <Btn b={IN_BLOCK} label="Блок" icon="shield" cls="k-block" />
@@ -356,10 +408,12 @@ export default function FightGame({ onClose }: Props) {
               <p className="text-[13px] text-gray mt-1.5">Бой до двух побед. Страж читает каждый удар — бей, когда он открылся после своей атаки.</p>
               <div className="text-[12px] text-gray2 mt-2 text-left grid grid-cols-2 gap-x-3 gap-y-1">
                 <span>УДАР ×3 — серия руками</span><span>НОГА ×2 — серия ногами</span>
-                <span>◀◀ — отскок назад</span><span>▶▶ — рывок вперёд</span>
-                <span>БЛОК — держи (бросок пробивает долгий блок)</span><span>СПЕЦ — когда шкала полна</span>
+                <span>▲ — прыжок, в прыжке УДАР / НОГА</span><span>▼ — присед: под верхние удары</span>
+                <span>▼ + УДАР — апперкот</span><span>▼ + НОГА — подсечка</span>
+                <span>▶ + УДАР — локоть, ▶ + НОГА — колено / хай-кик</span><span>◀ + УДАР — апперкот, ◀ + НОГА — вертушка</span>
+                <span>БЛОК стоя держит верх и середину, ▼ + БЛОК — низ</span><span>◀◀ отскок · ▶▶ рывок · СПЕЦ при полной шкале</span>
               </div>
-              <p className="text-[11.5px] text-gray2 mt-1.5">На ПК: ← → · J удар · K нога · S/Shift блок · Пробел спец</p>
+              <p className="text-[11.5px] text-gray2 mt-1.5">На ПК: ← → ↑ ↓ · J удар · K нога · Shift/I блок · Пробел спец</p>
               <button onClick={() => api.current.start()} className="btn-primary w-full mt-3">В бой</button>
             </>}
             {phase === 'end' && <>

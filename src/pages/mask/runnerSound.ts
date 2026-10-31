@@ -6,7 +6,7 @@
  * Контекст создаётся по нажатию «Старт» (иначе мобильные браузеры не дают звук).
  */
 const BASE = import.meta.env.BASE_URL + 'mask/sfx/'
-const SAMPLES: Record<string, number> = { step: 5, thud: 5, land: 3, metal: 3, punch: 5, cloth: 4, belt: 2, ok: 2, sel: 1, go: 1, drop: 1, hitm: 5, blk: 5, bell: 1, mlt: 3 }
+const SAMPLES: Record<string, number> = { step: 5, thud: 5, land: 3, metal: 3, punch: 5, cloth: 4, belt: 2, ok: 2, sel: 1, go: 1, drop: 1, hitm: 5, blk: 5, bell: 1, mlt: 3, hl: 6, hm: 8, hh: 8, bk: 5 }
 
 export function createRunnerSound(opt: { fight?: boolean } = {}) {
   const FIGHT = !!opt.fight
@@ -232,12 +232,12 @@ export function createRunnerSound(opt: { fight?: boolean } = {}) {
     },
     /** драка: удар по цели (сила 0..2), блок, промах, падение, гонг раунда */
     hit(power: number, pan = 0) {
-      if (power >= 2) { play('punch', { vol: 1, pan, verb: 0.25 }); play('thud', { vol: 0.5, delay: 0.02, pan }) }
-      else if (power === 1) { play('hitm', { vol: 0.95, pan }); play('punch', { vol: 0.35, rate: 1.2, pan }) }
-      else play('hitm', { vol: 0.8, rate: 1.1, pan })
-      play('cloth', { vol: 0.25, rate: 1.3, pan })
+      // настоящие записи ударов (OpenGameArt, CC0): лёгкий / средний / тяжёлый
+      if (power >= 2) { play('hh', { vol: 1, pan, verb: 0.18, jitter: 0.04 }); play('thud', { vol: 0.35, delay: 0.015, pan, rate: 0.8 }) }
+      else if (power === 1) play('hm', { vol: 0.95, pan, verb: 0.1, jitter: 0.05 })
+      else play('hl', { vol: 0.85, pan, jitter: 0.06 })
     },
-    block(pan = 0) { play('blk', { vol: 0.85, pan }); play('mlt', { vol: 0.3, pan, rate: 1.2 }) },
+    block(pan = 0) { play('bk', { vol: 0.8, pan, jitter: 0.05 }); play('hl', { vol: 0.35, pan, rate: 0.8 }) },
     whoosh(heavy = false) { play('cloth', { vol: heavy ? 0.6 : 0.4, rate: heavy ? 0.85 : 1.35, jitter: 0.12 }); air(heavy ? 0.3 : 0.18, heavy ? 500 : 900, heavy ? 1800 : 2600, heavy ? 0.08 : 0.05) },
     fall() { play('thud', { vol: 1, rate: 0.85, verb: 0.3 }); play('land', { vol: 0.7, delay: 0.08 }); play('cloth', { vol: 0.5, delay: 0.04 }) },
     gong() { play('bell', { vol: 0.9, verb: 0.6 }) },
