@@ -219,10 +219,10 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
         </Suspense>
       )}
       {lobby && (
-        <Suspense fallback={null}><PvpLobby onClose={() => setLobby(false)} onFight={c => { setLobby(false); setPvpFight(c) }} /></Suspense>
+        <Suspense fallback={null}><PvpLobby onClose={() => setLobby(false)} onFight={c => { setLobby(false); setPvpFight(c) }} onWatch={c => { setLobby(false); setPvpFight('w_' + c) }} /></Suspense>
       )}
       {pvpFight && (
-        <Suspense fallback={null}><FightGame pvp={pvpFight} onClose={() => setPvpFight(null)} /></Suspense>
+        <Suspense fallback={null}><FightGame key={pvpFight} pvp={pvpFight.replace(/^w_/, '')} watch={pvpFight.startsWith('w_')} onClose={() => setPvpFight(null)} /></Suspense>
       )}
       {fightOpen && (
         <Suspense fallback={null}>

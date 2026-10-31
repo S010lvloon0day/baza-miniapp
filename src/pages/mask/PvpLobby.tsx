@@ -6,10 +6,11 @@ const VIS_KEY = 'mg_pvp_visible'
 const readVis = () => { try { return localStorage.getItem(VIS_KEY) === '1' } catch { return false } }
 
 /** Бой с другом: ссылка-вызов, список тех, кто сейчас в игре, входящие вызовы. onFight(code) — открыть бой. */
-export default function PvpLobby({ onClose, onFight }: { onClose: () => void; onFight: (code: string) => void }) {
+export default function PvpLobby({ onClose, onFight, onWatch }: { onClose: () => void; onFight: (code: string) => void; onWatch: (code: string) => void }) {
   const [visible, setVisible] = useState(readVis)
   const [online, setOnline] = useState<{ id: number; name: string }[]>([])
   const [inbox, setInbox] = useState<{ code: string; name: string }[]>([])
+  const [live, setLive] = useState<{ code: string; names: [string, string]; n: number }[]>([])
   const [link, setLink] = useState<{ code: string; link: string } | null>(null)
   const [note, setNote] = useState('')
   const [busy, setBusy] = useState(false)
@@ -17,7 +18,7 @@ export default function PvpLobby({ onClose, onFight }: { onClose: () => void; on
 
   useEffect(() => {
     let alive = true
-    const ping = () => maskApi.pvpPing(visRef.current).then(r => { if (alive) { setOnline(r.online); setInbox(r.inbox) } }).catch(e => { if (alive && e?.message === 'teaser') setNote('Бой с другом откроется вместе с игрой') })
+    const ping = () => maskApi.pvpPing(visRef.current).then(r => { if (alive) { setOnline(r.online); setInbox(r.inbox); setLive(r.live || []) } }).catch(e => { if (alive && e?.message === 'teaser') setNote('Бой с другом откроется вместе с игрой') })
     ping(); const t = window.setInterval(ping, 4000)
     return () => { alive = false; window.clearInterval(t) }
   }, [visible])
@@ -90,6 +91,19 @@ export default function PvpLobby({ onClose, onFight }: { onClose: () => void; on
                 <span className="w-2 h-2 rounded-full bg-green shrink-0" />
                 <span className="flex-1 min-w-0 truncate text-[13.5px]">{o.name}</span>
                 <button onClick={() => challenge(o.id)} disabled={busy} className="btn-primary !w-auto px-3 h-8 rounded-[10px] text-[12.5px]">Вызвать</button>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="mt-3 rounded-[14px] bg-white/[.05] px-3.5 py-3">
+          <div className="text-[14px] font-medium">Идут бои</div>
+          <p className="text-[12px] text-gray2 mt-0.5">Можно посмотреть бой как зритель. Здесь видны бои игроков, у которых включено «показывать меня».</p>
+          <div className="flex flex-col gap-1.5 mt-2">
+            {live.length === 0 ? <div className="text-[12.5px] text-gray2 py-1">Сейчас никто не дерётся.</div> : live.map(b => (
+              <div key={b.code} className="flex items-center gap-2 rounded-[12px] bg-white/[.04] px-3 py-2">
+                <span className="flex-1 min-w-0 truncate text-[13.5px]">{b.names[0]} <span className="text-gray">против</span> {b.names[1]}</span>
+                {b.n > 0 && <span className="text-[12px] text-gray shrink-0">👁 {b.n}</span>}
+                <button onClick={() => onWatch(b.code)} className="btn-secondary !w-auto px-3 h-8 rounded-[10px] text-[12.5px]">Смотреть</button>
               </div>
             ))}
           </div>

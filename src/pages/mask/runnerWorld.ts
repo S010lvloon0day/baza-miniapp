@@ -168,14 +168,14 @@ export function buildWorld(S: THREE.Scene, LANE: number) {
   const bulbM = new THREE.MeshStandardMaterial({ color: 0xffe2a8, emissive: 0xffc46a, emissiveIntensity: 2.2 })
   const glowT = tex(64, 64, c => { const g = c.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, 'rgba(255,214,150,0.55)'); g.addColorStop(1, 'rgba(255,190,120,0)'); c.fillStyle = g; c.fillRect(0, 0, 64, 64) })
   const glowM = new THREE.SpriteMaterial({ map: glowT, depthWrite: false, blending: THREE.AdditiveBlending, fog: true })
-  for (let i = 0; i < 16; i++) for (const s of [-1, 1]) {
+  for (let i = 0; i < 8; i++) for (const s of [-1, 1]) {
     const g = new THREE.Group()
     const p = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 4.2, 8), poleM); p.position.y = 2.1; g.add(p)
     const arm = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.06), poleM); arm.position.set(-s * 0.42, 4.15, 0); g.add(arm)
     const bulb = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.1, 0.2), bulbM); bulb.position.set(-s * 0.82, 4.08, 0); g.add(bulb)
     const gl = new THREE.Sprite(glowM); gl.scale.setScalar(0.9); gl.position.set(-s * 0.82, 4.0, 0); g.add(gl)
     g.userData = { slot: 'lamp', side: s }
-    g.position.set(s * (W / 2 + 0.75), 0, i * 12 + (s > 0 ? 6 : 0)); S.add(g); scroll.push({ o: g, span: 192 })
+    g.position.set(s * (W / 2 + 0.75), 0, i * 24 + (s > 0 ? 12 : 0)); S.add(g); scroll.push({ o: g, span: 192 })   // вдвое реже: через 24 м
   }
 
   const anim = addDetails(S, W, scroll, SPAN)

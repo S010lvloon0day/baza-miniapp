@@ -71,8 +71,8 @@ function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean
     material: Number.isInteger(m) && m > 0 ? m : undefined,
     feedback: qp.get('feedback') === '1' || sp === 'feedback',
     chat: qp.get('chat') === '1' || sp === 'chat' || !!qp.get('chat_msg'),
-    mask: qp.get('mask') === '1' || sp === 'mask' || /^pvp_[A-Za-z0-9]{4,20}$/.test(sp),
-    pvp: sp.match(/^pvp_([A-Za-z0-9]{4,20})$/)?.[1],
+    mask: qp.get('mask') === '1' || sp === 'mask' || /^pvpw?_[A-Za-z0-9]{4,20}$/.test(sp),
+    pvp: sp.match(/^pvp_([A-Za-z0-9]{4,20})$/)?.[1] ?? (sp.match(/^pvpw_([A-Za-z0-9]{4,20})$/) ? 'w_' + sp.slice(5) : undefined),   // w_ — смотреть бой
     chatMsg: Number(qp.get('chat_msg')) || undefined,
   }
 }
