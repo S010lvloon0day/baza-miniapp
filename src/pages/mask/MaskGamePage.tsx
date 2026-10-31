@@ -162,6 +162,11 @@ export default function MaskGamePage() {
     }
   }, [ready, s, say])
 
+  const voiceEl = useRef<HTMLAudioElement | null>(null)
+  /** голос владельца: «Ты выиграл…» — звучит, когда маска снята */
+  const playVoice = async () => {
+    try { const u = await maskApi.voice(); const a = voiceEl.current || new Audio(); voiceEl.current = a; a.src = u; await a.play() } catch { /* голос ещё не загружен */ }
+  }
   const submit = async () => {
     const t = text.trim()
     if (!t || busy || cool > 0 || !s) return
@@ -175,10 +180,10 @@ export default function MaskGamePage() {
     if (r.react) say(r.react)
     if (r.ok && !r.test) {
       haptic('success')
-      setTimeout(async () => { await stage.current?.reveal(); setRevealedNow(true) }, 900)
+      setTimeout(async () => { await stage.current?.reveal(); setRevealedNow(true); playVoice() }, 900)
     } else if (r.ok && r.test) {
       haptic('success'); setNote('Тест админа: ответ верный (раунд не закрыт)')
-      setTimeout(() => stage.current?.reveal(), 900)
+      setTimeout(async () => { await stage.current?.reveal(); playVoice() }, 900)
     } else {
       haptic(r.kind === 'close' ? 'warning' : 'error'); stage.current?.shake()
     }
@@ -238,9 +243,9 @@ export default function MaskGamePage() {
               <div className="font-display font-semibold text-[16px]">Скоро старт</div>
               <span className="gold-metal sheen rounded-full px-2.5 h-7 flex items-center text-[12px] font-semibold text-[#2B1A02] relative shrink-0"><span className="relative z-[1]">Приз 80 USDT</span></span>
             </div>
-            <p className="text-[13.5px] text-gray mt-1.5">Кто под маской? Три испытания: забег, драка со стражем и шифр. Первый, кто пройдёт их все, снимет маску и заберёт приз.</p>
+            <p className="text-[13.5px] text-gray mt-1.5">Кто под маской? Три испытания: забег, драка с двумя боссами и главное — назвать моё настоящее имя, фамилию и отчество. Первый, кто это сделает, увидит моё лицо и заберёт приз.</p>
             <div className="grid grid-cols-3 gap-2 mt-3">
-              {['Забег', 'Драка', 'Шифр'].map((t, i) => (
+              {['Забег', 'Драка', 'ФИО'].map((t, i) => (
                 <div key={t} className="rounded-[14px] bg-white/[.05] border border-white/[.06] px-2 py-2.5 text-center">
                   <Icon name="lock" size={16} accent="#6E8478" />
                   <div className="text-[12.5px] mt-1">{i + 1}. {t}</div>
@@ -257,21 +262,47 @@ export default function MaskGamePage() {
             <p className="text-[13.5px] text-[#CDBB8E] mt-1">
               {r.winner?.is_me ? 'Это ты! Администратор свяжется с тобой для выдачи приза.' : `Первым угадал ${r.winner?.name ?? 'игрок'}. Жди следующий раунд — новые персонажи уже на подходе.`}
             </p>
+            {s.voice && <button onClick={playVoice} className="btn-primary w-full mt-3">Послушать моё послание</button>}
           </section>
-        ) : (
+        ) : (<>
+          <section className="card px-3.5 py-3.5">
+            <div className="font-display font-semibold text-[15px]">Три испытания</div>
+            <div className="flex flex-col gap-2 mt-2.5">
+              {(() => {
+                const T = s.tasks
+                const run = T?.run, fight = T?.fight, fin = T?.final ?? T?.osint
+                const row = (n: number, title: string, sub: string, state: 'done' | 'open' | 'lock', act?: () => void, btn?: string) => (
+                  <div key={n} className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 ${state === 'lock' ? 'bg-white/[.03] opacity-60' : 'bg-white/[.06]'}`}>
+                    <span className={`w-8 h-8 rounded-full grid place-items-center shrink-0 font-display font-semibold text-[13px] ${state === 'done' ? 'bg-green text-black' : 'bg-white/[.08]'}`}>
+                      {state === 'done' ? '✓' : state === 'lock' ? <Icon name="lock" size={14} accent="#6E8478" /> : n}
+                    </span>
+                    <span className="flex-1 min-w-0"><span className="block text-[14px] font-medium">{title}</span><span className="block text-[12px] text-gray truncate">{sub}</span></span>
+                    {act && state === 'open' && <button onClick={act} className="btn-primary !w-auto px-4 h-9 rounded-[12px] text-[13px]">{btn}</button>}
+                  </div>
+                )
+                return [
+                  row(1, 'Забег', run?.done ? `пройден · рекорд ${run.best.toLocaleString('ru')}` : `набери ${(run?.target ?? 50000).toLocaleString('ru')} очков · рекорд ${(run?.best ?? 0).toLocaleString('ru')}`, run?.done ? 'done' : 'open', () => setRunOpen(true), run?.best ? 'Ещё раз' : 'Бежать'),
+                  row(2, 'Драка', fight?.done ? 'Страж и Призрак повержены' : 'победи Стража, затем Призрака', fight?.done ? 'done' : fight?.open ? 'open' : 'lock', () => setFightOpen(true), 'В бой'),
+                  row(3, 'Назови моё имя', fin?.open ? 'фамилия, имя и отчество — полностью' : 'откроется после драки', fin?.open ? 'open' : 'lock'),
+                ]
+              })()}
+            </div>
+          </section>
           <section className="card px-3.5 pt-3.5 pb-3">
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-display font-semibold text-[15px]">{r.title || 'Сними маску'}</div>
-                <div className="text-[12.5px] text-gray mt-0.5">Назови моё имя — и маска твоя</div>
+                <div className="text-[12.5px] text-gray mt-0.5">Назови мои ФИО — и маска твоя</div>
               </div>
               <Pips left={s.tries_left} total={s.tries_per_day} />
             </div>
             {r.intro && <p className="text-[13.5px] text-gray mt-2 whitespace-pre-wrap">{r.intro}</p>}
-            {s.tries_left > 0 ? (
+            {!(s.tasks?.final?.open ?? s.tasks?.osint.open ?? true) ? (
+              <div className="mt-3 rounded-[14px] bg-white/[.04] px-3.5 py-3 text-[13.5px] text-gray">Сначала пройди забег и драку — потом сможешь назвать моё имя.</div>
+            ) : s.tries_left > 0 ? (
               <div className="flex gap-2 mt-3">
-                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} maxLength={30}
-                  placeholder="Как меня зовут?" autoComplete="off" enterKeyHint="send"
+                <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} maxLength={60}
+                  placeholder="Фамилия Имя Отчество" autoComplete="off" enterKeyHint="send"
                   className="flex-1 min-w-0 bg-s2 border border-white/[.08] rounded-[16px] px-4 h-12 text-[16px] outline-none" />
                 <button onClick={submit} disabled={busy || !text.trim() || cool > 0} className="btn-primary !w-auto px-5 h-12 rounded-[16px]">
                   {cool > 0 ? `${cool}` : busy ? '…' : 'Назвать'}
@@ -282,7 +313,7 @@ export default function MaskGamePage() {
             )}
             {note && <div className="text-[12.5px] text-gold mt-2">{note}</div>}
           </section>
-        )}
+        </>)}
 
         {s.is_admin && (
           <div className="grid grid-cols-2 gap-2">

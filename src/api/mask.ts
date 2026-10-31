@@ -33,11 +33,12 @@ export interface MaskState {
   stats: { guesses: number; players: number; today: number }
   feed: { name: string; text: string; kind: string; at: string }[]
   clues: MaskClue[]; board: MaskBoardRow[]; my_pts: number; my_pos: number | null
-  hello: MaskReact; reveal: boolean; is_admin: boolean
+  hello: MaskReact; reveal: boolean; is_admin: boolean; voice?: boolean
   tasks?: {
     run: { done: boolean; best: number; target: number }
     fight?: { open: boolean; done: boolean }
-    cipher: { open: boolean; done: boolean; cipher?: string; reward?: string }
+    cipher?: { open: boolean; done: boolean; cipher?: string; reward?: string }
+    final?: { open: boolean; soon?: boolean }
     osint: { open: boolean; soon?: boolean }
   }
   secret?: string | null
@@ -62,6 +63,8 @@ export const maskApi = {
   fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks }),
   cipher: (answer: string) => req<{ ok: boolean; reward?: string | null; error?: string }>('POST', '/api/mask/cipher', { answer }),
   revealUrl: () => API_BASE + '/api/mask/reveal.glb?v=' + MODEL_V,
+  /** голос владельца для победителя: отдаётся только победителю раунда и админам */
+  voice: async () => { const r = await fetch(API_BASE + '/api/mask/voice.mp3', { headers: { 'X-Init-Data': tg?.initData || '' } }); if (!r.ok) throw new Error('voice'); return URL.createObjectURL(await r.blob()) },
   initData: () => tg?.initData || '',
 }
 
@@ -74,7 +77,7 @@ export interface AMaskRound {
   progress?: { players: number; run_done: number; cipher_done: number; run_best: number }
 }
 export interface AMaskClue { id: number; round_id: number; pos: number; kind: string; question: string; options: string[]; reward: string; points: number; opens_at: string }
-export interface AMask { rounds: AMaskRound[]; clues: AMaskClue[]; visible: string; min_days: number; feed_text: boolean; reveal_uploaded: boolean; teaser?: boolean }
+export interface AMask { rounds: AMaskRound[]; clues: AMaskClue[]; visible: string; min_days: number; feed_text: boolean; reveal_uploaded: boolean; voice_uploaded?: boolean; teaser?: boolean }
 
 export const maskAdmin = {
   get: () => req<AMask>('GET', '/api/admin/mask'),

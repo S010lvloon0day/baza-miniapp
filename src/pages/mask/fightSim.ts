@@ -16,7 +16,7 @@ export const START = 130                     // стартовая позици�
 // кнопки игрока (битовая маска)
 export const IN_L = 1, IN_R = 2, IN_BLOCK = 4, IN_P = 8, IN_K = 16, IN_S = 32, IN_U = 64, IN_D = 128
 export const JV = 60, GRAV = 3               // прыжок: высота y в четвертях сантиметра (≈150 см, 40 тиков в воздухе)
-export const AIR_HIT_Y = 400                 // удар в прыжке достаёт стоящего, когда ниже 100 см
+export const AIR_HIT_Y = 520                 // удар в прыжке достаёт стоящего, когда ниже 130 см
 
 export type MoveId = 'jab' | 'cross' | 'hook' | 'upper' | 'low' | 'kick' | 'round' | 'special' | 'combo' | 'throw'
   | 'elbow' | 'knee' | 'high' | 'spin' | 'cupper' | 'sweep' | 'jkick' | 'jknee'
@@ -179,15 +179,16 @@ function stepFighter(s: Sim, i: 0 | 1) {
   if (f.st === 'atk' && f.mv) {
     const M = MOVES[f.mv]
     const dist = Math.abs(o.x - f.x)
-    if (f.t > M.s && f.t <= M.s + M.a) {
+    // удар в прыжке (как в MK) держится вытянутым до приземления
+    if (f.t > M.s && (f.t <= M.s + M.a || (M.air && f.air))) {
       if (f.mv === 'combo') {
         if ((f.t - M.s) % COMBO_GAP === 1 && dist <= M.reach && connects(f, o, M)) damage(s, i, (1 - i) as 0 | 1, 'combo')
       } else if (!f.hitDone && dist <= M.reach && connects(f, o, M)) { f.hitDone = 1; damage(s, i, (1 - i) as 0 | 1, f.mv) }
       if (f.mv === 'special') f.x += f.dir * 6
     }
     if (f.st === 'atk' && f.mv) {
-      if (f.t === M.s + M.a && !f.hitDone && f.mv !== 'combo') s.ev.push({ k: 'whiff', who: i, mv: f.mv })
-      if (f.t >= lenOf(i, f.mv, s.lv)) {
+      if (f.t === M.s + M.a && !f.hitDone && f.mv !== 'combo' && !M.air) s.ev.push({ k: 'whiff', who: i, mv: f.mv })
+      if (f.t >= lenOf(i, f.mv, s.lv) && !f.air) {
         if (f.air) { f.st = 'jump'; f.mv = null }                  // удар в прыжке кончился — долетаем
         else { f.st = f.cr ? 'crouch' : 'idle'; f.t = 0; f.mv = null }
       }

@@ -109,7 +109,7 @@ export function MaskScreen() {
           <Field label="Название" value={edit.title} onChange={v => setEdit(x => ({ ...x, title: v }))} />
           <Field label="Приз" value={edit.prize} onChange={v => setEdit(x => ({ ...x, prize: v }))} />
           <Field label="Вступление (видят игроки)" value={edit.intro} onChange={v => setEdit(x => ({ ...x, intro: v }))} multiline rows={3} />
-          <Field label="Имя и допустимые варианты — каждый с новой строки (Зураб, zurab, …)" value={answers} onChange={setAnswers} multiline rows={3}
+          <Field label="ФИО и допустимые варианты — каждый с новой строки (порядок слов не важен; например: Иванов Иван Иванович)" value={answers} onChange={setAnswers} multiline rows={3}
             placeholder={r.answers_count ? `задано вариантов: ${r.answers_count} — оставь пустым, чтобы не менять` : 'обязательно перед запуском'} />
           <p className="text-[11.5px] text-gray2 -mt-1 mb-3">Имя хранится на сервере только в виде хэша — ни в миниаппе, ни в ответах API его нет. Регистр, «ё» и пробелы не важны.</p>
           <button onClick={saveRound} className="btn-primary w-full">Сохранить</button>
@@ -144,6 +144,7 @@ export function MaskScreen() {
         <ClueSheet open={sheet.open} clue={sheet.clue} roundId={r.id} onClose={() => setSheet({ open: false, clue: null })} onSaved={load} />
       </>}
       {!d.reveal_uploaded && <p className="text-[12px] text-[#FF8A8A] mt-4">Модель без маски на сервере не найдена (data/mask/reveal.glb).</p>}
+      {!d.voice_uploaded && <p className="text-[12px] text-[#FF8A8A] mt-2">Голосовое послание победителю не загружено (data/mask/win_voice.mp3).</p>}
       {node}
     </div>
   )
