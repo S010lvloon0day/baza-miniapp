@@ -136,7 +136,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
   const [revealedNow, setRevealedNow] = useState(false)
   const [note, setNote] = useState('')
   const [runOpen, setRunOpen] = useState(false)
-  const [fightOpen, setFightOpen] = useState(false)
+  const [fightOpen, setFightOpen] = useState<false | 1 | 2 | true>(false)
   const [lobby, setLobby] = useState(false)
   const [pvpFight, setPvpFight] = useState<string | null>(() => { if (!pvpCode) return null; try { if (sessionStorage.getItem('pvp_' + pvpCode)) return null; sessionStorage.setItem('pvp_' + pvpCode, '1') } catch { /* */ } return pvpCode })   // бой с другом по коду вызова
   const stage = useRef<StageHandle>(null)
@@ -223,7 +223,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
       )}
       {fightOpen && (
         <Suspense fallback={null}>
-          <FightGame onClose={() => { setFightOpen(false); load() }} />
+          <FightGame startLv={fightOpen === 2 ? 2 : fightOpen === 1 ? 1 : undefined} onClose={() => { setFightOpen(false); load() }} />
         </Suspense>
       )}
       {/* Сцена */}
@@ -286,18 +286,23 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
               {(() => {
                 const T = s.tasks
                 const run = T?.run, fight = T?.fight, fin = T?.final ?? T?.osint
-                const row = (n: number, title: string, sub: string, state: 'done' | 'open' | 'lock', act?: () => void, btn?: string) => (
+                const row = (n: number, title: string, sub: string, state: 'done' | 'open' | 'lock', act?: () => void, btn?: string, extra?: React.ReactNode) => (
                   <div key={n} className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 ${state === 'lock' ? 'bg-white/[.03] opacity-60' : 'bg-white/[.06]'}`}>
                     <span className={`w-8 h-8 rounded-full grid place-items-center shrink-0 font-display font-semibold text-[13px] ${state === 'done' ? 'bg-green text-black' : 'bg-white/[.08]'}`}>
                       {state === 'done' ? '✓' : state === 'lock' ? <Icon name="lock" size={14} accent="#6E8478" /> : n}
                     </span>
                     <span className="flex-1 min-w-0"><span className="block text-[14px] font-medium">{title}</span><span className="block text-[12px] text-gray truncate">{sub}</span></span>
                     {act && state === 'open' && <button onClick={act} className="btn-primary !w-auto px-4 h-9 rounded-[12px] text-[13px]">{btn}</button>}
+                    {state === 'done' && extra}
                   </div>
                 )
                 return [
                   row(1, 'Забег', run?.done ? `пройден · рекорд ${run.best.toLocaleString('ru')}` : `набери ${(run?.target ?? 50000).toLocaleString('ru')} очков · рекорд ${(run?.best ?? 0).toLocaleString('ru')}`, run?.done ? 'done' : 'open', () => setRunOpen(true), run?.best ? 'Ещё раз' : 'Бежать'),
-                  row(2, 'Драка', fight?.done ? 'Страж и Призрак повержены' : 'победи Стража, затем Призрака', fight?.done ? 'done' : fight?.open ? 'open' : 'lock', () => setFightOpen(true), 'В бой'),
+                  row(2, 'Драка', fight?.done ? 'пройдена · выбери соперника' : 'победи Стража, затем Призрака', fight?.done ? 'done' : fight?.open ? 'open' : 'lock', () => setFightOpen(true), 'В бой',
+                    <span className="flex gap-1.5 shrink-0">
+                      <button onClick={() => setFightOpen(1)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Страж</button>
+                      <button onClick={() => setFightOpen(2)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Призрак</button>
+                    </span>),
                   row(3, 'Назови моё имя', fin?.open ? (fin.premium === false ? 'приз — только для Premium-подписчиков' : 'фамилия, имя и отчество — полностью') : 'откроется после забега и драки', fin?.open ? 'open' : 'lock'),
                   (fight?.open || s.is_admin) ? <button key="pvp" onClick={() => setLobby(true)} className="btn-secondary w-full h-10 rounded-[12px] text-[13.5px]">🥊 Бой с другом</button> : null,
                 ]

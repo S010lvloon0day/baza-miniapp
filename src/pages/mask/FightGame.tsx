@@ -13,7 +13,7 @@ import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S, I
 import type { Sim, InputLog, MoveId, F } from './fightSim'
 
 /** Задание 2: драка со стражем. Бой считает fightSim (то же на сервере), здесь — картинка, звук и управление. */
-interface Props { onClose: (done: boolean) => void; pvp?: string }   // pvp — код вызова: бой с другом
+interface Props { onClose: (done: boolean) => void; pvp?: string; startLv?: 1 | 2 }   // startLv — выбранный соперник (после прохождения этапа)   // pvp — код вызова: бой с другом
 const BASE = import.meta.env.BASE_URL
 const tg = (window as any).Telegram?.WebApp
 const buzz = (k: 'light' | 'medium' | 'heavy') => { try { tg?.HapticFeedback?.impactOccurred(k) } catch { /* */ } }
@@ -37,7 +37,7 @@ const AIR_CLIPS = /^f_(jump|jkick|jknee|jknee2)$/
 
 interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string, THREE.AnimationAction>; cur: THREE.AnimationAction | null; key: string; alt: number }
 
-export default function FightGame({ onClose, pvp }: Props) {
+export default function FightGame({ onClose, pvp, startLv }: Props) {
   const host = useRef<HTMLDivElement>(null)
   const [phase, setPhase] = useState<'load' | 'ready' | 'fight' | 'end'>('load')
   const [hud, setHud] = useState({ hp: [HP, HP], meter: [0, 0], wins: [0, 0], lv: 1, time: 60, round: 1, combo: 0 })
@@ -50,7 +50,7 @@ export default function FightGame({ onClose, pvp }: Props) {
   const [muted, setMuted] = useState(snd.current.muted)
   const [music, setMusic] = useState(snd.current.musicOn)
   const padRef = useRef(0)
-  const ckpt = useRef(1)   // с какого босса начинать: Страж побеждён — дальше сразу Призрак
+  const ckpt = useRef<number>(startLv ?? 1)   // с какого босса начинать: Страж побеждён — дальше сразу Призрак
   const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {}, dir: (_m: number) => {} })
   // на телефоне играем только горизонтально
   const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
