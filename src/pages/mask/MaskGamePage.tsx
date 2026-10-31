@@ -303,7 +303,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
                       <button onClick={() => setFightOpen(1)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Страж</button>
                       <button onClick={() => setFightOpen(2)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Призрак</button>
                     </span>),
-                  row(3, 'Сними маску и раскрой личность', fin?.open ? (fin.premium === false ? 'приз — только для Premium-подписчиков' : 'фамилия, имя и отчество — полностью') : 'откроется после забега и драки', fin?.open ? 'open' : 'lock'),
+                  row(3, 'Сними маску и раскрой личность', fin?.open ? 'фамилия, имя и отчество — полностью' : run?.done && fight?.done && fin?.premium === false ? '🔒 только для Premium-подписчиков' : fin?.premium === false ? 'после забега и драки · только для Premium' : 'откроется после забега и драки', fin?.open ? 'open' : 'lock'),
                   (fight?.open || s.is_admin) ? <button key="pvp" onClick={() => setLobby(true)} className="btn-secondary w-full h-10 rounded-[12px] text-[13.5px]">🥊 Бой с другом</button> : null,
                 ]
               })()}
