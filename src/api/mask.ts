@@ -1,4 +1,4 @@
-export const MODEL_V = 'mx7'
+export const MODEL_V = 'mx8'
 import { API_BASE } from './client'
 
 const tg = (window as any).Telegram?.WebApp
