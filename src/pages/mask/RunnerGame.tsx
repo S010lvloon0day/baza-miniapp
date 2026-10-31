@@ -11,6 +11,8 @@ import { buildWorld, obstacleFactory, loadDecor } from './runnerWorld'
 import { newRun, runStep, runScore, RTPS, LANE, LX } from './runnerSim'
 import type { RSim, RIn, RunLog, Kind } from './runnerSim'
 import { createRunnerSound } from './runnerSound'
+import { GFX, GFX_LABEL, GFX_HINT, getGfx, setGfx, pixelRatioFor } from './gfxQuality'
+import type { GfxQ } from './gfxQuality'
 
 /** Задание 1: бег по трём дорожкам. Скорость v(t)=min(v0+a·t, vmax) — та же модель на сервере. */
 interface Props { model: { v0: number; a: number; vmax: number }; target: number; onClose: (done: boolean) => void }
@@ -28,7 +30,10 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
   const [toastM, setToastM] = useState<{ k: number; text: string } | null>(null)
   const [phase, setPhase] = useState<'load' | 'ready' | 'count' | 'run' | 'end'>('load')
   const [res, setRes] = useState<{ score: number; done: boolean; flag?: string | null } | null>(null)
-  const api = useRef({ start: () => {}, input: (_k: 'up' | 'down' | 'left' | 'right') => {} })
+  const api = useRef({ start: () => {}, input: (_k: 'up' | 'down' | 'left' | 'right') => {}, gfx: (_q: GfxQ) => {} })
+  const [gq, setGq] = useState<GfxQ>(getGfx)
+  const gq0 = useRef(gq)   // с каким качеством игра открыта: сглаживание и модели меняются только при новом запуске
+  const gqRef = useRef(gq); gqRef.current = gq
   const snd = useRef(createRunnerSound())
   const [muted, setMuted] = useState(snd.current.muted)
   const [music, setMusic] = useState(snd.current.musicOn)
@@ -45,13 +50,13 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
   useEffect(() => {
     const el = host.current!
     let alive = true
-    const R = new THREE.WebGLRenderer({ antialias: true })
+    const G0 = GFX[gq0.current]
+    const R = new THREE.WebGLRenderer({ antialias: G0.aa, powerPreference: gq0.current === 'low' ? 'low-power' : 'default' })
     // телефон: меньше пикселей и проще тени — меньше нагрев (на iPhone плотность экрана 3x, рисуем в 1,5x)
-    const mobile = window.matchMedia?.('(pointer: coarse)').matches
-    R.setPixelRatio(Math.min(mobile ? 1.5 : 2, window.devicePixelRatio || 1))
+    R.setPixelRatio(pixelRatioFor(gq0.current))
     R.outputColorSpace = THREE.SRGBColorSpace
     R.toneMapping = THREE.ACESFilmicToneMapping
-    R.shadowMap.enabled = true; R.shadowMap.type = mobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap
+    R.shadowMap.enabled = G0.shadows; R.shadowMap.type = G0.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap
     el.appendChild(R.domElement)
     const S = new THREE.Scene()
     const pm = new THREE.PMREMGenerator(R)
@@ -68,7 +73,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const shSun = new THREE.DirectionalLight(0xffb27a, 1.7); shSun.castShadow = true
     // основное солнце мира отдаёт часть яркости этому, иначе тень почти не видна
     S.traverse(o => { const l = o as THREE.DirectionalLight; if (l.isDirectionalLight && l.color.getHex() === 0xffb27a) l.intensity = 0.7 })
-    shSun.shadow.mapSize.set(1024, 1024); Object.assign(shSun.shadow.camera, { left: -5, right: 5, top: 6, bottom: -4, near: 1, far: 40 })
+    shSun.shadow.mapSize.set(G0.shadowSize, G0.shadowSize); Object.assign(shSun.shadow.camera, { left: -5, right: 5, top: 6, bottom: -4, near: 1, far: 40 })
     shSun.shadow.camera.updateProjectionMatrix(); shSun.shadow.bias = -0.0008; shSun.shadow.normalBias = 0.02; S.add(shSun); S.add(shSun.target)
     // линии скорости
     const SL = 70, slPos = new Float32Array(SL * 6), slG = new THREE.BufferGeometry(); slG.setAttribute('position', new THREE.BufferAttribute(slPos, 3))
@@ -82,7 +87,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     for (let i = 0; i < 28; i++) { const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dustT, transparent: true, depthWrite: false, opacity: 0 })); sp.visible = false; S.add(sp); dust.push({ s: sp, life: 0, vx: 0, vy: 0, vz: 0 }) }
     let dustI = 0
     const puff = (n: number, power = 1) => {
-      if (!fxRef.current.dust) return
+      if (!fxRef.current.dust || !GFX[gqRef.current].fx) return
       for (let i = 0; i < n; i++) {
         const d = dust[dustI++ % dust.length]; d.life = 0.6 + Math.random() * 0.4
         d.s.position.set(x + (Math.random() - 0.5) * 0.5, y + 0.1, (Math.random() - 0.5) * 0.4); d.s.scale.setScalar(0.3 * power)
@@ -105,7 +110,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     }
     const dl = new DRACOLoader(); dl.setDecoderPath(BASE + 'mask/draco/')
     const gl = new GLTFLoader(); gl.setDRACOLoader(dl)
-    loadDecor(BASE + 'mask/decor/', gl).then(lib => {
+    if (G0.decor) loadDecor(BASE + 'mask/decor/', gl).then(lib => {
       if (!alive) return; world.applyDecor(lib); makeObs.setLib(lib)
       // прогрев: заранее собираем шейдеры всех препятствий, иначе первое появление контейнера даёт рывок
       const warm = (['low', 'high', 'wall', 'wall'] as Kind[]).map(k => { const g = build(k); g.position.set(0, -50, 20); return g })
@@ -187,6 +192,12 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       R.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix()
     }
     const ro = new ResizeObserver(fit); ro.observe(el); fit()
+    // смена качества на ходу: плотность пикселей и тени — сразу, сглаживание и модели — при следующем запуске
+    api.current.gfx = q => {
+      const c = GFX[q]
+      R.setPixelRatio(pixelRatioFor(q)); fit()
+      if (R.shadowMap.enabled !== c.shadows) { R.shadowMap.enabled = c.shadows; S.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined; if (m) for (const x of Array.isArray(m) ? m : [m]) x.needsUpdate = true }) }
+    }
 
     const clock = new THREE.Clock()
     let raf = 0, lastUi = 0
@@ -194,7 +205,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const tick = () => {
       raf = requestAnimationFrame(tick)
       // не чаще 60 кадров в секунду: на экранах 120 Гц (iPhone Pro) иначе рисуем вдвое больше и телефон греется
-      const nowF = performance.now(); if (nowF - lastF < 12) return; lastF = nowF
+      const nowF = performance.now(); if (nowF - lastF < GFX[gqRef.current].frameMs) return; lastF = nowF
       const dt = Math.min(0.05, clock.getDelta())
       mixer?.update(dt)
       if (run) {
@@ -244,7 +255,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       cam.position.z = -4.6 - k * 0.5
       cam.lookAt(cam.position.x * 0.6, 1.2, 6)
       shSun.position.set(x - 3, 9, 14); shSun.target.position.set(x, 0, 2)
-      slM.opacity += ((run && fxRef.current.lines ? Math.max(0, k - 0.15) * 0.55 : 0) - slM.opacity) * Math.min(1, dt * 3)
+      slM.opacity += ((run && fxRef.current.lines && GFX[gqRef.current].fx ? Math.max(0, k - 0.15) * 0.55 : 0) - slM.opacity) * Math.min(1, dt * 3)
       if (slM.opacity > 0.01) {
         const v = run ? speed() : 0
         for (let i = 0; i < SL; i++) {
@@ -310,6 +321,14 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
       {setOpen && (
         <div className="absolute right-3 z-20 glass rounded-[18px] p-3 w-[280px] flex flex-col gap-2" style={{ top: 'calc(env(safe-area-inset-top,0px) + 62px)' }}>
           <div className="font-display font-semibold text-[15px] px-1">Настройки</div>
+          <div className="px-1 text-[12.5px] text-gray">Качество графики</div>
+          <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Качество графики">
+            {(['low', 'mid', 'high'] as GfxQ[]).map(q => (
+              <button key={q} role="radio" aria-checked={gq === q} onClick={() => { setGq(q); setGfx(q); api.current.gfx(q) }}
+                className={`h-9 rounded-[10px] text-[12.5px] font-medium ${gq === q ? 'bg-green text-black' : 'bg-white/[.07]'}`}>{GFX_LABEL[q]}</button>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray px-1 -mt-0.5">{GFX_HINT[gq]}{gq !== gq0.current ? ' · полностью применится при следующем открытии игры' : ''}</p>
           {Tg({ k: 'dust', label: 'Пыль из-под ног', hint: 'облачка пыли при беге, прыжке и подкате' })}
           {Tg({ k: 'lines', label: 'Линии скорости', hint: 'белые штрихи на большой скорости' })}
           {Tg({ k: 'shake', label: 'Тряска камеры', hint: 'лёгкая дрожь камеры на скорости' })}

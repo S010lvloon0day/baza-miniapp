@@ -9,6 +9,8 @@ import { maskApi } from '../../api/mask'
 import { buildArena } from './fightWorld'
 import { synthClips } from './poseSynth'
 import { createRunnerSound } from './runnerSound'
+import { GFX, GFX_LABEL, GFX_HINT, getGfx, setGfx, pixelRatioFor } from './gfxQuality'
+import type { GfxQ } from './gfxQuality'
 import { newSim, step, MOVES, TPS, HP, IN_L, IN_R, IN_BLOCK, IN_P, IN_K, IN_S, IN_U, IN_D, IN_P2, IN_K2, JV, GRAV, lenOf } from './fightSim'
 import type { Sim, InputLog, MoveId, F } from './fightSim'
 
@@ -51,7 +53,11 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
   const [music, setMusic] = useState(snd.current.musicOn)
   const padRef = useRef(0)
   const ckpt = useRef<number>(startLv ?? 1)   // с какого босса начинать: Страж побеждён — дальше сразу Призрак
-  const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {}, dir: (_m: number) => {} })
+  const api = useRef({ start: () => {}, press: (_b: number, _d: boolean) => {}, dir: (_m: number) => {}, gfx: (_q: GfxQ) => {} })
+  const [gq, setGq] = useState<GfxQ>(getGfx)
+  const gq0 = useRef(gq)
+  const gqRef = useRef(gq); gqRef.current = gq
+  const [gOpen, setGOpen] = useState(false)
   // на телефоне играем только горизонтально
   const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const [portrait, setPortrait] = useState(() => window.innerHeight > window.innerWidth)
@@ -68,12 +74,12 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
   useEffect(() => {
     const el = host.current!
     let alive = true
-    const R = new THREE.WebGLRenderer({ antialias: true })
+    const G0 = GFX[gq0.current]
+    const R = new THREE.WebGLRenderer({ antialias: G0.aa, powerPreference: gq0.current === 'low' ? 'low-power' : 'default' })
     // телефон: меньше пикселей и проще тени — меньше нагрев (на iPhone плотность экрана 3x, рисуем в 1,5x)
-    const mobile = window.matchMedia?.('(pointer: coarse)').matches
-    R.setPixelRatio(Math.min(mobile ? 1.5 : 2, window.devicePixelRatio || 1))
+    R.setPixelRatio(pixelRatioFor(gq0.current))
     R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05
-    R.shadowMap.enabled = true; R.shadowMap.type = mobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap
+    R.shadowMap.enabled = G0.shadows; R.shadowMap.type = G0.soft ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap
     el.appendChild(R.domElement)
     const S = new THREE.Scene()
     const pm = new THREE.PMREMGenerator(R); S.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; S.environmentIntensity = 0.25
@@ -81,7 +87,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
     const cam = new THREE.PerspectiveCamera(42, 1, 0.1, 600)
     cam.position.set(0, 1.3, 6); cam.lookAt(0, 1.2, 0)
     const key = new THREE.DirectionalLight(0xffffff, 1.1); key.position.set(-2, 6, -5); key.castShadow = true
-    key.shadow.mapSize.set(1024, 1024); Object.assign(key.shadow.camera, { left: -5, right: 5, top: 4, bottom: -3, near: 1, far: 20 }); key.shadow.camera.updateProjectionMatrix(); key.shadow.bias = -0.0006
+    key.shadow.mapSize.set(G0.shadowSize, G0.shadowSize); Object.assign(key.shadow.camera, { left: -5, right: 5, top: 4, bottom: -3, near: 1, far: 20 }); key.shadow.camera.updateProjectionMatrix(); key.shadow.bias = -0.0006
     S.add(key)
     const sfx = snd.current
 
@@ -371,6 +377,11 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
 
     const fit = () => { const w = el.clientWidth || 1, h = el.clientHeight || 1; R.setSize(w, h); cam.aspect = w / h; cam.updateProjectionMatrix() }
     const ro = new ResizeObserver(fit); ro.observe(el); fit()
+    api.current.gfx = q => {
+      const c = GFX[q]
+      R.setPixelRatio(pixelRatioFor(q)); fit()
+      if (R.shadowMap.enabled !== c.shadows) { R.shadowMap.enabled = c.shadows; S.traverse(o => { const m = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined; if (m) for (const x of Array.isArray(m) ? m : [m]) x.needsUpdate = true }) }
+    }
 
     const clock = new THREE.Clock()
     let raf = 0, lastHud = 0
@@ -378,7 +389,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
     const tick = () => {
       raf = requestAnimationFrame(tick)
       // не чаще 60 кадров в секунду: на экранах 120 Гц (iPhone Pro) иначе рисуем вдвое больше и телефон греется
-      const nowF = performance.now(); if (nowF - lastF < 12) return; lastF = nowF
+      const nowF = performance.now(); if (nowF - lastF < GFX[gqRef.current].frameMs) return; lastF = nowF
       const rdt = Math.min(0.05, clock.getDelta())
       if (slowT > 0) { slowT -= rdt; if (slowT <= 0) slow = 1 }
       const dt = rdt * slow
@@ -529,7 +540,20 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
         <button onClick={() => onClose(!!res?.done)} className="w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur">✕</button>
         <button onClick={() => { const m = !muted; snd.current.setMuted(m); setMuted(m) }} className="w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur">{muted ? '🔇' : '🔊'}</button>
         <button onClick={() => { const m = !music; snd.current.setMusic(m); setMusic(m) }} className={`w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur ${music ? '' : 'opacity-40'}`}>🎵</button>
+        <button onClick={() => setGOpen(o => !o)} aria-label="качество графики" aria-expanded={gOpen} className="w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur">⚙️</button>
       </div>
+      {gOpen && (
+        <div className="absolute left-1/2 -translate-x-1/2 z-20 glass rounded-[16px] p-3 w-[300px]" style={{ bottom: 'calc(env(safe-area-inset-bottom,0px) + 56px)' }}>
+          <div className="text-[13px] font-medium mb-2">Качество графики</div>
+          <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Качество графики">
+            {(['low', 'mid', 'high'] as GfxQ[]).map(q => (
+              <button key={q} role="radio" aria-checked={gq === q} onClick={() => { setGq(q); setGfx(q); api.current.gfx(q) }}
+                className={`h-9 rounded-[10px] text-[12.5px] font-medium ${gq === q ? 'bg-green text-black' : 'bg-white/[.07]'}`}>{GFX_LABEL[q]}</button>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray mt-1.5">{GFX_HINT[gq]}{gq !== gq0.current ? ' · полностью применится при следующем открытии' : ''}</p>
+        </div>
+      )}
 
       {pv && phase === 'fight' && pv.st === 'lag' && <div className="absolute top-[18%] inset-x-0 grid place-items-center pointer-events-none"><div className="glass rounded-[14px] px-4 py-2.5 text-center text-[13.5px]">Соперник не отвечает…<div className="text-[12px] text-gray mt-0.5">слабая связь или он свернул игру — ждём до 20 секунд</div></div></div>}
       {banner && <div key={banner.k} className="absolute inset-x-0 top-[26%] grid place-items-center pointer-events-none text-center">
