@@ -46,10 +46,12 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
     const el = host.current!
     let alive = true
     const R = new THREE.WebGLRenderer({ antialias: true })
-    R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
+    // телефон: меньше пикселей и проще тени — меньше нагрев (на iPhone плотность экрана 3x, рисуем в 1,5x)
+    const mobile = window.matchMedia?.('(pointer: coarse)').matches
+    R.setPixelRatio(Math.min(mobile ? 1.5 : 2, window.devicePixelRatio || 1))
     R.outputColorSpace = THREE.SRGBColorSpace
     R.toneMapping = THREE.ACESFilmicToneMapping
-    R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap
+    R.shadowMap.enabled = true; R.shadowMap.type = mobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap
     el.appendChild(R.domElement)
     const S = new THREE.Scene()
     const pm = new THREE.PMREMGenerator(R)
@@ -181,8 +183,11 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
 
     const clock = new THREE.Clock()
     let raf = 0, lastUi = 0
+    let lastF = 0
     const tick = () => {
       raf = requestAnimationFrame(tick)
+      // не чаще 60 кадров в секунду: на экранах 120 Гц (iPhone Pro) иначе рисуем вдвое больше и телефон греется
+      const nowF = performance.now(); if (nowF - lastF < 12) return; lastF = nowF
       const dt = Math.min(0.05, clock.getDelta())
       mixer?.update(dt)
       if (run) {

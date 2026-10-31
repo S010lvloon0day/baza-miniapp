@@ -69,9 +69,11 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
     const el = host.current!
     let alive = true
     const R = new THREE.WebGLRenderer({ antialias: true })
-    R.setPixelRatio(Math.min(2, window.devicePixelRatio || 1))
+    // телефон: меньше пикселей и проще тени — меньше нагрев (на iPhone плотность экрана 3x, рисуем в 1,5x)
+    const mobile = window.matchMedia?.('(pointer: coarse)').matches
+    R.setPixelRatio(Math.min(mobile ? 1.5 : 2, window.devicePixelRatio || 1))
     R.outputColorSpace = THREE.SRGBColorSpace; R.toneMapping = THREE.ACESFilmicToneMapping; R.toneMappingExposure = 1.05
-    R.shadowMap.enabled = true; R.shadowMap.type = THREE.PCFSoftShadowMap
+    R.shadowMap.enabled = true; R.shadowMap.type = mobile ? THREE.PCFShadowMap : THREE.PCFSoftShadowMap
     el.appendChild(R.domElement)
     const S = new THREE.Scene()
     const pm = new THREE.PMREMGenerator(R); S.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture; S.environmentIntensity = 0.25
@@ -368,8 +370,11 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
 
     const clock = new THREE.Clock()
     let raf = 0, lastHud = 0
+    let lastF = 0
     const tick = () => {
       raf = requestAnimationFrame(tick)
+      // не чаще 60 кадров в секунду: на экранах 120 Гц (iPhone Pro) иначе рисуем вдвое больше и телефон греется
+      const nowF = performance.now(); if (nowF - lastF < 12) return; lastF = nowF
       const rdt = Math.min(0.05, clock.getDelta())
       if (slowT > 0) { slowT -= rdt; if (slowT <= 0) slow = 1 }
       const dt = rdt * slow
@@ -394,7 +399,7 @@ export default function FightGame({ onClose, pvp, startLv }: Props) {
         }
         sfx.musicIntensity(Math.min(1, (HP * 2 - sim.f[0].hp - sim.f[1].hp) / (HP * 1.3)))
       } else if (rigs[0] && rigs[1] && rigs[2] && !sim.over) applyPose()
-      for (const r of rigs) r?.mixer.update(dt)
+      for (const r of rigs) if (r && r.root.visible) r.mixer.update(dt)   // скрытый босс не анимируется
       arena.update(rdt)
       for (const sp of sparks) if (sp.l > 0) { sp.l -= rdt; sp.v.y -= 9 * rdt; sp.s.position.addScaledVector(sp.v, rdt); (sp.s.material as THREE.SpriteMaterial).opacity = Math.min(1, sp.l * 4); if (sp.l <= 0) sp.s.visible = false }
       // камера: следит за серединой, отъезжает при большой дистанции, трясётся от ударов
