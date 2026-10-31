@@ -56,6 +56,7 @@ function Bubble({ text, speaking }: { text: string; speaking: boolean }) {
 }
 
 function Pips({ left, total }: { left: number; total: number }) {
+  if (total > 6) return <div className="text-[12.5px] text-gray shrink-0" aria-label={`Попыток осталось: ${left}`}>попыток: <b className="text-green">{left}</b> / {total}</div>
   return (
     <div className="flex items-center gap-1.5" aria-label={`Попыток осталось: ${left}`}>
       {Array.from({ length: total }).map((_, i) => (
