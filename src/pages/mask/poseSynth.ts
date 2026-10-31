@@ -83,6 +83,17 @@ function legWorld(root: THREE.Object3D, base: Pose, kick: Pose, deg?: number, st
   return out
 }
 
+/** поднять колено: бедро наводится вперёд и вверх на deg градусов над горизонталью, голень висит как была */
+function kneeUp(root: THREE.Object3D, p: Pose, deg: number, side = 'Right'): Pose {
+  applyPose(root, p)
+  const ul = findBone(root, side + 'UpLeg'), lg = findBone(root, side + 'Leg'); if (!ul || !lg) return p
+  const rq = new THREE.Quaternion(); root.getWorldQuaternion(rq)
+  const r = deg * Math.PI / 180
+  aimBone(ul, lg, new THREE.Vector3(0, Math.sin(r), Math.cos(r)).applyQuaternion(rq))
+  const out: Pose = new Map(p); const k = ul.name + '.quaternion'; if (p.has(k)) out.set(k, ul.quaternion.toArray())
+  return out
+}
+
 export function synthClips(clips: THREE.AnimationClip[], root?: THREE.Object3D) {
   const C = Object.fromEntries(clips.map(c => [c.name, c]))
   const need = ['f_crouch', 'f_low', 'f_bblock', 'f_upper']
@@ -96,14 +107,15 @@ export function synthClips(clips: THREE.AnimationClip[], root?: THREE.Object3D) 
   if (root) {
     const lk = (t: number, deg?: number, st = 0.7) => legWorld(root, crouch, sample(C.f_low, t), deg, st)
     // удар ногой из приседа (присед + нога 1): колено подтянуто → нога выстреливает далеко вперёд у пола → обратно
-    clips.push(build('f_ckick', [[0, crouch], [0.09, lk(0.45, 50, 0)], [0.18, lk(0.63, 8, 0.85)], [0.3, lk(0.65, 8, 0.85)], [0.42, lk(0.55, 40, 0.2)], [0.58, crouch]]))
+    clips.push(build('f_ckick', [[0, crouch], [0.09, kneeUp(root, crouch, 25)], [0.18, lk(0.63, 8, 0.85)], [0.3, lk(0.65, 8, 0.85)], [0.42, lk(0.55, 40, 0.2)], [0.58, crouch]]))
     // подсечка (присед + нога 2): нога вытянута у самого пола, корпус делает полный оборот (вращает FightGame)
     clips.push(build('f_csweep', [[0, crouch], [0.1, lk(0.5, 45, 0.2)], [0.25, lk(0.64, 9, 0.95)], [0.75, lk(0.64, 9, 0.95)], [0.88, lk(0.55, 40, 0.2)], [1.0, crouch]]))
   }
   if (root && C.f_jump && C.f_knee) {
     const air = sample(C.f_jump, 1.05)
     const kn = (t: number) => { const k = sample(C.f_knee, t); return legWorld(root, legWorld(root, air, k, undefined, 0.7, 'Left'), k) }
-    clips.push(build('f_jknee2', [[0, air], [0.12, kn(0.55)], [0.22, kn(0.68)], [0.6, kn(0.7)], [0.8, air]]))
+    const hi = (t: number) => kneeUp(root, kn(t), 28, 'Left')
+    clips.push(build('f_jknee2', [[0, air], [0.12, kn(0.55)], [0.22, hi(0.68)], [0.6, hi(0.7)], [0.8, air]]))
   }
   // тычок рукой из приседа: ноги сидят, руки — джеб
   const jsrc = C.f_bcross ?? C.f_bjab
