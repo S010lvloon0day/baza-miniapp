@@ -62,7 +62,7 @@ export const maskApi = {
   runTop: () => req<RunTop>('GET', '/api/mask/run/top'),
   fightTop: (lv: 1 | 2) => req<FightTop>('GET', '/api/mask/fight/top?lv=' + lv),
   fightStart: (lv?: number) => req<{ fight_id: number; seed: number; lv?: number; ez?: number }>('POST', '/api/mask/fight/start', lv ? { lv } : {}),
-  fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null; ticks?: number; record?: boolean; best?: number | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks, sv: 2 }),   // sv — версия правил драки (2: длиннее руки)
+  fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null; ticks?: number; record?: boolean; best?: number | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks, sv: 3 }),   // sv — версия правил драки (3: длиннее руки, боссы 3 % и 1 %)
   cipher: (answer: string) => req<{ ok: boolean; reward?: string | null; error?: string }>('POST', '/api/mask/cipher', { answer }),
   revealUrl: () => API_BASE + '/api/mask/reveal.glb?v=' + MODEL_V,
   /** голос владельца для победителя: отдаётся только победителю раунда и админам */
