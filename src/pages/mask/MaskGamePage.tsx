@@ -430,7 +430,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
         <details className="card px-3.5 py-3 text-[13px] text-gray">
           <summary className="text-[13.5px] text-fg font-medium cursor-pointer">Правила</summary>
           <ul className="mt-2 flex flex-col gap-1.5 list-disc pl-4">
-            <li>Забег и драка — до 99 попыток в сутки, обновляются в 00:00 по Москве.</li>
+            <li>Забег и драка — без ограничений: играй сколько хочешь и ставь рекорды.</li>
             <li>Приз получает первый, кто пройдёт все три испытания. Выплату проверяет и делает администратор вручную.</li>
             <li>Улики дают подсказки и очки в рейтинг недели.</li>
             <li>Мультиаккаунты и подбор ботами — дисквалификация.</li>
