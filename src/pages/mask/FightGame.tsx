@@ -8,6 +8,8 @@ import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment
 import { clone as skClone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { maskApi } from '../../api/mask'
 import FightTop from './FightTop'
+import { ACTIONS, DEFAULT_BINDS, loadBinds, saveBinds, keyMap, assign, keyName } from './keyBinds'
+import type { Binds, ActId } from './keyBinds'
 import { buildArena } from './fightWorld'
 import { synthClips } from './poseSynth'
 import { createRunnerSound } from './runnerSound'
@@ -90,6 +92,12 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
   const gq0 = useRef(gq)
   const gqRef = useRef(gq); gqRef.current = gq
   const [gOpen, setGOpen] = useState(false)
+  // клавиши на ПК: можно переназначить; cap — ждём нажатия новой клавиши для действия
+  const [binds, setBinds] = useState<Binds>(loadBinds)
+  const kmRef = useRef(keyMap(binds))
+  const [cap, setCap] = useState<{ id: ActId; slot: 0 | 1 } | null>(null)
+  const capRef = useRef(cap); capRef.current = cap
+  const setB = (b: Binds) => { setBinds(b); saveBinds(b); kmRef.current = keyMap(b) }
   // на телефоне играем только горизонтально
   const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches
   const [portrait, setPortrait] = useState(() => window.innerHeight > window.innerWidth)
@@ -99,7 +107,18 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     const on = () => setPortrait(window.innerHeight > window.innerWidth)
     window.addEventListener('resize', on); window.addEventListener('orientationchange', on)
     try { tg?.disableVerticalSwipes?.(); tg?.requestFullscreen?.() } catch { /* */ }
-    return () => { window.removeEventListener('resize', on); window.removeEventListener('orientationchange', on); try { tg?.enableVerticalSwipes?.(); tg?.unlockOrientation?.(); if (tg?.isFullscreen) tg?.exitFullscreen?.() } catch { /* */ } }
+    // телефон: быстрые касания не должны увеличивать экран (двойной тап и щипок в бою отключены)
+    const noZoom = (e: Event) => e.preventDefault()
+    let lastTap = 0
+    const dblGuard = (e: TouchEvent) => { const t = performance.now(); if (t - lastTap < 320 && e.cancelable) e.preventDefault(); lastTap = t }
+    document.addEventListener('gesturestart', noZoom); document.addEventListener('gesturechange', noZoom); document.addEventListener('dblclick', noZoom)
+    document.addEventListener('touchend', dblGuard, { passive: false })
+    const vp = document.querySelector('meta[name=viewport]'), vp0 = vp?.getAttribute('content') || ''
+    vp?.setAttribute('content', 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover')
+    return () => {
+      document.removeEventListener('gesturestart', noZoom); document.removeEventListener('gesturechange', noZoom); document.removeEventListener('dblclick', noZoom)
+      document.removeEventListener('touchend', dblGuard); if (vp && vp0) vp.setAttribute('content', vp0)
+      window.removeEventListener('resize', on); window.removeEventListener('orientationchange', on); try { tg?.enableVerticalSwipes?.(); tg?.unlockOrientation?.(); if (tg?.isFullscreen) tg?.exitFullscreen?.() } catch { /* */ } }
   }, [])
   useEffect(() => { if (!needRotate && coarse) { try { tg?.lockOrientation?.() } catch { /* */ } } }, [needRotate, coarse])
 
@@ -574,9 +593,19 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     tick()
 
     // клавиатура
-    const KM: Record<string, number> = { ArrowLeft: IN_L, KeyA: IN_L, ArrowRight: IN_R, KeyD: IN_R, ArrowUp: IN_U, KeyW: IN_U, ArrowDown: IN_D, KeyS: IN_D, ShiftLeft: IN_BLOCK, KeyO: IN_BLOCK, KeyU: IN_P, KeyI: IN_P2, KeyJ: IN_K, KeyK: IN_K2, KeyL: IN_S, Space: IN_S }
-    const kd = (e: KeyboardEvent) => { const b = KM[e.code]; if (b) { e.preventDefault(); inp |= b } }
-    const ku = (e: KeyboardEvent) => { const b = KM[e.code]; if (b) { e.preventDefault(); inp &= ~b } }
+    // клавиатура (раскладка — из настроек; пока назначаем клавишу, бой её не получает)
+    const kd = (e: KeyboardEvent) => {
+      const c = capRef.current
+      if (c) {
+        e.preventDefault(); e.stopPropagation()
+        if (e.code === 'Escape') setCap(null)
+        else if (e.code === 'Backspace' || e.code === 'Delete') { setBinds(b => { const nb = assign(b, c.id, c.slot, ''); saveBinds(nb); kmRef.current = keyMap(nb); return nb }); setCap(null) }
+        else if (e.code) { setBinds(b => { const nb = assign(b, c.id, c.slot, e.code); saveBinds(nb); kmRef.current = keyMap(nb); return nb }); setCap(null) }
+        inp = 0; return
+      }
+      const b = kmRef.current[e.code]; if (b) { e.preventDefault(); inp |= b }
+    }
+    const ku = (e: KeyboardEvent) => { const b = kmRef.current[e.code]; if (b) { e.preventDefault(); inp &= ~b } }
     window.addEventListener('keydown', kd); window.addEventListener('keyup', ku)
     const vis = () => { if (document.hidden) inp = 0 }
     document.addEventListener('visibilitychange', vis)
@@ -713,7 +742,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         <button onClick={() => setGOpen(o => !o)} aria-label="качество графики" aria-expanded={gOpen} className="w-8 h-8 rounded-full grid place-items-center text-[13px] bg-black/45 border border-white/15 backdrop-blur">⚙️</button>
       </div>
       {gOpen && (
-        <div className="absolute z-20 glass rounded-[16px] p-3 w-[300px] max-w-[calc(100vw-20px)]" style={{ top: 'calc(env(safe-area-inset-top,0px) + 98px)', right: 'calc(env(safe-area-inset-right,0px) + 10px)' }}>
+        <div className="absolute z-20 glass rounded-[16px] p-3 w-[300px] max-w-[calc(100vw-20px)] overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 110px)', top: 'calc(env(safe-area-inset-top,0px) + 98px)', right: 'calc(env(safe-area-inset-right,0px) + 10px)' }}>
           <div className="text-[13px] font-medium mb-2">Качество графики</div>
           <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Качество графики">
             {(['low', 'mid', 'high'] as GfxQ[]).map(q => (
@@ -722,6 +751,23 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             ))}
           </div>
           <p className="text-[11px] text-gray mt-1.5">{GFX_HINT[gq]}{gq !== gq0.current ? ' · полностью применится при следующем открытии' : ''}</p>
+          {!coarse && <div className="mt-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <div className="text-[13px] font-medium">Клавиши</div>
+              <button onClick={() => { setB({ ...DEFAULT_BINDS }); setCap(null) }} className="text-[11.5px] text-gray underline underline-offset-2">Сбросить</button>
+            </div>
+            <div className="grid gap-1" style={{ gridTemplateColumns: '1fr 64px 64px' }}>
+              {ACTIONS.map(a => [
+                <span key={a.id + 'l'} className="text-[12.5px] text-gray self-center">{a.label}</span>,
+                ...([0, 1] as const).map(sl => {
+                  const on = cap?.id === a.id && cap.slot === sl
+                  return <button key={a.id + sl} onClick={() => setCap(on ? null : { id: a.id, slot: sl })} aria-label={`${a.label}: ${keyName(binds[a.id][sl])}`}
+                    className={`h-7 rounded-[8px] text-[12px] font-medium tabular-nums ${on ? 'bg-gold text-black animate-pulse' : 'bg-white/[.07]'}`}>{on ? 'нажми…' : keyName(binds[a.id][sl])}</button>
+                }),
+              ])}
+            </div>
+            <p className="text-[11px] text-gray2 mt-1.5">Нажми на клавишу в таблице, затем нужную на клавиатуре. Esc — отмена, Backspace — убрать.</p>
+          </div>}
         </div>
       )}
 
@@ -795,7 +841,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
                 <span>▲ — прыжок, в воздухе рука или нога</span><span>Блок — верх и середина, ▼ + Блок — низ</span>
                 <span>◀◀ отскок · ▶▶ рывок · бросок сбрасывается нажатием руки</span><span>Спец — когда шкала полна</span>
               </div>
-              <p className="text-[11.5px] text-gray2 mt-1.5">На ПК: ← → ↑ ↓ · U/I руки · J/K ноги · Shift/O блок · Пробел спец</p>
+              {!coarse && <p className="text-[11.5px] text-gray2 mt-1.5">На ПК: {keyName(binds.l[0])} {keyName(binds.r[0])} {keyName(binds.u[0])} {keyName(binds.d[0])} · {keyName(binds.p[0])}/{keyName(binds.p2[0])} руки · {keyName(binds.k[0])}/{keyName(binds.k2[0])} ноги · {keyName(binds.b[0])} блок · {keyName(binds.s[0])} спец · переназначить — ⚙️</p>}
               <button onClick={() => api.current.start()} className="btn-primary w-full mt-3">В бой</button>
             </>}
             {phase === 'end' && pv && isSpec && <>
