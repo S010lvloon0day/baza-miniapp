@@ -18,6 +18,8 @@ import type { Sim, InputLog, MoveId, F } from './fightSim'
 /** Задание 2: драка со стражем. Бой считает fightSim (то же на сервере), здесь — картинка, звук и управление. */
 interface Props { onClose: (done: boolean) => void; pvp?: string; startLv?: 1 | 2; watch?: boolean }   // watch — смотреть чужой бой зрителем   // startLv — выбранный соперник (после прохождения этапа)   // pvp — код вызова: бой с другом
 const BASE = import.meta.env.BASE_URL
+/** время боя: тики (60 в секунду) → м:сс */
+export const fmtT = (t: number) => { const s = Math.round(t / 60); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0') }
 /** облик бойца в бою с другом (на силу и удары не влияет — у всех одинаковые) */
 const HEROES = ['Герой', 'Страж', 'Призрак', 'Рин', 'Искра', 'Дюна', 'Тень', 'Центурион', 'Сержант', 'Пантера', 'Титан', 'Егерь', 'Кобра']
 const ARCH_TXT: Record<string, string> = {
@@ -55,7 +57,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
   const [phase, setPhase] = useState<'load' | 'ready' | 'fight' | 'end'>('load')
   const [hud, setHud] = useState({ hp: [HP, HP], mx: [HP, HP], meter: [0, 0], wins: [0, 0], lv: 1, time: 60, round: 1, combo: 0 })
   const [banner, setBanner] = useState<{ k: number; text: string; sub?: string; tone?: 'gold' | 'red' | 'white' } | null>(null)
-  const [res, setRes] = useState<{ done: boolean; win: boolean; flag?: string | null } | null>(null)
+  const [res, setRes] = useState<{ done: boolean; win: boolean; flag?: string | null; ticks?: number; rec?: boolean; best?: number | null } | null>(null)
   // бой с другом: имена, моя сторона, состояние связи
   const [pv, setPv] = useState<{ names: [string, string]; side: 0 | 1 | 2; st: 'conn' | 'wait' | 'fight' | 'left' | 'lag' | 'gone' | 'err' | 'full' } | null>(pvp ? { names: ['', ''], side: watch ? 2 : 0, st: 'conn' } : null)
   // реванш: я согласен / соперник согласен / соперник ушёл; зрители: сколько смотрят и ссылка, чтобы позвать
@@ -303,11 +305,11 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         return
       }
       const win = sim.over === 1
-      if (sim.lv === 2) ckpt.current = 2
+      if (sim.lv === 2 && !startLv) ckpt.current = 2   // прошедший драку сам выбирает соперника — «ещё раз» с тем же
       setTimeout(() => say(win ? 'ТЫ ПОБЕДИЛ' : 'ПОРАЖЕНИЕ', win ? 'оба босса повержены' : sim.lv === 2 ? 'призрак непобедим… пока' : 'страж непобедим… пока', win ? 'gold' : 'red', 2600), 1200)
       sfx.musicStop(2)
       setTimeout(() => setPhase('end'), 2600)
-      try { const r = await maskApi.fightFinish(fightId, log, sim.tick); setRes({ done: r.done, win: r.win, flag: r.flag }) }
+      try { const r = await maskApi.fightFinish(fightId, log, sim.tick); setRes({ done: r.done, win: r.win, flag: r.flag, ticks: r.ticks, rec: r.record, best: r.best }); if (r.record) sfx.ui?.('record') }
       catch { setRes({ done: false, win, flag: 'net' }) }
     }
 
@@ -776,9 +778,10 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             </>}
             {phase === 'end' && !pv && <>
               <div className="font-display font-semibold text-[18px]">{res?.done ? 'Задание выполнено!' : res?.win ? 'Победа!' : ckpt.current === 2 ? 'Призрак победил' : 'Страж победил'}</div>
+              {res?.win && res.ticks ? <p className={`text-[14px] mt-1 font-semibold ${res.rec ? 'text-gold' : 'text-white/85'}`}>{res.rec ? '🏆 Новый рекорд: ' : 'Время: '}{fmtT(res.ticks)}{!res.rec && res.best ? <span className="text-gray font-normal"> · рекорд {fmtT(res.best)}</span> : null}</p> : null}
               <p className="text-[13.5px] text-gray mt-1">{res?.flag === 'bad' ? 'Бой не засчитан сервером' : res?.flag === 'net' ? 'Нет связи с сервером — результат не сохранён' : res?.win ? 'Сервер подтвердил победу.' : 'Ищи момент, когда он раскрылся после удара.'}</p>
               <div className="flex gap-2 mt-3">
-                {!res?.done && <button onClick={() => api.current.start()} className="btn-primary flex-1">{ckpt.current === 2 ? 'Снова с Призраком' : 'Ещё раз'}</button>}
+                <button onClick={() => api.current.start()} className="btn-primary flex-1">{res?.done ? 'На рекорд' : ckpt.current === 2 ? 'Снова с Призраком' : 'Ещё раз'}</button>
                 <button onClick={() => onClose(!!res?.done)} className="btn-secondary flex-1 h-12 rounded-[16px]">{res?.done ? 'Дальше' : 'Выйти'}</button>
               </div>
             </>}

@@ -369,7 +369,7 @@ export default function RunnerGame({ model, target: target0, onClose }: Props) {
               {rec && <p className="text-[14px] text-gold font-semibold mt-1">🏆 Новый личный рекорд!</p>}
               <Records top={top} />
               <div className="flex gap-2 mt-3">
-                {!res?.done && <button onClick={() => api.current.start()} className="btn-primary flex-1">Ещё раз</button>}
+                <button onClick={() => api.current.start()} className="btn-primary flex-1">{res?.done ? 'На рекорд' : 'Ещё раз'}</button>
                 <button onClick={() => onClose(!!res?.done)} className="btn-secondary flex-1 h-12 rounded-[16px]">{res?.done ? 'Дальше' : 'Выйти'}</button>
               </div>
             </>}

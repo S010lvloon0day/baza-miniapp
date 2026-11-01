@@ -36,7 +36,7 @@ export interface MaskState {
   hello: MaskReact; reveal: boolean; is_admin: boolean; voice?: boolean
   tasks?: {
     run: { done: boolean; best: number; target: number }
-    fight?: { open: boolean; done: boolean }
+    fight?: { open: boolean; done: boolean; best?: { '1'?: number | null; '2'?: number | null } }
     cipher?: { open: boolean; done: boolean; cipher?: string; reward?: string }
     final?: { open: boolean; soon?: boolean; premium?: boolean }
     osint: { open: boolean; soon?: boolean; premium?: boolean }
@@ -60,7 +60,7 @@ export const maskApi = {
   runFinish: (run_id: number, score: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; score: number; flag: string | null }>('POST', '/api/mask/run/finish', { run_id, score, log, ticks }),
   runTop: () => req<RunTop>('GET', '/api/mask/run/top'),
   fightStart: (lv?: number) => req<{ fight_id: number; seed: number; lv?: number; ez?: number }>('POST', '/api/mask/fight/start', lv ? { lv } : {}),
-  fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks }),
+  fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null; ticks?: number; record?: boolean; best?: number | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks }),
   cipher: (answer: string) => req<{ ok: boolean; reward?: string | null; error?: string }>('POST', '/api/mask/cipher', { answer }),
   revealUrl: () => API_BASE + '/api/mask/reveal.glb?v=' + MODEL_V,
   /** голос владельца для победителя: отдаётся только победителю раунда и админам */

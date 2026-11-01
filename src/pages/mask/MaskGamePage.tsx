@@ -289,6 +289,8 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
               {(() => {
                 const T = s.tasks
                 const run = T?.run, fight = T?.fight, fin = T?.final ?? T?.osint
+                const fmtT = (t?: number | null) => { if (!t) return ''; const x = Math.round(t / 60); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0') }
+                const fb = fight?.best, fRec = [fb?.['1'] ? 'оба босса ' + fmtT(fb['1']) : '', fb?.['2'] ? 'Призрак ' + fmtT(fb['2']) : ''].filter(Boolean).join(' · ')
                 const row = (n: number, title: string, sub: string, state: 'done' | 'open' | 'lock', act?: () => void, btn?: string, extra?: React.ReactNode) => (
                   <div key={n} className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 ${state === 'lock' ? 'bg-white/[.03] opacity-60' : 'bg-white/[.06]'}`}>
                     <span className={`w-8 h-8 rounded-full grid place-items-center shrink-0 font-display font-semibold text-[13px] ${state === 'done' ? 'bg-green text-black' : 'bg-white/[.08]'}`}>
@@ -300,8 +302,9 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
                   </div>
                 )
                 return [
-                  row(1, 'Забег', run?.done ? `пройден · рекорд ${run.best.toLocaleString('ru')}` : `набери ${(run?.target ?? 50000).toLocaleString('ru')} очков · рекорд ${(run?.best ?? 0).toLocaleString('ru')}`, run?.done ? 'done' : 'open', () => setRunOpen(true), run?.best ? 'Ещё раз' : 'Бежать'),
-                  row(2, 'Драка', fight?.done ? 'пройдена · выбери соперника' : 'победи Стража, затем Призрака', fight?.done ? 'done' : fight?.open ? 'open' : 'lock', () => setFightOpen(true), 'В бой',
+                  row(1, 'Забег', run?.done ? `пройден · рекорд ${run.best.toLocaleString('ru')}` : `набери ${(run?.target ?? 50000).toLocaleString('ru')} очков · рекорд ${(run?.best ?? 0).toLocaleString('ru')}`, run?.done ? 'done' : 'open', () => setRunOpen(true), run?.best ? 'Ещё раз' : 'Бежать',
+                    <button onClick={() => setRunOpen(true)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px] shrink-0">На рекорд</button>),
+                  row(2, 'Драка', fight?.done ? (fRec ? 'рекорд: ' + fRec : 'пройдена · выбери соперника') : 'победи Стража, затем Призрака', fight?.done ? 'done' : fight?.open ? 'open' : 'lock', () => setFightOpen(true), 'В бой',
                     <span className="flex gap-1.5 shrink-0">
                       <button onClick={() => setFightOpen(1)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Страж</button>
                       <button onClick={() => setFightOpen(2)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Призрак</button>
