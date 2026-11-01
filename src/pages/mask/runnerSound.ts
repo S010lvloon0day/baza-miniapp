@@ -333,8 +333,27 @@ export function createRunnerSound(opt: { fight?: boolean } = {}) {
     whoosh(heavy = false) { play('cloth', { vol: heavy ? 0.6 : 0.4, rate: heavy ? 0.85 : 1.35, jitter: 0.12 }); air(heavy ? 0.3 : 0.18, heavy ? 500 : 900, heavy ? 1800 : 2600, heavy ? 0.08 : 0.05) },
     fall() { play('thud', { vol: 1, rate: 0.85, verb: 0.3 }); play('land', { vol: 0.7, delay: 0.08 }); play('cloth', { vol: 0.5, delay: 0.04 }) },
     gong() { play('bell', { vol: 0.9, verb: 0.6 }) },
-    /** отсчёт перед боем: глухой удар большого барабана */
-    drum() { play('thud', { vol: 1, rate: 0.62, verb: 0.45, jitter: 0.01 }); play('thud', { vol: 0.5, rate: 0.5, delay: 0.02, verb: 0.3, jitter: 0.01 }) },
+    /** отсчёт перед боем: короткий сигнал, как у таймера (синтез — звучит всегда, без файлов) */
+    drum() {
+      if (!ctx || !sfxBus) return
+      const t = ctx.currentTime
+      for (const [f, v] of [[880, 0.32], [1760, 0.08]] as const) {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.005); g.gain.setValueAtTime(v, t + 0.12); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22)
+        o.connect(g); g.connect(sfxBus); o.start(t); o.stop(t + 0.25)
+      }
+    },
+    /** «БОЙ!»: громкий гонг — два слоя колокола и низкий гул */
+    gongBig() {
+      play('bell', { vol: 1, verb: 0.7, jitter: 0 }); play('bell', { vol: 0.8, rate: 0.6, verb: 0.8, jitter: 0 })
+      if (!ctx || !sfxBus) return
+      const t = ctx.currentTime
+      for (const [f, v, d] of [[55, 0.55, 3.2], [82.5, 0.3, 2.6], [147, 0.18, 2.2]] as const) {
+        const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.setValueAtTime(f * 1.03, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.4)
+        const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + d)
+        o.connect(g); g.connect(sfxBus); if (verbIn) { const vg = ctx.createGain(); vg.gain.value = 0.4; g.connect(vg); vg.connect(verbIn) } o.start(t); o.stop(t + d + 0.05)
+      }
+    },
     special() { play('metal', { vol: 0.6, rate: 0.7, verb: 0.6 }); air(0.6, 300, 3000, 0.12) },
     /** интерфейс: отсчёт, старт, рекорд */
     ui(k: 'tick' | 'go' | 'record') {

@@ -209,7 +209,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     let lastCd = 0
     const countdown = () => {   // по паузе симуляции перед первым раундом: одинаково у обоих игроков и у зрителей
       const n = sim.round === 1 && sim.pause > 0 && !sim.over ? Math.ceil(sim.pause / 40) : 0
-      if (n !== lastCd) { lastCd = n; setCd(n); if (n) sfx.drum() }   // удар барабана на каждую цифру, на «БОЙ!» — гонг
+      if (n !== lastCd) { lastCd = n; setCd(n); if (n) sfx.drum() }   // сигнал отсчёта на каждую цифру, на «БОЙ!» — громкий гонг
     }
     const say = (text: string, sub?: string, tone?: 'gold' | 'red' | 'white', ms = 1300) => { const k = ++bk; setBanner({ k, text, sub, tone }); setTimeout(() => setBanner(b => b && b.k === k ? null : b), ms) }
 
@@ -301,7 +301,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         else if (e.k === 'land') sfx.land()
         else if (e.k === 'special') { sfx.special(); arena.flash(1); say(pvp || e.who === 0 ? 'СПЕЦПРИЁМ!' : 'ЯРОСТЬ СТРАЖА', undefined, 'gold', 900) }
         else if (e.k === 'time') say('ВРЕМЯ!', undefined, 'white', 1500)
-        else if (e.k === 'start') { sfx.gong(); say('БОЙ!', undefined, 'gold', 800) }
+        else if (e.k === 'start') { if (sim.round === 1) sfx.gongBig(); else sfx.gong(); say('БОЙ!', undefined, 'gold', 800) }
         else if (e.k === 'boss2') { arena.flash(1); sfx.gong(); say('ВТОРОЙ БОСС', 'Призрак: его ещё никто не победил', 'red', 2600); b2T = performance.now(); for (const r of rigs) if (r) r.key = '' }
         else if (e.k === 'round') { const n = sim.wins[0] + sim.wins[1] + 1; setTimeout(() => { if (alive && running) say('РАУНД ' + n, n === 3 ? 'счёт 1 : 1 — решающий' : n === 2 ? `счёт ${sim.wins[0]} : ${sim.wins[1]}` : sim.lv === 2 ? 'против Призрака' : undefined, 'white', 1600) }, performance.now() - b2T < 500 ? 2900 : 300) }
       }
