@@ -27,26 +27,27 @@ export type MoveId = 'jab' | 'cross' | 'hook' | 'upper' | 'low' | 'kick' | 'roun
 export type Lvl = 'H' | 'M' | 'L' | 'O'
 export interface Move { s: number; a: number; r: number; dmg: number; reach: number; stun: number; kd: number; push: number; h: Lvl; aa?: 1; air?: 1; next?: MoveId }
 // s — подготовка, a — активные кадры, r — восстановление (кадры); reach — дальность, см; kd — сбивает с ног
+// дальность ударов руками сверена с анимацией: кулак уходит на 80–85 см от центра бойца + полкорпуса соперника
 export const MOVES: Record<MoveId, Move> = {
-  jab: { s: 5, a: 3, r: 10, dmg: 45, reach: 96, stun: 15, kd: 0, push: 4, h: 'H', next: 'cross' },
-  cross: { s: 7, a: 3, r: 13, dmg: 70, reach: 104, stun: 17, kd: 0, push: 6, h: 'H', next: 'hook' },
-  hook: { s: 9, a: 3, r: 16, dmg: 90, reach: 94, stun: 19, kd: 0, push: 10, h: 'H', next: 'upper' },
-  upper: { s: 12, a: 4, r: 22, dmg: 125, reach: 100, stun: 0, kd: 1, push: 40, h: 'M', aa: 1 },
+  jab: { s: 5, a: 3, r: 10, dmg: 45, reach: 110, stun: 15, kd: 0, push: 4, h: 'H', next: 'cross' },
+  cross: { s: 7, a: 3, r: 13, dmg: 70, reach: 118, stun: 17, kd: 0, push: 6, h: 'H', next: 'hook' },
+  hook: { s: 9, a: 3, r: 16, dmg: 90, reach: 108, stun: 19, kd: 0, push: 10, h: 'H', next: 'upper' },
+  upper: { s: 12, a: 4, r: 22, dmg: 125, reach: 110, stun: 0, kd: 1, push: 40, h: 'M', aa: 1 },
   low: { s: 8, a: 3, r: 14, dmg: 55, reach: 124, stun: 15, kd: 0, push: 4, h: 'L', next: 'kick' },
   kick: { s: 12, a: 4, r: 20, dmg: 105, reach: 136, stun: 20, kd: 0, push: 8, h: 'M', next: 'round' },
   round: { s: 16, a: 5, r: 26, dmg: 150, reach: 142, stun: 0, kd: 1, push: 50, h: 'H', aa: 1 },
   special: { s: 18, a: 12, r: 28, dmg: 210, reach: 165, stun: 0, kd: 1, push: 70, h: 'M', aa: 1 },
-  combo: { s: 6, a: 22, r: 18, dmg: 34, reach: 100, stun: 12, kd: 0, push: 6, h: 'H' },   // серия стража: бьёт каждые 4 кадра активной фазы
+  combo: { s: 6, a: 22, r: 18, dmg: 34, reach: 108, stun: 12, kd: 0, push: 6, h: 'H' },   // серия стража: бьёт каждые 4 кадра активной фазы
   throw: { s: 4, a: 2, r: 20, dmg: 120, reach: 98, stun: 0, kd: 1, push: 60, h: 'M' },      // бросок: блоком не защититься
-  elbow: { s: 7, a: 3, r: 14, dmg: 85, reach: 96, stun: 20, kd: 0, push: 20, h: 'M' },      // вперёд + рука
-  knee: { s: 8, a: 4, r: 16, dmg: 95, reach: 94, stun: 22, kd: 0, push: 24, h: 'M' },       // вперёд + нога вплотную
+  elbow: { s: 7, a: 3, r: 14, dmg: 85, reach: 108, stun: 20, kd: 0, push: 20, h: 'M' },      // вперёд + рука
+  knee: { s: 8, a: 4, r: 16, dmg: 95, reach: 100, stun: 22, kd: 0, push: 24, h: 'M' },       // вперёд + нога вплотную
   high: { s: 11, a: 4, r: 20, dmg: 120, reach: 140, stun: 22, kd: 0, push: 30, h: 'H', aa: 1 },   // вперёд + нога: высокий удар
   spin: { s: 15, a: 4, r: 24, dmg: 140, reach: 132, stun: 0, kd: 1, push: 50, h: 'M' },      // назад + нога: вертушка
-  cupper: { s: 10, a: 4, r: 24, dmg: 140, reach: 98, stun: 0, kd: 1, push: 45, h: 'M', aa: 1 },   // присед + рука: апперкот
+  cupper: { s: 10, a: 4, r: 24, dmg: 140, reach: 108, stun: 0, kd: 1, push: 45, h: 'M', aa: 1 },   // присед + рука: апперкот
   sweep: { s: 10, a: 4, r: 22, dmg: 90, reach: 140, stun: 0, kd: 1, push: 30, h: 'L' },     // присед + нога: подсечка
   jkick: { s: 5, a: 9, r: 6, dmg: 110, reach: 125, stun: 22, kd: 0, push: 30, h: 'O', air: 1 },
   jknee: { s: 4, a: 9, r: 6, dmg: 100, reach: 100, stun: 22, kd: 0, push: 24, h: 'O', air: 1 },
-  cjab: { s: 4, a: 3, r: 10, dmg: 35, reach: 98, stun: 12, kd: 0, push: 8, h: 'M' },        // присед + рука 1: тычок
+  cjab: { s: 4, a: 3, r: 10, dmg: 35, reach: 110, stun: 12, kd: 0, push: 8, h: 'M' },        // присед + рука 1: тычок
   ckick: { s: 6, a: 3, r: 13, dmg: 50, reach: 125, stun: 14, kd: 0, push: 12, h: 'L' },     // присед + нога 1: низкий удар вперёд по ногам
 }
 export const COMBO_GAP = 4
@@ -60,8 +61,8 @@ export interface F {
 }
 /** уровни: 1 — Страж (идеальный бот выигрывает ~5 %), 2 — Призрак (~2 %). mg — заряд спецприёма игрока, ‰; rs — страж восстанавливается в 2^rs раз быстрее */
 export const LV = [null,
-  { bm: 157, pm: 67, br: 430, bp: 965, rs: 0, cd: 6, cdl: 7, cdh: 14, mg: 1100 },   // страж: ~5 % побед идеального бота
-  { bm: 180, pm: 58, br: 520, bp: 985, rs: 0, cd: 4, cdl: 5, cdh: 9, mg: 1100 },   // призрак: ~2 %
+  { bm: 157, pm: 62, br: 430, bp: 965, rs: 0, cd: 6, cdl: 7, cdh: 14, mg: 1100 },   // страж: идеальный бот с реакцией 3 тика ~17 %
+  { bm: 180, pm: 42, br: 520, bp: 985, rs: 0, cd: 4, cdl: 5, cdh: 9, mg: 1100 },   // призрак: оба босса подряд ~1 % даже у бота без задержки
   // облегчённые уровни — только для админа (сервер сам решает, кому их дать)
   { bm: 90, pm: 130, br: 80, bp: 550, rs: 0, cd: 12, cdl: 12, cdh: 22, mg: 1100 },
   { bm: 100, pm: 115, br: 120, bp: 650, rs: 0, cd: 10, cdl: 10, cdh: 18, mg: 1100 },
@@ -78,7 +79,7 @@ export const ARCH: Record<string, Style> = {   // подобрано боями 
   fast: { hp: 900, dm: 125, fw: 5, bk: 4, rc: -2, rh: 0, mg: 105 },   // быстрый и резкий, но хрупкий
   long: { hp: 950, dm: 86, fw: 4, bk: 3, rc: 1, rh: 2, mg: 100 },     // достаёт дальше
   tech: { hp: 980, dm: 106, fw: 4, bk: 3, rc: 0, rh: 0, mg: 140 },    // спецприём заряжается быстрее
-  brute: { hp: 1000, dm: 120, fw: 4, bk: 2, rc: 3, rh: 0, mg: 85 },   // бьёт больнее всех, но долго восстанавливается
+  brute: { hp: 1000, dm: 115, fw: 4, bk: 2, rc: 3, rh: 0, mg: 85 },   // бьёт больнее всех, но долго восстанавливается
 }
 /** облик → стиль: 0 герой, 1 страж, 2 призрак, дальше новые бойцы */
 export const HERO_ARCH = ['bal', 'tank', 'long', 'fast', 'fast', 'long', 'bal', 'tech', 'tank', 'fast', 'brute', 'tech', 'bal']
@@ -404,7 +405,7 @@ function boss(s: Sim) {
     // держит защиту, пока игрок атакует; сразу после — контратака
     const pAtk = p.st === 'atk' && p.mv && p.t <= MOVES[p.mv].s + MOVES[p.mv].a
     if (f.st !== 'bstun' && !pAtk && !(p.air && dist <= 200)) {
-      if (dist <= 100) { startMove(s, 1, f.st === 'crouch' || f.st === 'cblock' ? 'cupper' : rnd(s) < 500 ? 'cross' : 'elbow'); return }
+      if (dist <= 108) { startMove(s, 1, f.st === 'crouch' || f.st === 'cblock' ? 'cupper' : rnd(s) < 500 ? 'cross' : 'elbow'); return }
       if (dist <= 140 && (f.st === 'cblock' || f.st === 'crouch')) { startMove(s, 1, 'sweep'); return }
       f.st = 'idle'; f.t = 0; f.cr = 0
     }
@@ -420,7 +421,7 @@ function boss(s: Sim) {
   // игрок в прыжке: апперкот навстречу или блок
   if (p.air && p.st !== 'down' && dist <= 190) {
     const r = rnd(s)
-    if (dist <= 100 && r < 700 + ai.rage * 100) { startMove(s, 1, 'cupper'); return }
+    if (dist <= 108 && r < 700 + ai.rage * 100) { startMove(s, 1, 'cupper'); return }
     if (dist <= 140 && p.vy < 0 && r < 450) { startMove(s, 1, 'high'); return }
     if (p.st === 'atk' || r < 850) { f.st = 'block'; f.t = 0; f.cr = 0; return }
   }
@@ -444,11 +445,11 @@ function boss(s: Sim) {
   if (p.st === 'atk' && p.mv && !p.air && p.t > MOVES[p.mv].s + MOVES[p.mv].a && dist <= 140) {
     const left = moveLen(p.mv) - p.t
     // наказание только тем, что успевает: подготовка удара короче, чем игроку осталось восстанавливаться
-    if (left >= 17) { startMove(s, 1, dist <= 98 ? 'cupper' : 'round'); return }
+    if (left >= 17) { startMove(s, 1, dist <= 108 ? 'cupper' : 'round'); return }
     if (left >= 13) { startMove(s, 1, 'kick'); return }
     if (left >= 6) { startMove(s, 1, 'jab'); return }
   }
-  if ((p.st === 'up' && p.t > 12) || p.st === 'hit') { if (dist <= 100) { startMove(s, 1, p.st === 'hit' ? 'hook' : 'combo'); return } }
+  if ((p.st === 'up' && p.t > 12) || p.st === 'hit') { if (dist <= 108) { startMove(s, 1, p.st === 'hit' ? 'hook' : 'combo'); return } }
   if (f.meter >= 1000 && dist <= 160 && p.st !== 'down' && p.st !== 'up' && rnd(s) < 120) { startMove(s, 1, 'special'); return }
   if (ai.cd > 0) { ai.cd--; if (dist > 150) { f.st = 'fwd'; f.x += f.dir * 5 } else if (f.st === 'fwd') { f.st = 'idle'; f.t = 0 } return }
   // нападение
@@ -460,7 +461,7 @@ function boss(s: Sim) {
     if (r < 300 && dist >= 90) jump(s, 1, f.dir)
     else if (r < 750) startMove(s, 1, dist <= 100 ? 'knee' : 'kick')   // средние удары: сидячий блок их держит, просто присед — нет
     else startMove(s, 1, 'sweep')
-  } else if (dist <= 100) {
+  } else if (dist <= 108) {
     if (p.st === 'block') { if (r < 300) startMove(s, 1, 'low'); else if (r < 480) startMove(s, 1, 'sweep'); else if (r < 600) { f.st = 'back'; f.x -= f.dir * 5; ai.cd = 10; return } else startMove(s, 1, 'combo') }
     else if (r < 220) startMove(s, 1, 'jab')
     else if (r < 420) startMove(s, 1, 'combo')

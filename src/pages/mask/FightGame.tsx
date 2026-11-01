@@ -25,7 +25,7 @@ export const fmtT = (t: number) => { const s = Math.round(t / 60); return Math.f
 const HEROES = ['Герой', 'Страж', 'Призрак', 'Рин', 'Искра', 'Дюна', 'Тень', 'Центурион', 'Сержант', 'Пантера', 'Титан', 'Егерь', 'Кобра']
 const ARCH_TXT: Record<string, string> = {
   bal: 'Универсал — всё поровну', tank: 'Крепыш — больше здоровья, но медленнее и бьёт слабее', fast: 'Быстрый — шустрый и больно бьёт, но хрупкий',
-  long: 'Дальнобой — достаёт дальше, удары легче', tech: 'Мастер спецприёма — шкала копится быстрее', brute: 'Громила — бьёт больнее всех, но долго восстанавливается',
+  long: 'Дальнобой — достаёт дальше, удары легче', tech: 'Мастер спецприёма — шкала копится быстрее', brute: 'Громила — тяжёлые удары, но долго восстанавливается',
 }
 const modelUrl = (h: number) => BASE + 'mask/' + (h === 0 ? 'fight_hero' : h === 1 ? 'fight_boss' : h === 2 ? 'fight_boss2' : 'fight_c' + String(h - 2).padStart(2, '0')) + '.glb?v=' + MODEL_V
 const faceUrl = (h: number) => BASE + 'mask/faces/h' + h + '.webp?v=1'
@@ -50,6 +50,18 @@ const SEG: Record<string, [number, number]> = {
   f_hit: [0, 1.0], f_bblock: [0.3, 0.55], f_guardhit: [0, 0.3], f_bdodge: [0.4, 1.3], f_hitbig: [0, 1.2], f_hitbody: [0, 1.0], f_hitup: [0.1, 1.5],
 }
 const AIR_CLIPS = /^f_(jump|jkick|jknee|jknee2)$/
+/** докуда в анимации дотягивается кулак/нога в момент удара, см от центра бойца (замерено по скелету героя) */
+const ANIM_REACH: Partial<Record<MoveId, number>> = { jab: 85, cross: 80, hook: 62, upper: 64, elbow: 58, knee: 60, cupper: 60, cjab: 70, combo: 75,
+  low: 100, kick: 105, round: 85, high: 100, spin: 90, sweep: 100, ckick: 95, special: 95, throw: 60 }
+/** выпад к сопернику во время удара (только картинка): чтобы кулак касался тела, а не бил по воздуху */
+const lunge = (f: F, dist: number) => {
+  if (f.st !== 'atk' || !f.mv || f.air) return 0
+  const m = MOVES[f.mv], ar = ANIM_REACH[f.mv]; if (!ar) return 0
+  const need = Math.max(0, Math.min(32, dist - 18 - ar, dist - 78))   // полкорпуса соперника ~18 см; ближе 78 см тела не сходятся
+  if (!need) return 0
+  const T = f.t, e = T <= m.s ? (T / m.s) * (T / m.s) : T <= m.s + m.a ? 1 : Math.max(0, 1 - (T - m.s - m.a) / 12)
+  return need * e
+}
 
 interface Rig { root: THREE.Group; mixer: THREE.AnimationMixer; A: Record<string, THREE.AnimationAction>; cur: THREE.AnimationAction | null; key: string; alt: number }
 
@@ -241,7 +253,8 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         // плавность: между двумя шагами симуляции (в бою с другом — как есть)
         const pp = prevXY[i], lerpOk = !pvp && running && Math.abs(pp[0] - f.x) < 120
         const fx = lerpOk ? pp[0] + (f.x - pp[0]) * fr : f.x, fy = lerpOk ? pp[1] + (f.y - pp[1]) * fr : f.y
-        r.root.position.set(fx / 100, fy / 400, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
+        const lg = lunge(f, Math.abs(sim.f[1 - i].x - f.x))
+        r.root.position.set((fx + f.dir * lg) / 100, fy / 400, 0); r.root.rotation.y = f.dir > 0 ? Math.PI / 2 : -Math.PI / 2
         const [name, pt, once] = want(f, i, running ? fr : 0)
         const k = `${name}:${f.st}:${f.mv || ''}:${once ? sim.tick - f.t : 0}`
         const a = r.A[name]; if (!a) continue
