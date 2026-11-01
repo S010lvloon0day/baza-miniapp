@@ -72,9 +72,10 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
   const [banner, setBanner] = useState<{ k: number; text: string; sub?: string; tone?: 'gold' | 'red' | 'white' } | null>(null)
   const [res, setRes] = useState<{ done: boolean; win: boolean; flag?: string | null; ticks?: number; rec?: boolean; best?: number | null } | null>(null)
   // бой с другом: имена, моя сторона, состояние связи
-  const [pv, setPv] = useState<{ names: [string, string]; side: 0 | 1 | 2; st: 'conn' | 'wait' | 'fight' | 'left' | 'lag' | 'gone' | 'err' | 'full' } | null>(pvp ? { names: ['', ''], side: watch ? 2 : 0, st: 'conn' } : null)
+  const [pv, setPv] = useState<{ names: [string, string]; side: 0 | 1 | 2; st: 'conn' | 'wait' | 'lobby' | 'fight' | 'left' | 'lag' | 'gone' | 'err' | 'full' } | null>(pvp ? { names: ['', ''], side: watch ? 2 : 0, st: 'conn' } : null)
   // реванш: я согласен / соперник согласен / соперник ушёл; зрители: сколько смотрят и ссылка, чтобы позвать
-  const [rm, setRm] = useState({ me: false, opp: false, off: false })
+  const [rm, setRm] = useState({ me: false, opp: false, off: false })   // me/opp — нажал «Готов» (выбор бойца перед боем и реваншем)
+  const [cd, setCd] = useState(0)   // отсчёт 3-2-1 перед первым раундом
   const [specN, setSpecN] = useState(0)
   const [wLink, setWLink] = useState('')
   const [heroSel, setHeroSel] = useState<[number, number]>([0, 2])   // облики обоих бойцов (для экрана выбора)
@@ -205,6 +206,20 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
     let sim: Sim = newSim(1)
     let fightId = 0, running = false, acc = 0, inp = 0, log: InputLog = [], lastLogged = -1, combo = 0, comboT = 0, slow = 1, slowT = 0, shake = 0
     let bk = 0, b2T = -1e9
+    /** голос отсчёта (как в MK): низкий, медленный; если голоса в системе нет — только звук */
+    const voice = (t: string) => {
+      try {
+        if (sfx.muted || !('speechSynthesis' in window)) return
+        const u = new SpeechSynthesisUtterance(t); u.lang = 'ru-RU'; u.pitch = 0.35; u.rate = 0.85; u.volume = 1
+        const v = speechSynthesis.getVoices().find(x => /^ru/i.test(x.lang)); if (v) u.voice = v
+        speechSynthesis.cancel(); speechSynthesis.speak(u)
+      } catch { /* */ }
+    }
+    let lastCd = 0
+    const countdown = () => {   // по паузе симуляции перед первым раундом: одинаково у обоих игроков и у зрителей
+      const n = sim.round === 1 && sim.pause > 0 && !sim.over ? Math.ceil(sim.pause / 40) : 0
+      if (n !== lastCd) { lastCd = n; setCd(n); if (n) { sfx.ui('tick'); voice(['', 'Один', 'Два', 'Три'][n] || '') } }
+    }
     const say = (text: string, sub?: string, tone?: 'gold' | 'red' | 'white', ms = 1300) => { const k = ++bk; setBanner({ k, text, sub, tone }); setTimeout(() => setBanner(b => b && b.k === k ? null : b), ms) }
 
     /** состояние бойца → клип; p — положение в клипе (секунды) или null, если клип просто крутится */
@@ -295,7 +310,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         else if (e.k === 'land') sfx.land()
         else if (e.k === 'special') { sfx.special(); arena.flash(1); say(pvp || e.who === 0 ? 'СПЕЦПРИЁМ!' : 'ЯРОСТЬ СТРАЖА', undefined, 'gold', 900) }
         else if (e.k === 'time') say('ВРЕМЯ!', undefined, 'white', 1500)
-        else if (e.k === 'start') { sfx.gong(); say('БОЙ!', undefined, 'gold', 800) }
+        else if (e.k === 'start') { sfx.gong(); say('БОЙ!', undefined, 'gold', 800); if (sim.round === 1) voice('Бой!') }
         else if (e.k === 'boss2') { arena.flash(1); sfx.gong(); say('ВТОРОЙ БОСС', 'Призрак: его ещё никто не победил', 'red', 2600); b2T = performance.now(); for (const r of rigs) if (r) r.key = '' }
         else if (e.k === 'round') { const n = sim.wins[0] + sim.wins[1] + 1; setTimeout(() => { if (alive && running) say('РАУНД ' + n, n === 3 ? 'счёт 1 : 1 — решающий' : n === 2 ? `счёт ${sim.wins[0]} : ${sim.wins[1]}` : sim.lv === 2 ? 'против Призрака' : undefined, 'white', 1600) }, performance.now() - b2T < 500 ? 2900 : 300) }
       }
@@ -329,18 +344,19 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
 
     api.current.start = async () => {
       if (pvp) return
+      voice(' ')   // разрешить голос отсчёта
       sfx.init(); sfx.musicStart(); setRes(null)
       let seed = Math.floor(Math.random() * 2 ** 31)
       let lv = ckpt.current, ez = 0
       try { const r = await maskApi.fightStart(ckpt.current); fightId = r.fight_id; seed = r.seed; lv = r.lv ?? lv; ez = r.ez ? 1 : 0 } catch (e) { fightId = 0; if ((e as { message?: string })?.message === 'daily_limit') { sfx.musicStop(0.5); const tgA = (window as any).Telegram?.WebApp; const m = 'На сегодня попытки закончились (99 в сутки). Новые — после полуночи по Москве.'; if (tgA?.showAlert) tgA.showAlert(m); else window.alert(m); return } }
       if (!alive) return
       sim = newSim(seed, lv, ez); (window as unknown as { __fs: unknown }).__fs = () => sim; log = []; lastLogged = -1; inp = 0; combo = 0; acc = 0
-      running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
+      running = true; setPhase('fight'); applyPose(true); lastCd = 0   // «3-2-1» — по паузе симуляции
     }
     // ── бой с другом: lockstep — шаг симуляции выполняется, когда известны нажатия обоих на этот тик
     // ── бой с другом: rollback (как в GGPO). Свой боец откликается сразу; ход соперника предсказывается
     // (повтор его последних нажатий), а когда приходят настоящие — бой пересчитывается от последнего подтверждённого тика.
-    let ws: WebSocket | null = null, me: 0 | 1 = 0, spec = false, wantWatch = !!watch, pnames: [string, string] = ['', '']
+    let ws: WebSocket | null = null, me: 0 | 1 = 0, spec = false, wantWatch = !!watch, lobbyMode = false, pnames: [string, string] = ['', '']
     const sq = [new Map<number, number>(), new Map<number, number>()]   // зритель: нажатия обоих бойцов
     const DL = 2          // своя задержка ввода в тиках: 33 мс — почти незаметно, но даёт сети фору
     const MAXAHEAD = 24   // насколько можно убежать вперёд без ответа соперника (400 мс), дальше ждём
@@ -363,6 +379,13 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
         ws.onmessage = ev => {
           let d: any; try { d = JSON.parse(ev.data) } catch { return }
           if (d.type === 'wait') { setPv(p => p && { ...p, st: 'wait' }); setHeroes(d.heroes) }
+          else if (d.type === 'lobby') {   // оба на месте: выбирают бойцов и жмут «Готов»
+            lobbyMode = true; setHeroes(d.heroes)
+            const r = Array.isArray(d.ready) ? d.ready : [false, false]
+            setRm(x => ({ ...x, me: !spec && !!r[me], opp: spec ? !!(r[0] && r[1]) : !!r[1 - me] }))
+            if (Array.isArray(d.names)) pnames = [String(d.names[0] || 'Игрок'), String(d.names[1] || 'Игрок')]
+            setPv(p => p && (p.st === 'left' || p.st === 'gone' ? p : { ...p, names: pnames, st: running ? p.st : 'lobby' }))
+          }
           else if (d.type === 'start') {
             if (!spec) me = d.side === 1 ? 1 : 0
             pnames = [String(d.names?.[0] || 'Игрок'), String(d.names?.[1] || 'Игрок')]
@@ -378,7 +401,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             outBuf = []; inp = 0; combo = 0; acc = 0; waitT = 0
             sfx.init(); sfx.musicStart()
             setPv({ names: pnames, side: spec ? 2 : me, st: 'fight' })
-            running = true; setPhase('fight'); applyPose(true); say('РАУНД 1', undefined, 'white', 1600)
+            running = true; setPhase('fight'); applyPose(true); lastCd = 0
           } else if (d.type === 'again') setRm(r => ({ ...r, opp: true }))
           else if (d.type === 'hero' && (d.side === 0 || d.side === 1)) { const h = [...heroes] as [number, number]; h[d.side as 0 | 1] = d.h; setHeroes(h) }
           else if (d.type === 'spec') setSpecN(Math.max(0, d.n | 0))
@@ -482,9 +505,11 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       try { localStorage.setItem(HERO_KEY, String(h)) } catch { /* */ }
       const x = [...heroes] as [number, number]; x[me] = h; setHeroes(x)
       if (ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'hero', h }))
+      setRm(r => ({ ...r, me: false }))   // сменил бойца — снова «не готов»
     }
     api.current.again = () => {
-      if (ws && ws.readyState === 1) { ws.send(JSON.stringify({ type: 'again' })); setRm(r => ({ ...r, me: true })) }
+      voice(' ')   // разрешить голос отсчёта (iPhone даёт звук только после нажатия)
+      if (ws && ws.readyState === 1) { ws.send(JSON.stringify(lobbyMode ? { type: 'ready', h: heroes[me] } : { type: 'again' })); setRm(r => ({ ...r, me: true })) }
       else setRm(r => ({ ...r, off: true }))
     }
     /** звуки и эффекты событий — один раз на событие, даже если тик пересчитан заново */
@@ -531,7 +556,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             if (sim.over && running) { finish(); break }
           }
         }
-        applyPose()
+        applyPose(); countdown()
         if (performance.now() - lastHud > 80) {
           lastHud = performance.now()
           if (comboT > 0) comboT -= 0.08; if (comboT <= 0) combo = 0
@@ -712,6 +737,11 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
       )}
 
       {pv && phase === 'fight' && pv.st === 'lag' && <div className="absolute top-[18%] inset-x-0 grid place-items-center pointer-events-none"><div className="glass rounded-[14px] px-4 py-2.5 text-center text-[13.5px]">Соперник не отвечает…<div className="text-[12px] text-gray mt-0.5">слабая связь или он свернул игру — ждём до 20 секунд</div></div></div>}
+      {cd > 0 && phase === 'fight' && <div key={'cd' + cd} className="absolute inset-x-0 top-[22%] grid place-items-center pointer-events-none text-center">
+        <div className="font-display font-black italic text-[96px] leading-none" style={{ animation: 'fgCd 0.6s cubic-bezier(.2,.9,.3,1.2) both', background: 'linear-gradient(180deg,#fff6d0,#f1c24a 45%,#8a5a12)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(0,0,0,.6))' }}>{cd}</div>
+        <style>{'@keyframes fgCd{0%{transform:scale(1.9);opacity:0}22%{transform:scale(1);opacity:1}100%{transform:scale(.94);opacity:1}}'}</style>
+        <div className="mt-1 text-[15px] text-white/80 font-display tracking-wide">РАУНД 1</div>
+      </div>}
       {banner && <div key={banner.k} className="absolute inset-x-0 top-[26%] grid place-items-center pointer-events-none text-center">
         <div className="font-display font-black italic text-[58px] leading-none tracking-wide" style={{ animation: 'fgBan 1.3s ease-out both', background: banner.tone === 'red' ? 'linear-gradient(180deg,#ffd0c4,#ff3b2f 45%,#7a0d0d)' : banner.tone === 'gold' ? 'linear-gradient(180deg,#fff6d0,#f1c24a 45%,#8a5a12)' : 'linear-gradient(180deg,#ffffff,#c9d4e8 50%,#5a6a88)', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent', filter: 'drop-shadow(0 4px 0 rgba(0,0,0,.55)) drop-shadow(0 0 22px rgba(0,0,0,.6))' }}>{banner.text}</div>
         {banner.sub && <div className="mt-2 text-[15px] text-white/80">{banner.sub}</div>}
@@ -753,15 +783,18 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             {phase === 'load' && <div className="py-3"><div className="text-[14px] text-gray mb-2">Загрузка арены… {loadPct}%</div><div className="h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full bg-green" style={{ width: `${loadPct}%` }} /></div></div>}
             {phase === 'ready' && pv && isSpec && <>
               <div className="font-display font-semibold text-[17px]">Смотреть бой</div>
-              <p className="text-[13.5px] text-gray mt-1.5">{pv.st === 'conn' ? 'Подключаемся…' : pv.st === 'wait' ? 'Бой ещё не начался — ждём бойцов.' : pv.st === 'gone' ? 'Этот бой уже закончился.' : pv.st === 'full' ? 'Слишком много зрителей — попробуй позже.' : pv.st === 'err' ? 'Не удалось подключиться. Попробуй ещё раз.' : 'Начинаем…'}</p>
+              <p className="text-[13.5px] text-gray mt-1.5">{pv.st === 'conn' ? 'Подключаемся…' : pv.st === 'wait' ? 'Бой ещё не начался — ждём бойцов.' : pv.st === 'lobby' ? 'Бойцы выбирают персонажей — бой начнётся, когда оба будут готовы.' : pv.st === 'gone' ? 'Этот бой уже закончился.' : pv.st === 'full' ? 'Слишком много зрителей — попробуй позже.' : pv.st === 'err' ? 'Не удалось подключиться. Попробуй ещё раз.' : 'Начинаем…'}</p>
               <button onClick={() => onClose(false)} className="btn-secondary w-full h-11 rounded-[14px] mt-3">Выйти</button>
             </>}
             {phase === 'ready' && pv && !isSpec && <>
               <div className="font-display font-semibold text-[17px]">Бой с другом</div>
-              <p className="text-[13.5px] text-gray mt-1.5">{pv.st === 'conn' ? 'Подключаемся…' : pv.st === 'wait' ? 'Ждём, пока соперник откроет вызов. Не закрывай экран.' : pv.st === 'gone' ? 'Вызов уже недействителен — создай новый.' : pv.st === 'err' ? 'Не удалось подключиться. Попробуй ещё раз.' : 'Начинаем…'}</p>
+              <p className="text-[13.5px] text-gray mt-1.5">{pv.st === 'conn' ? 'Подключаемся…' : pv.st === 'wait' ? 'Ждём, пока соперник откроет вызов. Пока выбери бойца.' : pv.st === 'lobby' ? (rm.me ? (rm.opp ? 'Начинаем…' : 'Ты готов. Ждём, пока соперник выберет бойца…') : rm.opp ? 'Соперник готов — выбери бойца и жми «Готов».' : 'Соперник выбирает бойца… Выбери своего и жми «Готов».') : pv.st === 'gone' ? 'Вызов уже недействителен — создай новый.' : pv.st === 'err' ? 'Не удалось подключиться. Попробуй ещё раз.' : 'Начинаем…'}</p>
               <p className="text-[12px] text-gray2 mt-1.5">Бой до двух побед. На прохождение этапа и приз не влияет.</p>
-              {(pv.st === 'conn' || pv.st === 'wait') && HeroPick()}
-              <button onClick={() => onClose(false)} className="btn-secondary w-full h-11 rounded-[14px] mt-3">Выйти</button>
+              {(pv.st === 'conn' || pv.st === 'wait' || pv.st === 'lobby') && HeroPick()}
+              <div className="flex gap-2 mt-3">
+                {pv.st === 'lobby' && <button onClick={() => api.current.again()} disabled={rm.me} className={`btn-primary flex-1 ${rm.me ? 'opacity-60' : ''}`}>{rm.me ? 'Готов ✓' : 'Готов'}</button>}
+                <button onClick={() => onClose(false)} className="btn-secondary flex-1 h-11 rounded-[14px]">Выйти</button>
+              </div>
             </>}
             {phase === 'ready' && !pv && <>
               <div className="font-display font-semibold text-[17px]">Победи стража и призрака</div>
@@ -783,7 +816,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
             </>}
             {phase === 'end' && pv && !isSpec && <>
               <div className="font-display font-semibold text-[18px]">{pv.st === 'left' ? 'Соперник вышел' : pv.st === 'gone' ? 'Связь потеряна' : res?.win ? 'Победа!' : 'Поражение'}</div>
-              <p className="text-[13.5px] text-gray mt-1">{pv.st === 'left' || pv.st === 'gone' || rm.off ? 'Соперник ушёл — реванш недоступен.' : rm.me ? 'Ждём ответа соперника…' : rm.opp ? 'Соперник хочет реванш!' : 'Бой с другом не засчитывается в задание — это тренировка.'}</p>
+              <p className="text-[13.5px] text-gray mt-1">{pv.st === 'left' || pv.st === 'gone' || rm.off ? 'Соперник ушёл — реванш недоступен.' : rm.me ? 'Ты готов. Ждём соперника…' : rm.opp ? 'Соперник готов к реваншу — выбери бойца и жми «Ещё раз».' : 'Бой с другом не засчитывается в задание — это тренировка.'}</p>
               {!(pv.st === 'left' || pv.st === 'gone' || rm.off) && !rm.me && HeroPick()}
               <div className="flex gap-2 mt-3">
                 {!(pv.st === 'left' || pv.st === 'gone' || rm.off) && <button onClick={() => api.current.again()} disabled={rm.me} className={`btn-primary flex-1 ${rm.me ? 'opacity-60' : ''}`}>{rm.me ? 'Ждём…' : rm.opp ? 'Принять реванш' : 'Ещё раз'}</button>}

@@ -3,6 +3,7 @@
  *  · эффекты — настоящие записи (Kenney, CC0): шаги по бетону, шорох одежды, удары тела и металла;
  *  · музыка — свой трек, синтез на лету: ударные, бас с сабом, арпеджио в стерео, пэд, супер-со лид,
  *    ревербератор и «качающий» сайдчейн от бочки; темп и энергия растут со скоростью бега.
+ *  · в драке — своя мистическая музыка: восточный лад, бурдон, тайко, хор, колокола и дудук.
  * Контекст создаётся по нажатию «Старт» (иначе мобильные браузеры не дают звук).
  */
 const BASE = import.meta.env.BASE_URL + 'mask/sfx/'
@@ -155,7 +156,97 @@ export function createRunnerSound(opt: { fight?: boolean } = {}) {
     // сайдчейн: музыка «приседает» на каждую бочку
     if (duck && ctx) { duck.gain.cancelScheduledValues(t); duck.gain.setValueAtTime(0.45, t); duck.gain.linearRampToValueAtTime(1, t + 0.22) }
   }
+  // ── музыка драки: мистика — восточный лад (фригийский доминантовый от ре), бурдон, тайко, хор, колокола, дудук
+  const FR = 62   // ре
+  const F_CH = [[[62, 66, 69], [63, 67, 70], [60, 63, 67], [62, 66, 69]], [[55, 58, 62], [63, 67, 70], [62, 66, 69], [62, 66, 69]]]
+  const BELL = [74, -1, -1, 70, -1, -1, 69, -1, 66, -1, -1, -1, 67, -1, 63, -1, 74, -1, 75, -1, -1, 74, -1, 72, 70, -1, -1, -1, 69, -1, -1, -1]
+  const DUDUK = [[74, -1, -1, -1, 75, -1, -1, 74, 72, -1, -1, -1, 74, -1, -1, -1], [70, -1, -1, -1, 69, -1, -1, -1, 66, -1, -1, 67, 69, -1, -1, -1],
+    [67, -1, -1, 69, 70, -1, -1, -1, 69, -1, 67, -1, 66, -1, -1, -1], [66, -1, -1, -1, 63, -1, -1, -1, 62, -1, -1, -1, -1, -1, -1, -1]]
+  let drone: { o: OscillatorNode[]; g: GainNode; f: BiquadFilterNode } | null = null
+  const droneOn = (t: number) => {
+    if (!ctx || !musBus || drone) return
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.16, t + 3)
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260; f.Q.value = 5
+    const lfo = ctx.createOscillator(), lg = ctx.createGain(); lfo.frequency.value = 0.07; lg.gain.value = 160; lfo.connect(lg); lg.connect(f.frequency)
+    const o = [hz(FR - 24), hz(FR - 24) * 1.003, hz(FR - 17), hz(FR - 12) * 0.998].map((fr, i) => { const x = ctx!.createOscillator(); x.type = i === 2 ? 'triangle' : 'sawtooth'; x.frequency.value = fr; x.connect(f); x.start(t); return x })
+    f.connect(g); g.connect(musBus); if (verbIn) { const sg = ctx.createGain(); sg.gain.value = 0.25; g.connect(sg); sg.connect(verbIn) }
+    lfo.start(t); o.push(lfo); drone = { o, g, f }
+  }
+  const droneOff = (fade: number) => {
+    if (!ctx || !drone) return
+    const d = drone; drone = null
+    d.g.gain.setTargetAtTime(0.0001, ctx.currentTime, fade / 3)
+    setTimeout(() => { for (const o of d.o) { try { o.stop() } catch { /* */ } } }, fade * 1000 + 300)
+  }
+  const taiko = (t: number, big: boolean) => {
+    voice(t, 'sine', big ? 120 : 170, big ? 0.7 : 0.35, big ? 0.95 : 0.5, { glide: 0.42, att: 0.002, rel: big ? 0.65 : 0.32, rv: 0.25 })
+    nz(t, 'lowpass', big ? 500 : 900, big ? 0.12 : 0.07, big ? 0.5 : 0.3, { rv: 0.3 })
+    if (big && duck && ctx) { duck.gain.cancelScheduledValues(t); duck.gain.setValueAtTime(0.6, t); duck.gain.linearRampToValueAtTime(1, t + 0.3) }
+  }
+  const bell = (t: number, n: number, vol: number, pan: number) => {
+    const f = hz(n)
+    voice(t, 'sine', f, 2.4, vol, { att: 0.003, rel: 2.4, pan, rv: 0.85 })
+    voice(t, 'sine', f * 2.76, 0.9, vol * 0.35, { att: 0.002, rel: 0.9, pan, rv: 0.85 })
+    voice(t, 'sine', f * 5.4, 0.35, vol * 0.12, { att: 0.001, rel: 0.35, pan, rv: 0.6 })
+  }
+  /** дудук: мягкий тембр с вибрато и «дыханием» */
+  const duduk = (t: number, n: number, dur: number, vol: number) => {
+    if (!ctx || !musBus) return
+    const os = ctx.createOscillator(); os.type = 'sawtooth'; os.frequency.setValueAtTime(hz(n) * 0.985, t); os.frequency.exponentialRampToValueAtTime(hz(n), t + 0.09)
+    const vib = ctx.createOscillator(), vg = ctx.createGain(); vib.frequency.value = 5.2; vg.gain.setValueAtTime(0, t); vg.gain.linearRampToValueAtTime(hz(n) * 0.012, t + dur * 0.5); vib.connect(vg); vg.connect(os.frequency)
+    const f1 = ctx.createBiquadFilter(); f1.type = 'bandpass'; f1.frequency.value = 900; f1.Q.value = 1.2
+    const f2 = ctx.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 2400
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.12); g.gain.setValueAtTime(vol, t + dur * 0.75); g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    os.connect(f1); f1.connect(f2); f2.connect(g); g.connect(musBus)
+    if (verbIn) { const sg = ctx.createGain(); sg.gain.value = 0.5; g.connect(sg); sg.connect(verbIn) }
+    os.start(t); vib.start(t); os.stop(t + dur + 0.05); vib.stop(t + dur + 0.05)
+  }
+  /** хор «а-а»: расстроенные пилы через две форманты */
+  const choir = (t: number, notes: number[], dur: number, vol: number) => {
+    if (!ctx || !musBus) return
+    const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + dur * 0.3); g.gain.exponentialRampToValueAtTime(0.0001, t + dur)
+    const fa = ctx.createBiquadFilter(); fa.type = 'bandpass'; fa.frequency.value = 750; fa.Q.value = 3
+    const fb = ctx.createBiquadFilter(); fb.type = 'bandpass'; fb.frequency.value = 1150; fb.Q.value = 4
+    fa.connect(g); fb.connect(g); g.connect(musBus)
+    if (verbIn) { const sg = ctx.createGain(); sg.gain.value = 0.9; g.connect(sg); sg.connect(verbIn) }
+    for (const n of notes) for (const d of [-9, 0, 9]) { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz(n); o.detune.value = d; o.connect(fa); o.connect(fb); o.start(t); o.stop(t + dur + 0.05) }
+  }
+  const schedFight = () => {
+    if (!ctx) return
+    const bpm = 92 + inten * 16, s16 = 60 / bpm / 4
+    while (nextT < ctx.currentTime + 0.15) {
+      const t = nextT, st = step16 % 16, bar = Math.floor(step16 / 16)
+      const ch = F_CH[Math.floor(bar / 4) % 2][bar % 4]
+      const intro = bar < 2, lvl = intro ? 0 : inten < 0.3 ? 1 : 2
+      if (step16 === 0) droneOn(t)
+      // хор на каждый такт
+      if (st === 0) choir(t, [ch[0], ch[2] + (bar % 2 ? 12 : 0)], s16 * 16, intro ? 0.05 : 0.07)
+      // колокола — всегда, с длинным хвостом
+      const bn = BELL[step16 % 32]; if (bn > 0) bell(t, bn + (lvl === 2 && bar % 2 ? 12 : 0), 0.09, (step16 % 3 - 1) * 0.5)
+      if (!intro) {
+        // тайко: большой барабан и малые, плотнее с напряжением боя
+        if (st === 0 || st === 10) taiko(t, true)
+        if (st === 6 || (lvl === 2 && st === 14)) taiko(t, false)
+        if (lvl === 2 && (st === 3 || st === 11)) taiko(t, false)
+        // рамочный барабан и шейкер
+        if (st === 4 || st === 12) nz(t, 'bandpass', 1300, 0.16, 0.32, { q: 1.2, rv: 0.4 })
+        if (st % 2 === 1) nz(t, 'highpass', 6500, 0.05, lvl === 2 ? 0.1 : 0.06, { pan: st % 4 === 1 ? -0.3 : 0.3 })
+        // бас: пульс тоники под барабаны
+        if (st === 0 || st === 10) voice(t, 'sine', hz(ch[0] - 24), s16 * 5, 0.38, { rel: s16 * 5 })
+        // переход каждые 4 такта — нарастающий «свист» и удар
+        if (bar % 4 === 3 && st === 8) nz(t, 'bandpass', 500, s16 * 8, 0.12, { q: 0.5, rv: 0.6 })
+      }
+      // дудук: в напряжённой части и через каждые 8 тактов
+      if (lvl === 2 || (lvl === 1 && bar % 8 >= 4)) {
+        const n = DUDUK[bar % 4][st]
+        if (n > 0) { let len = 1; while (len < 8 && DUDUK[bar % 4][st + len] === -1 && st + len < 16) len++; duduk(t, n, s16 * len * 0.98, 0.11) }
+      }
+      nextT += s16; step16++
+      if (st === 15) bars++
+    }
+  }
   const sched = () => {
+    if (FIGHT) return schedFight()
     if (!ctx) return
     const bpm = FIGHT ? 126 + inten * 14 : 104 + inten * 24, s16 = 60 / bpm / 4
     while (nextT < ctx.currentTime + 0.15) {
@@ -268,11 +359,13 @@ export function createRunnerSound(opt: { fight?: boolean } = {}) {
     musicStart() {
       init(); if (!ctx || !musBus) return
       if (timer) clearInterval(timer)
+      droneOff(0.3)
       step16 = 0; bars = 0; nextT = ctx.currentTime + 0.06; timer = window.setInterval(sched, 25)
       musBus.gain.cancelScheduledValues(ctx.currentTime); musBus.gain.setTargetAtTime(musicOn ? MUSIC_VOL : 0, ctx.currentTime, 0.15)
     },
     musicStop(fade = 0.6) {
       if (!ctx || !musBus) return
+      droneOff(fade)
       musBus.gain.setTargetAtTime(0, ctx.currentTime, fade / 3)
       const t = timer; timer = 0; setTimeout(() => { if (t) clearInterval(t) }, fade * 1000 + 200)
     },

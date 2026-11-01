@@ -71,7 +71,7 @@ export const maskApi = {
   /* бой с другом */
   pvpPing: (visible: boolean) => req<{ online: { id: number; name: string }[]; inbox: { code: string; name: string }[]; live?: { code: string; names: [string, string]; n: number }[] }>('POST', '/api/mask/pvp/ping', { visible }),
   pvpCreate: (to?: number) => req<{ code: string; link: string }>('POST', '/api/mask/pvp/create', to ? { to } : {}),
-  pvpJoin: (code: string, watch = false, hero?: number) => req<{ ticket: string; side: 0 | 1 | 2; watch?: string }>('POST', '/api/mask/pvp/join', watch ? { code, watch: 1 } : { code, hero }),
+  pvpJoin: (code: string, watch = false, hero?: number) => req<{ ticket: string; side: 0 | 1 | 2; watch?: string }>('POST', '/api/mask/pvp/join', watch ? { code, watch: 1 } : { code, hero, lobby: 1 }),   // lobby — бой начинается, когда оба нажали «Готов»
   pvpDecline: (code: string) => req<{ ok: boolean }>('POST', '/api/mask/pvp/decline', { code }),
   pvpWsUrl: (ticket: string) => { const b = API_BASE || location.origin; return b.replace(/^http/, 'ws') + '/api/mask/pvp/ws?t=' + encodeURIComponent(ticket) },
 }
