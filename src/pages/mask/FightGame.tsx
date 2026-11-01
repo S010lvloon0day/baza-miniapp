@@ -689,17 +689,17 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
           {hud.combo > 1 && phase === 'fight' && <div key={hud.combo} className="mt-6 ml-2 font-display font-black italic text-[26px] text-gold" style={{ animation: 'fgPop .35s ease-out both', textShadow: '0 2px 0 #7a5212, 0 0 18px rgba(255,190,80,.6)' }}>{hud.combo} УДАРА</div>}
         </div>
       )}
-      {/* служебные кнопки — внизу по центру, не мешают обзору */}
-      <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex gap-2 z-10" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 10px)' }}>
-        <button onClick={() => onClose(!!res?.done)} className="w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur">✕</button>
-        <button onClick={() => { const m = !muted; snd.current.setMuted(m); setMuted(m) }} className="w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur">{muted ? '🔇' : '🔊'}</button>
-        <button onClick={() => { const m = !music; snd.current.setMusic(m); setMusic(m) }} className={`w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur ${music ? '' : 'opacity-40'}`}>🎵</button>
-        {pv && !isSpec && wLink && <button onClick={shareWatch} aria-label="позвать зрителей" className="h-9 px-2.5 rounded-full flex items-center gap-1 text-[13px] bg-black/45 border border-white/15 backdrop-blur">👁{specN > 0 && <span>{specN}</span>}</button>}
-        {isSpec && specN > 0 && <div className="h-9 px-2.5 rounded-full flex items-center gap-1 text-[13px] bg-black/45 border border-white/15 backdrop-blur">👁 {specN}</div>}
-        <button onClick={() => setGOpen(o => !o)} aria-label="качество графики" aria-expanded={gOpen} className="w-9 h-9 rounded-full grid place-items-center text-[14px] bg-black/45 border border-white/15 backdrop-blur">⚙️</button>
+      {/* служебные кнопки — вверху справа под полосой здоровья: не перекрывают кнопки «В бой», «Ещё раз» и управление */}
+      <div className="absolute flex gap-1.5 z-10" style={{ top: 'calc(env(safe-area-inset-top,0px) + 58px)', right: 'calc(env(safe-area-inset-right,0px) + 10px)' }}>
+        <button onClick={() => onClose(!!res?.done)} className="w-8 h-8 rounded-full grid place-items-center text-[13px] bg-black/45 border border-white/15 backdrop-blur">✕</button>
+        <button onClick={() => { const m = !muted; snd.current.setMuted(m); setMuted(m) }} className="w-8 h-8 rounded-full grid place-items-center text-[13px] bg-black/45 border border-white/15 backdrop-blur">{muted ? '🔇' : '🔊'}</button>
+        <button onClick={() => { const m = !music; snd.current.setMusic(m); setMusic(m) }} className={`w-8 h-8 rounded-full grid place-items-center text-[13px] bg-black/45 border border-white/15 backdrop-blur ${music ? '' : 'opacity-40'}`}>🎵</button>
+        {pv && !isSpec && wLink && <button onClick={shareWatch} aria-label="позвать зрителей" className="h-8 px-2.5 rounded-full flex items-center gap-1 text-[12.5px] bg-black/45 border border-white/15 backdrop-blur">👁{specN > 0 && <span>{specN}</span>}</button>}
+        {isSpec && specN > 0 && <div className="h-8 px-2.5 rounded-full flex items-center gap-1 text-[12.5px] bg-black/45 border border-white/15 backdrop-blur">👁 {specN}</div>}
+        <button onClick={() => setGOpen(o => !o)} aria-label="качество графики" aria-expanded={gOpen} className="w-8 h-8 rounded-full grid place-items-center text-[13px] bg-black/45 border border-white/15 backdrop-blur">⚙️</button>
       </div>
       {gOpen && (
-        <div className="absolute left-1/2 -translate-x-1/2 z-20 glass rounded-[16px] p-3 w-[300px]" style={{ bottom: 'calc(env(safe-area-inset-bottom,0px) + 56px)' }}>
+        <div className="absolute z-20 glass rounded-[16px] p-3 w-[300px] max-w-[calc(100vw-20px)]" style={{ top: 'calc(env(safe-area-inset-top,0px) + 98px)', right: 'calc(env(safe-area-inset-right,0px) + 10px)' }}>
           <div className="text-[13px] font-medium mb-2">Качество графики</div>
           <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Качество графики">
             {(['low', 'mid', 'high'] as GfxQ[]).map(q => (
