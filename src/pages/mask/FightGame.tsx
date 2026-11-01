@@ -7,6 +7,7 @@ import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js'
 import { clone as skClone } from 'three/examples/jsm/utils/SkeletonUtils.js'
 import { maskApi } from '../../api/mask'
+import FightTop from './FightTop'
 import { buildArena } from './fightWorld'
 import { synthClips } from './poseSynth'
 import { createRunnerSound } from './runnerSound'
@@ -784,6 +785,7 @@ export default function FightGame({ onClose, pvp, startLv, watch }: Props) {
                 <button onClick={() => api.current.start()} className="btn-primary flex-1">{res?.done ? 'На рекорд' : ckpt.current === 2 ? 'Снова с Призраком' : 'Ещё раз'}</button>
                 <button onClick={() => onClose(!!res?.done)} className="btn-secondary flex-1 h-12 rounded-[16px]">{res?.done ? 'Дальше' : 'Выйти'}</button>
               </div>
+              {res && <FightTop start={startLv === 2 ? 2 : 1} reload={res.ticks || 0} rows={110} />}
             </>}
           </div>
         </div>

@@ -50,6 +50,7 @@ export interface GuessResult {
   reset_in?: number; react?: MaskReact; error?: string; days?: number; secret?: string | null
 }
 
+export interface FightTop { lv: number; top: { rank: number; name: string; ticks: number; is_me: boolean }[]; my_best: number; my_pos: number | null }
 export interface RunTop { top: { rank: number; name: string; score: number; is_me: boolean }[]; my_best: number; my_pos: number | null; my_runs: number }
 
 export const maskApi = {
@@ -59,6 +60,7 @@ export const maskApi = {
   runStart: () => req<{ run_id: number; seed: number; target: number }>('POST', '/api/mask/run/start', {}),
   runFinish: (run_id: number, score: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; score: number; flag: string | null }>('POST', '/api/mask/run/finish', { run_id, score, log, ticks }),
   runTop: () => req<RunTop>('GET', '/api/mask/run/top'),
+  fightTop: (lv: 1 | 2) => req<FightTop>('GET', '/api/mask/fight/top?lv=' + lv),
   fightStart: (lv?: number) => req<{ fight_id: number; seed: number; lv?: number; ez?: number }>('POST', '/api/mask/fight/start', lv ? { lv } : {}),
   fightFinish: (fight_id: number, log: [number, number][], ticks: number) => req<{ ok: boolean; done: boolean; win: boolean; flag: string | null; ticks?: number; record?: boolean; best?: number | null }>('POST', '/api/mask/fight/finish', { fight_id, log, ticks }),
   cipher: (answer: string) => req<{ ok: boolean; reward?: string | null; error?: string }>('POST', '/api/mask/cipher', { answer }),

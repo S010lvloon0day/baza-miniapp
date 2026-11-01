@@ -9,6 +9,7 @@ const MaskStage = lazy(() => import('./MaskStage'))
 const RunnerGame = lazy(() => import('./RunnerGame'))
 const FightGame = lazy(() => import('./FightGame'))
 const PvpLobby = lazy(() => import('./PvpLobby'))
+const FightTop = lazy(() => import('./FightTop'))
 import { GFX_LABEL, GFX_HINT, getGfx, setGfx } from './gfxQuality'
 import type { GfxQ } from './gfxQuality'
 const BASE = import.meta.env.BASE_URL
@@ -140,6 +141,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
   const [runOpen, setRunOpen] = useState(false)
   const [fightOpen, setFightOpen] = useState<false | 1 | 2 | true>(false)
   const [lobby, setLobby] = useState(false)
+  const [fTop, setFTop] = useState(false)
   const [gfx, setGfxS] = useState<GfxQ>(getGfx)
   const [pvpFight, setPvpFight] = useState<string | null>(() => { if (!pvpCode) return null; try { if (sessionStorage.getItem('pvp_' + pvpCode)) return null; sessionStorage.setItem('pvp_' + pvpCode, '1') } catch { /* */ } return pvpCode })   // бой с другом по коду вызова
   const stage = useRef<StageHandle>(null)
@@ -220,6 +222,18 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
       )}
       {lobby && (
         <Suspense fallback={null}><PvpLobby onClose={() => setLobby(false)} onFight={c => { setLobby(false); setPvpFight(c) }} onWatch={c => { setLobby(false); setPvpFight('w_' + c) }} /></Suspense>
+      )}
+      {fTop && (
+        <div className="fixed inset-0 z-[900] bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center" onClick={() => setFTop(false)}>
+          <div className="card w-full max-w-[460px] rounded-b-none sm:rounded-b-[22px] p-4 pb-[calc(env(safe-area-inset-bottom,0px)+16px)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="font-display font-semibold text-[17px]">Рекорды драки</div>
+              <button onClick={() => setFTop(false)} className="w-8 h-8 rounded-full bg-white/[.08] grid place-items-center" aria-label="Закрыть">✕</button>
+            </div>
+            <p className="text-[12.5px] text-gray mt-1">Кто быстрее всех победил боссов. Засчитываются только бои, которые проверил сервер.</p>
+            <Suspense fallback={null}><FightTop rows={320} /></Suspense>
+          </div>
+        </div>
       )}
       {pvpFight && (
         <Suspense fallback={null}><FightGame key={pvpFight} pvp={pvpFight.replace(/^w_/, '')} watch={pvpFight.startsWith('w_')} onClose={() => setPvpFight(null)} /></Suspense>
@@ -310,7 +324,10 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
                       <button onClick={() => setFightOpen(2)} className="btn-secondary !w-auto px-3 h-9 rounded-[12px] text-[12.5px]">Призрак</button>
                     </span>),
                   row(3, 'Сними маску и раскрой личность', fin?.open ? 'фамилия, имя и отчество — полностью' : run?.done && fight?.done && fin?.premium === false ? '🔒 только для Premium-подписчиков' : fin?.premium === false ? 'после забега и драки · только для Premium' : 'откроется после забега и драки', fin?.open ? 'open' : 'lock'),
-                  (fight?.open || s.is_admin) ? <button key="pvp" onClick={() => setLobby(true)} className="btn-secondary w-full h-10 rounded-[12px] text-[13.5px]">🥊 Бой с другом</button> : null,
+                  (fight?.open || s.is_admin) ? <div key="pvp" className="grid grid-cols-2 gap-2">
+                    <button onClick={() => setLobby(true)} className="btn-secondary w-full h-10 rounded-[12px] text-[13.5px]">🥊 Бой с другом</button>
+                    <button onClick={() => setFTop(true)} className="btn-secondary w-full h-10 rounded-[12px] text-[13.5px]">🏆 Рекорды драки</button>
+                  </div> : null,
                 ]
               })()}
             </div>
