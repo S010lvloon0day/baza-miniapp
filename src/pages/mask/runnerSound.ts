@@ -333,6 +333,8 @@ export function createRunnerSound(opt: { fight?: boolean } = {}) {
     whoosh(heavy = false) { play('cloth', { vol: heavy ? 0.6 : 0.4, rate: heavy ? 0.85 : 1.35, jitter: 0.12 }); air(heavy ? 0.3 : 0.18, heavy ? 500 : 900, heavy ? 1800 : 2600, heavy ? 0.08 : 0.05) },
     fall() { play('thud', { vol: 1, rate: 0.85, verb: 0.3 }); play('land', { vol: 0.7, delay: 0.08 }); play('cloth', { vol: 0.5, delay: 0.04 }) },
     gong() { play('bell', { vol: 0.9, verb: 0.6 }) },
+    /** отсчёт перед боем: глухой удар большого барабана */
+    drum() { play('thud', { vol: 1, rate: 0.62, verb: 0.45, jitter: 0.01 }); play('thud', { vol: 0.5, rate: 0.5, delay: 0.02, verb: 0.3, jitter: 0.01 }) },
     special() { play('metal', { vol: 0.6, rate: 0.7, verb: 0.6 }); air(0.6, 300, 3000, 0.12) },
     /** интерфейс: отсчёт, старт, рекорд */
     ui(k: 'tick' | 'go' | 'record') {
