@@ -34,8 +34,8 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 }
 
 /** POST, который отдаёт тело и при ошибке (чтобы показать причину отказа сервера). */
-async function postAny<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(API_BASE + path, { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+async function postAny<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(API_BASE + path, { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: body !== undefined ? JSON.stringify(body) : undefined })
   return res.json().catch(() => ({ error: `HTTP ${res.status}` }))
 }
 
