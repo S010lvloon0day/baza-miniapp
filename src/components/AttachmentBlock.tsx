@@ -23,8 +23,8 @@ const KIND_LABEL: Record<string, string> = {
  * заставила бы их драться за один и тот же docPreview/videoError.
  */
 export default function AttachmentBlock({
-  materialId, att, index, total,
-}: { materialId: number; att: Attachment; index: number; total: number }) {
+  materialId, att, index, total, botUsername,
+}: { materialId: number; att: Attachment; index: number; total: number; botUsername?: string }) {
   const [docText, setDocText] = useState<string | null>(null)
   const [docTruncated, setDocTruncated] = useState(false)
   const [preview, setPreview] = useState<'idle' | 'loading' | 'text' | 'pdf' | 'error'>('idle')
@@ -33,6 +33,7 @@ export default function AttachmentBlock({
   const resume = useResume(videoEl, materialId, att.id)
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
+  const [sendErr, setSendErr] = useState<string | null>(null)
 
   const initData = encodeURIComponent(tg?.initData || '')
   const url = att.url ? `${API_BASE}${att.url}?init_data=${initData}` : null
@@ -56,12 +57,21 @@ export default function AttachmentBlock({
 
   const sendToTelegram = async () => {
     if (sending || sent) return
-    setSending(true)
+    setSending(true); setSendErr(null)
     try {
-      await api.sendAttachment(materialId, att.id)
-      setSent(true)
+      const r = await api.sendAttachment(materialId, att.id)
+      if (r?.ok) {
+        setSent(true)
+        if (botUsername && tg?.openTelegramLink) {
+          setTimeout(() => tg.openTelegramLink(`https://t.me/${botUsername}`), 800)
+        }
+      } else {
+        setSending(false)
+        setSendErr(r?.error === 'bot_not_started' ? 'need_start'
+          : r?.error === 'too_many_requests' ? 'cooldown' : 'failed')
+      }
     } catch {
-      setSending(false)
+      setSending(false); setSendErr('failed')
     }
   }
 
@@ -170,6 +180,23 @@ export default function AttachmentBlock({
               <PaperPlaneTilt size={17} weight="fill" />
               {sent ? 'Отправлено в Telegram' : sending ? 'Отправка…' : 'Получить в Telegram'}
             </button>
+            {sent && (
+              <div className="text-[12px] text-green text-center leading-snug">
+                Отправлено в чат с ботом — открой диалог с ботом, файл там.
+              </div>
+            )}
+            {sendErr === 'need_start' && (
+              <button onClick={() => botUsername && tg?.openTelegramLink?.(`https://t.me/${botUsername}`)}
+                className="text-[12px] text-fg/80 text-center leading-snug underline underline-offset-2">
+                Бот не может написать первым. Открой бота, нажми «Старт» и повтори.
+              </button>
+            )}
+            {sendErr === 'cooldown' && (
+              <div className="text-[12px] text-gray text-center">Подожди пару секунд и попробуй снова.</div>
+            )}
+            {sendErr === 'failed' && (
+              <div className="text-[12px] text-gray text-center">Не удалось отправить. Попробуй ещё раз.</div>
+            )}
             <button onClick={openExternal} disabled={!url}
               className="btn-secondary w-full text-[13.5px] disabled:opacity-30">
               <DownloadSimple size={16} weight="fill" />

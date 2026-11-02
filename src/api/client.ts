@@ -369,13 +369,13 @@ export const api = {
   addSectionFavorite:    (id: number) => post<{ ok: boolean; favorite: boolean }>(`/api/sections/${id}/favorite`),
   removeSectionFavorite: (id: number) => del<{ ok: boolean; favorite: boolean }>(`/api/sections/${id}/favorite`),
   /** Без attachmentId шлёт материал целиком — все вложения по порядку. */
-  sendFile:       (id: number)   => post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}`),
+  sendFile:       (id: number)   => postAny<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}`),
   completeMaterial: async (id: number, body: { answer?: number } = {}): Promise<CompleteResp> => {
     const res = await fetch(API_BASE + `/api/material/${id}/complete`, { method: 'POST', headers: { ...headers(), 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     return res.json().catch(() => ({ error: `HTTP ${res.status}` }))
   },
   sendAttachment: (id: number, attachmentId: number) =>
-    post<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}/${attachmentId}`),
+    postAny<{ ok: boolean; sent?: number; error?: string }>(`/api/send_file/${id}/${attachmentId}`),
   cryptoInvoice:  (days: number) => post<{ pay_url: string; invoice_id: string; days: number; price: number }>(`/api/crypto_invoice/${days}`),
   starsInvoice:   (days: number) => post<{ link: string; stars: number; days: number; error?: string }>(`/api/stars_invoice/${days}`),
   /** Рублёвый счёт SecretPay (СБП) на Premium. */
