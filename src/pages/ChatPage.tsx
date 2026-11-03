@@ -126,13 +126,19 @@ function palIdx(name: string) {
 }
 function colorFor(name: string) { return PAL[palIdx(name)] }
 
-async function uploadMedia(type: string, file: Blob, mime: string, dur: number, caption: string, ttl = 0, once = false, album = '') {
+async function uploadMedia(type: string, file: Blob, mime: string, dur: number, caption: string, ttl = 0, once = false, album = '', replyTo?: number, quote = '') {
   const fd = new FormData()
-  fd.append('file', file, (file as File).name || `${type}.bin`)
+  // поля ответа — до файла: сервер читает форму по порядку
+  if (replyTo) fd.append('reply_to', String(replyTo))
+  if (quote) fd.append('quote', quote)
   if (caption) fd.append('caption', caption)
-  const url = api.chatUploadUrl(type, dur, ttl, once) + (mime ? `&mime=${encodeURIComponent(mime)}` : '') + (album ? `&album=${album}` : '')
-  const res = await fetch(url, { method: 'POST', headers: { 'X-Init-Data': tg?.initData || '' }, body: fd })
-  return res.json().catch(() => ({ error: 'bad' }))
+  fd.append('file', file, (file as File).name || `${type}.bin`)
+  const url = api.chatUploadUrl(type, dur, ttl, once, replyTo) + (mime ? `&mime=${encodeURIComponent(mime)}` : '') + (album ? `&album=${album}` : '')
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'X-Init-Data': tg?.initData || '' }, body: fd })
+    if (res.status === 413) return { error: 'too_big', message: 'Файл слишком большой' }
+    return await res.json().catch(() => ({ error: 'bad', message: res.ok ? 'Не удалось загрузить' : `Ошибка сервера (${res.status})` }))
+  } catch { return { error: 'net', message: 'Нет соединения — не удалось загрузить' } }
 }
 
 function Avatar({ name, src, size = 32, anim, onClick }: { name: string; src?: string; size?: number; anim?: boolean; onClick?: () => void }) {
@@ -960,6 +966,16 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const [sending, setSending] = useState(false)
   const [toast, setToast] = useState('')
   const [reply, setReply] = useState<ChatMsg | null>(null)
+  // актуальный ответ для асинхронных отправок (голосовые/кружки пишутся в колбэках со старым замыканием)
+  const curReplyRef = useRef<{ id?: number; quote: string }>({ quote: '' })
+  useEffect(() => { curReplyRef.current = { id: reply?.id, quote: replyQuote } }, [reply, replyQuote])
+  /** забрать текущий ответ (id + цитата) для медиа-сообщения и сбросить плашку «Ответ» */
+  const takeReply = () => {
+    const r = curReplyRef.current
+    curReplyRef.current = { quote: '' }
+    if (r.id) { setReply(null); setReplyQuote('') }
+    return { replyTo: r.id && r.id < TEMP_BASE ? r.id : undefined, quote: r.id ? r.quote : '' }
+  }
   const [editing, setEditing] = useState<ChatMsg | null>(null)
   const [attachOpen, setAttachOpen] = useState(false)
   const [emojiOpen, setEmojiOpen] = useState(false)
@@ -1400,10 +1416,12 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const doUpload = async (type: string, file: Blob, mime: string, dur = 0) => {
     flash('Загружаю…')
     api.chatTyping('upload').catch(() => {})
-    const r = await uploadMedia(type, file, mime, dur, '', ttlSec, onceOn)
+    const rp = takeReply()
+    const r = await uploadMedia(type, file, mime, dur, '', ttlSec, onceOn, '', rp.replyTo, rp.quote)
     if (onceOn) setOnceOn(false)
     if (r?.error) { flash(r.message || 'Не удалось загрузить'); return }
-    const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom(); setToast('')
+    try { const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom() } catch { /* подтянется поллингом */ }
+    setToast('')
   }
 
   // галерея: несколько фото/видео — альбомом (до 10), одно фото — через редактор
@@ -1424,11 +1442,14 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     const docs = files.filter(f => kindOf(f) === 'file')
     const album = media.length > 1 ? Math.random().toString(36).slice(2, 12) : ''
     let n = 0
+    const rp = media.length ? takeReply() : { replyTo: undefined, quote: '' }
     for (let i = 0; i < media.length; i++) {
       const f = media[i]
+      if (f.size > 30 * 1024 * 1024) { flash(`«${f.name}» больше 30 МБ — пропущен`); continue }
       setToast(`Загружаю ${i + 1} из ${media.length}…`)
       api.chatTyping('upload').catch(() => {})
-      const r = await uploadMedia(kindOf(f) === 'video' ? 'video' : 'photo', f, f.type || '', 0, '', ttlSec, false, album)
+      // ответ цепляем к первому элементу альбома
+      const r = await uploadMedia(kindOf(f) === 'video' ? 'video' : 'photo', f, f.type || '', 0, '', ttlSec, false, album, n === 0 ? rp.replyTo : undefined, n === 0 ? rp.quote : '')
       if (r?.error) { flash(r.message || 'Не удалось загрузить'); break }
       n++
     }
@@ -1444,7 +1465,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const sendStickerFile = async (fid: string, kind: string) => {
     setStickerOpen(false)
     try {
-      const sr = await api.chatStickerFile(fid, kind, ttlSec || undefined)
+      const rp = takeReply()
+      const sr = await api.chatStickerFile(fid, kind, ttlSec || undefined, rp.replyTo, rp.quote)
       if (sr.error) { flash(sr.message || 'Не удалось отправить'); return }
       const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
@@ -1511,7 +1533,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   const sendGif = async (url: string) => {
     setStickerOpen(false)
     try {
-      const gr = await api.chatGifSend(url, ttlSec || undefined)
+      const rp = takeReply()
+      const gr = await api.chatGifSend(url, ttlSec || undefined, rp.replyTo, rp.quote)
       if (gr.error) { flash(gr.message || 'Не удалось отправить'); return }
       const fresh = await api.chat(lastId.current || undefined); merge(fresh.messages); scrollToBottom()
     } catch { flash('Не удалось отправить') }
