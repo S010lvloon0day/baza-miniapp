@@ -59,22 +59,6 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
     } finally { setBusy(false) }
   }
 
-  const buyStars = async () => {
-    setBusy(true); setMsg(null)
-    try {
-      const r = await coursesApi.starsInvoice(course.id)
-      const done = (status: string) => {
-        if (status === 'paid') { setMsg('Оплата получена, открываю курс…'); setTimeout(onPurchased, 1500) }
-        else if (status === 'failed') setMsg('Оплата не прошла. Попробуй ещё раз.')
-      }
-      if (tg?.openInvoice) tg.openInvoice(r.link, done)
-      else window.open(r.link, '_blank')
-    } catch (e: any) {
-      if (e?.code === 'already_owned') { onPurchased(); return }
-      setMsg('Не удалось создать счёт Stars. Попробуй позже.')
-    } finally { setBusy(false) }
-  }
-
   const check = async () => {
     if (!invoice) return
     setBusy(true); setMsg(null)
@@ -122,9 +106,8 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
           (() => {
             const methods = [
               course.rub ? { key: 'rub', label: 'СБП', sub: 'банковским приложением', icon: 'card' as const, amount: fmtRub(course.rub), onClick: buyRub } : null,
-              course.stars ? { key: 'stars', label: 'Telegram Stars', sub: 'оплата в Telegram', icon: 'stars' as const, amount: `${course.stars} Stars`, onClick: buyStars } : null,
               { key: 'crypto', label: 'Криптовалюта', sub: 'USDT через CryptoBot', icon: 'coin' as const, amount: `${course.price} USDT`, onClick: buy },
-            ].filter(Boolean) as { key: string; label: string; sub: string; icon: 'card' | 'stars' | 'coin'; amount: string; onClick: () => void }[]
+            ].filter(Boolean) as { key: string; label: string; sub: string; icon: 'card' | 'coin'; amount: string; onClick: () => void }[]
             const primary = course.rub ? fmtRub(course.rub) : `${course.price} USDT`
             return (
               <div className="flex flex-col">

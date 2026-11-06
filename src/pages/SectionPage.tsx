@@ -59,7 +59,7 @@ function Cover({ section, children }: { section: Section; children?: React.React
 const BENEFITS = [
   'Полный доступ ко всем закрытым разделам и материалам',
   'Новые материалы раньше всех остальных',
-  'Оплата картой через СБП, криптой или Telegram Stars',
+  'Оплата картой через СБП или криптой',
 ]
 
 function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: () => void }) {

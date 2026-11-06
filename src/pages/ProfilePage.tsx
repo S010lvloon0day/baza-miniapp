@@ -160,9 +160,9 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
   const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Plan | null>(null)
-  const [paying, setPaying] = useState<'crypto' | 'stars' | 'rub' | null>(null)
+  const [paying, setPaying] = useState<'crypto' | 'rub' | null>(null)
   const [rubTx, setRubTx] = useState<string | null>(null)
-  const [method, setMethod] = useState<'rub' | 'stars' | 'crypto' | null>(null)
+  const [method, setMethod] = useState<'rub' | 'crypto' | null>(null)
   const [comp, setComp] = useState<Compete | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
@@ -235,30 +235,6 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
     }
   })
 
-  const buyWithStars = async () => {
-    if (!selected || paying) return
-    setPaying('stars')
-    setMsg(null)
-    try {
-      const r = await api.starsInvoice(selected.days)
-      if (!r.link) { setMsg('Не удалось создать счёт Stars. Попробуйте позже.'); return }
-      const done = (status: string) => {
-        if (status === 'paid') {
-          setMsg('Оплата получена! Обновляю профиль…')
-          api.profile().catch(() => null).then(p => { if (p) setProf(p) })
-        } else if (status === 'failed') {
-          setMsg('Оплата не прошла. Попробуйте ещё раз.')
-        }
-      }
-      if (tg?.openInvoice) tg.openInvoice(r.link, done)
-      else window.open(r.link, '_blank')
-    } catch {
-      setMsg('Ошибка создания счёта Stars. Попробуйте позже.')
-    } finally {
-      setPaying(null)
-    }
-  }
-
   const checkPayment = async () => {
     if (!invoiceId || checking) return
     setChecking(true)
@@ -321,14 +297,13 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
   // Доступные способы оплаты для выбранного тарифа
   const methods = selected ? ([
     selected.rub ? { key: 'rub' as const, label: 'СБП', icon: 'card' as const, amount: fmtRub(selected.rub), via: 'через СБП', run: buyWithRub } : null,
-    selected.stars ? { key: 'stars' as const, label: 'Stars', icon: 'stars' as const, amount: `${selected.stars.toLocaleString('ru-RU')} Stars`, via: 'через Telegram Stars', run: buyWithStars } : null,
     { key: 'crypto' as const, label: 'Крипта', icon: 'coin' as const, amount: `${selected.price} $`, via: 'в USDT через CryptoBot', run: buyWithCrypto },
-  ].filter(Boolean) as { key: 'rub' | 'stars' | 'crypto'; label: string; icon: 'card' | 'stars' | 'coin'; amount: string; via: string; run: () => void }[]) : []
+  ].filter(Boolean) as { key: 'rub' | 'crypto'; label: string; icon: 'card' | 'coin'; amount: string; via: string; run: () => void }[]) : []
   const cur = methods.find(m => m.key === method) ?? methods[0]
 
   // Цена тарифа в выбранной валюте и цена за месяц
-  const unit = (p: Plan) => cur?.key === 'stars' && p.stars ? p.stars : cur?.key === 'rub' && p.rub ? p.rub : p.price
-  const fmtUnit = (v: number) => cur?.key === 'stars' ? `${Math.round(v).toLocaleString('ru-RU')} Stars` : cur?.key === 'rub' ? fmtRub(Math.round(v)) : `${Math.round(v * 100) / 100} $`
+  const unit = (p: Plan) => cur?.key === 'rub' && p.rub ? p.rub : p.price
+  const fmtUnit = (v: number) => cur?.key === 'rub' ? fmtRub(Math.round(v)) : `${Math.round(v * 100) / 100} $`
   const base = cfg.plans[0] ? unit(cfg.plans[0]) / Math.max(1, cfg.plans[0].days / 30) : 0
   const months = (p: Plan) => Math.max(1, Math.round(p.days / 30))
 
@@ -399,7 +374,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
               {methods.map(m => (
                 <button key={m.key} onClick={() => { setMethod(m.key); setMsg(null) }}
                   className={`flex-1 h-9 rounded-[10px] flex items-center justify-center gap-1.5 text-[13px] font-medium transition-colors ${cur?.key === m.key ? 'bg-white/10 text-fg' : 'text-gray'}`}>
-                  <Icon name={m.icon} size={15} accent={m.key === 'stars' ? '#F5C25A' : 'current'} className={m.key === 'stars' ? 'text-gold' : ''} />
+                  <Icon name={m.icon} size={15} accent="current" />
                   {m.label}
                 </button>
               ))}

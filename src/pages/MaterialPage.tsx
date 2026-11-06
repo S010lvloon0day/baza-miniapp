@@ -235,7 +235,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               <div className="w-full list-group text-left mb-4">
                 {[
                   { i: 'library' as const, label: 'Все материалы и курсы базы' },
-                  { i: 'stars' as const, label: 'Оплата картой, Stars или криптой' },
+                  { i: 'card' as const, label: 'Оплата картой (СБП) или криптой' },
                   { i: 'check' as const, label: 'Доступ сразу после оплаты' },
                 ].map(b => (
                   <div key={b.label} className="flex items-center gap-3 px-4 py-3">
