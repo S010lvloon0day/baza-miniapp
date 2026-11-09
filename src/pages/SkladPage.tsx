@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { sklad } from '../api/sklad'
-import type { SkladHit, SkladStatus } from '../api/sklad'
+import type { SkladHit, SkladStatus, SkladCourse } from '../api/sklad'
 
 export default function SkladPage() {
   const [query, setQuery] = useState('')
@@ -9,7 +9,8 @@ export default function SkladPage() {
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [status, setStatus] = useState<SkladStatus | null>(null)
-  const [ordering, setOrdering] = useState<number | null>(null)
+  const [opening, setOpening] = useState<number | null>(null)
+  const [detail, setDetail] = useState<SkladCourse | null>(null)
   const [notice, setNotice] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -19,13 +20,6 @@ export default function SkladPage() {
   }, [])
 
   useEffect(() => { inputRef.current?.focus(); loadStatus() }, [loadStatus])
-
-  // Пока есть активный заказ — опрашиваем позицию в очереди
-  useEffect(() => {
-    if (!status?.active) return
-    const t = setInterval(loadStatus, 8000)
-    return () => clearInterval(t)
-  }, [status?.active, loadStatus])
 
   const doSearch = useCallback(async (q: string) => {
     if (q.trim().length < 3) { setResults([]); setSearched(false); return }
@@ -44,26 +38,24 @@ export default function SkladPage() {
     timer.current = setTimeout(() => doSearch(v), 500)
   }
 
-  const order = async (h: SkladHit) => {
-    setOrdering(h.thread_id); setNotice('')
+  const open = async (h: SkladHit) => {
+    setOpening(h.thread_id); setNotice('')
     try {
-      const r = await sklad.order(h.thread_id)
-      if (r.status === 'limit')
+      const r = await sklad.course(h.thread_id)
+      if (r.status === 'limit') {
         setNotice(`📅 Лимит: ${r.limit ?? 3} курса в сутки. Возвращайтесь завтра.`)
-      else if (r.status === 'active')
-        setNotice(`⏳ У вас уже есть заказ в очереди (позиция ${r.position}). Дождитесь его.`)
-      else if (r.cached)
-        setNotice(`⚡ «${r.title}» уже в базе — отправляю в чат с ботом.`)
-      else if (r.position === 0)
-        setNotice(`🚀 Готовлю «${r.title}» — курс придёт в чат с ботом.`)
-      else
-        setNotice(`✅ Заказ принят. Вы в очереди, перед вами: ${r.position}. Курс придёт в Telegram.`)
+      } else if (r.status === 'nolinks') {
+        setNotice('В этом курсе не нашлось прямых ссылок. Попробуйте другой.')
+      } else {
+        setDetail(r)
+      }
       loadStatus()
     } catch (e: any) {
-      setNotice('Не удалось оформить заказ: ' + (e.message || 'ошибка'))
-    } finally { setOrdering(null) }
+      setNotice('Не удалось открыть курс: ' + (e.message || 'ошибка'))
+    } finally { setOpening(null) }
   }
 
+  // Экран «нужен Premium»
   if (status && !status.premium) {
     return (
       <div className="flex-1 grid place-items-center px-6 text-center">
@@ -71,7 +63,43 @@ export default function SkladPage() {
           <div className="text-[40px] mb-2">🔒</div>
           <h2 className="text-[17px] font-bold mb-1">Поиск курсов — только Premium</h2>
           <p className="text-[13.5px] text-gray">
-            Оформите подписку, чтобы искать и скачивать любой из 100&nbsp;000+ курсов прямо в Telegram.
+            Оформите подписку, чтобы искать и скачивать любой из 100&nbsp;000+ курсов.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  // Экран курса: описание + ссылки
+  if (detail) {
+    return (
+      <div className="flex-1 overflow-y-auto pb-navsafe">
+        <div className="px-3.5 pt-2 flex flex-col gap-3">
+          <button onClick={() => setDetail(null)}
+            className="self-start text-[13.5px] text-green active:opacity-70">← Назад к поиску</button>
+
+          <div className="card-hero px-[18px] py-4">
+            {detail.label && <small className="block text-[12px] text-green mb-0.5">{detail.label}</small>}
+            <h1 className="font-display font-semibold text-[18px] leading-snug mb-2">{detail.title}</h1>
+            {detail.description && (
+              <p className="text-[13.5px] text-gray whitespace-pre-line leading-relaxed">
+                {detail.description}
+              </p>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {(detail.links || []).map((l, i) => (
+              <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
+                className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-[14px]">
+                <Icon name="download" size={16} accent="#03200F" />
+                Скачать · {l.label}
+              </a>
+            ))}
+          </div>
+
+          <p className="text-[11.5px] text-gray px-1 pt-1">
+            Ссылка открывается в браузере. Если файлов несколько — качайте по очереди.
           </p>
         </div>
       </div>
@@ -95,11 +123,7 @@ export default function SkladPage() {
 
         {status && (
           <div className="text-[12.5px] text-gray px-1">
-            {status.active
-              ? (status.active.status === 'processing'
-                  ? `⏳ «${status.active.title}» качается — скоро придёт в чат с ботом.`
-                  : `⏳ «${status.active.title}» в очереди, позиция ${status.active.position}.`)
-              : `Сегодня доступно: ${left} из ${status.limit} курсов в сутки.`}
+            Сегодня доступно: {left} из {status.limit} курсов в сутки.
           </div>
         )}
 
@@ -113,25 +137,20 @@ export default function SkladPage() {
 
         <div className="flex flex-col gap-2">
           {results.map(h => (
-            <div key={h.thread_id} className="card-hero px-3.5 py-3 flex items-center gap-3">
+            <button key={h.thread_id} onClick={() => open(h)} disabled={opening === h.thread_id}
+              className="card-hero px-3.5 py-3 flex items-center gap-3 text-left active:opacity-80 disabled:opacity-50">
               <span className="flex-1 min-w-0">
                 {h.label && <small className="block text-[11.5px] text-green truncate">{h.label}</small>}
                 <b className="block text-[14px] font-medium leading-snug">{h.title}</b>
               </span>
-              <button
-                onClick={() => order(h)}
-                disabled={ordering === h.thread_id || !!status?.active}
-                className="btn-primary shrink-0 px-3.5 py-2 text-[13px] disabled:opacity-50"
-              >
-                {ordering === h.thread_id ? '…' : 'Скачать'}
-              </button>
-            </div>
+              <span className="text-gray text-[13px] shrink-0">{opening === h.thread_id ? '…' : '→'}</span>
+            </button>
           ))}
         </div>
 
         {!searched && !loading && (
           <div className="text-center text-gray text-[13px] py-10 px-4">
-            Введите название курса — найдём среди 100&nbsp;000+ и пришлём файлом в Telegram.
+            Введите название курса — найдём среди 100&nbsp;000+ и дадим ссылку на скачивание.
           </div>
         )}
       </div>

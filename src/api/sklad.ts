@@ -18,15 +18,22 @@ export interface SkladStatus {
   premium: boolean
   used_today: number
   limit: number
-  active?: { title: string; status: 'queued' | 'processing'; position: number }
 }
 
-export interface SkladOrder {
-  status: 'queued' | 'active' | 'limit'
-  position?: number
+export interface SkladLink {
+  url: string
+  host: string
+  label: string
+  title: string
+}
+
+export interface SkladCourse {
+  status: 'ok' | 'limit' | 'nolinks'
   title?: string
+  label?: string
+  description?: string
+  links?: SkladLink[]
   limit?: number
-  cached?: boolean
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -48,7 +55,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 export const sklad = {
   search: (q: string) =>
     get<{ results: SkladHit[] }>(`/api/sklad/search?q=${encodeURIComponent(q)}`),
-  order: (thread_id: number) =>
-    post<SkladOrder>('/api/sklad/order', { thread_id }),
+  course: (thread_id: number) =>
+    post<SkladCourse>('/api/sklad/course', { thread_id }),
   status: () => get<SkladStatus>('/api/sklad/status'),
 }
