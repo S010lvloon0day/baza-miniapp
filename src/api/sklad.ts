@@ -26,6 +26,7 @@ export interface SkladOrder {
   position?: number
   title?: string
   limit?: number
+  cached?: boolean
 }
 
 async function get<T>(path: string): Promise<T> {
@@ -47,7 +48,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 export const sklad = {
   search: (q: string) =>
     get<{ results: SkladHit[] }>(`/api/sklad/search?q=${encodeURIComponent(q)}`),
-  download: (thread_id: number) =>
-    post<SkladOrder>('/api/sklad/download', { thread_id }),
+  order: (thread_id: number) =>
+    post<SkladOrder>('/api/sklad/order', { thread_id }),
   status: () => get<SkladStatus>('/api/sklad/status'),
 }

@@ -47,13 +47,15 @@ export default function SkladPage() {
   const order = async (h: SkladHit) => {
     setOrdering(h.thread_id); setNotice('')
     try {
-      const r = await sklad.download(h.thread_id)
+      const r = await sklad.order(h.thread_id)
       if (r.status === 'limit')
-        setNotice('📅 Лимит: 1 курс в сутки. Возвращайтесь завтра.')
+        setNotice(`📅 Лимит: ${r.limit ?? 3} курса в сутки. Возвращайтесь завтра.`)
       else if (r.status === 'active')
         setNotice(`⏳ У вас уже есть заказ в очереди (позиция ${r.position}). Дождитесь его.`)
+      else if (r.cached)
+        setNotice(`⚡ «${r.title}» уже в базе — отправляю в чат с ботом.`)
       else if (r.position === 0)
-        setNotice(`🚀 Качаю «${r.title}» — курс придёт в чат с ботом.`)
+        setNotice(`🚀 Готовлю «${r.title}» — курс придёт в чат с ботом.`)
       else
         setNotice(`✅ Заказ принят. Вы в очереди, перед вами: ${r.position}. Курс придёт в Telegram.`)
       loadStatus()
