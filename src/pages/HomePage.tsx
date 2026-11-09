@@ -19,6 +19,7 @@ interface Props {
   onCompete?: () => void
   onChat?: () => void
   onMask?: () => void
+  onSklad?: () => void
 }
 
 const FEATURED_TITLE = 'Знания S010lvloon'
@@ -297,7 +298,7 @@ function WeekRating({ c, onOpen, onPlay }: { c: Compete; onOpen?: () => void; on
   )
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, onChat, onMask }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, onChat, onMask, onSklad }: Props) {
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -377,6 +378,19 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             <button onClick={onTabCats} className="btn-primary w-full">Выбрать раздел</button>
           )}
         </div>
+
+        {onSklad && (
+          <button onClick={onSklad} className="card-hero px-[18px] py-4 flex items-center gap-3 text-left active:opacity-80">
+            <span className="w-[46px] h-[46px] rounded-[14px] grid place-items-center shrink-0" style={{ background: 'linear-gradient(135deg,#0E7A4C,#0A3322)' }}>
+              <Icon name="search" size={20} accent="#3CF29E" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <b className="block text-[15px] font-semibold">Поиск курсов</b>
+              <small className="block text-[12.5px] text-gray">100 000+ курсов — скачать в Telegram</small>
+            </span>
+            {premium && <PremiumBadge />}
+          </button>
+        )}
 
         {/* Игра «Сними маску» */}
         {onMask && <MaskCard onOpen={onMask} />}

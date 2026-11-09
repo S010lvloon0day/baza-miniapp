@@ -13,6 +13,7 @@ import ChatPage from './pages/ChatPage'
 import GiveawayPage from './pages/GiveawayPage'
 const MaskGamePage = lazy(() => import('./pages/mask/MaskGamePage'))
 import SubmitPage from './pages/SubmitPage'
+import SkladPage from './pages/SkladPage'
 import CoursesListPage from './pages/courses/CoursesListPage'
 import CourseDetailPage from './pages/courses/CourseDetailPage'
 import CoursePlayer from './pages/courses/CoursePlayer'
@@ -61,6 +62,7 @@ type View =
   | { type: 'feedback' }
   | { type: 'compete' }
   | { type: 'mask' }
+  | { type: 'sklad' }
 
 /** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
 function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean; pvp?: string } {
@@ -235,6 +237,7 @@ export default function App() {
 
   const openCompete = () => setStack(s => [...s, { type: 'compete' }])
   const openMask = () => setStack(s => [...s, { type: 'mask' }])
+  const openSklad = () => setStack(s => [...s, { type: 'sklad' }])
 
   const openCourse = (courseId: number, title = 'Курс') =>
     setStack(s => [...s, { type: 'course', courseId, title }])
@@ -258,7 +261,7 @@ export default function App() {
 
   const renderContent = () => {
     if (!top) {
-      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} onCompete={openCompete} onChat={() => switchTab('chat')} onMask={maskVisible ? openMask : undefined} />
+      if (tab === 'home')   return <HomePage onSection={openSection} onMaterial={openMaterial} onTabCats={() => switchTab('cats')} onSubmit={openSubmit} onCompete={openCompete} onChat={() => switchTab('chat')} onMask={maskVisible ? openMask : undefined} onSklad={openSklad} />
       if (tab === 'cats')   return <CatsPage onSection={openSection} onGiveaway={giveawayVisible ? openGiveaway : undefined} />
       if (tab === 'search') return <SearchPage onMaterial={openMaterial} />
       if (tab === 'favs')   return <LibraryPage bmTick={bmTick} onMaterial={openMaterial} onSection={openSection} onCourse={openCourse} />
@@ -275,6 +278,9 @@ export default function App() {
     }
     if (top?.type === 'compete') {
       return <CompetePage />
+    }
+    if (top?.type === 'sklad') {
+      return <SkladPage />
     }
     if (top?.type === 'mask') {
       if (!maskVisible) return null
@@ -329,6 +335,9 @@ export default function App() {
     }
     if (top.type === 'compete') {
       return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Рейтинг" />
+    }
+    if (top.type === 'sklad') {
+      return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Поиск курсов" />
     }
     if (top.type === 'mask') {
       return <Header showBack fullscreen={fs} onToggleFullscreen={fsSupported ? toggleFullscreen : undefined} onBack={goBack} title="Сними маску" />
