@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Gift, Trash } from '../../components/icons'
 import { coursesApi, CourseApiError } from '../../api/courses'
 import type { AdminMember } from '../../api/courses'
+import { useHideNav } from '../../hooks/useHideNav'
 
 interface Props {
   open: boolean
@@ -30,6 +31,7 @@ function errText(e: unknown): string {
 }
 
 export default function GrantSheet({ open, courseId, courseTitle, onClose }: Props) {
+  useHideNav(open)
   const [input, setInput] = useState('')
   const [members, setMembers] = useState<AdminMember[]>([])
   const [loading, setLoading] = useState(true)

@@ -30,7 +30,7 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
   const tabs = showConstructor ? [...TABS, CTOR_TAB] : TABS
   const dense = tabs.length > 5
   return (
-    <nav className="glass fixed z-50 flex p-[5px] rounded-[32px]"
+    <nav className="app-nav glass fixed z-50 flex p-[5px] rounded-[32px]"
       style={{ left: 10, right: 10, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 10px)' }}>
       {tabs.map(({ id, label }) => {
         const on = active === id

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Icon from './Icon'
 import { api } from '../api/client'
+import { useHideNav } from '../hooks/useHideNav'
 
 interface Props {
   open: boolean
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export default function NotifySheet({ open, onClose }: Props) {
+  useHideNav(open)
   const [enabled, setEnabled] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)

@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { createPortal } from 'react-dom'
+import { useHideNav } from '../../hooks/useHideNav'
 import Icon from '../../components/Icon'
 
 import type { IconName } from '../../components/Icon'
@@ -149,7 +151,8 @@ export function Segmented<T extends string>({ value, onChange, items }: { value:
 }
 
 export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
-  return (
+  useHideNav(open)
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -166,7 +169,8 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/Icon'
 import BazaMark from '../components/BazaMark'
 import PremiumBadge from '../components/PremiumBadge'
@@ -6,13 +6,22 @@ import { iconNameFor } from '../components/CategoryIcon'
 import { coverClass } from '../components/sectionCover'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import { CardSocial } from '../components/MaterialSocial'
-import { api } from '../api/client'
+import { api, getMatSort, setMatSort, fmtSize } from '../api/client'
+import type { MatSort } from '../api/client'
 import Certificate from '../components/Certificate'
 import type { Section, Material, PaidOfferData } from '../api/client'
 import PaidOffer from '../components/PaidOffer'
 import LevelMark from '../components/LevelMark'
 
 const tg = (window as any).Telegram?.WebApp
+
+const SORTS: { id: MatSort; label: string }[] = [
+  { id: '', label: 'По порядку' },
+  { id: 'new', label: 'Сначала новые' },
+  { id: 'old', label: 'Сначала старые' },
+  { id: 'big', label: 'Большие' },
+  { id: 'small', label: 'Маленькие' },
+]
 
 interface MaterialsResponse {
   materials: Material[]
@@ -117,6 +126,8 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [subBusy, setSubBusy] = useState(false)
   const [subMsg, setSubMsg] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
+  const [sort, setSort] = useState<MatSort>(getMatSort())
+  const sortTouched = useRef(false)
 
   useEffect(() => {
     api.sectionSub(section.id).then(r => setSubscribed(r.subscribed)).catch(() => {})
@@ -148,21 +159,22 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
     // Premium-раздел (подписка) грузим всегда: показываем каталог как превью,
     // материалы будут locked — чтобы было видно, за что платят.
     if (courseLocked) { setLoading(false); return }
-    setPage(initialPage); setLoading(true)
+    const startPage = sortTouched.current ? 0 : initialPage
+    setPage(startPage); setLoading(true)
     Promise.all([
       api.subsections(section.id).catch(() => ({ sections: [] as Section[] })),
-      api.materials(section.id, initialPage).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 })),
+      api.materials(section.id, startPage, sort).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 })),
     ]).then(([sd, md]) => {
       setSubs(sd.sections)
       setMats(md.materials)
       setTotal(md.total)
       setViewedCount((md as MaterialsResponse).viewed_count ?? 0)
     }).finally(() => setLoading(false))
-  }, [section.id, owned])
+  }, [section.id, owned, sort])
 
   const loadPage = async (p: number) => {
     setLoading(true)
-    const md: MaterialsResponse = await api.materials(section.id, p).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 }))
+    const md: MaterialsResponse = await api.materials(section.id, p, sort).catch((): MaterialsResponse => ({ materials: [], total: 0, total_with_premium: 0 }))
     setMats(md.materials); setPage(p); setLoading(false)
   }
 
@@ -308,6 +320,15 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
               <h3 className="text-[17px] font-bold">Материалы</h3>
               <span className="text-[13px] text-gray tabular-nums">{total}</span>
             </div>
+            {total > 1 && (
+              <div className="-mx-3.5 px-3.5 flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+                <span className="text-[12px] text-gray2 shrink-0">Порядок:</span>
+                {SORTS.map(o => (
+                  <button key={o.id || 'pos'} className={`chip ${sort === o.id ? 'on' : ''}`}
+                    onClick={() => { if (o.id !== sort) { sortTouched.current = true; setMatSort(o.id); setSort(o.id) } }}>{o.label}</button>
+                ))}
+              </div>
+            )}
             <div className="list-group">
               {shown.map(m => {
                 const n = page * ITEMS_PER_PAGE + listMats.indexOf(m) + 1
@@ -326,7 +347,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                         {m.locked && ((m as any).paid ? <span className="shrink-0 text-[10.5px] font-semibold px-2 py-0.5 rounded-full text-gold" style={{ background: 'rgba(240,200,90,.14)' }}>Отдельно</span> : <PremiumBadge small />)}
                         {isCur
                           ? <span className="text-green">Продолжите здесь</span>
-                          : <span className="truncate">{m.opened ? <span className="text-gold">Начат · </span> : null}{m.is_archive ? 'Архив' : typeLabel(m.media_type)}{(m.files_count ?? 0) > 1 ? ` · ${m.files_count} файла` : ''}</span>}
+                          : <span className="truncate">{m.opened ? <span className="text-gold">Начат · </span> : null}{m.is_archive ? 'Архив' : typeLabel(m.media_type)}{(m.files_count ?? 0) > 1 ? ` · ${m.files_count} файла` : ''}{m.size ? ` · ${fmtSize(m.size)}` : ''}</span>}
                         <CardSocial rating={m.rating} ratingCount={m.rating_count} comments={m.comments_count} />
                       </span>
                     </span>

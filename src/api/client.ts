@@ -96,6 +96,14 @@ export interface PaidOfferData {
   cover: string | null
 }
 
+/** Порядок материалов в разделах: '' — как задал админ. Запоминается на устройстве. */
+export type MatSort = '' | 'new' | 'old' | 'big' | 'small'
+export function getMatSort(): MatSort {
+  try { const v = localStorage.getItem('mat_sort') || ''; return (['', 'new', 'old', 'big', 'small'].includes(v) ? v : '') as MatSort } catch { return '' }
+}
+export function setMatSort(v: MatSort) { try { localStorage.setItem('mat_sort', v) } catch { /* */ } }
+export const fmtSize = (b?: number | null) => !b || b <= 0 ? '' : b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} КБ` : b < 1073741824 ? `${(b / 1048576).toFixed(b < 10485760 ? 1 : 0)} МБ` : `${(b / 1073741824).toFixed(1)} ГБ`
+
 export interface Material {
   id: number
   section_id: number
@@ -110,6 +118,8 @@ export interface Material {
   section_emoji?: string
   created_at?: string
   premium_required?: boolean
+  /** Суммарный размер файлов, байт (в списке раздела). */
+  size?: number | null
   /** Материал из отдельно продаваемого раздела (Premium его не открывает). */
   paid?: boolean
   /** Экран продажи для закрытого платного материала. */
@@ -314,8 +324,8 @@ export const getChatTopic = () => _chatTopic
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
-  materials:      (id: number, page = 0) =>
-    get<{ materials: Material[]; total: number }>(`/api/sections/${id}/materials?page=${page}`),
+  materials:      (id: number, page = 0, sort: MatSort = getMatSort()) =>
+    get<{ materials: Material[]; total: number }>(`/api/sections/${id}/materials?page=${page}${sort ? `&sort=${sort}` : ''}`),
   material:       (id: number)   => get<Material>(`/api/material/${id}`),
   profile:        ()             => get<Profile>('/api/profile'),
   compete:        ()             => get<Compete>('/api/compete'),
