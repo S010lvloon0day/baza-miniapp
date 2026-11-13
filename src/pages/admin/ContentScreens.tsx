@@ -169,7 +169,7 @@ export function SectionsScreen({ nav, parentId }: { nav: Nav; parentId: number |
               <div className="flex-1"><Field label="Название" value={edit.title || ''} onChange={v => setEdit({ ...edit, title: v })} /></div>
             </div>
             <Field label="Описание" multiline rows={3} value={edit.description || ''} onChange={v => setEdit({ ...edit, description: v })} />
-            <Field label="Цена курса, USDT (0 — не продаётся отдельно)" type="number" value={String(edit.price ?? 0)} onChange={v => setEdit({ ...edit, price: Number(v) || 0 })} />
+            <Field label="Цена в $ (0 — не продаётся отдельно; ₽ — по курсу автоматически)" type="number" value={String(edit.price ?? 0)} onChange={v => setEdit({ ...edit, price: Number(v) || 0 })} />
             {edit.id && (
               <label className="block mb-3">
                 <span className="block text-[12.5px] text-gray mb-1.5 px-1">Где находится</span>
