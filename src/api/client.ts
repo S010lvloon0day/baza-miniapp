@@ -83,6 +83,19 @@ export interface Attachment {
   url?: string | null
 }
 
+export interface PaidOfferData {
+  section_id: number
+  title: string
+  emoji: string
+  description: string
+  /** цена в USDT */
+  price: number
+  /** цена в рублях (по курсу); null — оплата рублями выключена */
+  rub: number | null
+  /** путь к обложке внутри мини-аппа (covers/...) */
+  cover: string | null
+}
+
 export interface Material {
   id: number
   section_id: number
@@ -97,6 +110,10 @@ export interface Material {
   section_emoji?: string
   created_at?: string
   premium_required?: boolean
+  /** Материал из отдельно продаваемого раздела (Premium его не открывает). */
+  paid?: boolean
+  /** Экран продажи для закрытого платного материала. */
+  offer?: PaidOfferData
   /** Приходит только из /api/material/:id. Пусто у закрытых материалов. */
   attachments?: Attachment[]
   files_count?: number
@@ -404,6 +421,8 @@ export const api = {
     post<{ ok?: boolean; status?: string; stage?: number; hint_idx?: number; text?: string; error?: string }>('/api/giveaway/hint_confirm', { invoice_id: invoiceId }),
   courseInvoice: (sectionId: number) =>
     post<{ pay_url?: string; invoice_id?: string; section_id?: number; price?: number; error?: string }>('/api/course/invoice', { section_id: sectionId }),
+  sectionRubInvoice: (sectionId: number) =>
+    postAny<{ payment_url?: string; transaction_id?: string; amount?: number; error?: string }>(`/api/sections/${sectionId}/rub_invoice`),
   courseConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; section_id?: number; error?: string }>('/api/course/confirm', { invoice_id: invoiceId }),
   certificate:     (parentId: number) => get<CertInfo>(`/api/certificate/${parentId}`),

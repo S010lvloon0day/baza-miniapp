@@ -16,6 +16,7 @@ import CompletionBar from '../components/CompletionBar'
 import MaterialSocial, { SocialProof } from '../components/MaterialSocial'
 declare const __BUILD_ID__: string
 import LevelMark from '../components/LevelMark'
+import PaidOffer from '../components/PaidOffer'
 
 // react-pdf/pdfjs-dist is a large dependency (~1MB) only needed by the small fraction of
 // users who actually open a PDF document — lazy-load it so the main bundle (and every other
@@ -218,6 +219,12 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
             <motion.div key="spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex justify-center py-16">
               <div className="w-1.5 h-1.5 bg-green/70 rounded-full animate-pulse" />
+            </motion.div>
+          ) : mat?.locked && mat.paid && mat.offer ? (
+            <motion.div key={'offer-' + materialId} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+              <PaidOffer offer={mat.offer} onPaid={() => {
+                api.material(materialId).then(d => { if (curId.current === materialId) setMat(d) }).catch(() => {})
+              }} />
             </motion.div>
           ) : mat?.premium_required ? (
             <motion.div key="lock" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
