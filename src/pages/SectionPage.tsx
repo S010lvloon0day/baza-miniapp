@@ -8,15 +8,11 @@ import MediaTypeIcon from '../components/MediaTypeIcon'
 import { CardSocial } from '../components/MaterialSocial'
 import { api } from '../api/client'
 import Certificate from '../components/Certificate'
-import type { Section, Material } from '../api/client'
+import type { Section, Material, PaidOfferData } from '../api/client'
+import PaidOffer from '../components/PaidOffer'
 import LevelMark from '../components/LevelMark'
 
 const tg = (window as any).Telegram?.WebApp
-const openPay = (url: string) => {
-  if (url.includes('t.me') && tg?.openTelegramLink) tg.openTelegramLink(url)
-  else if (tg?.openLink) tg.openLink(url)
-  else window.open(url, '_blank')
-}
 
 interface MaterialsResponse {
   materials: Material[]
@@ -92,57 +88,19 @@ function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: ()
 }
 
 function CoursePaywall({ section, onPurchased }: { section: Section; onPurchased: () => void }) {
-  const price = section.price ?? 0
-  const [invoice, setInvoice] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
-
-  const buy = async () => {
-    setBusy(true); setMsg(null)
-    try {
-      const r = await api.courseInvoice(section.id)
-      if (r.error === 'already_owned') { onPurchased(); return }
-      if (!r.pay_url || !r.invoice_id) { setMsg('Не удалось создать счёт. Попробуй позже.'); return }
-      setInvoice(r.invoice_id)
-      openPay(r.pay_url)
-    } catch { setMsg('Ошибка оплаты. Попробуй позже.') } finally { setBusy(false) }
+  // Тот же экран продажи, что и внутри материала: обложка, описание, СБП и крипта, автопроверка
+  const offer: PaidOfferData = {
+    section_id: section.id,
+    title: section.title,
+    emoji: section.emoji || '',
+    description: section.description || '',
+    price: section.price ?? 0,
+    rub: (section as { rub?: number | null }).rub ?? null,
+    cover: (section as { cover?: string | null }).cover ?? null,
   }
-
-  const check = async () => {
-    if (!invoice) return
-    setBusy(true); setMsg(null)
-    try {
-      const r = await api.courseConfirm(invoice)
-      if (r.ok) { onPurchased(); return }
-      if (r.status && r.status !== 'paid') setMsg('Оплата ещё не поступила — подожди минуту и проверь снова.')
-      else setMsg('Не удалось подтвердить оплату.')
-    } catch { setMsg('Ошибка проверки. Попробуй позже.') } finally { setBusy(false) }
-  }
-
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
-      <Cover section={section}>
-        <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full bg-black/35 text-[12px] font-semibold text-[#CFDAD4]"><Icon name="lock" size={13} />Платный курс</span>
-        <h1 className="font-display font-semibold text-[25px] leading-tight mt-2.5" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
-        {section.description && <p className="text-[14px] text-[#CFDAD4] mt-1">{section.description}</p>}
-      </Cover>
-      <div className="px-3.5 flex flex-col gap-3">
-        <div className="card px-4 py-4">
-          <div className="flex items-baseline justify-between">
-            <span className="text-[13px] text-gray">Стоимость</span>
-            <span className="font-display font-semibold text-[22px] tabular-nums">{price} USDT</span>
-          </div>
-          <p className="text-[13px] text-gray leading-relaxed mt-2">Разовая покупка: доступ к курсу навсегда. Оплата в USDT через CryptoBot.</p>
-        </div>
-        {!invoice ? (
-          <button onClick={buy} disabled={busy} className="btn-gold gold-metal sheen w-full disabled:opacity-60">
-            <b>Купить за {price} USDT</b><small>Откроется CryptoBot</small>
-          </button>
-        ) : (
-          <button onClick={check} disabled={busy} className="btn-primary w-full">Я оплатил, проверить</button>
-        )}
-        {msg && <div className="text-[13px] text-gray leading-relaxed px-1">{msg}</div>}
-      </div>
+      <PaidOffer offer={offer} onPaid={onPurchased} />
     </div>
   )
 }
