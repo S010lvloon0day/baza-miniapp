@@ -157,7 +157,7 @@ export default function SearchPage({ onMaterial }: Props) {
                   <span className="flex-1 min-w-0">
                     <b className="block text-[14.5px] font-medium leading-snug"><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                     <span className="flex items-center gap-2 mt-1">
-                      {m.locked && <PremiumBadge small />}
+                      {m.locked && ((m as any).paid ? <span className="shrink-0 text-[10.5px] font-semibold px-2 py-0.5 rounded-full text-gold" style={{ background: 'rgba(240,200,90,.14)' }}>Отдельно</span> : <PremiumBadge small />)}
                       <small className="text-[12.5px] text-gray truncate">{m.section_title}</small>
                     </span>
                     {m.content && !m.locked && (

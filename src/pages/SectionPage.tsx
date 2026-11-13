@@ -365,7 +365,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                     <span className="flex-1 min-w-0">
                       <b className={`block text-[14.5px] font-medium leading-snug line-clamp-2 ${m.locked ? 'text-fg/60' : ''}`}><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                       <span className="flex items-center gap-2 mt-1 text-[12px] text-gray2 min-w-0">
-                        {m.locked && <PremiumBadge small />}
+                        {m.locked && ((m as any).paid ? <span className="shrink-0 text-[10.5px] font-semibold px-2 py-0.5 rounded-full text-gold" style={{ background: 'rgba(240,200,90,.14)' }}>Отдельно</span> : <PremiumBadge small />)}
                         {isCur
                           ? <span className="text-green">Продолжите здесь</span>
                           : <span className="truncate">{m.opened ? <span className="text-gold">Начат · </span> : null}{m.is_archive ? 'Архив' : typeLabel(m.media_type)}{(m.files_count ?? 0) > 1 ? ` · ${m.files_count} файла` : ''}</span>}

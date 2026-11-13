@@ -453,7 +453,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
                     <b className="block text-[14.5px] font-medium truncate"><LevelMark level={(m as { title_level?: string }).title_level} />{m.title}</b>
                     <small className="block text-[12.5px] text-gray truncate">{m.section_title}</small>
                   </span>
-                  {m.locked && <PremiumBadge small />}
+                  {m.locked && ((m as any).paid ? <span className="shrink-0 text-[10.5px] font-semibold px-2 py-0.5 rounded-full text-gold" style={{ background: 'rgba(240,200,90,.14)' }}>Отдельно</span> : <PremiumBadge small />)}
                 </button>
               ))}
             </div>

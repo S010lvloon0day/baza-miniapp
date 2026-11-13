@@ -473,10 +473,10 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
               )}
 
               {/* Зачёт материала */}
-              {mat.progress?.active && <CompletionBar key={materialId} materialId={materialId} progress={mat.progress} />}
+              {mat.progress?.active && <CompletionBar key={'cb-' + materialId} materialId={materialId} progress={mat.progress} />}
 
               {/* Оценки и обсуждение */}
-              <MaterialSocial key={materialId} materialId={materialId} />
+              <MaterialSocial key={'soc-' + materialId} materialId={materialId} />
 
               {/* Обсудить в чате: карточка материала подставляется в поле ввода */}
               <button onClick={() => {
