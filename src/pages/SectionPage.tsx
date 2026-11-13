@@ -19,8 +19,8 @@ const SORTS: { id: MatSort; label: string }[] = [
   { id: '', label: 'По порядку' },
   { id: 'new', label: 'Сначала новые' },
   { id: 'old', label: 'Сначала старые' },
-  { id: 'big', label: 'Большие' },
-  { id: 'small', label: 'Маленькие' },
+  { id: 'big', label: 'Сначала большие' },
+  { id: 'small', label: 'Сначала маленькие' },
 ]
 
 interface MaterialsResponse {
@@ -128,6 +128,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [filter, setFilter] = useState<Filter>('all')
   const [sort, setSort] = useState<MatSort>(getMatSort())
   const sortTouched = useRef(false)
+  const [sortOpen, setSortOpen] = useState(false)
 
   useEffect(() => {
     api.sectionSub(section.id).then(r => setSubscribed(r.subscribed)).catch(() => {})
@@ -321,12 +322,28 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
               <span className="text-[13px] text-gray tabular-nums">{total}</span>
             </div>
             {total > 1 && (
-              <div className="-mx-3.5 px-3.5 flex items-center gap-2 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-                <span className="text-[12px] text-gray2 shrink-0">Порядок:</span>
-                {SORTS.map(o => (
-                  <button key={o.id || 'pos'} className={`chip ${sort === o.id ? 'on' : ''}`}
-                    onClick={() => { if (o.id !== sort) { sortTouched.current = true; setMatSort(o.id); setSort(o.id) } }}>{o.label}</button>
-                ))}
+              <div className="relative px-1 -mt-1">
+                <button onClick={() => setSortOpen(v => !v)}
+                  className="inline-flex items-center gap-1.5 h-8 pl-3 pr-2.5 rounded-full bg-white/[.06] border border-white/[.08] text-[13px] active:opacity-80">
+                  <span className="text-gray">Порядок:</span>
+                  <b className="font-semibold">{SORTS.find(o => o.id === sort)?.label}</b>
+                  <svg width="12" height="12" viewBox="0 0 12 12" className={`text-gray transition-transform ${sortOpen ? 'rotate-180' : ''}`}><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </button>
+                {sortOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)} />
+                    <div className="absolute z-50 left-1 top-[38px] min-w-[200px] rounded-[16px] bg-s1 border border-white/[.1] shadow-xl shadow-black/40 py-1.5 overflow-hidden">
+                      {SORTS.map(o => (
+                        <button key={o.id || 'pos'}
+                          onClick={() => { setSortOpen(false); if (o.id !== sort) { sortTouched.current = true; setMatSort(o.id); setSort(o.id) } }}
+                          className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-[14px] text-left active:bg-white/[.06]">
+                          <span className={sort === o.id ? 'text-green font-semibold' : ''}>{o.label}</span>
+                          {sort === o.id && <Icon name="check" size={16} className="text-green" />}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
             )}
             <div className="list-group">
