@@ -352,7 +352,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
             </ul>
           )}
           <div className="grid gap-2 mx-4" style={{ gridTemplateColumns: `repeat(${Math.min(3, cfg.plans.length)}, 1fr)` }}>
-            {cfg.plans.map((p, i) => {
+            {cfg.plans.map((p) => {
               const on = selected?.days === p.days
               const perMonth = unit(p) / months(p)
               const off = base > 0 ? Math.round((1 - perMonth / base) * 100) : 0
