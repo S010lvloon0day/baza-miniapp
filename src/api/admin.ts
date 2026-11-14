@@ -36,7 +36,22 @@ export interface AUserFull extends AUser {
   courses: { section_id: number; title: string; at: string }[]
   logs: { action: string; detail: string; at: string }[]
   limits: Record<string, number> | null
-  history: { id: number; title: string | null; at: string }[]
+  history: { id: number; title: string | null; at: string; section?: string; done?: boolean }[]
+  opened_total?: number; done_total?: number; old_names?: string[]
+}
+export interface APrices { rub_per_usd: number; rub_enabled: boolean; plans: { days: number; usd: number; rub: number }[] }
+export interface APurchases {
+  purchases: { user_id: number; username: string; name: string; section_id: number; title: string; how: string; at: string }[]
+  sections: { id: number; title: string; price: number }[]
+}
+export interface AAbandoned { started: number; abandoned: number; users: { user_id: number; username: string; name: string; tries: number; at: string; what: string }[] }
+export interface AContentStats {
+  readers: { d1: number; d7: number; d30: number }
+  top: { id: number; title: string; section: string; users: number }[]
+  never_opened: number
+  dead_sections: { id: number; title: string; total: number; never: number }[]
+  empty_sections: { id: number; title: string }[]
+  no_description: { id: number; title: string }[]
 }
 export interface ASection {
   id: number; parent_id: number | null; title: string; emoji: string; description: string; is_premium: boolean
@@ -73,6 +88,14 @@ export const adminApi = {
   limits: (filter: string) => get<ALimits>(`/api/admin/limits?${qs({ filter })}`),
   limitReset: (id: number, scope: 'hour' | 'day' | 'all') => post(`/api/admin/limits/${id}/reset`, { scope }),
   overview: () => get<Overview>('/api/admin/overview'),
+  prices: () => get<APrices>('/api/admin/prices'),
+  savePrices: (b: { rub_per_usd: number; plans: { days: number; usd: number; rub: number }[] }) => post('/api/admin/prices', b),
+  setCover: (sid: number, file_id: string) => post(`/api/admin/section/${sid}/cover`, { file_id }),
+  purchases: () => get<APurchases>('/api/admin/purchases'),
+  grantSection: (user_id: number, section_id: number) => post('/api/admin/purchases', { user_id, section_id }),
+  revokeSection: (user_id: number, section_id: number) => post('/api/admin/purchases', { user_id, section_id, action: 'revoke' }),
+  abandoned: () => get<AAbandoned>('/api/admin/abandoned'),
+  contentStats: () => get<AContentStats>('/api/admin/content_stats'),
   users: (q: string, filter: string, offset = 0, sort = 'new') => get<{ total: number; users: AUser[] }>(`/api/admin/users?${qs({ q, filter, offset, sort })}`),
   user: (id: number) => get<AUserFull>(`/api/admin/users/${id}`),
   premium: (id: number, days: number, notify: boolean) => post<{ premium_until: string }>(`/api/admin/users/${id}/premium`, { days, notify }),

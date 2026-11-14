@@ -4,6 +4,7 @@ import MediaTypeIcon from '../../components/MediaTypeIcon'
 import { adminApi } from '../../api/admin'
 import type { ASection, AMaterial, AMaterialRow, AQuestion, AQuestions } from '../../api/admin'
 import { uploadFile } from '../../api/upload'
+import { API_BASE } from '../../api/client'
 import { Badge, Empty, Field, IconBtn, Loader, Row, SectionTitle, Sheet, Toggle, errMsg, toast, useConfirm, fmtDate } from './ui'
 import type { Nav } from './AdminPage'
 
@@ -45,6 +46,7 @@ export function SectionsScreen({ nav, parentId }: { nav: Nav; parentId: number |
     } catch (e) { toast(errMsg(e), true) }
   }
 
+  const [coverV, setCoverV] = useState(1)
   const saveSection = async () => {
     if (!edit) return
     try {
@@ -170,6 +172,21 @@ export function SectionsScreen({ nav, parentId }: { nav: Nav; parentId: number |
             </div>
             <Field label="Описание" multiline rows={3} value={edit.description || ''} onChange={v => setEdit({ ...edit, description: v })} />
             <Field label="Цена в $ (0 — не продаётся отдельно; ₽ — по курсу автоматически)" type="number" value={String(edit.price ?? 0)} onChange={v => setEdit({ ...edit, price: Number(v) || 0 })} />
+            {edit.id && (edit.price ?? 0) > 0 && (
+              <div className="mb-3 flex items-center gap-3">
+                <img key={coverV} src={`${API_BASE}/api/section_cover/${edit.id}?v=${coverV}`} alt="" className="w-14 h-14 rounded-[12px] object-cover bg-s2 border border-white/[.08]"
+                  onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
+                <label className="btn-secondary h-10 px-3 text-[13px] cursor-pointer flex items-center">
+                  Загрузить обложку
+                  <input type="file" accept="image/*" hidden onChange={async e => {
+                    const f = e.target.files?.[0]; e.target.value = ''
+                    if (!f || !edit.id) return
+                    try { const r = await uploadFile(f, () => {}); await adminApi.setCover(edit.id, r.file_id); setCoverV(v => v + 1); toast('Обложка сохранена') } catch (er) { toast(errMsg(er), true) }
+                  }} />
+                </label>
+                <button className="text-[12.5px] text-gray" onClick={async () => { if (!edit.id) return; try { await adminApi.setCover(edit.id, ''); setCoverV(v => v + 1); toast('Обложка убрана') } catch (er) { toast(errMsg(er), true) } }}>Убрать</button>
+              </div>
+            )}
             {edit.id && (
               <label className="block mb-3">
                 <span className="block text-[12.5px] text-gray mb-1.5 px-1">Где находится</span>

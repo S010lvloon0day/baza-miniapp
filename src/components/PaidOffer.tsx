@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import Icon from './Icon'
-import { api } from '../api/client'
+import { api, API_BASE } from '../api/client'
 import type { PaidOfferData } from '../api/client'
 import { useRubPayment, fmtRub } from '../hooks/useRubPayment'
 
@@ -93,7 +93,7 @@ export default function PaidOffer({ offer, onPaid }: { offer: PaidOfferData; onP
     <div className="mx-4 mt-4 flex flex-col gap-3">
       <div className="card-gold overflow-hidden">
         {offer.cover && (
-          <img src={import.meta.env.BASE_URL + offer.cover} alt="" loading="lazy"
+          <img src={offer.cover.startsWith('api:') ? API_BASE + offer.cover.slice(4) : import.meta.env.BASE_URL + offer.cover} alt="" loading="lazy"
             className="w-full max-h-[340px] object-cover object-top border-b border-white/[.06]" />
         )}
         <div className="px-5 pt-5 pb-5 text-center">

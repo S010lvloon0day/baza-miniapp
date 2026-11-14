@@ -43,7 +43,7 @@ export function UsersScreen({ nav }: { nav: Nav }) {
     <div className="px-4 pt-3 pb-navsafe">
       <label className="flex items-center gap-2.5 bg-s2 border border-white/[.08] rounded-[14px] px-3.5 h-11 mb-3">
         <Icon name="search" size={17} className="text-gray" />
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder="ID, @username или имя" className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-gray2" />
+        <input value={q} onChange={e => setQ(e.target.value)} placeholder="ID, @username (в т.ч. прежний) или имя" className="flex-1 bg-transparent outline-none text-[15px] placeholder:text-gray2" />
       </label>
       <Segmented value={filter} onChange={setFilter} items={[['all', 'Все'], ['premium', 'Premium'], ['new', 'Новые 7 дн.'], ['banned', 'Баны']]} />
       <SectionTitle right={
@@ -73,7 +73,9 @@ export function UsersScreen({ nav }: { nav: Nav }) {
 
 export function UserScreen({ id }: { id: number }) {
   const [u, setU] = useState<AUserFull | null>(null)
-  const [sheet, setSheet] = useState<'premium' | 'ban' | 'msg' | null>(null)
+  const [sheet, setSheet] = useState<'premium' | 'ban' | 'msg' | 'grant' | null>(null)
+  const [sale, setSale] = useState<{ id: number; title: string; price: number }[] | null>(null)
+  const [grantId, setGrantId] = useState('')
   const [days, setDays] = useState('30')
   const [notify, setNotify] = useState(true)
   const [reason, setReason] = useState('')
@@ -94,6 +96,7 @@ export function UserScreen({ id }: { id: number }) {
         <div className="flex-1 min-w-0">
           <b className="font-display font-semibold text-[17px] block truncate">{u.name || u.username || u.id}</b>
           <span className="block text-[13px] text-gray truncate">{u.username ? '@' + u.username + ' · ' : ''}ID {u.id}</span>
+          {!!u.old_names?.length && <span className="block text-[12px] text-gray2 truncate">раньше: {u.old_names.map(n => '@' + n).join(', ')}</span>}
           <div className="flex flex-wrap gap-1.5 mt-2">
             {u.premium ? <Badge tone="gold">Premium до {fmtDay(u.premium_until)}</Badge> : <Badge tone="gray">Без Premium</Badge>}
             {u.banned && <Badge tone="red">Забанен</Badge>}
@@ -124,6 +127,7 @@ export function UserScreen({ id }: { id: number }) {
       <div className="list-group">
         <Row icon="crown" tone="gold" title="Выдать Premium" sub="Добавить дни к подписке" onClick={() => setSheet('premium')} />
         {u.premium && <Row icon="close" tone="gray" title="Забрать Premium" onClick={async () => { if (await ask('Отключить Premium у пользователя сейчас?', 'Отключить')) run(() => adminApi.revokePremium(u.id), 'Premium отключён') }} />}
+        <Row icon="book" tone="gold" title="Открыть платный раздел" sub="Выдать доступ без оплаты" onClick={() => { setSheet('grant'); if (!sale) adminApi.purchases().then(r => { setSale(r.sections); if (r.sections[0]) setGrantId(String(r.sections[0].id)) }).catch(e => toast(errMsg(e), true)) }} />
         <Row icon="send" tone="violet" title="Написать от бота" onClick={() => setSheet('msg')} />
         <Row icon="refresh" tone="green" title="Сбросить лимит чтения" sub={u.limits ? `час ${u.limits.hour ?? 0} · сутки ${u.limits.day ?? 0} · 30 дн. ${u.limits.month ?? 0}` : undefined}
           onClick={() => run(() => adminApi.resetLimit(u.id), 'Лимит сброшен')} />
@@ -148,12 +152,14 @@ export function UserScreen({ id }: { id: number }) {
         ))}</div>
       </>)}
       {u.courses.length > 0 && (<>
-        <SectionTitle>Купленные курсы</SectionTitle>
-        <div className="list-group">{u.courses.map(c => <Row key={c.section_id} icon="book" title={c.title || `#${c.section_id}`} sub={fmtDate(c.at)} />)}</div>
+        <SectionTitle>Купленные разделы</SectionTitle>
+        <div className="list-group">{u.courses.map(c => <Row key={c.section_id} icon="book" title={c.title || `#${c.section_id}`} sub={fmtDate(c.at)}
+          right={<button className="text-[12.5px] text-[#FF8A8A] font-semibold px-2 py-1" onClick={async () => { if (await ask(`Забрать доступ к «${c.title || c.section_id}»?`, 'Забрать')) run(() => adminApi.revokeSection(u.id, c.section_id), 'Доступ забран') }}>Забрать</button>} />)}</div>
       </>)}
       {u.history?.length > 0 && (<>
-        <SectionTitle>Недавно открывал</SectionTitle>
-        <div className="list-group">{u.history.map(h => <Row key={h.id + h.at} icon="doc" title={h.title || `Материал #${h.id}`} sub={ago(h.at)} />)}</div>
+        <SectionTitle right={<span className="text-[12.5px] text-gray">открыто {u.opened_total ?? u.history.length} · пройдено {u.done_total ?? 0}</span>}>Материалы</SectionTitle>
+        <div className="list-group">{u.history.map(h => <Row key={h.id + h.at} icon={h.done ? 'checkCircle' : 'doc'} tone={h.done ? 'green' : 'gray'} title={h.title || `Материал #${h.id}`}
+          sub={`${h.section ? h.section + ' · ' : ''}${ago(h.at)}${h.done ? ' · пройден' : ''}`} />)}</div>
       </>)}
       <SectionTitle>Последние действия</SectionTitle>
       {u.logs.length ? <div className="list-group">{u.logs.map((l, i) => (
@@ -166,6 +172,17 @@ export function UserScreen({ id }: { id: number }) {
         <Field label="Дней" type="number" value={days} onChange={setDays} />
         <div className="list-group mb-4"><Toggle label="Уведомить пользователя" value={notify} onChange={setNotify} /></div>
         <button className="btn-gold gold-metal w-full h-12 rounded-[14px] font-semibold text-[#2A1C00]" onClick={() => run(() => adminApi.premium(u.id, Number(days), notify), 'Premium выдан')}>Выдать на {days} дн.</button>
+      </Sheet>
+      <Sheet open={sheet === 'grant'} onClose={() => setSheet(null)} title="Открыть платный раздел">
+        {!sale ? <Loader /> : sale.length === 0 ? <p className="text-[14px] text-gray mb-4">Разделов с отдельной ценой пока нет.</p> : (<>
+          <label className="block mb-4">
+            <span className="block text-[12.5px] text-gray mb-1.5 px-1">Раздел</span>
+            <select className="w-full bg-s2 border border-white/[.08] rounded-[14px] px-3 py-3 text-[15px] outline-none" value={grantId} onChange={e => setGrantId(e.target.value)}>
+              {sale.map(s => <option key={s.id} value={s.id}>{s.title} — {s.price} $</option>)}
+            </select>
+          </label>
+          <button className="btn-primary w-full" disabled={!grantId} onClick={() => run(() => adminApi.grantSection(u.id, Number(grantId)), 'Доступ открыт')}>Открыть доступ</button>
+        </>)}
       </Sheet>
       <Sheet open={sheet === 'ban'} onClose={() => setSheet(null)} title="Забанить">
         <Field label="Причина (видна только вам)" value={reason} onChange={setReason} />

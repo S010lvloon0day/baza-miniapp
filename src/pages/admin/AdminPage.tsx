@@ -13,11 +13,12 @@ import { UsersScreen, UserScreen, SubmissionsScreen, CommentsScreen } from './Pe
 import { BannersScreen, PinnedScreen, BroadcastScreen, PaymentsScreen, LogsScreen, LimitsScreen, WeekScreen, ChatModScreen } from './MiscScreens'
 import { Loader, Toaster, errMsg, num, ago } from './ui'
 import { MaskScreen } from './MaskScreen'
+import { PricesScreen, PurchasesScreen, AbandonedScreen, ContentStatsScreen } from './ExtraScreens'
 
 export type Screen =
   | { k: 'home' } | { k: 'content' } | { k: 'section'; id: number; title: string } | { k: 'material'; id: number }
   | { k: 'upload'; sectionId?: number } | { k: 'users' } | { k: 'user'; id: number } | { k: 'subs' } | { k: 'comments' } | { k: 'feedback' }
-  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' } | { k: 'limits' } | { k: 'week' } | { k: 'chatmod' } | { k: 'mask' }
+  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' } | { k: 'limits' } | { k: 'week' } | { k: 'chatmod' } | { k: 'mask' } | { k: 'prices' } | { k: 'purchases' } | { k: 'abandoned' } | { k: 'cstats' }
 
 export interface Nav { push: (s: Screen) => void; back: () => void }
 
@@ -25,6 +26,7 @@ const TITLES: Partial<Record<Screen['k'], string>> = {
   content: 'Контент', material: 'Материал', upload: 'Новый материал', users: 'Пользователи', user: 'Пользователь',
   subs: 'Заявки', comments: 'Комментарии', feedback: 'Обсуждения', courses: 'Курсы', banners: 'Баннеры',
   pinned: 'Закреп в боте', limits: 'Лимиты чтения', week: 'Итоги недели', chatmod: 'Чат: жалобы и муты', mask: 'Сними маску', broadcast: 'Рассылка', payments: 'Оплаты', logs: 'Журнал',
+  prices: 'Цены и курс', purchases: 'Покупки разделов', abandoned: 'Брошенные оплаты', cstats: 'Статистика контента',
 }
 
 // Стек экранов переживает размонтирование (например, «Как видят» → назад)
@@ -84,6 +86,10 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
         {top.k === 'week' && <WeekScreen nav={nav} />}
         {top.k === 'chatmod' && <ChatModScreen nav={nav} />}
         {top.k === 'mask' && <MaskScreen />}
+        {top.k === 'prices' && <PricesScreen />}
+        {top.k === 'purchases' && <PurchasesScreen nav={nav} />}
+        {top.k === 'abandoned' && <AbandonedScreen nav={nav} />}
+        {top.k === 'cstats' && <ContentStatsScreen nav={nav} />}
         </div>
       </motion.div>
       <Toaster />
@@ -206,6 +212,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
         <Group title="Контент">
           <Item k="content" icon="folder" title="Разделы и материалы" sub={`${num(o.sections)} разделов · ${num(o.materials)} материалов`} tone="#17E584" />
           <Item k="courses" icon="book" title="Курсы" sub="конструктор курсов и доступ" tone="#F5C25A" />
+          <Item k="cstats" icon="trophy" title="Статистика контента" sub="что читают, что ни разу не открывали" tone="#17E584" />
           <Item k="subs" icon="checkCircle" title="Заявки от пользователей" sub={o.pending_submissions ? `ждут проверки: ${o.pending_submissions}` : 'новых нет'} tone="#17E584" badge={o.pending_submissions} />
         </Group>
         <Group title="Сообщество">
@@ -224,6 +231,9 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
         </Group>
         <Group title="Деньги и учёт">
           <Item k="payments" icon="card" title="Оплаты" sub={`${rub(o.rub_30d)} за 30 дней · ${o.rub_30d_count} оплат`} tone="#F5C25A" />
+          <Item k="prices" icon="crown" title="Цены и курс" sub="тарифы Premium · курс рубля" tone="#F5C25A" />
+          <Item k="purchases" icon="book" title="Покупки разделов" sub="кто купил · выдать или забрать доступ" tone="#F5C25A" />
+          <Item k="abandoned" icon="clock" title="Брошенные оплаты" sub="начали платить и не оплатили" tone="#FF8A8A" />
           <Item k="logs" icon="history" title="Журнал" sub="кто и что менял" tone="#A6B8AE" />
         </Group>
       </div>
