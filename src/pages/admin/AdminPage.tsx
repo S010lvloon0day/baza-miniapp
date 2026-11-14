@@ -216,7 +216,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="subs" icon="checkCircle" title="Заявки от пользователей" sub={o.pending_submissions ? `ждут проверки: ${o.pending_submissions}` : 'новых нет'} tone="#17E584" badge={o.pending_submissions} />
         </Group>
         <Group title="Сообщество">
-          <Item k="users" icon="users" title="Пользователи" sub={`${num(o.users)} · в бане ${o.banned}`} tone="#B9A8FF" />
+          <Item k="users" icon="users" title="Пользователи" sub={`${num(o.users)} · в бане ${o.banned}${o.blocked ? ` · заблокировали бота ${o.blocked}` : ''}`} tone="#B9A8FF" />
           <Item k="comments" icon="flag" title="Комментарии" sub={o.reported_comments ? `жалоб: ${o.reported_comments}` : 'жалоб нет'} tone="#FF8A8A" badge={o.reported_comments} />
           <Item k="feedback" icon="chat" title="Обсуждения" sub="отзывы и оценки материалов" tone="#B9A8FF" badge={fbUnread} />
           <Item k="chatmod" icon="chat" title="Чат: жалобы и муты" sub="модерация, фильтр мата" tone="#FF8A8A" />

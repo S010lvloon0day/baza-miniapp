@@ -1,9 +1,9 @@
 import Icon from './Icon'
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import CodeTask from './CodeTask'
 import RunTask from './RunTask'
-import MongoTask from './MongoTask'
-import HackLab from './HackLab'
+const MongoTask = lazy(() => import('./MongoTask'))
+const HackLab = lazy(() => import('./HackLab'))
 
 /** Лёгкий markdown для уроков: аккордеоны по ####, код с копированием, таблицы, списки, подсказки. */
 
@@ -155,8 +155,8 @@ function Blocks({ blocks, onSolve }: { blocks: Block[]; onSolve?: (tid: number) 
         if (b.t === 'svg') return <div key={i} className="my-3 flex justify-center overflow-x-auto [&_svg]:max-w-full [&_svg]:h-auto" dangerouslySetInnerHTML={{ __html: b.text }} />
         if (b.t === 'pytask') return <CodeTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
         if (b.t === 'runtask') return <RunTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
-        if (b.t === 'mongotask') return <MongoTask key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
-        if (b.t === 'hacklab') return <HackLab key={i} content={b.text} onSolve={() => onSolve?.((b as any).__tid)} />
+        if (b.t === 'mongotask') return <Suspense key={i} fallback={null}><MongoTask content={b.text} onSolve={() => onSolve?.((b as any).__tid)} /></Suspense>
+        if (b.t === 'hacklab') return <Suspense key={i} fallback={null}><HackLab content={b.text} onSolve={() => onSolve?.((b as any).__tid)} /></Suspense>
         if (b.t === 'h') return <h3 key={i} className="mt-4 mb-1.5 font-display font-semibold text-[16px] leading-snug text-fg">{inline(b.text)}</h3>
         if (b.t === 'p') return <p key={i} className="my-2 text-[15px] leading-[1.7] text-fg/85 whitespace-pre-wrap break-words">{inline(b.text)}</p>
         if (b.t === 'quote') return (

@@ -1,7 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
 import SkeletonList from '../components/Skeleton'
-import lottie from 'lottie-web'
-import { inflate as pakoInflate } from 'pako'
 import { api } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import type { Section, Material, Banner, ContinueItem, Compete } from '../api/client'
@@ -32,8 +30,10 @@ function HeroEmoji({ k, fid }: { k: string; fid: string }) {
   const url = api.chatStickerUrl(fid, k === 'v' ? 'video' : k === 'a' ? 'animated' : 'image')
   useEffect(() => {
     if (k !== 'a' || !ref.current) return
-    let anim: ReturnType<typeof lottie.loadAnimation> | null = null, cancelled = false
-    fetch(url).then(r => r.arrayBuffer()).then(buf => {
+    let anim: { destroy: () => void } | null = null, cancelled = false
+    // анимации грузим только когда они реально нужны — не утяжеляем первый экран
+    Promise.all([fetch(url).then(r => r.arrayBuffer()), import('lottie-web'), import('pako')]).then(([buf, lm, pk]) => {
+      const lottie = lm.default, pakoInflate = pk.inflate
       if (cancelled || !ref.current) return
       try { const b = new Uint8Array(buf); const raw = (b[0] === 0x1f && b[1] === 0x8b) ? pakoInflate(b) : b; const data = JSON.parse(new TextDecoder().decode(raw)); anim = lottie.loadAnimation({ container: ref.current, renderer: 'svg', loop: true, autoplay: true, animationData: data }) } catch { /* */ }
     }).catch(() => {})

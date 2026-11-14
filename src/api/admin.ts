@@ -19,7 +19,7 @@ const qs = (o: Record<string, string | number | undefined>) =>
   new URLSearchParams(Object.entries(o).filter(([, v]) => v !== undefined && v !== '').map(([k, v]) => [k, String(v)])).toString()
 
 export interface Overview {
-  users: number; premium: number; new_1d: number; new_7d: number; active_1d: number; active_7d: number; banned: number
+  users: number; premium: number; new_1d: number; new_7d: number; active_1d: number; active_7d: number; banned: number; blocked?: number
   sections: number; materials: number; pending_submissions: number; reported_comments: number
   rub_30d: number; rub_30d_count: number; pay_30d: number; pay_30d_count: number
   signups: { d: string; n: number }[]

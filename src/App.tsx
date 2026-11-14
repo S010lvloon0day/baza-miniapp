@@ -68,12 +68,13 @@ type View =
   | { type: 'sklad' }
 
 /** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
-function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean; pvp?: string } {
+function readDeepLink(): { pay?: boolean; material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean; pvp?: string } {
   const qp = new URLSearchParams(location.search)
   const sp: string = tg?.initDataUnsafe?.start_param || ''
   const m = Number(qp.get('m') || (sp.match(/^m(\d+)$/)?.[1] ?? ''))
   return {
     material: Number.isInteger(m) && m > 0 ? m : undefined,
+    pay: qp.get('pay') === '1',
     feedback: qp.get('feedback') === '1' || sp === 'feedback',
     chat: qp.get('chat') === '1' || sp === 'chat' || !!qp.get('chat_msg'),
     mask: qp.get('mask') === '1' || sp === 'mask' || /^pvpw?_[A-Za-z0-9]{4,20}$/.test(sp),
@@ -84,13 +85,13 @@ function readDeepLink(): { material?: number; feedback?: boolean; chat?: boolean
 
 export default function App() {
   const [deepLink] = useState(readDeepLink)
-  const [started, setStarted] = useState(() => !!localStorage.getItem('started') || !!deepLink.material || deepLink.feedback || !!deepLink.chat)
-  const [tab, setTab] = useState<Tab>(deepLink.chat ? 'chat' : 'home')
+  const [started, setStarted] = useState(() => !!localStorage.getItem('started') || !!deepLink.pay || !!deepLink.material || deepLink.feedback || !!deepLink.chat)
+  const [tab, setTab] = useState<Tab>(deepLink.chat ? 'chat' : deepLink.pay ? 'prof' : 'home')
   const [stack, setStack] = useState<View[]>([])
   const [bmTick, setBmTick] = useState(0)
   const [notifyOpen, setNotifyOpen] = useState(false)
   const [botUsername, setBotUsername] = useState('')
-  const [upgradePending, setUpgradePending] = useState(false)
+  const [upgradePending, setUpgradePending] = useState(!!deepLink.pay)
   // Квест виден только когда сервер разрешил (включён или текущий юзер — админ)
   const [giveawayVisible, setGiveawayVisible] = useState(false)
   // Игра «Сними маску» — видимость решает сервер (сначала только админы)

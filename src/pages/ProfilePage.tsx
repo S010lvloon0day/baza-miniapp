@@ -231,7 +231,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
       setMsg('Оплата получена, Premium активирован!')
       api.profile().catch(() => null).then(p => { if (p) setProf(p) })
     } else {
-      setMsg('Оплата не прошла или отменена. Можно попробовать ещё раз.')
+      setMsg('Оплата не завершена: счёт СБП действует несколько минут. Нажмите «Оплатить» ещё раз — создастся новый.')
     }
   })
 

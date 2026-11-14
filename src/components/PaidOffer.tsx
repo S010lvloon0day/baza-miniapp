@@ -37,7 +37,7 @@ export default function PaidOffer({ offer, onPaid }: { offer: PaidOfferData; onP
   // рубли: опрос статуса SecretPay
   useRubPayment(txId, status => {
     if (status === 'paid') finish()
-    else { setWaiting(false); setTxId(null); setErr('Оплата не прошла. Попробуйте ещё раз.') }
+    else { setWaiting(false); setTxId(null); setErr('Оплата не завершена: счёт СБП действует несколько минут. Нажмите «Оплатить» ещё раз — создастся новый.') }
   })
 
   // крипта: опрос CryptoBot каждые 4 с (до 15 мин) + сразу при возврате в приложение
