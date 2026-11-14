@@ -25,6 +25,10 @@ html, body, #root {
 @keyframes skel { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
 @media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
 
+/* Чат: кнопка действий у сообщения — только при наведении мышью */
+.msg-more { display: none; }
+@media (hover: hover) and (pointer: fine) { .msg-row:hover .msg-more { display: grid; } }
+
 /* ПК: реакция на мышь */
 @media (hover: hover) and (pointer: fine) {
   button:not(:disabled), a, [role="button"] { cursor: pointer; }

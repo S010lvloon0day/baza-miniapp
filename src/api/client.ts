@@ -351,6 +351,7 @@ export const api = {
   material:       (id: number)   => get<Material>(`/api/material/${id}`),
   profile:        ()             => get<Profile>('/api/profile'),
   compete:        ()             => get<Compete>('/api/compete'),
+  chatWait:       (v: number) => fetch(API_BASE + `/api/chat/wait?v=${v}`, { headers: headers() }).then(r => { if (!r.ok) throw new Error('wait'); return r.json() as Promise<{ v: number }> }),
   chat:           (after?: number) => get<ChatResp>(`/api/chat?topic=${_chatTopic}${after ? `&after=${after}` : ''}`),
   chatRecheck:    ()             => get<ChatResp>(`/api/chat?recheck=1&topic=${_chatTopic}`),
   chatTopics:     ()             => get<{ topics: ChatTopic[] }>('/api/chat/topics'),

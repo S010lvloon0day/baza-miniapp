@@ -781,7 +781,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
   return (
     <div ref={rowRef} onTouchStart={swStart} onTouchMove={swMove} onTouchEnd={swEnd} onTouchCancel={swEnd}
       onClick={selectMode ? () => ctx.toggleSelect(m.id) : undefined}
-      className={`relative flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''} ${selectMode ? 'pl-10' : ''}`}
+      className={`msg-row relative flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''} ${selectMode ? 'pl-10' : ''}`}
       style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease, padding .18s ease', background: selected ? 'rgba(23,229,132,.08)' : undefined }}>
       {selectMode && (
         <span className="absolute left-2.5 bottom-1.5 w-[22px] h-[22px] rounded-full border-2 grid place-items-center"
@@ -790,7 +790,8 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
         </span>
       )}
       {mine ? null : (tail ? <Avatar name={m.name} src={api.chatAvatarUrl(m.user_id)} anim={m.anim} onClick={() => onProfile(m.user_id)} /> : <div className="w-[32px] shrink-0" />)}
-      <div className={`max-w-[82%] min-w-0 ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
+      <div onContextMenu={(e) => { e.preventDefault(); if (!selectMode) onAction(m) }}
+        className={`max-w-[82%] sm:max-w-[70%] min-w-0 ${mine ? 'items-end' : 'items-start'} flex flex-col`}>
         <div onClick={(e) => { e.stopPropagation(); bubbleTap() }} className="relative overflow-hidden active:opacity-90 max-w-full"
           style={{
             ...radius,
@@ -832,7 +833,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
                 album && album.length > 1
                   ? <AlbumGrid items={album} bind={tapMedia} ctx={ctx} />
                   : <img src={src} draggable={false} alt="" loading="lazy" decoding="async" {...tapMedia(() => ctx.view([m], m.id))}
-                      className="block max-h-[230px] max-w-[66vw] w-auto object-cover select-none" />
+                      className="block max-h-[230px] max-w-[min(66vw,420px)] w-auto object-cover select-none" />
               )}
               {m.type === 'gif' && (m.media_url || src) && (() => {
                 const u = m.media_url || src
@@ -840,8 +841,8 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
                 return (
                   <div {...tapMedia(() => onMedia(u, vid, m))}>
                     {vid
-                      ? <video src={u} autoPlay loop muted playsInline className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none pointer-events-none" />
-                      : <img src={u} alt="" draggable={false} className="block max-h-[210px] max-w-[66vw] w-auto object-cover select-none pointer-events-none" />}
+                      ? <video src={u} autoPlay loop muted playsInline className="block max-h-[210px] max-w-[min(66vw,420px)] w-auto object-cover select-none pointer-events-none" />
+                      : <img src={u} alt="" draggable={false} className="block max-h-[210px] max-w-[min(66vw,420px)] w-auto object-cover select-none pointer-events-none" />}
                   </div>
                 )
               })()}
@@ -850,7 +851,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
                 album && album.length > 1 ? <AlbumGrid items={album} bind={tapMedia} ctx={ctx} /> :
                 <div className="relative" {...tapMedia(() => ctx.view([m], m.id))}>
                   <video src={src + '#t=0.1'} preload="metadata" muted playsInline disablePictureInPicture
-                    className="block max-h-[260px] min-h-[120px] min-w-[160px] max-w-[66vw] w-auto object-cover select-none pointer-events-none bg-black/40" />
+                    className="block max-h-[260px] min-h-[120px] min-w-[160px] max-w-[min(66vw,420px)] w-auto object-cover select-none pointer-events-none bg-black/40" />
                   <span className="absolute inset-0 grid place-items-center pointer-events-none">
                     <span className="w-12 h-12 rounded-full grid place-items-center text-white" style={{ background: 'rgba(0,0,0,.5)', backdropFilter: 'blur(6px)' }}>
                       <Icon name="play" size={22} accent="#fff" />
@@ -895,6 +896,10 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
         </div>
         <Reactions m={m} onToggle={onReact} />
       </div>
+      {!selectMode && (
+        <button aria-label="Действия с сообщением" onClick={(e) => { e.stopPropagation(); onAction(m) }}
+          className="msg-more self-center w-7 h-7 rounded-full bg-white/[.07] text-gray place-items-center shrink-0 text-[15px] leading-none">⋯</button>
+      )}
     </div>
   )
 }
@@ -1100,6 +1105,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   }, [msgs])
   const emojiPacks = packs.filter(p => p.emoji)          // custom_emoji паки → вставка в текст
   const stickerPacks = packs.filter(p => !p.emoji)       // обычные стикеры → отдельным сообщением
+  const [dragOver, setDragOver] = useState(false)
   const flash = (t: string) => { setToast(t); setTimeout(() => setToast(''), t.length > 60 ? 5000 : 2500) }
 
   const scrollToBottom = (smooth = true) => {
@@ -1215,7 +1221,21 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
     }
     boot()
     // опрос на паузе, когда чат свёрнут/неактивен (экономим сеть и батарею)
-    const t = window.setInterval(() => { if (!document.hidden) pull(false) }, 2200)
+    // мгновенная доставка: сервер держит запрос открытым и отвечает, как только в чате что-то изменилось;
+    // редкий опрос остаётся страховкой
+    const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+    ;(async () => {
+      let ver = -1
+      while (alive) {
+        if (document.hidden) { await sleep(1500); continue }
+        try {
+          const r = await api.chatWait(ver)
+          if (!alive) return
+          if (r.v !== ver) { const init = ver === -1; ver = r.v; if (!init) pull(false) }
+        } catch { await sleep(5000) }
+      }
+    })()
+    const t = window.setInterval(() => { if (!document.hidden) pull(false) }, 7000)
     const tk = window.setInterval(() => { if (!document.hidden) api.chatMtoken().then(r => alive && applyMtok(r.token)).catch(() => {}) }, 8 * 60 * 1000)
     // вернулись в чат — сразу обновляем ленту и медиа-токен (без ожидания следующего тика)
     const onVis = () => {
@@ -1425,8 +1445,10 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   }
 
   // галерея: несколько фото/видео — альбомом (до 10), одно фото — через редактор
-  const onPickAny = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).slice(0, 10); e.target.value = ''; setAttachOpen(false)
+  const onPickAny = (e: React.ChangeEvent<HTMLInputElement>) => { const l = Array.from(e.target.files || []); e.target.value = ''; pickFiles(l) }
+  // общий вход для файлов: выбор, перетаскивание в окно, вставка из буфера
+  const pickFiles = async (list: File[]) => {
+    const files = list.slice(0, 10); setAttachOpen(false)
     if (!files.length) return
     const kindOf = (f: File) => f.type.startsWith('image/') && !f.type.includes('gif') ? 'photo'
       : f.type.startsWith('video/') ? 'video' : 'file'
@@ -1972,7 +1994,15 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
   }
 
   return (
-    <div className="relative flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}>
+    <div className="relative flex flex-col flex-1 overflow-hidden max-w-full" style={{ WebkitUserSelect: 'none', userSelect: 'none' }} onContextMenu={(e) => e.preventDefault()}
+      onDragOver={(e) => { if (e.dataTransfer?.types?.includes('Files')) { e.preventDefault(); setDragOver(true) } }}
+      onDragLeave={(e) => { if (e.currentTarget === e.target) setDragOver(false) }}
+      onDrop={(e) => { e.preventDefault(); setDragOver(false); const fl = Array.from(e.dataTransfer?.files || []); if (fl.length) pickFiles(fl) }}>
+      {dragOver && (
+        <div className="absolute inset-2 z-[60] rounded-[22px] border-2 border-dashed border-green/60 bg-black/70 grid place-items-center pointer-events-none">
+          <span className="text-[15px] font-semibold text-green">Отпустите, чтобы отправить в чат</span>
+        </div>
+      )}
 
       {/* поиск по чату: строка поиска вместо шапки */}
       {searchOpen && (
@@ -2452,7 +2482,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                   onInput={onEditorInput}
                   onFocus={() => { if (atBottom.current) { pinBottom(); setTimeout(() => { if (atBottom.current) pinBottom() }, 300) } }}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
-                  onPaste={e => { e.preventDefault(); insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
+                  onPaste={e => { e.preventDefault(); const fl = Array.from(e.clipboardData.files || []); if (fl.length) { pickFiles(fl); return } insertTextAtCaret(e.clipboardData.getData('text/plain')) }}
                   className="text-[16px] text-fg outline-none max-h-28 overflow-y-auto leading-[1.4] whitespace-pre-wrap break-words"
                   style={{ WebkitUserSelect: 'text', userSelect: 'text', wordBreak: 'break-word', paddingTop: 12, paddingBottom: 12, minHeight: 22 }} />
               </div>
