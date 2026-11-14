@@ -60,7 +60,7 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
           </button>
         )}
 
-        <div className="grid grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
           {rest.map((s, i) => (
             <button key={s.id} onClick={() => onSection(s)}
               className={`${coverClass(s)} anim-in relative h-[132px] rounded-[20px] p-3.5 flex flex-col justify-between text-left border border-white/[.07] overflow-hidden active:scale-[.98] transition-transform`}

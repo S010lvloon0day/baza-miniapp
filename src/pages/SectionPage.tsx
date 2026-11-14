@@ -303,7 +303,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         {subs.length > 0 && (
           <section>
             <h3 className="px-1 pb-2 text-[17px] font-bold">Подразделы</h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
               {subs.map(s => (
                 <button key={s.id} onClick={() => onSubsection(s)}
                   className={`${coverClass(s)} relative h-[92px] rounded-[18px] p-3 flex flex-col justify-between text-left border border-white/[.07] overflow-hidden active:scale-[.98] transition-transform`}>
