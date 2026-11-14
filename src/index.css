@@ -34,6 +34,16 @@ html, body, #root {
    padding/icon/label sizing in one place instead of duplicating the calc per page. */
 .pb-navsafe { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 104px); }
 
+/* ПК / развёрнутое окно: контент — аккуратной колонкой по центру, а не на всю ширину. */
+@media (min-width: 760px) {
+  html, body { background: #050A08; }
+  #root {
+    width: 100%; max-width: 860px; margin: 0 auto;
+    border-left: 1px solid rgba(255,255,255,.05); border-right: 1px solid rgba(255,255,255,.05);
+  }
+  .app-nav { max-width: 680px; margin-left: auto; margin-right: auto; }
+}
+
 
 /* ═════ Дизайн-система «База» ═════ */
 

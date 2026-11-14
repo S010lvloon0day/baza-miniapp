@@ -129,6 +129,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [sort, setSort] = useState<MatSort>(getMatSort())
   const sortTouched = useRef(false)
   const [sortOpen, setSortOpen] = useState(false)
+  const [descOpen, setDescOpen] = useState(false)
 
   useEffect(() => {
     api.sectionSub(section.id).then(r => setSubscribed(r.subscribed)).catch(() => {})
@@ -223,7 +224,17 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         <div className="flex items-end gap-3">
           <div className="flex-1 min-w-0">
             <h1 className="font-display font-semibold text-[26px] leading-tight break-words" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
-            {section.description && <p className="text-[14px] text-[#CFDAD4] mt-1 line-clamp-2">{section.description}</p>}
+            {section.description && (
+              <p onClick={() => setDescOpen(v => !v)}
+                className={`text-[14px] text-[#CFDAD4] mt-1 whitespace-pre-line ${section.description.length > 120 ? 'cursor-pointer' : ''} ${descOpen ? '' : 'line-clamp-3'}`}>
+                {section.description}
+              </p>
+            )}
+            {section.description && section.description.length > 120 && (
+              <button onClick={() => setDescOpen(v => !v)} className="mt-1 text-[13px] font-semibold text-green">
+                {descOpen ? 'Свернуть' : 'Читать полностью'}
+              </button>
+            )}
           </div>
           <button onClick={toggleSub} disabled={subBusy} aria-label={subscribed ? 'Отключить уведомления раздела' : 'Уведомлять о новых материалах'}
             className={`shrink-0 w-11 h-11 rounded-full grid place-items-center transition-colors active:opacity-80 ${subscribed ? 'bg-green text-ink' : 'bg-black/35 text-white border border-white/15'}`}>
@@ -291,7 +302,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         {subs.length > 0 && (
           <section>
             <h3 className="px-1 pb-2 text-[17px] font-bold">Подразделы</h3>
-            <div className="grid grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
               {subs.map(s => (
                 <button key={s.id} onClick={() => onSubsection(s)}
                   className={`${coverClass(s)} relative h-[92px] rounded-[18px] p-3 flex flex-col justify-between text-left border border-white/[.07] overflow-hidden active:scale-[.98] transition-transform`}>
