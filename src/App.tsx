@@ -200,14 +200,27 @@ export default function App() {
   }
 
   // «Назад» из материала, открытого не из раздела (главная, поиск, библиотека), ведёт в его раздел
-  const goBack = useCallback(() => setStack(s => {
+  const goBack = useCallback(() => {
+    // из раздела — вверх по дереву: в родительский раздел, пока не дойдём до верхнего уровня
+    const cur = stack[stack.length - 1]
+    const pid = cur?.type === 'section' ? (cur.section as { parent_id?: number | null }).parent_id : null
+    if (pid && !stack.some(v => (v.type === 'section' || v.type === 'courses') && v.section.id === pid)) {
+      const pop = () => setStack(s => s.slice(0, -1))
+      api.sectionOne(pid).then(r => {
+        const sec = r.section
+        if (!sec || sec.section_type === 'courses') { pop(); return }
+        setStack(s => [...s.slice(0, -1), { type: 'section', section: sec, page: 0 }])
+      }).catch(pop)
+      return
+    }
+    setStack(s => {
     const top = s[s.length - 1]
     if (top?.type === 'material' && top.parent && top.parent.section_type !== 'courses'
         && !s.some(v => v.type === 'section' && v.section.id === top.sectionId)) {
       return [...s.slice(0, -1), { type: 'section', section: top.parent, page: 0 }]
     }
     return s.slice(0, -1)
-  }), [])
+  }) }, [stack])
 
   // Переключение полноэкранного/оконного режима на ПК; выбор запоминаем в localStorage.
   const toggleFullscreen = useCallback(() => {
