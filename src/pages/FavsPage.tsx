@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import SkeletonList from '../components/Skeleton'
 import type { Material, Section } from '../api/client'
 import type { CourseSummary } from '../api/courses'
 import { api } from '../api/client'
@@ -44,9 +45,7 @@ export default function FavsPage({ onMaterial, onSection, onCourse }: Props) {
   }, [])
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
-    </div>
+    <SkeletonList />
   )
 
   const total = materials.length + sections.length + courses.length

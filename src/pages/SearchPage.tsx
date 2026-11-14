@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import Dropdown from '../components/Dropdown'
+import { typeLabel } from './RecentPage'
 import Icon from '../components/Icon'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import PremiumBadge from '../components/PremiumBadge'
@@ -26,6 +28,8 @@ export default function SearchPage({ onMaterial }: Props) {
   const [loading, setLoading]   = useState(false)
   const [searched, setSearched] = useState(false)
   const [history, setHistory]   = useState<string[]>(loadHistory)
+  const [fType, setFType]       = useState('')
+  const [fSec, setFSec]         = useState('')
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -65,6 +69,7 @@ export default function SearchPage({ onMaterial }: Props) {
       try {
         const data = await api.search(q)
         setResults(data.materials)
+        setFType(''); setFSec('')
         setSearched(true)
         if (data.materials.length > 0) addToHistory(q)
       } catch {
@@ -78,6 +83,11 @@ export default function SearchPage({ onMaterial }: Props) {
   }, [query, addToHistory])
 
   const showHistory = query.trim().length < 2 && history.length > 0
+  // Фильтры по найденному: тип материала и раздел
+  const uniq = (xs: string[]) => [...new Set(xs.filter(Boolean))]
+  const typeOpts = [{ id: '', label: 'Все' }, ...uniq(results.map(m => typeLabel(m.media_type))).map(t => ({ id: t, label: t }))]
+  const secOpts = [{ id: '', label: 'Все' }, ...uniq(results.map(m => m.section_title || '')).map(t => ({ id: t, label: t }))]
+  const shown = results.filter(m => (!fType || typeLabel(m.media_type) === fType) && (!fSec || m.section_title === fSec))
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -144,9 +154,15 @@ export default function SearchPage({ onMaterial }: Props) {
 
         {!loading && results.length > 0 && (
           <section>
-            <p className="px-1 pb-2 text-[13px] text-gray tabular-nums">Найдено: {results.length}</p>
+            {(typeOpts.length > 2 || secOpts.length > 2) && (
+              <div className="flex flex-wrap gap-2 px-1 pb-2.5">
+                {typeOpts.length > 2 && <Dropdown label="Тип" value={fType} options={typeOpts} onChange={setFType} />}
+                {secOpts.length > 2 && <Dropdown label="Раздел" value={fSec} options={secOpts} onChange={setFSec} />}
+              </div>
+            )}
+            <p className="px-1 pb-2 text-[13px] text-gray tabular-nums">Найдено: {shown.length}{shown.length !== results.length ? ` из ${results.length}` : ''}</p>
             <div className="list-group">
-              {results.map(m => (
+              {shown.map(m => (
                 <button
                   key={m.id}
                   disabled={!!m.locked}

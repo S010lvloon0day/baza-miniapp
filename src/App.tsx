@@ -7,23 +7,26 @@ import SearchPage from './pages/SearchPage'
 import SectionPage from './pages/SectionPage'
 import MaterialPage from './pages/MaterialPage'
 import LibraryPage from './pages/LibraryPage'
-import ProfilePage from './pages/ProfilePage'
-import CompetePage from './pages/CompetePage'
-import ChatPage from './pages/ChatPage'
-import GiveawayPage from './pages/GiveawayPage'
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const CompetePage = lazy(() => import('./pages/CompetePage'))
+const ChatPage = lazy(() => import('./pages/ChatPage'))
+const GiveawayPage = lazy(() => import('./pages/GiveawayPage'))
 const MaskGamePage = lazy(() => import('./pages/mask/MaskGamePage'))
-import SubmitPage from './pages/SubmitPage'
-import SkladPage from './pages/SkladPage'
-import CoursesListPage from './pages/courses/CoursesListPage'
-import CourseDetailPage from './pages/courses/CourseDetailPage'
-import CoursePlayer from './pages/courses/CoursePlayer'
-import AdminPage from './pages/admin/AdminPage'
-import FeedbackPage from './pages/FeedbackPage'
+const SubmitPage = lazy(() => import('./pages/SubmitPage'))
+const SkladPage = lazy(() => import('./pages/SkladPage'))
+const CoursesListPage = lazy(() => import('./pages/courses/CoursesListPage'))
+const CourseDetailPage = lazy(() => import('./pages/courses/CourseDetailPage'))
+const CoursePlayer = lazy(() => import('./pages/courses/CoursePlayer'))
+const AdminPage = lazy(() => import('./pages/admin/AdminPage'))
+const FeedbackPage = lazy(() => import('./pages/FeedbackPage'))
 import { feedback } from './api/social'
 import BottomNav from './components/BottomNav'
 import type { Tab } from './components/BottomNav'
 import Header from './components/Header'
 import NotifySheet from './components/NotifySheet'
+import SkeletonList from './components/Skeleton'
+import NetBanner from './components/NetBanner'
+import { WelcomeSheet } from './components/Popular'
 import { api } from './api/client'
 import type { Section } from './api/client'
 import { isBookmarked, removeBookmarkRemote, saveBookmarkRemote, syncBookmarks } from './store/bookmarks'
@@ -408,13 +411,17 @@ export default function App() {
           transition={{ duration: 0.18 }}
           className="flex flex-col flex-1 overflow-hidden"
         >
-          {renderContent()}
+          <Suspense fallback={<SkeletonList />}>{renderContent()}</Suspense>
         </motion.div>
       </AnimatePresence>
 
       {!isMat && tab !== 'chat' && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread, chat: chatUnread }} />}
 
       <NotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} />
+
+      <NetBanner />
+
+      {!top && tab === 'home' && <WelcomeSheet onMaterial={openMaterial} onSections={() => switchTab('cats')} />}
     </div>
   )
 }

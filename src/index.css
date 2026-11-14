@@ -20,6 +20,22 @@ html, body, #root {
 
 #root { display: flex; flex-direction: column; }
 
+/* Заготовки на время загрузки */
+.skel { background: linear-gradient(90deg, rgba(255,255,255,.05) 25%, rgba(255,255,255,.10) 37%, rgba(255,255,255,.05) 63%); background-size: 400% 100%; animation: skel 1.4s ease infinite; }
+@keyframes skel { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
+
+/* ПК: реакция на мышь */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled), a, [role="button"] { cursor: pointer; }
+  button:not(:disabled):hover { filter: brightness(1.12); }
+  .list-group > button:not(:disabled):hover { background: rgba(255,255,255,.045); filter: none; }
+  .chip:not(.on):hover { border-color: rgba(255,255,255,.2); color: #F2F4F3; filter: none; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.24); }
+}
+
 ::-webkit-scrollbar { width: 2px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #1c1b2e; border-radius: 1px; }

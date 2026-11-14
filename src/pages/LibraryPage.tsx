@@ -4,6 +4,7 @@ import Icon from '../components/Icon'
 import type { IconName } from '../components/Icon'
 import FavsPage from './FavsPage'
 import RecentPage from './RecentPage'
+import ProgressPage from './ProgressPage'
 
 interface Props {
   bmTick: number
@@ -12,10 +13,10 @@ interface Props {
   onCourse: (courseId: number, title: string) => void
 }
 
-type Sub = 'favs' | 'recent'
+type Sub = 'progress' | 'favs' | 'recent'
 
 export default function LibraryPage({ bmTick, onMaterial, onSection, onCourse }: Props) {
-  const [sub, setSub] = useState<Sub>(() => { try { return (localStorage.getItem('lib_sub') as Sub) || 'favs' } catch { return 'favs' } })
+  const [sub, setSub] = useState<Sub>(() => { try { return (localStorage.getItem('lib_sub') as Sub) || 'progress' } catch { return 'progress' } })
   const pick = (s: Sub) => { setSub(s); try { localStorage.setItem('lib_sub', s) } catch { /* no-op */ } }
 
   const Seg = ({ id, label, icon }: { id: Sub; label: string; icon: IconName }) => {
@@ -33,11 +34,14 @@ export default function LibraryPage({ bmTick, onMaterial, onSection, onCourse }:
     <div className="flex flex-col flex-1 overflow-hidden">
       <div className="px-3.5 pt-1 pb-2 shrink-0">
         <div className="flex gap-1 p-1 rounded-[14px] bg-s1 border border-white/[.07]">
+          <Seg id="progress" label="Прогресс" icon="check" />
           <Seg id="favs" label="Избранное" icon="bookmark" />
           <Seg id="recent" label="История" icon="history" />
         </div>
       </div>
-      {sub === 'favs'
+      {sub === 'progress'
+        ? <ProgressPage onMaterial={onMaterial} onSection={onSection} />
+        : sub === 'favs'
         ? <FavsPage key={bmTick} onMaterial={onMaterial} onSection={onSection} onCourse={onCourse} />
         : <RecentPage onMaterial={onMaterial} />}
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react'
+import SkeletonList from '../components/Skeleton'
 import lottie from 'lottie-web'
 import { inflate as pakoInflate } from 'pako'
 import { api } from '../api/client'
@@ -10,6 +11,7 @@ import PremiumBadge from '../components/PremiumBadge'
 import { iconNameFor } from '../components/CategoryIcon'
 import { coverClass } from '../components/sectionCover'
 import LevelMark from '../components/LevelMark'
+import { PopularBlock } from '../components/Popular'
 
 interface Props {
   onSection: (s: Section) => void
@@ -334,9 +336,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
   }, [])
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
-    </div>
+    <SkeletonList />
   )
 
   const featured = sections.find(s => s.title === FEATURED_TITLE)
@@ -422,6 +422,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             ))}
           </div>
         </section>
+
+        <PopularBlock onMaterial={onMaterial} />
 
         {/* Авторское */}
         {featured && (

@@ -11,6 +11,7 @@ import type { MatSort } from '../api/client'
 import Certificate from '../components/Certificate'
 import type { Section, Material, PaidOfferData } from '../api/client'
 import PaidOffer from '../components/PaidOffer'
+import SkeletonList from '../components/Skeleton'
 import LevelMark from '../components/LevelMark'
 
 const tg = (window as any).Telegram?.WebApp
@@ -316,9 +317,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         )}
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
-          </div>
+          <div className="-mx-3.5"><SkeletonList rows={5} /></div>
         ) : mats.length > 0 ? (
           <section className="flex flex-col gap-2.5">
             {present.length > 1 && (

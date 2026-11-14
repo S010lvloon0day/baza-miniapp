@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import SkeletonList from '../components/Skeleton'
 import Icon from '../components/Icon'
 import { iconNameFor } from '../components/CategoryIcon'
 import { coverClass } from '../components/sectionCover'
@@ -21,9 +22,7 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
   }, [])
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
-    </div>
+    <SkeletonList />
   )
 
   const featured = cats.find(s => s.title === FEATURED_TITLE)

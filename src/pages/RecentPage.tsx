@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import SkeletonList from '../components/Skeleton'
 import { api } from '../api/client'
 import type { Material } from '../api/client'
 import MediaTypeIcon from '../components/MediaTypeIcon'
@@ -31,9 +32,7 @@ export default function RecentPage({ onMaterial }: Props) {
   }, [])
 
   if (loading) return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="w-2 h-2 bg-green rounded-full animate-pulse" />
-    </div>
+    <SkeletonList />
   )
 
   if (!items.length) return <EmptyState icon="history" title="История пуста" text="Здесь появятся материалы, которые вы открывали." />

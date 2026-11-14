@@ -16,8 +16,23 @@ const headers = (): HeadersInit => ({
   'Content-Type': 'application/json',
 })
 
+const netEvent = (ok: boolean) => { try { window.dispatchEvent(new Event(ok ? 'api-ok' : 'api-fail')) } catch { /* */ } }
+
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(API_BASE + path, { headers: headers() })
+  // Сбой сети или временная ошибка сервера — одна повторная попытка, потом плашка «нет связи».
+  let res: Response | null = null
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      res = await fetch(API_BASE + path, { headers: headers() })
+      if (res.status < 502 || res.status > 504) break
+    } catch (e) {
+      res = null
+      if (attempt === 1) { netEvent(false); throw e }
+    }
+    if (attempt === 0) await new Promise(r => setTimeout(r, 700))
+  }
+  if (!res) { netEvent(false); throw new Error('network') }
+  netEvent(res.status < 502 || res.status > 504)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = await res.json()
   return shouldClean(path) ? cleanTitles(data) : data
@@ -81,6 +96,13 @@ export interface Attachment {
   text?: string | null
   /** Ссылка на файл; у текстового вложения null. */
   url?: string | null
+}
+
+export interface ProgressData {
+  continue: { id: number; section_id: number; title: string; section_title: string } | null
+  done_total: number
+  opened_total: number
+  sections: { section: Section; done: number; total: number }[]
 }
 
 export interface PaidOfferData {
@@ -419,6 +441,8 @@ export const api = {
   banner:         ()             => get<{ banners: Banner[] }>('/api/banner'),
   notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
   notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
+  popular:        ()             => get<{ materials: Material[] }>('/api/popular'),
+  myProgress:     ()             => get<ProgressData>('/api/my_progress'),
   search:         (q: string)    => get<{ materials: Material[] }>(`/api/search?q=${encodeURIComponent(q)}`),
   giveawayCheck:  (level: number, code: string) => post<{ ok: boolean; error?: string; winner?: string }>('/api/giveaway/check', { level, code }),
   giveawayWinner: () => get<{ winner: { username: string; won_at: string } | null }>('/api/giveaway/winner'),
