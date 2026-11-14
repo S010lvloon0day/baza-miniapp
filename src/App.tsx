@@ -229,7 +229,8 @@ export default function App() {
   const openMaterial = (id: number, sectionId: number, page: number = 0) => {
     if (!stack.some(v => v.type === 'section' || v.type === 'courses' || v.type === 'course')) {
       api.sectionOne(sectionId).then(r => {
-        if (r.section) setStack(s => s.map(v => v.type === 'material' && v.id === id && !v.parent ? { ...v, parent: r.section } : v))
+        const sec = r.section
+        if (sec) setStack(s => s.map((v): View => v.type === 'material' && v.id === id && !v.parent ? { ...v, parent: sec } : v))
       }).catch(() => {})
     }
     setStack(s => {
