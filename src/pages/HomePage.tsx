@@ -152,9 +152,9 @@ function LiveChat({ onOpen }: { onOpen?: () => void }) {
         </div>
       </div>
 
-      <div className="flex flex-col justify-end gap-1.5 min-h-[120px]">
+      <div className={`flex flex-col justify-end gap-1.5 ${msgs.length ? 'min-h-[120px]' : ''}`}>
         {msgs.length === 0 ? (
-          <div className="text-[13.5px] text-[#B9B0E6] py-6 text-center">Здесь пока тихо. Напишите первым.</div>
+          <div className="text-[13.5px] text-[#B9B0E6] py-2 text-center">Здесь пока тихо. Напишите первым.</div>
         ) : msgs.map(m => {
           const c = AV[avIdx(m.name)]
           return (
@@ -379,28 +379,6 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
           )}
         </div>
 
-        {onSklad && (
-          <button onClick={onSklad} className="card-hero px-[18px] py-4 flex items-center gap-3 text-left active:opacity-80">
-            <span className="w-[46px] h-[46px] rounded-[14px] grid place-items-center shrink-0" style={{ background: 'linear-gradient(135deg,#0E7A4C,#0A3322)' }}>
-              <Icon name="search" size={20} accent="#3CF29E" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <b className="block text-[15px] font-semibold">Поиск курсов</b>
-              <small className="block text-[12.5px] text-gray">100 000+ курсов — скачать в Telegram</small>
-            </span>
-            {premium && <PremiumBadge />}
-          </button>
-        )}
-
-        {/* Игра «Сними маску» */}
-        {onMask && <MaskCard onOpen={onMask} />}
-
-        {/* Живой чат */}
-        <LiveChat onOpen={onChat} />
-
-        {/* Рейтинг недели */}
-        {compete && <WeekRating c={compete} onOpen={onCompete} onPlay={playNext} />}
-
         {banners.length > 0 && (
           <div className="mt-1"><BannerCard banners={banners} /></div>
         )}
@@ -461,6 +439,28 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             </div>
           </section>
         )}
+
+        {onSklad && (
+          <button onClick={onSklad} className="card-hero px-[18px] py-4 flex items-center gap-3 text-left active:opacity-80">
+            <span className="w-[46px] h-[46px] rounded-[14px] grid place-items-center shrink-0" style={{ background: 'linear-gradient(135deg,#0E7A4C,#0A3322)' }}>
+              <Icon name="search" size={20} accent="#3CF29E" />
+            </span>
+            <span className="flex-1 min-w-0">
+              <b className="block text-[15px] font-semibold">Поиск курсов</b>
+              <small className="block text-[12.5px] text-gray">100 000+ курсов — скачать в Telegram</small>
+            </span>
+            {premium && <PremiumBadge />}
+          </button>
+        )}
+
+        {/* Игра «Сними маску» */}
+        {onMask && <MaskCard onOpen={onMask} />}
+
+        {/* Живой чат */}
+        <LiveChat onOpen={onChat} />
+
+        {/* Рейтинг недели */}
+        {compete && <WeekRating c={compete} onOpen={onCompete} onPlay={playNext} />}
 
         {/* Реклама — тихая строка */}
         <button

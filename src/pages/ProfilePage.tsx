@@ -177,7 +177,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
         if (p) setProf(p)
         if (c) {
           setCfg(c)
-          if (c.plans.length) setSelected(c.plans[c.plans.length - 1])
+          if (c.plans.length) setSelected(c.plans[0])
         }
       })
       .finally(() => setLoading(false))
@@ -333,7 +333,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
 
       {comp && <StatsRow c={comp} />}
       {comp && <RankCard c={comp} onOpen={onCompete} />}
-      <ReferralCard />
+      {premium && <ReferralCard />}
 
       {/* Тарифы */}
       {cfg.plans.length > 0 && (
@@ -342,13 +342,21 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
             <h2 className="text-[17px] font-bold">{premium ? 'Продлить Premium' : 'Оформить Premium'}</h2>
             {premium && <span className="text-[12px] text-gray2">дни добавятся к текущим</span>}
           </div>
+          {!premium && (
+            <ul className="mx-[18px] mb-3.5 flex flex-col gap-1.5">
+              {['Все материалы базы — их больше 4 000', 'Поиск по 100 000+ курсов', 'Оценки и комментарии к материалам'].map(t => (
+                <li key={t} className="flex items-center gap-2 text-[13.5px] text-fg/85">
+                  <Icon name="check" size={15} className="text-gold shrink-0" accent="#F5C25A" />{t}
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="grid gap-2 mx-4" style={{ gridTemplateColumns: `repeat(${Math.min(3, cfg.plans.length)}, 1fr)` }}>
             {cfg.plans.map((p, i) => {
               const on = selected?.days === p.days
               const perMonth = unit(p) / months(p)
               const off = base > 0 ? Math.round((1 - perMonth / base) * 100) : 0
-              const last = i === cfg.plans.length - 1 && cfg.plans.length > 1
-              const tag = last && off > 0 ? `−${off}%` : i === 1 && cfg.plans.length > 2 ? 'Выгодно' : null
+              const tag = off >= 5 ? `−${off}%` : null  // плашка только при настоящей скидке
               return (
                 <button key={p.days} onClick={() => { setSelected(p); setMsg(null) }}
                   className="relative rounded-2xl pt-3.5 pb-3 px-2 text-center flex flex-col gap-[3px] transition-transform active:scale-[.98]"
@@ -401,6 +409,8 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
           )}
         </div>
       )}
+
+      {!premium && <ReferralCard />}
 
       {/* Сертификаты */}
       <div className="flex items-baseline justify-between mx-[18px] mt-6 mb-3">
