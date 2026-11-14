@@ -56,7 +56,7 @@ function enterFullscreenOnDesktop() {
 type View =
   | { type: 'tab'; tab: Tab }
   | { type: 'section'; section: Section; page: number }
-  | { type: 'material'; id: number; sectionId: number }
+  | { type: 'material'; id: number; sectionId: number; parent?: Section }
   | { type: 'giveaway' }
   | { type: 'submit' }
   | { type: 'courses'; section: Section }
@@ -199,7 +199,15 @@ export default function App() {
     setStarted(true)
   }
 
-  const goBack = useCallback(() => setStack(s => s.slice(0, -1)), [])
+  // «Назад» из материала, открытого не из раздела (главная, поиск, библиотека), ведёт в его раздел
+  const goBack = useCallback(() => setStack(s => {
+    const top = s[s.length - 1]
+    if (top?.type === 'material' && top.parent && top.parent.section_type !== 'courses'
+        && !s.some(v => v.type === 'section' && v.section.id === top.sectionId)) {
+      return [...s.slice(0, -1), { type: 'section', section: top.parent, page: 0 }]
+    }
+    return s.slice(0, -1)
+  }), [])
 
   // Переключение полноэкранного/оконного режима на ПК; выбор запоминаем в localStorage.
   const toggleFullscreen = useCallback(() => {
@@ -218,13 +226,19 @@ export default function App() {
         ? { type: 'courses', section }
         : { type: 'section', section, page: 0 },
     ])
-  const openMaterial = (id: number, sectionId: number, page: number = 0) =>
+  const openMaterial = (id: number, sectionId: number, page: number = 0) => {
+    if (!stack.some(v => v.type === 'section' || v.type === 'courses' || v.type === 'course')) {
+      api.sectionOne(sectionId).then(r => {
+        if (r.section) setStack(s => s.map(v => v.type === 'material' && v.id === id && !v.parent ? { ...v, parent: r.section } : v))
+      }).catch(() => {})
+    }
     setStack(s => {
       const updated = s.map(v =>
         v.type === 'section' && v.section.id === sectionId ? { ...v, page } : v
       )
       return [...updated, { type: 'material', id, sectionId }]
     })
+  }
 
   const switchTab = (t: Tab) => {
     setTab(t)

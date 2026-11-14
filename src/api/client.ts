@@ -442,6 +442,7 @@ export const api = {
   banner:         ()             => get<{ banners: Banner[] }>('/api/banner'),
   notifyGet:      ()             => get<{ enabled: boolean }>('/api/notify'),
   notifySet:      (enabled: boolean) => post<{ enabled: boolean }>('/api/notify', { enabled }),
+  sectionOne:     (id: number)   => get<{ section: Section | null }>(`/api/section/${id}`),
   popular:        ()             => get<{ materials: Material[] }>('/api/popular'),
   myProgress:     ()             => get<ProgressData>('/api/my_progress'),
   search:         (q: string)    => get<{ materials: Material[] }>(`/api/search?q=${encodeURIComponent(q)}`),
