@@ -117,6 +117,12 @@ export default function App() {
   }
 
 
+  // чат и анимации подгружаем заранее в фоне, чтобы вкладка открывалась сразу
+  useEffect(() => {
+    const t = window.setTimeout(() => { import('./pages/ChatPage').catch(() => {}); import('lottie-web').catch(() => {}) }, 2500)
+    return () => window.clearTimeout(t)
+  }, [])
+
   useEffect(() => {
     tg?.expand?.()
     // не закрывать миниапп случайным смахиванием вниз (листание, фото и т.п.); закрыть можно крестиком
