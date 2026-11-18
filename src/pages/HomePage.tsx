@@ -386,7 +386,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             </span>
             <span className="flex-1 min-w-0">
               <b className="block text-[15px] font-semibold">Поиск курсов</b>
-              <small className="block text-[12.5px] text-gray">100 000+ курсов — скачать в Telegram</small>
+              <small className="block text-[12.5px] text-gray">{premium ? '100 000+ курсов · 5 в день' : '100 000+ курсов · 1 в день бесплатно'}</small>
             </span>
             {premium && <PremiumBadge />}
           </button>

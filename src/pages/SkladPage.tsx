@@ -2,10 +2,18 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import Icon from '../components/Icon'
 import { sklad } from '../api/sklad'
 import type { SkladHit, SkladStatus, SkladCourse } from '../api/sklad'
+import Dropdown from '../components/Dropdown'
 
-export default function SkladPage() {
+type Hit = SkladHit & { where?: 'title' | 'text' }
+type Sort = 'new' | 'old' | 'year' | 'az'
+const yearOf = (t: string) => { const m = t.match(/(20\d\d)(?!.*20\d\d)/); return m ? Number(m[1]) : 0 }
+
+export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<SkladHit[]>([])
+  const [results, setResults] = useState<Hit[]>([])
+  const [more, setMore] = useState(false)
+  const [sort, setSort] = useState<Sort>('new')
+  const [cat, setCat] = useState('')
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
   const [status, setStatus] = useState<SkladStatus | null>(null)
@@ -26,7 +34,7 @@ export default function SkladPage() {
     setLoading(true); setNotice('')
     try {
       const r = await sklad.search(q.trim())
-      setResults(r.results); setSearched(true)
+      setResults(r.results); setMore(!!r.more); setCat(''); setSearched(true)
     } catch (e: any) {
       setNotice(e.message === 'premium_required' ? '' : 'Ошибка поиска, попробуйте ещё раз.')
     } finally { setLoading(false) }
@@ -35,7 +43,7 @@ export default function SkladPage() {
   const onChange = (v: string) => {
     setQuery(v)
     if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => doSearch(v), 500)
+    timer.current = setTimeout(() => doSearch(v), 800)
   }
 
   const open = async (h: SkladHit) => {
@@ -43,7 +51,7 @@ export default function SkladPage() {
     try {
       const r = await sklad.course(h.thread_id)
       if (r.status === 'limit') {
-        setNotice(`📅 Лимит: ${r.limit ?? 3} курса в сутки. Возвращайтесь завтра.`)
+        setNotice(status?.premium ? 'Все 5 курсов на сегодня уже открыты. Новые будут доступны завтра.' : 'Бесплатный курс на сегодня уже открыт. С Premium — 5 курсов в сутки.')
       } else if (r.status === 'nolinks') {
         setNotice('В этом курсе не нашлось прямых ссылок. Попробуйте другой.')
       } else {
@@ -53,21 +61,6 @@ export default function SkladPage() {
     } catch (e: any) {
       setNotice('Не удалось открыть курс: ' + (e.message || 'ошибка'))
     } finally { setOpening(null) }
-  }
-
-  // Экран «нужен Premium»
-  if (status && !status.premium) {
-    return (
-      <div className="flex-1 grid place-items-center px-6 text-center">
-        <div>
-          <div className="text-[40px] mb-2">🔒</div>
-          <h2 className="text-[17px] font-bold mb-1">Поиск курсов — только Premium</h2>
-          <p className="text-[13.5px] text-gray">
-            Оформите подписку, чтобы искать и скачивать любой из 100&nbsp;000+ курсов.
-          </p>
-        </div>
-      </div>
-    )
   }
 
   // Экран курса: описание + ссылки
@@ -107,6 +100,15 @@ export default function SkladPage() {
   }
 
   const left = status ? Math.max(0, status.limit - status.used_today) : null
+  // категории — из найденного, с числом курсов в каждой
+  const cats = [...new Set(results.map(h => h.label || '').filter(Boolean))]
+    .map(c => ({ id: c, label: `${c} · ${results.filter(h => h.label === c).length}` }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'ru'))
+  const shown = results.filter(h => !cat || h.label === cat)
+  const sorted = sort === 'new' ? shown
+    : sort === 'old' ? [...shown].reverse()
+    : sort === 'year' ? [...shown].sort((a, b) => yearOf(b.title) - yearOf(a.title))
+    : [...shown].sort((a, b) => a.title.localeCompare(b.title, 'ru'))
 
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
@@ -122,8 +124,32 @@ export default function SkladPage() {
         </div>
 
         {status && (
-          <div className="text-[12.5px] text-gray px-1">
-            Сегодня доступно: {left} из {status.limit} курсов в сутки.
+          <div className="rounded-[18px] px-4 py-3.5 border"
+            style={status.premium
+              ? { borderColor: 'rgba(245,194,90,.35)', background: 'linear-gradient(120deg,rgba(245,194,90,.14),rgba(245,194,90,.03))' }
+              : { borderColor: 'rgba(255,255,255,.08)', background: '#111C17' }}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <b className="block text-[14.5px] font-semibold">
+                  {(left ?? 0) > 0 ? `Сегодня доступно: ${left} из ${status.limit}` : 'Лимит на сегодня исчерпан'}
+                </b>
+                <small className="block text-[12.5px] text-gray mt-0.5">
+                  {status.premium ? 'Premium · 5 курсов в сутки' : 'Бесплатно · 1 курс в сутки'}
+                </small>
+              </div>
+              <div className="flex gap-1.5 shrink-0" aria-hidden="true">
+                {Array.from({ length: status.limit }).map((_, i) => (
+                  <span key={i} className="w-2.5 h-2.5 rounded-full"
+                    style={{ background: i < (left ?? 0) ? (status.premium ? '#F5C25A' : '#17E584') : 'rgba(255,255,255,.15)' }} />
+                ))}
+              </div>
+            </div>
+            {!status.premium && onUpgrade && (
+              <button onClick={onUpgrade} className="btn-gold gold-metal sheen w-full mt-3">
+                <b>5 курсов в день с Premium</b>
+                <small>Оформить подписку</small>
+              </button>
+            )}
           </div>
         )}
 
@@ -135,12 +161,25 @@ export default function SkladPage() {
           <div className="text-center text-gray text-[13px] py-6">Ничего не нашлось. Измените запрос.</div>
         )}
 
+        {!loading && searched && results.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 px-1">
+            <span className="text-[13px] text-gray tabular-nums mr-1">Найдено: {shown.length}{shown.length !== results.length ? ` из ${results.length}` : ''}{more ? '+' : ''}</span>
+            <Dropdown label="Порядок" value={sort} onChange={setSort} options={[
+              { id: 'new', label: 'Сначала новые' }, { id: 'old', label: 'Сначала старые' },
+              { id: 'year', label: 'По году курса' }, { id: 'az', label: 'По названию' }]} />
+            {cats.length > 1 && <Dropdown label="Раздел" value={cat} onChange={setCat} options={[{ id: '', label: 'Все' }, ...cats]} />}
+          </div>
+        )}
+        {!loading && more && (
+          <div className="text-[12.5px] text-gray px-1">Показаны первые результаты. Уточните запрос, чтобы увидеть остальное.</div>
+        )}
+
         <div className="flex flex-col gap-2">
-          {results.map(h => (
+          {sorted.map(h => (
             <button key={h.thread_id} onClick={() => open(h)} disabled={opening === h.thread_id}
               className="card-hero px-3.5 py-3 flex items-center gap-3 text-left active:opacity-80 disabled:opacity-50">
               <span className="flex-1 min-w-0">
-                {h.label && <small className="block text-[11.5px] text-green truncate">{h.label}</small>}
+                {(h.label || h.where === 'text') && <small className="block text-[11.5px] text-green truncate">{h.label}{h.where === 'text' ? `${h.label ? ' · ' : ''}упоминается в описании` : ''}</small>}
                 <b className="block text-[14px] font-medium leading-snug">{h.title}</b>
               </span>
               <span className="text-gray text-[13px] shrink-0">{opening === h.thread_id ? '…' : '→'}</span>

@@ -318,7 +318,7 @@ export default function App() {
       return <CompetePage />
     }
     if (top?.type === 'sklad') {
-      return <SkladPage />
+      return <SkladPage onUpgrade={() => { setStack([]); setTab('prof'); setUpgradePending(true) }} />
     }
     if (top?.type === 'mask') {
       if (!maskVisible) return null

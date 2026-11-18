@@ -54,7 +54,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 
 export const sklad = {
   search: (q: string) =>
-    get<{ results: SkladHit[] }>(`/api/sklad/search?q=${encodeURIComponent(q)}`),
+    get<{ results: (SkladHit & { where?: 'title' | 'text' })[]; total?: number; more?: boolean }>(`/api/sklad/search?q=${encodeURIComponent(q)}`),
   course: (thread_id: number) =>
     post<SkladCourse>('/api/sklad/course', { thread_id }),
   status: () => get<SkladStatus>('/api/sklad/status'),
