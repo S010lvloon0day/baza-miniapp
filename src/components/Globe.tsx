@@ -48,16 +48,20 @@ export default function Globe({ labels }: { labels: string[] }) {
     const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.25 : 1.75)
     cv.width = W * dpr; cv.height = H * dpr
     const stars = Array.from({ length: lowEnd ? 40 : 70 }, () => [Math.random() * W, Math.random() * H, Math.random() * 0.8 + 0.3, Math.random() * 6.28, Math.random() * 1.5 + 0.5])
-    let rot = -0.4, vel = 0, drag = false, lx = 0, raf = 0, visible = true, last = performance.now(), lastDraw = 0
+    let rot = -0.4, vel = 0, drag = false, lx = 0, raf = 0, visible = true, last = performance.now()
     const auto = 0.16
-    let frameGap = 1000 / (lowEnd ? 30 : 45), cheap = lowEnd, avg = 0, samples = 0
+    let cheap = lowEnd, avg = 0, samples = 0
+    // глобус (точки, сетка) рисуем в отдельный холст и обновляем реже; звёзды, орбита и дуги — каждый кадр
+    const bcv = document.createElement('canvas'); bcv.width = W * dpr; bcv.height = H * dpr
+    const bctx = bcv.getContext('2d') as CanvasRenderingContext2D
+    let baseDirty = true, frameNo = 0, baseEvery = lowEnd ? 3 : 2
     // заранее: градиенты и палитра (не создаём их каждый кадр)
-    c.setTransform(dpr, 0, 0, dpr, 0, 0)
-    const gBall = c.createRadialGradient(CX - 40, CY - 52, 6, CX, CY, R)
+    bctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    const gBall = bctx.createRadialGradient(CX - 40, CY - 52, 6, CX, CY, R)
     gBall.addColorStop(0, 'rgba(207,255,242,.42)'); gBall.addColorStop(0.45, 'rgba(40,90,255,.28)'); gBall.addColorStop(1, 'rgba(8,12,24,.55)')
-    const gRim = c.createLinearGradient(CX - R, CY - R, CX + R, CY + R)
+    const gRim = bctx.createLinearGradient(CX - R, CY - R, CX + R, CY + R)
     gRim.addColorStop(0, 'rgba(61,255,200,.95)'); gRim.addColorStop(0.5, 'rgba(61,139,255,.7)'); gRim.addColorStop(1, 'rgba(180,92,255,.9)')
-    const gSpec = c.createRadialGradient(CX - 48, CY - 62, 0, CX - 48, CY - 62, 90)
+    const gSpec = bctx.createRadialGradient(CX - 48, CY - 62, 0, CX - 48, CY - 62, 90)
     gSpec.addColorStop(0, 'rgba(255,255,255,.20)'); gSpec.addColorStop(1, 'rgba(255,255,255,0)')
     const NB = 10, NZ = 4
     const BUCK = Array.from({ length: NB * NZ }, (_, k) => col(CX - R + (2 * R) * ((Math.floor(k / NZ) + 0.5) / NB), 0.45 + 0.55 * ((k % NZ) + 0.5) / NZ))
@@ -90,10 +94,8 @@ export default function Globe({ labels }: { labels: string[] }) {
       }
     }
 
-    const draw = (T: number) => {
+    const drawBase = (c: CanvasRenderingContext2D) => {
       c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H)
-      for (let gI = 0; gI < 3; gI++) { const sp = new Path2D(); for (let k = gI; k < stars.length; k += 3) { const s = stars[k]; sp.moveTo(s[0] + s[2], s[1]); sp.arc(s[0], s[1], s[2], 0, 6.2832) } c.fillStyle = `rgba(255,255,255,${0.12 + 0.38 * (0.5 + 0.5 * Math.sin(T * (0.7 + gI * 0.5) + gI * 2))})`; c.fill(sp) }
-      orbit(false, T)
       c.beginPath(); c.arc(CX, CY, R, 0, 7); c.fillStyle = gBall; c.fill()
       for (let k = 0; k < paths.length; k++) paths[k] = new Path2D()
       for (let k = 0; k < NB; k++) backs[k] = new Path2D()
@@ -120,6 +122,13 @@ export default function Globe({ labels }: { labels: string[] }) {
       for (let k = 0; k < paths.length; k++) { c.fillStyle = BUCK[k]; c.fill(paths[k]) }
       c.beginPath(); c.arc(CX, CY, R, 0, 7); c.strokeStyle = gRim; c.lineWidth = 1.4; c.stroke()
       c.beginPath(); c.arc(CX, CY, R, 0, 7); c.fillStyle = gSpec; c.fill()
+    }
+    const draw = (T: number) => {
+      c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H)
+      for (let gI = 0; gI < 3; gI++) { const sp = new Path2D(); for (let k = gI; k < stars.length; k += 3) { const s = stars[k]; sp.moveTo(s[0] + s[2], s[1]); sp.arc(s[0], s[1], s[2], 0, 6.2832) } c.fillStyle = `rgba(255,255,255,${0.12 + 0.38 * (0.5 + 0.5 * Math.sin(T * (0.7 + gI * 0.5) + gI * 2))})`; c.fill(sp) }
+      orbit(false, T)
+      if (baseDirty) { drawBase(bctx); baseDirty = false }
+      c.drawImage(bcv, 0, 0, W, H)
 
       ARCS.forEach(([ai, bi], a) => {
         const va = vec(...SPOTS[ai]), vb = vec(...SPOTS[bi]), head = (T * 0.22 + a * 0.37) % 1.6, N = 24
@@ -171,17 +180,15 @@ export default function Globe({ labels }: { labels: string[] }) {
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       if (!visible || document.hidden) { last = now; return }
-      if (frameGap && now - lastDraw < frameGap) return
-      lastDraw = now
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       if (!drag) { rot += (auto + vel) * dt; vel *= Math.pow(0.05, dt) }
+      // глобус перерисовываем каждый 2-й (на слабых — 3-й) кадр, остальное — каждый кадр, ровно
+      if (drag || ++frameNo % baseEvery === 0) baseDirty = true
       const t0 = performance.now()
       draw(now / 1000)
-      // если телефон не успевает — рисуем проще и реже, чтобы ничего не подвисало
       const ms = performance.now() - t0
       avg = avg ? avg * 0.9 + ms * 0.1 : ms
-      if (++samples > 20 && !cheap && avg > 9) { cheap = true; frameGap = 1000 / 30 }
-      else if (samples > 40 && cheap && avg > 14) { frameGap = 1000 / 20 }
+      if (++samples > 30 && avg > 8 && baseEvery < 4) { baseEvery++; samples = 0; cheap = true }
     }
     if (reduce) draw(0); else raf = requestAnimationFrame(frame)
 
@@ -189,7 +196,7 @@ export default function Globe({ labels }: { labels: string[] }) {
     io.observe(cv)
     const scale = () => cv.getBoundingClientRect().width / W || 1
     const down = (e: PointerEvent) => { drag = true; lx = e.clientX; vel = 0; cv.setPointerCapture(e.pointerId) }
-    const move = (e: PointerEvent) => { if (!drag) return; const dx = (e.clientX - lx) / scale(); lx = e.clientX; rot += dx * 0.008; vel = dx * 0.5; if (reduce) draw(0) }
+    const move = (e: PointerEvent) => { if (!drag) return; const dx = (e.clientX - lx) / scale(); lx = e.clientX; rot += dx * 0.008; vel = dx * 0.5; if (reduce) { baseDirty = true; draw(0) } }
     const up = () => { drag = false }
     cv.addEventListener('pointerdown', down); cv.addEventListener('pointermove', move)
     cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up)
