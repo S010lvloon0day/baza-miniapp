@@ -30,14 +30,26 @@ interface Props {
 export default function BottomNav({ active, onChange, showConstructor, badges }: Props) {
   const tabs = showConstructor ? [...TABS, CTOR_TAB] : TABS
   const dense = tabs.length > 5
-  // пока открыта клавиатура (фокус в поле ввода) — меню прячем, чтобы не занимало место над клавиатурой
+  // пока открыта экранная клавиатура — меню прячем, чтобы не занимало место над ней.
+  // Клавиатуру определяем по фокусу в поле И уменьшению высоты экрана (иначе меню не прячем).
   useEffect(() => {
+    const vv = window.visualViewport
+    let maxH = Math.max(vv?.height ?? 0, window.innerHeight)
     const isField = (el: Element | null) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || (el as HTMLElement).isContentEditable)
-    const on = () => document.body.classList.toggle('kb-open', isField(document.activeElement))
-    const off = () => window.setTimeout(on, 50)
-    document.addEventListener('focusin', on); document.addEventListener('focusout', off)
+    const check = () => {
+      const h = Math.min(vv?.height ?? window.innerHeight, window.innerHeight)
+      if (!isField(document.activeElement)) maxH = Math.max(maxH, h)
+      document.body.classList.toggle('kb-open', isField(document.activeElement) && h < maxH - 140)
+    }
+    const later = () => window.setTimeout(check, 60)
+    document.addEventListener('focusin', later); document.addEventListener('focusout', later)
+    vv?.addEventListener('resize', check); window.addEventListener('resize', check)
     document.body.classList.add('has-nav')
-    return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); document.body.classList.remove('has-nav', 'kb-open') }
+    return () => {
+      document.removeEventListener('focusin', later); document.removeEventListener('focusout', later)
+      vv?.removeEventListener('resize', check); window.removeEventListener('resize', check)
+      document.body.classList.remove('has-nav', 'kb-open')
+    }
   }, [])
   return (
     <nav className="app-nav nav-v2 fixed z-50 flex"
