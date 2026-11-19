@@ -27,7 +27,7 @@ export default function ProgressPage({ onMaterial, onSection }: Props) {
       {data.continue && (
         <button onClick={() => onMaterial(data.continue!.id, data.continue!.section_id)}
           className="w-full text-left rounded-[18px] p-4 border border-green/25 active:opacity-90"
-          style={{ background: 'linear-gradient(120deg,rgba(23,229,132,.16),rgba(23,229,132,.03))' }}>
+          style={{ background: 'linear-gradient(120deg,rgba(138,120,255,.16),rgba(138,120,255,.03))' }}>
           <span className="text-[12px] font-semibold text-green">Продолжить</span>
           <b className="block text-[15.5px] font-semibold leading-snug mt-1 line-clamp-2">{data.continue.title}</b>
           <small className="block text-[12.5px] text-gray mt-1 truncate">{data.continue.section_title}</small>

@@ -241,7 +241,7 @@ export default function SubmitPage({ onDone }: { onDone?: () => void }) {
             disabled={files.length >= (status?.files_max ?? 10)}
             className="w-full h-11 border border-green flex items-center justify-center gap-1.5
                        text-green text-[12px] font-semibold rounded-xl
-                       active:bg-[rgba(23,229,132,.10)] disabled:opacity-30">
+                       active:bg-[rgba(138,120,255,.10)] disabled:opacity-30">
             <Plus size={16} weight="bold" /> Добавить файлы
           </button>
         </div>

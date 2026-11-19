@@ -64,7 +64,7 @@ function Pips({ left, total }: { left: number; total: number }) {
     <div className="flex items-center gap-1.5" aria-label={`Попыток осталось: ${left}`}>
       {Array.from({ length: total }).map((_, i) => (
         <span key={i} className="w-2.5 h-2.5 rotate-45 rounded-[2px] transition-colors"
-          style={{ background: i < left ? '#17E584' : 'rgba(255,255,255,.14)', boxShadow: i < left ? '0 0 10px rgba(23,229,132,.6)' : 'none' }} />
+          style={{ background: i < left ? '#8A78FF' : 'rgba(255,255,255,.14)', boxShadow: i < left ? '0 0 10px rgba(138,120,255,.6)' : 'none' }} />
       ))}
     </div>
   )
@@ -89,10 +89,10 @@ function ClueCard({ c, onSolved }: { c: MaskClue; onSolved: () => void }) {
     } catch { setMsg('Не удалось отправить') } finally { setBusy(false) }
   }
   return (
-    <div className={`card px-3.5 py-3 ${c.solved ? '' : ''}`} style={c.solved ? { borderColor: 'rgba(23,229,132,.35)' } : undefined}>
+    <div className={`card px-3.5 py-3 ${c.solved ? '' : ''}`} style={c.solved ? { borderColor: 'rgba(138,120,255,.35)' } : undefined}>
       <div className="flex items-center gap-2.5">
-        <span className="w-8 h-8 rounded-[10px] grid place-items-center shrink-0" style={{ background: c.solved ? 'rgba(23,229,132,.14)' : c.open ? 'rgba(118,87,255,.2)' : 'rgba(255,255,255,.06)' }}>
-          <Icon name={c.solved ? 'unlock' : c.open ? 'puzzle' : 'lock'} size={16} accent={c.solved ? '#17E584' : c.open ? '#B9A8FF' : '#6E8478'} />
+        <span className="w-8 h-8 rounded-[10px] grid place-items-center shrink-0" style={{ background: c.solved ? 'rgba(138,120,255,.14)' : c.open ? 'rgba(118,87,255,.2)' : 'rgba(255,255,255,.06)' }}>
+          <Icon name={c.solved ? 'unlock' : c.open ? 'puzzle' : 'lock'} size={16} accent={c.solved ? '#8A78FF' : c.open ? '#B9A8FF' : '#6E727C'} />
         </span>
         <div className="flex-1 min-w-0">
           <div className="text-[13px] text-gray">Улика {c.pos || c.id}</div>
@@ -102,7 +102,7 @@ function ClueCard({ c, onSolved }: { c: MaskClue; onSolved: () => void }) {
       </div>
       {c.open && <p className="text-[14.5px] mt-2 whitespace-pre-wrap">{c.question}</p>}
       {c.solved ? (
-        <div className="mt-2.5 rounded-[12px] px-3 py-2.5 text-[14px]" style={{ background: 'rgba(23,229,132,.08)', border: '1px solid rgba(23,229,132,.22)' }}>
+        <div className="mt-2.5 rounded-[12px] px-3 py-2.5 text-[14px]" style={{ background: 'rgba(138,120,255,.08)', border: '1px solid rgba(138,120,255,.22)' }}>
           <span className="text-green font-semibold">Подсказка: </span>{c.reward}
         </div>
       ) : c.open && (
@@ -244,7 +244,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
         </Suspense>
       )}
       {/* Сцена */}
-      <div className="relative w-full" style={{ height: 'min(62vh, 560px)', background: 'radial-gradient(80% 70% at 50% 38%, rgba(118,87,255,.22), transparent 70%), radial-gradient(70% 50% at 50% 100%, rgba(23,229,132,.14), transparent 70%), #08100D' }}>
+      <div className="relative w-full" style={{ height: 'min(62vh, 560px)', background: 'radial-gradient(80% 70% at 50% 38%, rgba(118,87,255,.22), transparent 70%), radial-gradient(70% 50% at 50% 100%, rgba(138,120,255,.14), transparent 70%), #07080A' }}>
         <Suspense fallback={null}>
           <MaskStage ref={stage} publicUrl={`${BASE}mask/public.glb?v=${MODEL_V}`}
             revealUrl={canReveal ? maskApi.revealUrl() : undefined}
@@ -270,7 +270,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
 
       <div className="px-4 -mt-1 flex flex-col gap-3">
         {s.teaser ? (
-          <section className="card px-4 py-4" style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(118,87,255,.28), transparent 65%), #111C17', borderColor: 'rgba(160,135,255,.32)' }}>
+          <section className="card px-4 py-4" style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(118,87,255,.28), transparent 65%), #121318', borderColor: 'rgba(160,135,255,.32)' }}>
             <div className="flex items-center justify-between gap-3">
               <div className="font-display font-semibold text-[16px]">Скоро старт</div>
               <span className="gold-metal sheen rounded-full px-2.5 h-7 flex items-center text-[12px] font-semibold text-[#2B1A02] relative shrink-0"><span className="relative z-[1]">Приз 80 USDT</span></span>
@@ -279,7 +279,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
             <div className="grid grid-cols-3 gap-2 mt-3">
               {['Забег', 'Драка', 'Личность'].map((t, i) => (
                 <div key={t} className="rounded-[14px] bg-white/[.05] border border-white/[.06] px-2 py-2.5 text-center">
-                  <Icon name="lock" size={16} accent="#6E8478" />
+                  <Icon name="lock" size={16} accent="#6E727C" />
                   <div className="text-[12.5px] mt-1">{i + 1}. {t}</div>
                 </div>
               ))}
@@ -308,7 +308,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
                 const row = (n: number, title: string, sub: string, state: 'done' | 'open' | 'lock', act?: () => void, btn?: string, extra?: React.ReactNode) => (
                   <div key={n} className={`flex items-center gap-3 rounded-[14px] px-3 py-2.5 ${state === 'lock' ? 'bg-white/[.03] opacity-60' : 'bg-white/[.06]'}`}>
                     <span className={`w-8 h-8 rounded-full grid place-items-center shrink-0 font-display font-semibold text-[13px] ${state === 'done' ? 'bg-green text-black' : 'bg-white/[.08]'}`}>
-                      {state === 'done' ? '✓' : state === 'lock' ? <Icon name="lock" size={14} accent="#6E8478" /> : n}
+                      {state === 'done' ? '✓' : state === 'lock' ? <Icon name="lock" size={14} accent="#6E727C" /> : n}
                     </span>
                     <span className="flex-1 min-w-0"><span className="block text-[14px] font-medium">{title}</span><span className="block text-[12px] text-gray truncate">{sub}</span></span>
                     {act && state === 'open' && <button onClick={act} className="btn-primary !w-auto px-4 h-9 rounded-[12px] text-[13px]">{btn}</button>}
@@ -392,7 +392,7 @@ export default function MaskGamePage({ pvpCode }: { pvpCode?: string } = {}) {
             <div className="mt-2">
               {s.board.length === 0 ? <div className="py-6 text-center text-[13.5px] text-gray">Пока никого. Будь первым</div> : s.board.map(b => (
                 <div key={b.rank} className="flex items-center gap-3 py-2">
-                  <span className="w-6 text-center font-display font-semibold text-[13px] tabular-nums" style={{ color: b.rank <= 3 ? '#F5C25A' : '#6E8478' }}>{b.rank}</span>
+                  <span className="w-6 text-center font-display font-semibold text-[13px] tabular-nums" style={{ color: b.rank <= 3 ? '#F5C25A' : '#6E727C' }}>{b.rank}</span>
                   <span className={`flex-1 min-w-0 truncate text-[14px] ${b.is_me ? 'font-semibold text-violet' : ''}`}>{b.name}{b.is_me ? ' · ты' : ''}</span>
                   <span className="text-[13px] tabular-nums text-gray">{b.pts}</span>
                 </div>

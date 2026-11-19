@@ -36,7 +36,7 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
         {featured && (
           <button onClick={() => onSection(featured)}
             className="w-full rounded-[20px] px-4 py-3.5 flex items-center gap-3 text-left border border-white/[.11] active:opacity-90"
-            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.22),rgba(245,194,90,.04) 60%),#111C17' }}>
+            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.22),rgba(245,194,90,.04) 60%),#121318' }}>
             <span className="gold-metal sheen sheen-d1 w-11 h-11 rounded-[14px] grid place-items-center shrink-0">
               <Icon name="mark" size={20} accent="#3A2300" className="relative z-[1]" />
             </span>

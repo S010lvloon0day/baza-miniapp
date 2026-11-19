@@ -229,7 +229,7 @@ function Reveal({ d }: { d: TaskData }) {
   const [mine, setMine] = useState('')
   return (
     <>
-      {d.template && <pre className="p-3.5 rounded-[14px] bg-[#060B09] border border-white/[.07] text-[12.5px] leading-[1.6] text-fg/85 font-mono overflow-x-auto">{d.template}</pre>}
+      {d.template && <pre className="p-3.5 rounded-[14px] bg-[#060709] border border-white/[.07] text-[12.5px] leading-[1.6] text-fg/85 font-mono overflow-x-auto">{d.template}</pre>}
       {(d.sub === 'short' || d.sub === 'reveal' || d.sub === 'hotspot') && (
         <textarea value={mine} onChange={e => setMine(e.target.value)} rows={4}
           placeholder="Ваш ответ — для себя, никуда не отправляется"

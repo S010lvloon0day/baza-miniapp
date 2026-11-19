@@ -117,7 +117,7 @@ export default function LessonContent({ text }: { text: string }) {
         }
         if (b.type === 'code') {
           return (
-            <pre key={i} className="font-mono mb-3.5 px-3.5 py-3 rounded-[14px] bg-[#060B09] border border-white/[.07] overflow-x-auto text-[12.5px] leading-[1.6] text-fg/90 whitespace-pre-wrap break-words">
+            <pre key={i} className="font-mono mb-3.5 px-3.5 py-3 rounded-[14px] bg-[#060709] border border-white/[.07] overflow-x-auto text-[12.5px] leading-[1.6] text-fg/90 whitespace-pre-wrap break-words">
               <code>{b.lines.join('\n')}</code>
             </pre>
           )

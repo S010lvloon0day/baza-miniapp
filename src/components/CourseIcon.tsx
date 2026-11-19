@@ -24,13 +24,13 @@ export function CourseIconBadge({
     <div className="flex items-center justify-center shrink-0"
       style={{
         width: size, height: size, borderRadius: Math.round(size * 0.3),
-        background: locked ? 'rgba(255,255,255,.05)' : done ? 'rgba(23,229,132,.16)' : 'linear-gradient(160deg,#0E7A4C,#08291B)',
+        background: locked ? 'rgba(255,255,255,.05)' : done ? 'rgba(138,120,255,.16)' : 'linear-gradient(160deg,#4A2FD6,#08291B)',
         border: `1px solid ${locked ? 'rgba(255,255,255,.07)' : 'rgba(255,255,255,.11)'}`,
-        color: locked ? '#6E8478' : done ? '#17E584' : '#9FF0C6',
+        color: locked ? '#6E727C' : done ? '#8A78FF' : '#B9C8FF',
       }}>
       {done ? <Icon name="check" size={iconSize} strokeWidth={2.2} />
         : locked ? <Icon name="lock" size={iconSize - 2} accent="current" />
-        : <Icon name={MAP[icon] ?? 'book'} size={iconSize} accent="#9FF0C6" />}
+        : <Icon name={MAP[icon] ?? 'book'} size={iconSize} accent="#B9C8FF" />}
     </div>
   )
 }

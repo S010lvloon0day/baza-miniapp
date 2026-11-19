@@ -8,7 +8,7 @@ interface Props { type: string; size?: number; radius?: number; iconSize?: numbe
 /** Иконка типа материала на нейтральной плитке (фирменный набор). */
 export default function MediaTypeIcon({ type, size = 40, radius = 12, iconSize = 19, tone = 'plain' }: Props) {
   return (
-    <div className={`shrink-0 flex items-center justify-center ${tone === 'green' ? 'bg-green/15 text-green' : 'bg-white/[.06] text-[#CFDAD4]'}`}
+    <div className={`shrink-0 flex items-center justify-center ${tone === 'green' ? 'bg-green/15 text-green' : 'bg-white/[.06] text-[#D3D6DC]'}`}
       style={{ width: size, height: size, borderRadius: radius }}>
       <Icon name={MAP[type] ?? 'file'} size={iconSize} />
     </div>

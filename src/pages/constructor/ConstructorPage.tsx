@@ -56,8 +56,8 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
         className="w-full flex items-center justify-center"
         style={{
           gap: 8, padding: 14,
-          border: '1px dashed rgba(23,229,132,.4)', borderRadius: 14,
-          background: 'rgba(23,229,132,.06)', color: '#4BF5A8',
+          border: '1px dashed rgba(138,120,255,.4)', borderRadius: 14,
+          background: 'rgba(138,120,255,.06)', color: '#B3A6FF',
           fontSize: 13, fontWeight: 800, cursor: 'pointer', marginBottom: 18,
         }}
       >
@@ -65,7 +65,7 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
         Новый курс
       </button>
 
-      <div className="font-mono" style={{ fontSize: 11, color: '#A6B8AE', marginBottom: 14 }}>
+      <div className="font-mono" style={{ fontSize: 11, color: '#A6AAB4', marginBottom: 14 }}>
         {courses.length} курсов в конструкторе
       </div>
 
@@ -74,13 +74,13 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
           <div
             key={c.id}
             className="flex items-center"
-            style={{ gap: 12, padding: '14px 16px', border: '1px solid rgba(255,255,255,.08)', borderRadius: 15, background: '#111C17' }}
+            style={{ gap: 12, padding: '14px 16px', border: '1px solid rgba(255,255,255,.08)', borderRadius: 15, background: '#121318' }}
           >
             <div className="flex-1 min-w-0">
               <div className="truncate" style={{ fontSize: 14, fontWeight: 800, marginBottom: 3 }}>
-                {c.title}{!c.is_active && <span style={{ color: '#6E8478', fontWeight: 600 }}> · скрыт</span>}
+                {c.title}{!c.is_active && <span style={{ color: '#6E727C', fontWeight: 600 }}> · скрыт</span>}
               </div>
-              <div style={{ fontSize: 10.5, color: '#6E8478' }}>
+              <div style={{ fontSize: 10.5, color: '#6E727C' }}>
                 {c.chapters_count} глав · {c.level}{c.price > 0 ? ` · ${c.price} USDT` : ' · бесплатно'}
               </div>
               <div className="font-mono" style={{ fontSize: 9.5, color: '#4a4a52', marginTop: 3 }}>
@@ -113,7 +113,7 @@ function ConstructorList({ courses, onCreate, onEdit, onDelete, onGrant }: ListP
                     onClick={() => onGrant(c.id)}
                     aria-label="Подарить курс"
                     className="flex items-center justify-center"
-                    style={{ border: '1px solid rgba(23,229,132,.35)', background: 'rgba(23,229,132,.08)', color: '#4BF5A8', width: 32, height: 32, borderRadius: 9, cursor: 'pointer', flex: 'none' }}
+                    style={{ border: '1px solid rgba(138,120,255,.35)', background: 'rgba(138,120,255,.08)', color: '#B3A6FF', width: 32, height: 32, borderRadius: 9, cursor: 'pointer', flex: 'none' }}
                   >
                     <Icon name="gift" size={15} />
                   </button>

@@ -85,7 +85,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
             {(detail.links || []).map((l, i) => (
               <a key={i} href={l.url} target="_blank" rel="noopener noreferrer"
                 className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-[14px]">
-                <Icon name="download" size={16} accent="#03200F" />
+                <Icon name="download" size={16} accent="#FFFFFF" />
                 Скачать · {l.label}
               </a>
             ))}
@@ -127,7 +127,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
           <div className="rounded-[18px] px-4 py-3.5 border"
             style={status.premium
               ? { borderColor: 'rgba(245,194,90,.35)', background: 'linear-gradient(120deg,rgba(245,194,90,.14),rgba(245,194,90,.03))' }
-              : { borderColor: 'rgba(255,255,255,.08)', background: '#111C17' }}>
+              : { borderColor: 'rgba(255,255,255,.08)', background: '#121318' }}>
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <b className="block text-[14.5px] font-semibold">
@@ -140,7 +140,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
               <div className="flex gap-1.5 shrink-0" aria-hidden="true">
                 {Array.from({ length: status.limit }).map((_, i) => (
                   <span key={i} className="w-2.5 h-2.5 rounded-full"
-                    style={{ background: i < (left ?? 0) ? (status.premium ? '#F5C25A' : '#17E584') : 'rgba(255,255,255,.15)' }} />
+                    style={{ background: i < (left ?? 0) ? (status.premium ? '#F5C25A' : '#8A78FF') : 'rgba(255,255,255,.15)' }} />
                 ))}
               </div>
             </div>

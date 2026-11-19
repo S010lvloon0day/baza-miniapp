@@ -22,7 +22,7 @@ export function PollMsg({ m, mine, onUpdate }: { m: ChatMsg; mine: boolean; onUp
     if (!p.multi) { vote([i]); return }
     setPick(s => s.includes(i) ? s.filter(x => x !== i) : [...s, i])
   }
-  const sub = mine ? 'rgba(255,255,255,.7)' : '#A6B8AE'
+  const sub = mine ? 'rgba(255,255,255,.7)' : '#A6AAB4'
   return (
     <div className="px-3 pt-2 pb-1.5 min-w-[230px] max-w-[300px]" onClick={e => e.stopPropagation()}>
       <div className="text-[15px] font-semibold text-fg leading-snug">{p.q}</div>
@@ -35,10 +35,10 @@ export function PollMsg({ m, mine, onUpdate }: { m: ChatMsg; mine: boolean; onUp
               <div className="flex items-center gap-2 text-[14px] text-fg">
                 <span className="w-9 text-right text-[13px] font-semibold tabular-nums shrink-0">{pct}%</span>
                 <span className="flex-1 min-w-0 break-words">{o.text}</span>
-                {o.mine && <span className="w-[18px] h-[18px] rounded-full grid place-items-center shrink-0" style={{ background: '#17E584', color: '#021A0C' }}><Icon name="check" size={11} strokeWidth={2.6} /></span>}
+                {o.mine && <span className="w-[18px] h-[18px] rounded-full grid place-items-center shrink-0" style={{ background: '#8A78FF', color: '#FFFFFF' }}><Icon name="check" size={11} strokeWidth={2.6} /></span>}
               </div>
               <div className="ml-11 mt-1 h-[4px] rounded-full bg-white/[.08] overflow-hidden">
-                <motion.div className="h-full rounded-full" style={{ background: o.mine ? '#17E584' : 'rgba(255,255,255,.4)' }}
+                <motion.div className="h-full rounded-full" style={{ background: o.mine ? '#8A78FF' : 'rgba(255,255,255,.4)' }}
                   initial={{ width: 0 }} animate={{ width: `${Math.max(pct, 2)}%` }} transition={{ duration: 0.45 }} />
               </div>
             </div>
@@ -46,7 +46,7 @@ export function PollMsg({ m, mine, onUpdate }: { m: ChatMsg; mine: boolean; onUp
             <button key={i} onClick={() => tap(i)} disabled={busy}
               className="flex items-center gap-2.5 text-left text-[14px] text-fg py-1.5 active:opacity-70">
               <span className={`w-[20px] h-[20px] ${p.multi ? 'rounded-[6px]' : 'rounded-full'} border-2 grid place-items-center shrink-0`}
-                style={{ borderColor: pick.includes(i) ? '#17E584' : 'rgba(255,255,255,.3)', background: pick.includes(i) ? '#17E584' : 'transparent', color: '#021A0C' }}>
+                style={{ borderColor: pick.includes(i) ? '#8A78FF' : 'rgba(255,255,255,.3)', background: pick.includes(i) ? '#8A78FF' : 'transparent', color: '#FFFFFF' }}>
                 {pick.includes(i) && <Icon name="check" size={12} strokeWidth={2.8} />}
               </span>
               <span className="flex-1 min-w-0 break-words">{o.text}</span>
@@ -59,7 +59,7 @@ export function PollMsg({ m, mine, onUpdate }: { m: ChatMsg; mine: boolean; onUp
         {voted
           ? <button onClick={() => vote([])} className="font-medium active:opacity-60" style={{ color: '#7FD3FF' }}>Отменить голос</button>
           : p.multi && <button onClick={() => pick.length && vote(pick)} disabled={!pick.length || busy}
-              className="font-semibold disabled:opacity-40" style={{ color: '#17E584' }}>Голосовать</button>}
+              className="font-semibold disabled:opacity-40" style={{ color: '#8A78FF' }}>Голосовать</button>}
       </div>
     </div>
   )
@@ -88,7 +88,7 @@ export function PollComposer({ onClose, onSent }: { onClose: () => void; onSent:
   const Toggle = ({ on, set, label }: { on: boolean; set: (v: boolean) => void; label: string }) => (
     <button onClick={() => set(!on)} className="w-full flex items-center justify-between py-2.5 text-[14px] text-fg">
       {label}
-      <span className="w-[42px] h-[25px] rounded-full p-[3px] transition-colors" style={{ background: on ? '#17E584' : 'rgba(255,255,255,.15)' }}>
+      <span className="w-[42px] h-[25px] rounded-full p-[3px] transition-colors" style={{ background: on ? '#8A78FF' : 'rgba(255,255,255,.15)' }}>
         <span className="block w-[19px] h-[19px] rounded-full bg-white transition-transform" style={{ transform: on ? 'translateX(17px)' : 'none' }} />
       </span>
     </button>
@@ -114,7 +114,7 @@ export function PollComposer({ onClose, onSent }: { onClose: () => void; onSent:
           ))}
         </div>
         {opts.length < 10 && (
-          <button onClick={() => setOpts(a => [...a, ''])} className="mt-2 flex items-center gap-2 text-[14px] font-medium py-2" style={{ color: '#17E584' }}>
+          <button onClick={() => setOpts(a => [...a, ''])} className="mt-2 flex items-center gap-2 text-[14px] font-medium py-2" style={{ color: '#8A78FF' }}>
             <Icon name="plus" size={16} accent="current" /> Добавить вариант
           </button>
         )}

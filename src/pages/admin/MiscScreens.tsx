@@ -229,10 +229,10 @@ export function LogsScreen() {
 
 function Meter({ label, v, max }: { label: string; v: number; max: number }) {
   const p = Math.min(1, v / max)
-  const c = p >= 1 ? '#FF6B6B' : p >= .75 ? '#F5C25A' : '#17E584'
+  const c = p >= 1 ? '#FF6B6B' : p >= .75 ? '#F5C25A' : '#8A78FF'
   return (
     <div className="flex-1 min-w-0">
-      <div className="flex justify-between text-[11px] mb-1"><span className="text-gray">{label}</span><span className="tabular-nums" style={{ color: p >= .75 ? c : '#CFDAD4' }}>{v}/{max}</span></div>
+      <div className="flex justify-between text-[11px] mb-1"><span className="text-gray">{label}</span><span className="tabular-nums" style={{ color: p >= .75 ? c : '#D3D6DC' }}>{v}/{max}</span></div>
       <div className="h-1.5 rounded-full bg-white/10 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${p * 100}%`, background: c }} /></div>
     </div>
   )
@@ -326,7 +326,7 @@ export function WeekScreen({ nav }: { nav: Nav }) {
         const prize = ok && place < 3 ? [3, 2, 1][place++] : 0
         return (
           <button key={r.id} onClick={() => nav.push({ k: 'user', id: r.id })} className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-white/[.04]">
-            <span className="w-6 text-[13px] font-bold tabular-nums text-center" style={{ color: i < 3 ? '#F5C25A' : '#6E8478' }}>{i + 1}</span>
+            <span className="w-6 text-[13px] font-bold tabular-nums text-center" style={{ color: i < 3 ? '#F5C25A' : '#6E727C' }}>{i + 1}</span>
             <span className="flex-1 min-w-0">
               <span className="block text-[14px] font-medium truncate">{r.name}{r.username ? <span className="text-gray font-normal"> · @{r.username}</span> : null}</span>
               <span className={`block text-[11.5px] truncate ${ok ? 'text-green' : 'text-[#FF8A8A]'}`}>{ok ? (prize ? `получит +${prize} дн.` : 'честный участник') : r.issues.join(' · ')}</span>
@@ -374,7 +374,7 @@ export function ChatModScreen({ nav }: { nav: Nav }) {
           try { await api.chatFilter(!d.filter_mat); setD({ ...d, filter_mat: !d.filter_mat }); toast(d.filter_mat ? 'Фильтр мата выключен' : 'Фильтр мата включён') } catch (e) { toast(errMsg(e), true) }
         }}>
           <span className="flex-1"><b className="block text-[14.5px] font-medium">Фильтр мата</b><span className="text-[12px] text-gray">Мат в сообщениях заменяется звёздочками</span></span>
-          <span className="w-[46px] h-[28px] rounded-full p-[3px] shrink-0" style={{ background: d.filter_mat ? '#17E584' : 'rgba(255,255,255,.12)' }}>
+          <span className="w-[46px] h-[28px] rounded-full p-[3px] shrink-0" style={{ background: d.filter_mat ? '#8A78FF' : 'rgba(255,255,255,.12)' }}>
             <span className="block w-[22px] h-[22px] rounded-full bg-white transition-transform" style={{ transform: d.filter_mat ? 'translateX(18px)' : 'none' }} /></span>
         </button>
         <p className="px-4 pb-3 text-[12px] text-gray2 leading-snug">Всегда действует: ссылки-приглашения и чужие Telegram-каналы запрещены, новички (меньше 3 дней) не могут слать ссылки, 3 жалобы — сообщение скрывается до решения.</p>

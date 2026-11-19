@@ -90,7 +90,7 @@ export default function MongoTask({ content, onSolve }: { content: string; onSol
     : `db.${coll}.find( ФИЛЬТР${task.projection ? ', проекция' : ''} )${task.sort ? '.sort(...)' : ''}${task.limit ? '.limit(' + task.limit + ')' : ''}`
 
   return (
-    <div className="my-4 rounded-[18px] border border-white/[.08] overflow-hidden bg-[#060B09]">
+    <div className="my-4 rounded-[18px] border border-white/[.08] overflow-hidden bg-[#060709]">
       <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[.07] bg-s1">
         <span className="w-7 h-7 rounded-[9px] bg-green/15 text-green grid place-items-center"><Icon name="box" size={15} /></span><span className="font-display font-semibold text-[13.5px] text-fg">Задача MongoDB</span>
         <span className="text-[12px] text-gray2">{op === 'aggregate' ? 'агрегация' : 'выборка'} · решай прямо здесь</span>

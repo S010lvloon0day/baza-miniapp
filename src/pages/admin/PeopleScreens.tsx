@@ -11,7 +11,7 @@ const initials = (u: { name: string; username: string; id: number }) =>
 function Avatar({ u, size = 40 }: { u: { name: string; username: string; id: number; premium?: boolean }; size?: number }) {
   return (
     <span className="rounded-full grid place-items-center font-semibold shrink-0 relative"
-      style={{ width: size, height: size, fontSize: size * .36, background: u.premium ? 'linear-gradient(135deg,#F5C25A,#B8862B)' : '#20302A', color: u.premium ? '#2A1C00' : '#CFDAD4' }}>
+      style={{ width: size, height: size, fontSize: size * .36, background: u.premium ? 'linear-gradient(135deg,#F5C25A,#B8862B)' : '#23252D', color: u.premium ? '#2A1C00' : '#D3D6DC' }}>
       {initials(u)}
     </span>
   )

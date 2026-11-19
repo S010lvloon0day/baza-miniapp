@@ -56,7 +56,7 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
       onClick={(e) => e.stopPropagation()}>
       <span className="flex items-center justify-between px-2.5 py-1 text-[11px] text-gray" style={{ background: 'rgba(255,255,255,.04)' }}>
         <span className="font-mono uppercase tracking-wide">{lang || 'код'}</span>
-        <button onClick={copy} className="flex items-center gap-1 active:opacity-60" style={{ color: copied ? '#17E584' : undefined }}>
+        <button onClick={copy} className="flex items-center gap-1 active:opacity-60" style={{ color: copied ? '#8A78FF' : undefined }}>
           <Icon name={copied ? 'check' : 'copy'} size={12} accent="current" />{copied ? 'Скопировано' : 'Копировать'}
         </button>
       </span>
@@ -98,7 +98,7 @@ function inline(text: string, leaf: Leaf, kp: string): ReactNode[] {
     const t = m[0], key = `${kp}i${k++}`
     // snake_case и **kwargs внутри слов — не разметка
     if ((m[2] || m[3]) && /[A-Za-z0-9_]/.test(text[m.index - 1] || '')) { out.push(leaf(t, key)); last = re.lastIndex; continue }
-    if (m[1]) out.push(<code key={key} className="px-1 py-[1px] rounded-[5px] font-mono text-[13px]" style={{ background: 'rgba(0,0,0,.28)', color: '#C8F7DD', userSelect: 'text' }}>{t.slice(1, -1)}</code>)
+    if (m[1]) out.push(<code key={key} className="px-1 py-[1px] rounded-[5px] font-mono text-[13px]" style={{ background: 'rgba(0,0,0,.28)', color: '#E2DCFF', userSelect: 'text' }}>{t.slice(1, -1)}</code>)
     else if (m[2]) out.push(<b key={key} className="font-bold">{inline(t.slice(2, -2), leaf, key)}</b>)
     else if (m[3]) out.push(<i key={key}>{inline(t.slice(2, -2), leaf, key)}</i>)
     else if (m[4]) out.push(<s key={key} className="opacity-80">{inline(t.slice(2, -2), leaf, key)}</s>)

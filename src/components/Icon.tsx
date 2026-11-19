@@ -121,7 +121,7 @@ interface Props {
 
 export default function Icon({ name, size = 22, className, style, accent = 'brand', strokeWidth = 1.7, title }: Props) {
   const [stroke, fill] = ICONS[name] as P
-  const accentFill = accent === 'brand' ? 'var(--accent-icon, #17E584)' : accent === 'current' ? 'currentColor' : accent
+  const accentFill = accent === 'brand' ? 'var(--accent-icon, #8A78FF)' : accent === 'current' ? 'currentColor' : accent
   return (
     <svg
       width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"

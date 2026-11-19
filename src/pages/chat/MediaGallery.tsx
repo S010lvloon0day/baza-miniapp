@@ -69,7 +69,7 @@ export default function MediaGallery({ title, onClose, onView, onJump }: {
               return (
                 <div key={m.id} className="flex items-center gap-3 py-2.5 border-b border-white/[.05]">
                   <button onClick={() => kind === 'file' ? downloadFile(m) : kind === 'link' ? (url && openUrl(url)) : onJump(m.id)}
-                    className="w-11 h-11 rounded-[12px] grid place-items-center shrink-0" style={{ background: kind === 'link' ? 'rgba(127,211,255,.12)' : 'rgba(23,229,132,.12)', color: kind === 'link' ? '#7FD3FF' : '#17E584' }}>
+                    className="w-11 h-11 rounded-[12px] grid place-items-center shrink-0" style={{ background: kind === 'link' ? 'rgba(127,211,255,.12)' : 'rgba(138,120,255,.12)', color: kind === 'link' ? '#7FD3FF' : '#8A78FF' }}>
                     <Icon name={kind === 'file' ? 'doc' : kind === 'link' ? 'link' : 'mic'} size={20} accent="current" />
                   </button>
                   <button onClick={() => onJump(m.id)} className="flex-1 min-w-0 text-left">

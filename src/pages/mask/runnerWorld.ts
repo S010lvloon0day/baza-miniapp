@@ -269,7 +269,7 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
 
   // воздушный шар
   const balloon = new THREE.Group()
-  const envT = tex(256, 128, c => { const cols = ['#e5484d', '#f5c25a', '#17e584', '#8a6bff']; for (let i = 0; i < 16; i++) { c.fillStyle = cols[i % 4]; c.fillRect(i * 16, 0, 16, 128) } })
+  const envT = tex(256, 128, c => { const cols = ['#e5484d', '#f5c25a', '#8A78FF', '#8a6bff']; for (let i = 0; i < 16; i++) { c.fillStyle = cols[i % 4]; c.fillRect(i * 16, 0, 16, 128) } })
   const env = new THREE.Mesh(new THREE.SphereGeometry(3, 16, 12), new THREE.MeshStandardMaterial({ map: envT, roughness: 0.6 }))
   env.scale.y = 1.2; balloon.add(env)
   const basket = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 1), std(0x7a5232)); basket.position.y = -4.6; balloon.add(basket)
@@ -365,7 +365,7 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
     c.fillStyle = 'rgba(255,255,255,0.86)'; c.font = '500 44px sans-serif'; c.fillText(sub, 66, 330)
     c.fillStyle = 'rgba(255,255,255,0.55)'; c.font = '500 30px sans-serif'; c.fillText('База знаний · Telegram', 66, 452)
   })
-  const EM = ['#0a5c3c', '#12a067', '#5ef0ad'], GD = ['#5a3d05', '#b07d16', '#ffd166'], VI = ['#24125e', '#5a3fc4', '#b9a6ff'], DK = ['#0f1720', '#1f3a32', '#5ef0ad']
+  const EM = ['#2E2190', '#12a067', '#5ef0ad'], GD = ['#5a3d05', '#b07d16', '#ffd166'], VI = ['#24125e', '#5a3fc4', '#b9a6ff'], DK = ['#0f1720', '#1f3a32', '#5ef0ad']
   const ads = [
     boardT('БАЗА ЗНАНИЙ', '2 800+ материалов', 'видео, уроки и документы на русском', EM[0], EM[1], EM[2]),
     boardT('КУРС', 'OSINT с нуля', '394 урока · от новичка до профи', DK[0], DK[1], DK[2]),
@@ -393,7 +393,7 @@ function addDetails(S: THREE.Scene, W: number, scroll: { o: THREE.Object3D; span
   for (const s of [-1, 1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(1.2, 6, 2), archM); p.position.set(s * (W / 2 + 1.4), 3, 0); arch.add(p) }
   const deck = new THREE.Mesh(new THREE.BoxGeometry(W + 4, 1.1, 2.4), archM); deck.position.y = 6.4; arch.add(deck)
   const rail = new THREE.Mesh(new THREE.BoxGeometry(W + 4, 0.5, 0.15), std(0x3a3d44)); rail.position.set(0, 7.2, -1.1); arch.add(rail)
-  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.9), new THREE.MeshStandardMaterial({ map: tex(256, 64, c => { c.fillStyle = '#0f8f5a'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#fff'; c.font = 'bold 30px sans-serif'; c.fillText('БАЗА ЗНАНИЙ  ▸', 30, 42) }), emissive: 0x0b6a40, emissiveIntensity: 0.6 }))
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(4, 0.9), new THREE.MeshStandardMaterial({ map: tex(256, 64, c => { c.fillStyle = '#5B4BE6'; c.fillRect(0, 0, 256, 64); c.fillStyle = '#fff'; c.font = 'bold 30px sans-serif'; c.fillText('БАЗА ЗНАНИЙ  ▸', 30, 42) }), emissive: 0x0b6a40, emissiveIntensity: 0.6 }))
   sign.position.set(0, 5.4, -1.25); sign.rotation.y = Math.PI; arch.add(sign)
   arch.position.z = 90; put(arch, 180)
 

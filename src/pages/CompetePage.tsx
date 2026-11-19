@@ -4,7 +4,7 @@ import type { Compete, BoardRow } from '../api/client'
 import Icon from '../components/Icon'
 import type { IconName } from '../components/Icon'
 
-const AV = [['#1F3B30', '#9FF0C6'], ['#2A2170', '#CFC4FF'], ['#5A4630', '#F0D29A'], ['#123F52', '#9BE3FF'], ['#4A1F2E', '#FFB3C7']]
+const AV = [['#1F3B30', '#B9C8FF'], ['#2A2170', '#CFC4FF'], ['#5A4630', '#F0D29A'], ['#123F52', '#9BE3FF'], ['#4A1F2E', '#FFB3C7']]
 function avColor(name: string) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV[h % AV.length] }
 const RING: Record<number, string> = {
   1: 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)',
@@ -159,7 +159,7 @@ export default function CompetePage() {
         {scope === 'week' && <PrizesCard prizes={data.week?.prizes ?? []} cap={data.week?.daily_cap ?? 15} from={data.week?.rules_from} />}
 
         {/* Ваш ранг */}
-        <section className="card px-3.5 py-3" style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.24), transparent 70%), #111C17', borderColor: 'rgba(160,135,255,.3)' }}>
+        <section className="card px-3.5 py-3" style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.24), transparent 70%), #121318', borderColor: 'rgba(160,135,255,.3)' }}>
           <div className="flex items-center gap-2.5">
             <span className="tile-violet w-[34px] h-[34px] shrink-0"><Icon name="shield" size={17} accent="#fff" /></span>
             <div className="flex-1 min-w-0">
@@ -194,7 +194,7 @@ export default function CompetePage() {
             <div className="px-5 py-8 text-center text-[13.5px] text-gray">Пока тихо. Будьте первым!</div>
           ) : data.feed.map((f, i) => (
             <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
-              <span className="w-[34px] h-[34px] rounded-[10px] bg-white/[.06] grid place-items-center text-[#CFDAD4] shrink-0">
+              <span className="w-[34px] h-[34px] rounded-[10px] bg-white/[.06] grid place-items-center text-[#D3D6DC] shrink-0">
                 <Icon name={FEED_ICON[f.kind] ?? 'streak'} size={17} accent={FEED_ICON[f.kind] ? 'brand' : '#F5C25A'} />
               </span>
               <div className="flex-1 min-w-0">

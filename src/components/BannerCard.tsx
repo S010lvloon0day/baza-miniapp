@@ -55,7 +55,7 @@ function BannerItem({ banner, index }: { banner: Banner; index: number }) {
                 <div className="font-display font-semibold text-[14px] text-white leading-snug">{banner.title}</div>
               )}
               {banner.text && (
-                <div className="text-[12.5px] text-[#CFDAD4] leading-snug mt-0.5 line-clamp-1">{banner.text}</div>
+                <div className="text-[12.5px] text-[#D3D6DC] leading-snug mt-0.5 line-clamp-1">{banner.text}</div>
               )}
             </div>
             {banner.link && (

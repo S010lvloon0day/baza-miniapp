@@ -153,7 +153,7 @@ function CommentItem({ c, canInteract, isAdmin, preview, reply, onReply, onChang
         : 'rounded-[18px] border border-white/[.07] bg-s1 px-4 py-3.5'}>
       <div className="flex items-center gap-2 mb-1.5">
         <div className="w-7 h-7 rounded-full flex items-center justify-center text-[11.5px] font-bold shrink-0"
-          style={{ background: c.team ? 'rgba(23,229,132,.18)' : '#2A2170', color: c.team ? '#4BF5A8' : '#CFC4FF' }}>
+          style={{ background: c.team ? 'rgba(138,120,255,.18)' : '#2A2170', color: c.team ? '#B3A6FF' : '#CFC4FF' }}>
           {(c.author || '?').slice(0, 1).toUpperCase()}
         </div>
         <span className="text-[13.5px] font-semibold text-fg truncate">{c.author}</span>

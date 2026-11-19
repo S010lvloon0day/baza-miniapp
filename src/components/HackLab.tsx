@@ -159,7 +159,7 @@ export default function HackLab({ content, onSolve }: { content: string; onSolve
   const checkFlag = () => setSolved(submitted.trim() === flag)
 
   return (
-    <div className="my-4 rounded-[18px] overflow-hidden border border-white/[.08] bg-[#060B09]">
+    <div className="my-4 rounded-[18px] overflow-hidden border border-white/[.08] bg-[#060709]">
       <div className="flex items-center gap-2.5 px-3.5 py-2.5 border-b border-white/[.07] bg-s1">
         <span className="w-7 h-7 rounded-[9px] bg-[#FF6B6B]/15 text-[#FF8A8A] grid place-items-center shrink-0"><Icon name="shield" size={15} accent="#FF8A8A" /></span>
         <span className="font-display font-semibold text-[13.5px] text-fg shrink-0">Лаборатория</span>

@@ -73,16 +73,16 @@ const MY_UN = (ME?.username || '').toLowerCase()
 const MY_ID = Number(ME?.id || 0)
 
 /** Цвета пузырей — как в тёмной теме Telegram. */
-const BUB_IN = '#16211C'                                          // входящие (чужие)
-const BUB_OUT = 'linear-gradient(180deg,#127A49,#0D5C37)'          // исходящие (свои) — изумруд
+const BUB_IN = 'linear-gradient(180deg,#1A1C22,#121318)'                                          // входящие (чужие)
+const BUB_OUT = 'linear-gradient(120deg,#2F6BFF,#7A4DFF 60%,#B04BFF)'          // исходящие (свои) — изумруд
 const BUB_SHADOW = 'inset 0 1px 0 rgba(255,255,255,.05)'
 const BUB_SHADOW_OUT = 'inset 0 1px 0 rgba(255,255,255,.12)'
 // обои ленты: мягкий фиолетовый и изумрудный свет + едва заметный узор фирменных ромбов
 const WALL = [
   'radial-gradient(70% 40% at 100% 10%, rgba(118,87,255,.14), transparent 70%)',
-  'radial-gradient(60% 40% at 0% 70%, rgba(23,229,132,.08), transparent 70%)',
+  'radial-gradient(60% 40% at 0% 70%, rgba(138,120,255,.08), transparent 70%)',
   `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Cpath d='M28 22l4 4-4 4-4-4z' fill='%23ffffff' fill-opacity='.035'/%3E%3C/svg%3E")`,
-  '#08100D',
+  '#07080A',
 ].join(',')
 const VIOLET = '#B9A8FF'
 
@@ -118,8 +118,8 @@ function dayLabel(iso: string) {
   } catch { return '' }
 }
 // приглушённая палитра имён и подложек аватаров: [цвет имени, фон аватара, цвет инициалов]
-const PAL = ['#7EE0AE', '#AE9BFF', '#F5C25A', '#7FD3F5', '#FF9DB7', '#F0A868', '#9BE3D0', '#C9B6FF']
-const PAL_BG = ['#1F4A37', '#2A2170', '#5A4630', '#123F52', '#4A1F2E', '#4F3318', '#174641', '#33285E']
+const PAL = ['#8FA8FF', '#AE9BFF', '#F5C25A', '#7FD3F5', '#FF9DB7', '#F0A868', '#9BE3D0', '#C9B6FF']
+const PAL_BG = ['#2A2170', '#2A2170', '#5A4630', '#123F52', '#4A1F2E', '#4F3318', '#174641', '#33285E']
 function palIdx(name: string) {
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
   return h % PAL.length
@@ -216,7 +216,7 @@ function RoundMsg({ m, src, bind }: { m: ChatMsg; src: string; bind: (open: () =
         className="w-full h-full rounded-full object-cover bg-black/40 pointer-events-none select-none" />
       <svg className="absolute inset-0 pointer-events-none" width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
         <circle cx={size / 2} cy={size / 2} r={R} fill="none" stroke="rgba(255,255,255,.14)" strokeWidth="3" />
-        {playing && <circle cx={size / 2} cy={size / 2} r={R} fill="none" stroke="#17E584" strokeWidth="3" strokeLinecap="round"
+        {playing && <circle cx={size / 2} cy={size / 2} r={R} fill="none" stroke="#8A78FF" strokeWidth="3" strokeLinecap="round"
           strokeDasharray={C} strokeDashoffset={C * (1 - prog)} />}
       </svg>
       {!playing && (
@@ -401,11 +401,11 @@ function VoiceMsg({ url, mine, id, name }: { url: string; mine?: boolean; id: nu
     else setDur(a.duration)
   }
   const frac = dur > 0 ? Math.min(1, cur / dur) : 0
-  const accent = mine ? '#C8F7DD' : '#17E584'
+  const accent = mine ? '#E2DCFF' : '#8A78FF'
   const dim = mine ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.18)'
   return (
     <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 200, maxWidth: 270 }} onClick={(e) => e.stopPropagation()}>
-      <button onClick={toggle} aria-label={playing ? 'Пауза' : 'Слушать'} className="shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: accent, color: '#03200F' }}>
+      <button onClick={toggle} aria-label={playing ? 'Пауза' : 'Слушать'} className="shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: accent, color: '#FFFFFF' }}>
         <Icon name={playing ? 'pause' : 'play'} size={15} accent="current" style={playing ? undefined : { marginLeft: 2 }} />
       </button>
       <div className="flex-1 min-w-0">
@@ -415,9 +415,9 @@ function VoiceMsg({ url, mine, id, name }: { url: string; mine?: boolean; id: nu
           ))}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
-          <span className="text-[11.5px] tabular-nums" style={{ color: mine ? 'rgba(220,255,236,.8)' : '#A6B8AE' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
+          <span className="text-[11.5px] tabular-nums" style={{ color: mine ? 'rgba(236,232,255,.8)' : '#A6AAB4' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
           {(playing || cur > 0) && (
-            <button onClick={cycleSpeed} className="px-1.5 rounded-full text-[10.5px] font-bold tabular-nums" style={{ background: dim, color: mine ? '#fff' : '#CFDAD4' }}>{speed}×</button>
+            <button onClick={cycleSpeed} className="px-1.5 rounded-full text-[10.5px] font-bold tabular-nums" style={{ background: dim, color: mine ? '#fff' : '#D3D6DC' }}>{speed}×</button>
           )}
         </div>
       </div>
@@ -433,14 +433,14 @@ function VoiceMsg({ url, mine, id, name }: { url: string; mine?: boolean; id: nu
 /** Время + «изменено» + галочки, как в Telegram (встроено в хвост последней строки). */
 function MsgMeta({ m, light }: { m: ChatMsg; light?: boolean }) {
   return (
-    <span className="select-none whitespace-nowrap inline-flex items-center gap-1 tabular-nums" style={{ fontSize: 11, color: light ? 'rgba(255,255,255,.95)' : m.mine ? '#A5EBC6' : '#7E978A' }}>
+    <span className="select-none whitespace-nowrap inline-flex items-center gap-1 tabular-nums" style={{ fontSize: 11, color: light ? 'rgba(255,255,255,.95)' : m.mine ? '#D9D2FF' : '#80848E' }}>
       {m.edited && <span>ред.</span>}
       {m.once && <Icon name="eye" size={11} accent="current" />}
       {!!m.ttl && <Icon name="clock" size={11} />}
       {timeOf(m.created_at)}
       {m.mine && ((m as any).pending
         ? <span className="opacity-70"><Icon name="clock" size={11} /></span>
-        : <span className="inline-flex" style={{ color: light ? '#fff' : '#A5EBC6' }}><Icon name="check" size={12} strokeWidth={2} /><Icon name="check" size={12} strokeWidth={2} style={{ marginLeft: -7 }} /></span>)}
+        : <span className="inline-flex" style={{ color: light ? '#fff' : '#D9D2FF' }}><Icon name="check" size={12} strokeWidth={2} /><Icon name="check" size={12} strokeWidth={2} style={{ marginLeft: -7 }} /></span>)}
     </span>
   )
 }
@@ -463,8 +463,8 @@ function Reactions({ m, onToggle }: { m: ChatMsg; onToggle: (id: number, e: stri
       {m.reactions.map(r => (
         <button key={r.emoji} onClick={(e) => { e.stopPropagation(); onToggle(m.id, r.emoji) }}
           className="flex items-center gap-1 h-[26px] px-2.5 rounded-full active:scale-95 transition-transform"
-          style={{ background: r.mine ? 'rgba(23,229,132,.18)' : 'rgba(255,255,255,.08)' }}>
-          <Emo e={r.emoji} size={15} /><span className="text-[12.5px] font-semibold tabular-nums" style={{ color: r.mine ? '#7DF0B6' : '#CFDAD4' }}>{r.count}</span>
+          style={{ background: r.mine ? 'rgba(138,120,255,.18)' : 'rgba(255,255,255,.08)' }}>
+          <Emo e={r.emoji} size={15} /><span className="text-[12.5px] font-semibold tabular-nums" style={{ color: r.mine ? '#C9BEFF' : '#D3D6DC' }}>{r.count}</span>
         </button>
       ))}
     </div>
@@ -500,7 +500,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
       <motion.div onClick={e => e.stopPropagation()} initial={{ y: 60 }} animate={{ y: 0 }} exit={{ y: 60 }}
         className="w-full max-w-[460px] rounded-t-[28px] p-5 pb-8 bg-s1 border-t border-white/[.08]"
-        style={{ background: 'radial-gradient(80% 60% at 50% 0%, rgba(118,87,255,.14), transparent 70%), #111C17', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 28px)' }}>
+        style={{ background: 'radial-gradient(80% 60% at 50% 0%, rgba(118,87,255,.14), transparent 70%), #121318', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 28px)' }}>
         <div className="w-10 h-1 rounded-full mx-auto mb-4 bg-white/15" />
         {!c ? (
           <div className="py-8 text-center text-[13px] text-gray">Загрузка…</div>
@@ -524,7 +524,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[['book', c.materials_done, 'пройдено'], ['flame', c.streak, 'дней подряд'], ['cert', c.certificates, 'сертификатов']].map(([ic, val, lab], i) => (
                 <div key={i} className="rounded-[16px] py-3 text-center bg-white/[.05] border border-white/[.06]">
-                  <div className="flex justify-center" style={{ color: ic === 'flame' ? '#FFB25B' : ic === 'cert' ? '#F5C25A' : '#CFDAD4' }}>{ic === 'book' ? <IcBook s={18} /> : ic === 'flame' ? <IcFlame s={18} /> : <IcCert s={18} />}</div>
+                  <div className="flex justify-center" style={{ color: ic === 'flame' ? '#FFB25B' : ic === 'cert' ? '#F5C25A' : '#D3D6DC' }}>{ic === 'book' ? <IcBook s={18} /> : ic === 'flame' ? <IcFlame s={18} /> : <IcCert s={18} />}</div>
                   <div className="font-display font-semibold text-[18px] text-fg leading-none mt-1.5 tabular-nums">{val as number}</div>
                   <div className="text-[11px] text-gray mt-1">{lab as string}</div>
                 </div>
@@ -582,7 +582,7 @@ function MatCard({ mat, mine, onOpen }: { mat: NonNullable<ChatMsg['mat']>; mine
     <button onClick={(e) => { e.stopPropagation(); onOpen(mat.id) }}
       className="mx-2 mt-2 flex items-center gap-2.5 px-2.5 py-2 rounded-[12px] text-left active:opacity-80 max-w-[calc(100%-16px)]"
       style={{ background: mine ? 'rgba(0,0,0,.22)' : 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.07)' }}>
-      <span className="w-9 h-9 rounded-[10px] grid place-items-center shrink-0" style={{ background: 'rgba(23,229,132,.14)', color: '#17E584' }}>
+      <span className="w-9 h-9 rounded-[10px] grid place-items-center shrink-0" style={{ background: 'rgba(138,120,255,.14)', color: '#8A78FF' }}>
         <Icon name={mat.kind === 'video' ? 'video' : 'book'} size={18} accent="current" />
       </span>
       <span className="min-w-0 flex-1">
@@ -620,10 +620,10 @@ function FileCard({ m, mine, bind }: { m: ChatMsg; mine: boolean; bind: (open: (
   return (
     <div className="flex items-center gap-3 px-3 pt-2.5 pb-1 min-w-[210px] max-w-[290px]" {...bind(() => downloadFile(m))}>
       <span className="w-11 h-11 rounded-[12px] grid place-items-center shrink-0 font-bold text-[11px] tracking-wide"
-        style={{ background: mine ? 'rgba(0,0,0,.25)' : 'rgba(23,229,132,.14)', color: mine ? '#fff' : '#17E584' }}>{fileExt(m.fname)}</span>
+        style={{ background: mine ? 'rgba(0,0,0,.25)' : 'rgba(138,120,255,.14)', color: mine ? '#fff' : '#8A78FF' }}>{fileExt(m.fname)}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[14px] font-semibold text-fg truncate">{m.fname || 'Файл'}</span>
-        <span className="flex items-center gap-1 text-[12px]" style={{ color: mine ? 'rgba(255,255,255,.7)' : '#A6B8AE' }}>
+        <span className="flex items-center gap-1 text-[12px]" style={{ color: mine ? 'rgba(255,255,255,.7)' : '#A6AAB4' }}>
           <Icon name="download" size={12} accent="current" /> Скачать · проверен антивирусом
         </span>
       </span>
@@ -764,8 +764,8 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
         <div className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
           {!grouped && !mine && <div className="text-[13px] font-semibold mb-1 ml-1" style={{ color: colorFor(m.name) }} onClick={() => onProfile(m.user_id)}>{m.name}<NameBadges m={m} /></div>}
           {quoted && (
-            <div className="mb-1 px-2 py-1 rounded-[8px] text-[12px] max-w-[220px] truncate" style={{ background: 'rgba(23,229,132,.08)', borderLeft: '3px solid #17E584', color: '#A6B8AE' }}>
-              <span className="font-semibold" style={{ color: '#17E584' }}>{quoted.name}</span> · {stripTokens(quoted.text) || attachLabel(quoted)}
+            <div className="mb-1 px-2 py-1 rounded-[8px] text-[12px] max-w-[220px] truncate" style={{ background: 'rgba(138,120,255,.08)', borderLeft: '3px solid #8A78FF', color: '#A6AAB4' }}>
+              <span className="font-semibold" style={{ color: '#8A78FF' }}>{quoted.name}</span> · {stripTokens(quoted.text) || attachLabel(quoted)}
             </div>
           )}
           <RoundMsg m={m} src={src} bind={tapMedia} />
@@ -782,10 +782,10 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
     <div ref={rowRef} onTouchStart={swStart} onTouchMove={swMove} onTouchEnd={swEnd} onTouchCancel={swEnd}
       onClick={selectMode ? () => ctx.toggleSelect(m.id) : undefined}
       className={`msg-row relative flex gap-2 px-2.5 ${grouped ? 'mt-[3px]' : 'mt-2.5'} ${mine ? 'flex-row-reverse' : ''} ${selectMode ? 'pl-10' : ''}`}
-      style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease, padding .18s ease', background: selected ? 'rgba(23,229,132,.08)' : undefined }}>
+      style={{ overflow: 'hidden', opacity: (m as any).pending ? 0.72 : 1, transition: 'opacity .18s ease, padding .18s ease', background: selected ? 'rgba(138,120,255,.08)' : undefined }}>
       {selectMode && (
         <span className="absolute left-2.5 bottom-1.5 w-[22px] h-[22px] rounded-full border-2 grid place-items-center"
-          style={{ borderColor: selected ? '#17E584' : 'rgba(255,255,255,.35)', background: selected ? '#17E584' : 'transparent', color: '#021A0C' }}>
+          style={{ borderColor: selected ? '#8A78FF' : 'rgba(255,255,255,.35)', background: selected ? '#8A78FF' : 'transparent', color: '#FFFFFF' }}>
           {selected && <Icon name="check" size={12} strokeWidth={2.8} />}
         </span>
       )}
@@ -804,17 +804,17 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
             </div>
           )}
           {m.fwd_name && (
-            <button onClick={(e) => { e.stopPropagation(); if (m.fwd_id) ctx.jump(m.fwd_id) }} className="block px-3 pt-[6px] text-left text-[12.5px] leading-tight" style={{ color: mine ? '#C8F7DD' : VIOLET }}>
+            <button onClick={(e) => { e.stopPropagation(); if (m.fwd_id) ctx.jump(m.fwd_id) }} className="block px-3 pt-[6px] text-left text-[12.5px] leading-tight" style={{ color: mine ? '#E2DCFF' : VIOLET }}>
               Переслано от <b className="font-semibold">{m.fwd_name}</b>
             </button>
           )}
           {burst > 0 && <HeartBurst key={burst} />}
           {quoted && (
-            <div onClick={(e) => { e.stopPropagation(); ctx.jump(quoted.id) }} className="mx-2 mt-2 px-2 py-1.5 rounded-[8px] text-[12.5px] cursor-pointer" style={{ background: mine ? 'rgba(0,0,0,.2)' : 'rgba(23,229,132,.08)', borderLeft: '3px solid #17E584' }}>
-              <span className="font-semibold text-[12px]" style={{ color: mine ? '#C8F7DD' : '#17E584' }}>{quoted.name}</span>
+            <div onClick={(e) => { e.stopPropagation(); ctx.jump(quoted.id) }} className="mx-2 mt-2 px-2 py-1.5 rounded-[8px] text-[12.5px] cursor-pointer" style={{ background: mine ? 'rgba(0,0,0,.2)' : 'rgba(138,120,255,.08)', borderLeft: '3px solid #8A78FF' }}>
+              <span className="font-semibold text-[12px]" style={{ color: mine ? '#E2DCFF' : '#8A78FF' }}>{quoted.name}</span>
               {m.quote
-                ? <div className="flex gap-1" style={{ color: mine ? 'rgba(255,255,255,.85)' : '#CFDAD4' }}><span className="opacity-60">“</span><span className="line-clamp-3">{m.quote}</span></div>
-                : <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.78)' : '#A6B8AE' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || attachLabel(quoted))}</div>}
+                ? <div className="flex gap-1" style={{ color: mine ? 'rgba(255,255,255,.85)' : '#D3D6DC' }}><span className="opacity-60">“</span><span className="line-clamp-3">{m.quote}</span></div>
+                : <div className="truncate" style={{ color: mine ? 'rgba(255,255,255,.78)' : '#A6AAB4' }}>{quoted.deleted ? 'удалено' : (stripTokens(quoted.text) || attachLabel(quoted))}</div>}
             </div>
           )}
 
@@ -2059,17 +2059,17 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         </div>
         <div className="flex shrink-0">
           {recentAuthors.map((a, k) => (
-            <div key={a.user_id} className="rounded-full" style={{ marginLeft: k ? -7 : 0, boxShadow: '0 0 0 2px #08100D' }}>
+            <div key={a.user_id} className="rounded-full" style={{ marginLeft: k ? -7 : 0, boxShadow: '0 0 0 2px #07080A' }}>
               <Avatar name={a.name} src={api.chatAvatarUrl(a.user_id)} size={26} />
             </div>
           ))}
         </div>
         <button onClick={() => setGalleryOpen(true)} aria-label="Медиа темы"
-          className="w-9 h-9 flex items-center justify-center rounded-full text-[#CFDAD4] active:bg-white/10 shrink-0">
+          className="w-9 h-9 flex items-center justify-center rounded-full text-[#D3D6DC] active:bg-white/10 shrink-0">
           <Icon name="image" size={20} />
         </button>
         <button onClick={() => setSearchOpen(true)} aria-label="Поиск по чату"
-          className="w-9 h-9 flex items-center justify-center rounded-full text-[#CFDAD4] active:bg-white/10 shrink-0">
+          className="w-9 h-9 flex items-center justify-center rounded-full text-[#D3D6DC] active:bg-white/10 shrink-0">
           <Icon name="search" size={20} />
         </button>
         {isAdmin && (
@@ -2097,9 +2097,9 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         </div>
       )}
       {player && (
-        <div className="flex items-center gap-2 px-3 py-1.5 shrink-0 border-b border-white/[.06]" style={{ background: 'rgba(23,229,132,.07)' }}>
+        <div className="flex items-center gap-2 px-3 py-1.5 shrink-0 border-b border-white/[.06]" style={{ background: 'rgba(138,120,255,.07)' }}>
           <button onClick={() => voiceBus.emit('cmd', { id: player.id, cmd: 'toggle' })} aria-label={player.playing ? 'Пауза' : 'Играть'}
-            className="w-8 h-8 rounded-full grid place-items-center shrink-0" style={{ background: '#17E584', color: '#03200F' }}>
+            className="w-8 h-8 rounded-full grid place-items-center shrink-0" style={{ background: '#8A78FF', color: '#FFFFFF' }}>
             <Icon name={player.playing ? 'pause' : 'play'} size={13} accent="current" />
           </button>
           <button onClick={() => jumpToMsg(player.id)} className="flex-1 min-w-0 text-left">
@@ -2149,8 +2149,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                         <span className="text-[14px] font-semibold truncate" style={{ color: colorFor(m.name) }}>{m.name}{m.premium && <Icon name="crown" size={12} accent="#FFD873" className="inline-block ml-1 align-[-1px] text-gold" />}</span>
                         <span className="ml-auto text-[11.5px] text-gray2 shrink-0 tabular-nums">{dayLabel(m.created_at)} · {timeOf(m.created_at)}</span>
                       </div>
-                      <div className="text-[13.5px] text-[#CFDAD4] line-clamp-2 break-words">
-                        {i >= 0 ? <>{pre}<mark className="bg-transparent font-semibold" style={{ color: '#17E584' }}>{t.slice(i, i + q.length)}</mark>{t.slice(i + q.length, i + q.length + 120)}</> : t.slice(0, 160)}
+                      <div className="text-[13.5px] text-[#D3D6DC] line-clamp-2 break-words">
+                        {i >= 0 ? <>{pre}<mark className="bg-transparent font-semibold" style={{ color: '#8A78FF' }}>{t.slice(i, i + q.length)}</mark>{t.slice(i + q.length, i + q.length + 120)}</> : t.slice(0, 160)}
                       </div>
                     </div>
                   </button>
@@ -2181,7 +2181,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               )}
               {sep && (
                 <div className="flex justify-center my-3">
-                  <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#CFDAD4]" style={{ background: 'rgba(17,28,23,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
+                  <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#D3D6DC]" style={{ background: 'rgba(17,28,23,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
                 </div>
               )}
               <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} onReply={replyStable} onOpenMat={openMatStable}
@@ -2261,18 +2261,18 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
           <div className="glass rounded-[22px] mb-2 p-2.5 flex flex-col gap-2" style={{ background: 'rgba(13,21,17,.97)' }}>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => fileInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
-                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(23,229,132,.16)', color: '#17E584' }}><IcPhoto s={19} /></span>Прикрепить
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(138,120,255,.16)', color: '#8A78FF' }}><IcPhoto s={19} /></span>Прикрепить
               </button>
               <button onClick={() => { setAttachOpen(false); setPollOpen(true) }} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
                 <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(245,194,90,.16)', color: '#F5C25A' }}><Icon name="rating" size={19} accent="current" /></span>Опрос
               </button>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setOnceOn(v => !v)} className={`flex-1 h-9 rounded-full text-[12.5px] font-medium inline-flex items-center justify-center gap-1.5 ${onceOn ? 'bg-green/[.18] text-[#7DF0B6]' : 'bg-white/[.06] text-gray'}`}>
+              <button onClick={() => setOnceOn(v => !v)} className={`flex-1 h-9 rounded-full text-[12.5px] font-medium inline-flex items-center justify-center gap-1.5 ${onceOn ? 'bg-green/[.18] text-[#C9BEFF]' : 'bg-white/[.06] text-gray'}`}>
                 <IcEye s={15} /> Просмотр 1 раз{onceOn ? ' · вкл' : ''}
               </button>
               <button onClick={() => setTtlSec(s => { const i = TTL_STEPS.indexOf(s); return TTL_STEPS[(i + 1) % TTL_STEPS.length] })}
-                className={`flex-1 h-9 rounded-full text-[12.5px] font-medium inline-flex items-center justify-center gap-1.5 ${ttlSec ? 'bg-green/[.18] text-[#7DF0B6]' : 'bg-white/[.06] text-gray'}`}>
+                className={`flex-1 h-9 rounded-full text-[12.5px] font-medium inline-flex items-center justify-center gap-1.5 ${ttlSec ? 'bg-green/[.18] text-[#C9BEFF]' : 'bg-white/[.06] text-gray'}`}>
                 <IcTimer s={15} /> Таймер: {ttlLabel(ttlSec)}
               </button>
             </div>
@@ -2344,7 +2344,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               <>
                 {recentEmoji.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-1 py-1.5 text-[12.5px] font-semibold text-[#CFDAD4]">Недавние</div>
+                    <div className="px-1 py-1.5 text-[12.5px] font-semibold text-[#D3D6DC]">Недавние</div>
                     <div className="grid grid-cols-8 gap-0.5">
                       {recentEmoji.map(ch => (
                         <button key={ch} onClick={() => pickEmoji(ch)} className="aspect-square flex items-center justify-center rounded-[10px] active:bg-white/10">
@@ -2356,7 +2356,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                 )}
                 {EMOJI_CATS.map((c, ci) => (
                   <div key={c.title} id={`ecat_${ci}`} className="mb-2">
-                    <div className="px-1 py-1.5 text-[12.5px] font-semibold text-[#CFDAD4] sticky top-0 z-10" style={{ background: '#0E1612' }}>{c.title}</div>
+                    <div className="px-1 py-1.5 text-[12.5px] font-semibold text-[#D3D6DC] sticky top-0 z-10" style={{ background: '#101116' }}>{c.title}</div>
                     <div className="grid grid-cols-8 gap-0.5">
                       {c.codes.map(code => (
                         <button key={code} onClick={() => pickEmoji(codeToChar(code))} className="aspect-square flex items-center justify-center rounded-[10px] active:bg-white/10">
@@ -2368,8 +2368,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                 ))}
                 {emojiPacks.map(p => (
                   <div key={p.name} id={`pk_${p.name}`} className="mb-3">
-                    <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0E1612' }}>
-                      <span className="text-[12.5px] font-semibold text-[#CFDAD4] truncate flex-1">{p.title}</span>
+                    <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#101116' }}>
+                      <span className="text-[12.5px] font-semibold text-[#D3D6DC] truncate flex-1">{p.title}</span>
                       <button onClick={() => removePack(p.name)} className="shrink-0 text-[11.5px] font-medium px-2.5 py-0.5 rounded-full text-[#FF8A8A] bg-[#FF5050]/10">Удалить</button>
                     </div>
                     <div className="grid grid-cols-6 gap-1">
@@ -2393,8 +2393,8 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
             ) : (
               stickerPacks.map(p => (
                 <div key={p.name} id={`pk_${p.name}`} className="mb-3">
-                  <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#0E1612' }}>
-                    <span className="text-[12.5px] font-semibold text-[#CFDAD4] truncate flex-1">{p.title}</span>
+                  <div className="flex items-center gap-2 px-1 py-1.5 sticky top-0 z-10" style={{ background: '#101116' }}>
+                    <span className="text-[12.5px] font-semibold text-[#D3D6DC] truncate flex-1">{p.title}</span>
                     <button onClick={() => removePack(p.name)} className="shrink-0 text-[11.5px] font-medium px-2.5 py-0.5 rounded-full text-[#FF8A8A] bg-[#FF5050]/10">Удалить</button>
                   </div>
                   <div className="grid grid-cols-4 gap-1">
@@ -2437,7 +2437,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                       : th.kind === 'animated'
                         ? <LottieSticker url={api.chatStickerUrl(th.fid, 'animated')} size={28} />
                         : <img src={api.chatStickerUrl(th.fid, 'image')} alt="" loading="lazy" className="w-7 h-7 object-contain" />)
-                    : <span className="text-[11px] font-semibold text-[#CFDAD4]">{p.title.replace('@', '').slice(0, 2).toUpperCase()}</span>}
+                    : <span className="text-[11px] font-semibold text-[#D3D6DC]">{p.title.replace('@', '').slice(0, 2).toUpperCase()}</span>}
                 </button>
               )
             })}
@@ -2449,7 +2449,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
         <div className="relative flex items-end gap-1.5 p-[6px] rounded-[30px] glass"
           style={{
-            background: 'radial-gradient(60% 120% at 100% 50%, rgba(23,229,132,.10), transparent 70%), radial-gradient(50% 120% at 0% 50%, rgba(118,87,255,.10), transparent 70%), linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.02)), rgba(13,21,17,.93)',
+            background: 'radial-gradient(60% 120% at 100% 50%, rgba(138,120,255,.10), transparent 70%), radial-gradient(50% 120% at 0% 50%, rgba(118,87,255,.10), transparent 70%), linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.02)), rgba(13,21,17,.93)',
             border: '1px solid rgba(255,255,255,.14)',
             boxShadow: 'inset 0 1px 0 rgba(255,255,255,.16), 0 14px 34px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35)',
           }}>
@@ -2463,17 +2463,17 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               <span className="text-[15px] text-fg tabular-nums shrink-0">{fmtDur(recElapsed)}</span>
               <div className="flex-1 flex items-center justify-center gap-[3px] h-5 overflow-hidden min-w-0 mx-1">
                 {Array.from({ length: 24 }).map((_, i) => (
-                  <span key={i} className="vbar" style={{ width: 2.5, borderRadius: 2, background: recCancel ? '#FF8A8A' : '#17E584', animationDelay: `${((i * 7) % 24) * 0.045}s` }} />
+                  <span key={i} className="vbar" style={{ width: 2.5, borderRadius: 2, background: recCancel ? '#FF8A8A' : '#8A78FF', animationDelay: `${((i * 7) % 24) * 0.045}s` }} />
                 ))}
               </div>
-              <span className="text-[12px] shrink-0" style={{ color: recCancel ? '#FF8A8A' : '#A6B8AE' }}>{recLocked ? (recKind === 'round' ? 'кружок' : 'без рук') : recCancel ? 'отпустите — отмена' : '‹ влево — отмена'}</span>
+              <span className="text-[12px] shrink-0" style={{ color: recCancel ? '#FF8A8A' : '#A6AAB4' }}>{recLocked ? (recKind === 'round' ? 'кружок' : 'без рук') : recCancel ? 'отпустите — отмена' : '‹ влево — отмена'}</span>
               <button onClick={cancelRec} className="w-8 h-8 rounded-full flex items-center justify-center text-[#FF8A8A] active:bg-white/10 shrink-0" aria-label="Отмена"><Icon name="close" size={16} /></button>
             </div>
           ) : (
             /* скрепка · текст · смайлик — как в Telegram */
             <div className="flex-1 flex items-end min-w-0 px-1">
               <button onClick={() => { setAttachOpen(v => !v); setEmojiOpen(false) }} aria-label="Вложение"
-                className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:opacity-70" style={{ color: attachOpen ? '#17E584' : '#CFDAD4' }}>
+                className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:opacity-70" style={{ color: attachOpen ? '#8A78FF' : '#D3D6DC' }}>
                 <Icon name="attach" size={23} style={{ transform: 'rotate(40deg)' }} />
               </button>
               <div className="flex-1 relative min-w-0 px-1">
@@ -2489,30 +2489,30 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()}
                 onClick={() => setFmtBarOpen(v => !v)}
                 aria-label="Форматирование" className="shrink-0 w-[34px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform font-semibold text-[16px]"
-                style={{ color: fmtBarOpen ? '#17E584' : '#CFDAD4' }}>Aa</button>
+                style={{ color: fmtBarOpen ? '#8A78FF' : '#D3D6DC' }}>Aa</button>
               <button onClick={() => { setAttachOpen(false); setEmojiOpen(false); if (stickerOpen) setStickerOpen(false); else openSticker() }} aria-label="Эмодзи и стикеры"
-                className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform" style={{ color: stickerOpen ? '#17E584' : '#CFDAD4' }}>
+                className="shrink-0 w-[38px] h-[46px] flex items-center justify-center rounded-full active:scale-90 transition-transform" style={{ color: stickerOpen ? '#8A78FF' : '#D3D6DC' }}>
                 <Icon name="emoji" size={23} />
               </button>
             </div>
           )}
           {text.trim() && !rec ? (
             <button onClick={send} disabled={sending} aria-label="Отправить" className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform"
-              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #0FB866 45%, #088A4A 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#021A0C' }}>
-              <Icon name="send" size={20} accent="#021A0C" style={{ transform: 'translate(-1px,1px)' }} />
+              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #6A5CFF 45%, #4B3BD6 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#FFFFFF' }}>
+              <Icon name="send" size={20} accent="#FFFFFF" style={{ transform: 'translate(-1px,1px)' }} />
             </button>
           ) : (
             recLocked ? (
             <button onClick={stopRec} aria-label="Отправить" className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center active:scale-90 transition-transform"
-              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #0FB866 45%, #088A4A 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#021A0C' }}>
-              <Icon name="send" size={20} accent="#021A0C" style={{ transform: 'translate(-1px,1px)' }} />
+              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #6A5CFF 45%, #4B3BD6 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#FFFFFF' }}>
+              <Icon name="send" size={20} accent="#FFFFFF" style={{ transform: 'translate(-1px,1px)' }} />
             </button>
             ) : (
             <div className="relative shrink-0">
             {rec && (
               /* замок: потяни вверх — запись без рук */
               <div className="absolute left-1/2 -translate-x-1/2 bottom-[58px] w-[38px] rounded-full flex flex-col items-center justify-start pt-2 gap-1 glass pointer-events-none"
-                style={{ height: 78 - lockHint * 24, color: '#CFDAD4' }}>
+                style={{ height: 78 - lockHint * 24, color: '#D3D6DC' }}>
                 <Icon name="lock" size={17} accent="current" />
                 <Icon name="chevD" size={14} style={{ transform: 'rotate(180deg)', opacity: 1 - lockHint }} />
               </div>
@@ -2533,9 +2533,9 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center active:scale-90 transition-transform"
               style={rec
                 ? { background: '#ff5050', color: '#fff' }
-                : { background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #0FB866 45%, #088A4A 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#021A0C' }}>
+                : { background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #6A5CFF 45%, #4B3BD6 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#FFFFFF' }}>
               <motion.span key={recMode} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.18 }} className="flex">
-                <Icon name={recMode === 'round' ? 'video' : 'mic'} size={21} accent={rec ? '#fff' : '#021A0C'} />
+                <Icon name={recMode === 'round' ? 'video' : 'mic'} size={21} accent={rec ? '#fff' : '#FFFFFF'} />
               </motion.span>
             </button>
             </div>
@@ -2771,7 +2771,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                       catch { flash('Не удалось') }
                       setRetOpen(false)
                     }}
-                      className={`h-11 rounded-[14px] text-[13.5px] font-medium transition-colors ${on ? 'bg-green/[.18] text-[#7DF0B6]' : 'bg-white/[.06] text-[#CFDAD4]'}`}>
+                      className={`h-11 rounded-[14px] text-[13.5px] font-medium transition-colors ${on ? 'bg-green/[.18] text-[#C9BEFF]' : 'bg-white/[.06] text-[#D3D6DC]'}`}>
                       {lab}
                     </button>
                   )

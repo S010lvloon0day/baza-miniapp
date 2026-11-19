@@ -143,7 +143,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
     <div className="px-4 pt-3 pb-navsafe">
       {/* сводка */}
       <div className="relative overflow-hidden rounded-[24px] p-5 border border-white/[.08]"
-        style={{ background: 'radial-gradient(120% 90% at 100% 0%, rgba(118,87,255,.32), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(23,229,132,.18), transparent 60%), #111C17' }}>
+        style={{ background: 'radial-gradient(120% 90% at 100% 0%, rgba(118,87,255,.32), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(138,120,255,.18), transparent 60%), #121318' }}>
         <span className="absolute -right-8 -bottom-10 opacity-[.06] pointer-events-none"><BazaMark size={190} color="#fff" /></span>
         <div className="relative flex items-center justify-between">
           <span className="flex items-center gap-2 text-[13px] text-gray"><span className="pulse-dot" />Админка Базы</span>
@@ -157,7 +157,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <span className="text-[12px] font-semibold text-green mb-1 ml-auto">+{o.new_7d} за неделю</span>
         </div>
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-          {([['Premium', num(o.premium), '#F5C25A'], ['Активны сегодня', num(o.active_1d), '#17E584'], ['За 7 дней', num(o.active_7d), '#B9A8FF'], ['Выручка 30 дн.', rub(o.rub_30d), '#F5C25A']] as const).map(([l, v, c]) => (
+          {([['Premium', num(o.premium), '#F5C25A'], ['Активны сегодня', num(o.active_1d), '#8A78FF'], ['За 7 дней', num(o.active_7d), '#B9A8FF'], ['Выручка 30 дн.', rub(o.rub_30d), '#F5C25A']] as const).map(([l, v, c]) => (
             <div key={l} className="rounded-[14px] bg-black/25 px-3 py-2.5 min-w-0">
               <b className="block font-display font-semibold text-[17px] truncate" style={{ color: c }}>{v}</b>
               <span className="text-[11.5px] text-gray">{l}</span>
@@ -174,7 +174,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
             {o.signups.map((s, i) => (
               <button key={s.d} onClick={() => setSel(i)} aria-label={`${s.d}: ${s.n}`} className="flex-1 h-full flex items-end">
                 <span className="w-full rounded-t-[4px] transition-opacity" style={{ height: `${Math.max(6, s.n / max * 100)}%`, opacity: i === pick ? 1 : .45,
-                  background: i === pick ? 'linear-gradient(180deg,#4BF5A8,#17E584)' : 'linear-gradient(180deg,#17E584,rgba(23,229,132,.4))' }} />
+                  background: i === pick ? 'linear-gradient(180deg,#B3A6FF,#8A78FF)' : 'linear-gradient(180deg,#8A78FF,rgba(138,120,255,.4))' }} />
               </button>
             ))}
           </div>
@@ -184,14 +184,14 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
 
       {/* быстрые действия */}
       <div className="grid grid-cols-3 gap-2 mt-3">
-        <button className="btn-primary h-11 px-2 gap-1.5" style={{ fontFamily: 'Onest, sans-serif', fontSize: 14, fontWeight: 700 }} onClick={go('upload')}><Icon name="plus" size={16} />Материал</button>
+        <button className="btn-primary h-11 px-2 gap-1.5" style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700 }} onClick={go('upload')}><Icon name="plus" size={16} />Материал</button>
         <button className="btn-secondary h-11 text-[13.5px] px-2" onClick={go('broadcast')}><Icon name="send" size={16} />Рассылка</button>
         <button className="btn-secondary h-11 text-[13.5px] px-2" onClick={go('users')}><Icon name="search" size={16} />Юзер</button>
       </div>
 
       {/* требует внимания */}
       {attention.length > 0 ? (
-        <div className="card mt-3 overflow-hidden" style={{ borderColor: 'rgba(23,229,132,.25)' }}>
+        <div className="card mt-3 overflow-hidden" style={{ borderColor: 'rgba(138,120,255,.25)' }}>
           <div className="px-4 pt-3 text-[12.5px] font-semibold text-green">Требует внимания</div>
           {attention.map(a => (
             <button key={a.k} onClick={go(a.k)} className="w-full flex items-center gap-3 px-4 py-2.5 text-left active:bg-white/[.04]">
@@ -210,10 +210,10 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-4 mt-5 [&>*]:min-w-0">
         <Group title="Контент">
-          <Item k="content" icon="folder" title="Разделы и материалы" sub={`${num(o.sections)} разделов · ${num(o.materials)} материалов`} tone="#17E584" />
+          <Item k="content" icon="folder" title="Разделы и материалы" sub={`${num(o.sections)} разделов · ${num(o.materials)} материалов`} tone="#8A78FF" />
           <Item k="courses" icon="book" title="Курсы" sub="конструктор курсов и доступ" tone="#F5C25A" />
-          <Item k="cstats" icon="trophy" title="Статистика контента" sub="что читают, что ни разу не открывали" tone="#17E584" />
-          <Item k="subs" icon="checkCircle" title="Заявки от пользователей" sub={o.pending_submissions ? `ждут проверки: ${o.pending_submissions}` : 'новых нет'} tone="#17E584" badge={o.pending_submissions} />
+          <Item k="cstats" icon="trophy" title="Статистика контента" sub="что читают, что ни разу не открывали" tone="#8A78FF" />
+          <Item k="subs" icon="checkCircle" title="Заявки от пользователей" sub={o.pending_submissions ? `ждут проверки: ${o.pending_submissions}` : 'новых нет'} tone="#8A78FF" badge={o.pending_submissions} />
         </Group>
         <Group title="Сообщество">
           <Item k="users" icon="users" title="Пользователи" sub={`${num(o.users)} · в бане ${o.banned}${o.blocked ? ` · заблокировали бота ${o.blocked}` : ''}`} tone="#B9A8FF" />
@@ -225,7 +225,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="limits" icon="clock" title="Лимиты чтения" sub="кто упёрся в лимит · сброс" tone="#F5C25A" />
         </Group>
         <Group title="Продвижение">
-          <Item k="broadcast" icon="send" title="Рассылка" sub="сообщение всем или сегменту" tone="#17E584" />
+          <Item k="broadcast" icon="send" title="Рассылка" sub="сообщение всем или сегменту" tone="#8A78FF" />
           <Item k="banners" icon="image" title="Баннеры" sub="карточки на главной" tone="#F5C25A" />
           <Item k="pinned" icon="pin" title="Закреп в боте" sub="сообщение при /start" tone="#B9A8FF" />
         </Group>
@@ -234,7 +234,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="prices" icon="crown" title="Цены и курс" sub="тарифы Premium · курс рубля" tone="#F5C25A" />
           <Item k="purchases" icon="book" title="Покупки разделов" sub="кто купил · выдать или забрать доступ" tone="#F5C25A" />
           <Item k="abandoned" icon="clock" title="Брошенные оплаты" sub="начали платить и не оплатили" tone="#FF8A8A" />
-          <Item k="logs" icon="history" title="Журнал" sub="кто и что менял" tone="#A6B8AE" />
+          <Item k="logs" icon="history" title="Журнал" sub="кто и что менял" tone="#A6AAB4" />
         </Group>
       </div>
 
@@ -244,7 +244,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <div className="flex items-center justify-between mb-2"><b className="text-[14px]">Популярное за неделю</b><span className="text-[11.5px] text-gray">открытий</span></div>
           {o.top_materials.length ? o.top_materials.map((m, i) => (
             <button key={m.id} onClick={() => nav.push({ k: 'material', id: m.id })} className="w-full flex items-center gap-3 py-2 text-left">
-              <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: i === 0 ? '#F5C25A' : '#6E8478' }}>{i + 1}</span>
+              <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: i === 0 ? '#F5C25A' : '#6E727C' }}>{i + 1}</span>
               <span className="flex-1 min-w-0 text-[13.5px] truncate">{m.title}</span>
               <span className="text-[12.5px] text-gray tabular-nums">{num(m.views)}</span>
             </button>
@@ -256,7 +256,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           {o.recent_users.map(u => (
             <button key={u.id} onClick={() => nav.push({ k: 'user', id: u.id })} className="w-full flex items-center gap-3 py-2 text-left">
               <span className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-semibold shrink-0"
-                style={{ background: u.premium ? 'linear-gradient(135deg,#F5C25A,#B8862B)' : '#20302A', color: u.premium ? '#2A1C00' : '#CFDAD4' }}>
+                style={{ background: u.premium ? 'linear-gradient(135deg,#F5C25A,#B8862B)' : '#23252D', color: u.premium ? '#2A1C00' : '#D3D6DC' }}>
                 {(u.name || u.username || '?').trim().slice(0, 1).toUpperCase()}
               </span>
               <span className="flex-1 min-w-0">

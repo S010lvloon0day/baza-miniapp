@@ -1,6 +1,6 @@
 import type { Level } from '../utils/title'
 
-const C: Record<Level, [string, string]> = { easy: ['#17E584', 'Лёгкий'], mid: ['#F5C25A', 'Средний'], hard: ['#FF5A6E', 'Сложный'] }
+const C: Record<Level, [string, string]> = { easy: ['#8A78FF', 'Лёгкий'], mid: ['#F5C25A', 'Средний'], hard: ['#FF5A6E', 'Сложный'] }
 
 /** Фирменный маркер уровня — ромб вместо цветных кружков-эмодзи. */
 export default function LevelMark({ level, size = 10 }: { level?: Level | string; size?: number }) {

@@ -305,7 +305,7 @@ export default function Certificate({ parentId, language }: Props) {
           </button>
           {vr && (
             vr.valid ? (
-              <div className="rounded-[14px] p-3 text-[13px] leading-snug flex gap-2.5 bg-green/10 text-[#9FF0C6]">
+              <div className="rounded-[14px] p-3 text-[13px] leading-snug flex gap-2.5 bg-green/10 text-[#B9C8FF]">
                 <Icon name="checkCircle" size={18} className="text-green shrink-0" accent="current" />
                 <div>Сертификат подлинный. Владелец: <b className="text-fg">{vr.username}</b> · {vr.language} · {vr.date}. Код: {vr.code}.</div>
               </div>

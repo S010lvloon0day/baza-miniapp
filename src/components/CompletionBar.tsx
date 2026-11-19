@@ -108,7 +108,7 @@ export default function CompletionBar({ materialId, progress }: { materialId: nu
         <span className="relative w-10 h-10 shrink-0">
           <svg viewBox="0 0 40 40" className="w-10 h-10 -rotate-90">
             <circle cx="20" cy="20" r="17" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="3.5" />
-            <circle cx="20" cy="20" r="17" fill="none" stroke="#17E584" strokeWidth="3.5" strokeLinecap="round"
+            <circle cx="20" cy="20" r="17" fill="none" stroke="#8A78FF" strokeWidth="3.5" strokeLinecap="round"
               strokeDasharray={`${Math.min(1, Math.max(0, timePct)) * 106.8} 106.8`} style={{ transition: 'stroke-dasharray .9s linear' }} />
           </svg>
           <span className="absolute inset-0 grid place-items-center text-green"><Icon name={kind === 'video' ? 'play' : kind === 'lesson' ? 'book' : 'task'} size={16} /></span>

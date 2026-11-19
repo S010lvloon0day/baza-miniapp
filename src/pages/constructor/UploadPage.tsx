@@ -283,7 +283,7 @@ export default function UploadPage({ initialSectionId }: { initialSectionId?: nu
                 if (o.v) setItems(prev => sortByNumber(prev.filter(i => i.kind !== 'text')))
               }}
               className={`rounded-xl border px-3 py-2.5 text-left transition-colors
-                          ${perFile === o.v ? 'border-green bg-[rgba(23,229,132,.08)]' : 'border-white/[.10]'}`}>
+                          ${perFile === o.v ? 'border-green bg-[rgba(138,120,255,.08)]' : 'border-white/[.10]'}`}>
               <div className={`text-[13px] font-semibold ${perFile === o.v ? 'text-green' : 'text-white/85'}`}>
                 {o.t}
               </div>
@@ -348,7 +348,7 @@ export default function UploadPage({ initialSectionId }: { initialSectionId?: nu
         <button onClick={() => fileInput.current?.click()}
           className="flex-1 h-11 border border-green flex items-center justify-center gap-1.5
                      text-green text-[12px] font-semibold rounded-xl
-                     active:bg-[rgba(23,229,132,.10)]">
+                     active:bg-[rgba(138,120,255,.10)]">
           <Plus size={16} weight="bold" /> Файлы
         </button>
         {!perFile && <button onClick={addText}

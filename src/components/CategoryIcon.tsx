@@ -60,7 +60,7 @@ export function resolveIcon(title: string): IconKey {
 export default function CategoryIcon({ title, icon: iconOverride, size = 20 }: { title: string; icon?: IconKey; size?: number }) {
   const name = MAP[iconOverride ?? resolveIcon(title)]
   return (
-    <div className="w-full h-full rounded-[12px] bg-white/[.06] flex items-center justify-center text-[#CFDAD4]">
+    <div className="w-full h-full rounded-[12px] bg-white/[.06] flex items-center justify-center text-[#D3D6DC]">
       <Icon name={name} size={size} />
     </div>
   )

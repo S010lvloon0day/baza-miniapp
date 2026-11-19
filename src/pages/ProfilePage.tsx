@@ -50,7 +50,7 @@ function RankCard({ c, onOpen }: { c: Compete; onOpen?: () => void }) {
   const pct = Math.round(Math.max(0, Math.min(100, raw)))
   return (
     <button onClick={onOpen} className="mx-4 mt-2.5 block w-[calc(100%-2rem)] text-left rounded-[18px] px-3.5 py-3 active:scale-[.99] transition-transform"
-      style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.24), transparent 70%), #111C17', border: '1px solid rgba(160,135,255,.3)' }}>
+      style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(108,76,255,.24), transparent 70%), #121318', border: '1px solid rgba(160,135,255,.3)' }}>
       <div className="flex items-center gap-2.5">
         <span className="tile-violet w-[34px] h-[34px] shrink-0"><Icon name="shield" size={17} accent="#fff" /></span>
         <div className="flex-1 min-w-0">
@@ -82,7 +82,7 @@ function CertVerifyBox() {
   return (
     <div className="px-3.5 py-3.5">
       <div className="flex items-center gap-3 mb-2.5">
-        <span className="w-[38px] h-[38px] rounded-[11px] bg-white/[.06] flex items-center justify-center text-[#CFDAD4] shrink-0"><Icon name="cert" size={19} /></span>
+        <span className="w-[38px] h-[38px] rounded-[11px] bg-white/[.06] flex items-center justify-center text-[#D3D6DC] shrink-0"><Icon name="cert" size={19} /></span>
         <div className="min-w-0">
           <div className="text-[14.5px] font-medium">Проверка сертификата</div>
           <div className="text-[12.5px] text-gray">По ID из документа, например BZ-318-2026-7F3A9C</div>
@@ -98,7 +98,7 @@ function CertVerifyBox() {
       {res && (
         <div className="mt-2.5">
           {res.valid ? (
-            <div className="rounded-[14px] p-3 text-[13px] leading-snug flex gap-2.5 bg-green/10 text-[#9FF0C6]">
+            <div className="rounded-[14px] p-3 text-[13px] leading-snug flex gap-2.5 bg-green/10 text-[#B9C8FF]">
               <Icon name="checkCircle" size={18} accent="current" className="text-green shrink-0" />
               <div>Подлинный. Владелец: <b className="text-fg">{res.username}</b> · {res.language} · {res.date}.<br />Уроков: {res.lessons_total}, задач: {res.tasks_total}. Код: {res.code}.</div>
             </div>
@@ -313,7 +313,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
       <div className="flex flex-col items-center text-center px-4 pt-5 pb-1"
         style={{ background: 'radial-gradient(70% 60% at 50% 20%, rgba(245,194,90,.16), transparent 70%), radial-gradient(60% 50% at 80% 60%, rgba(118,87,255,.14), transparent 70%)' }}>
         <div className="rounded-full p-[3px]" style={{ background: premium ? 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)' : 'rgba(255,255,255,.12)' }}>
-          <div className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center font-display font-semibold text-[28px] text-[#9FF0C6] bg-[#1F3B30] border-[3px] border-bg">
+          <div className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center font-display font-semibold text-[28px] text-[#B9C8FF] bg-[#1F3B30] border-[3px] border-bg">
             {prof?.photo_url ? <img src={prof.photo_url} alt={name} className="w-full h-full object-cover" /> : initials}
           </div>
         </div>
@@ -362,7 +362,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
                   className="relative rounded-2xl pt-3.5 pb-3 px-2 text-center flex flex-col gap-[3px] transition-transform active:scale-[.98]"
                   style={on
                     ? { background: 'radial-gradient(100% 90% at 50% 0%, rgba(245,194,90,.22), transparent 70%), #17140A', border: '1px solid #F5C25A' }
-                    : { background: '#111C17', border: '1px solid rgba(255,255,255,.07)' }}>
+                    : { background: '#121318', border: '1px solid rgba(255,255,255,.07)' }}>
                   {tag && (
                     <span className="absolute -top-[9px] left-1/2 -translate-x-1/2 z-10">
                       <span className={`block whitespace-nowrap text-[10px] font-bold px-2 py-[3px] rounded-full ${tag === 'Выгодно' ? 'gold-metal' : 'bg-green text-ink'}`}

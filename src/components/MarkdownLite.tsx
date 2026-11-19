@@ -135,7 +135,7 @@ function Code({ text }: { text: string }) {
     } catch { /* */ }
   }
   return (
-    <div className="my-3 rounded-[16px] bg-[#060B09] border border-white/[.07] overflow-hidden">
+    <div className="my-3 rounded-[16px] bg-[#060709] border border-white/[.07] overflow-hidden">
       <div className="flex items-center justify-between px-3.5 h-9 border-b border-white/[.06]">
         <span className="text-[12px] text-gray2">Код</span>
         <button onClick={copy} className={`inline-flex items-center gap-1.5 h-7 px-2.5 -mr-1.5 rounded-[9px] text-[12.5px] font-medium active:bg-white/[.08] ${copied ? 'text-green' : 'text-gray'}`}>

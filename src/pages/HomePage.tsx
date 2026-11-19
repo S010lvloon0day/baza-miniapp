@@ -10,6 +10,10 @@ import { iconNameFor } from '../components/CategoryIcon'
 import { coverClass } from '../components/sectionCover'
 import LevelMark from '../components/LevelMark'
 import { PopularBlock } from '../components/Popular'
+import Globe from '../components/Globe'
+import SectionArt from '../components/SectionArt'
+import { sklad } from '../api/sklad'
+import type { SkladStatus } from '../api/sklad'
 
 interface Props {
   onSection: (s: Section) => void
@@ -20,6 +24,7 @@ interface Props {
   onChat?: () => void
   onMask?: () => void
   onSklad?: () => void
+  onUpgrade?: () => void
 }
 
 const FEATURED_TITLE = 'Знания S010lvloon'
@@ -60,7 +65,7 @@ function renderRich(text: string) {
 
 /* ── Аватары с инициалами: стабильная приглушённая палитра ── */
 const AV = [
-  ['#1F4A3A', '#9FF0C6', '#7EE0AE'], ['#2A2170', '#CFC4FF', '#AE9BFF'], ['#5A4630', '#F0D29A', '#F5C25A'],
+  ['#1E2F6B', '#B9C8FF', '#8FA8FF'], ['#2A2170', '#CFC4FF', '#AE9BFF'], ['#5A4630', '#F0D29A', '#F5C25A'],
   ['#123F52', '#9BE3FF', '#7FD3F5'], ['#4A1F2E', '#FFB3C7', '#FF9DB7'], ['#3B3F12', '#E4EE9A', '#D5E27A'],
 ]
 const avIdx = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h % AV.length }
@@ -104,7 +109,7 @@ function greeting() {
 function Head({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   return (
     <div className="flex items-baseline justify-between px-1 mb-2.5">
-      <h2 className="text-[17px] font-bold">{title}</h2>
+      <h2 className="text-[22px] font-extrabold tracking-[-.03em]">{title}</h2>
       {action && <button onClick={onAction} className="text-[13.5px] font-medium text-green active:opacity-70">{action}</button>}
     </div>
   )
@@ -208,7 +213,7 @@ function Seg({ v, u }: { v: number; u: string }) {
 function MaskCard({ onOpen }: { onOpen: () => void }) {
   return (
     <button onClick={onOpen} className="card w-full text-left px-3.5 py-3.5 flex items-center gap-3 active:scale-[.99] transition-transform"
-      style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(118,87,255,.30), transparent 65%), radial-gradient(90% 120% at 100% 100%, rgba(23,229,132,.14), transparent 60%), #111C17', borderColor: 'rgba(160,135,255,.32)' }}>
+      style={{ background: 'radial-gradient(120% 140% at 0% 0%, rgba(118,87,255,.30), transparent 65%), radial-gradient(90% 120% at 100% 100%, rgba(138,120,255,.14), transparent 60%), #121318', borderColor: 'rgba(160,135,255,.32)' }}>
       <span className="tile-violet w-[44px] h-[44px] shrink-0"><Icon name="mask" size={22} accent="#fff" /></span>
       <span className="flex-1 min-w-0">
         <span className="block font-display font-semibold text-[15px]">Сними маску</span>
@@ -288,8 +293,8 @@ function WeekRating({ c, onOpen, onPlay }: { c: Compete; onOpen?: () => void; on
       </div>
 
       <button onClick={onPlay} className="btn-primary w-full mt-2.5 !h-[50px] !justify-start !gap-2.5 pl-2 pr-2">
-        <span className="w-[34px] h-[34px] rounded-[11px] bg-[#063A20] grid place-items-center text-[#3CF29E] shrink-0" style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,.12)' }}>
-          <Icon name="play" size={12} accent="#3CF29E" />
+        <span className="w-[34px] h-[34px] rounded-[11px] bg-[#241770] grid place-items-center text-[#A596FF] shrink-0" style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,.12)' }}>
+          <Icon name="play" size={12} accent="#A596FF" />
         </span>
         <span className="flex-1 text-left text-[14px]">Пройти урок</span>
         <span className="gold-metal rounded-[10px] h-[30px] px-2.5 grid place-items-center font-display font-semibold text-[12px] text-[#3A2300]" style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(90,50,0,.45)' }}>
@@ -300,7 +305,8 @@ function WeekRating({ c, onOpen, onPlay }: { c: Compete; onOpen?: () => void; on
   )
 }
 
-export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, onChat, onMask, onSklad }: Props) {
+export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, onChat, onMask, onSklad, onUpgrade }: Props) {
+  const [quota, setQuota] = useState<SkladStatus | null>(null)
   const [sections, setSections] = useState<Section[]>([])
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
@@ -315,6 +321,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
     api.watchContinue().then(d => setCont(d.items ?? [])).catch(() => {})
     api.profile().then(p => { setName((p.name || '').split(' ')[0]); setPremium(!!p.is_premium) }).catch(() => {})
     api.compete().then(setCompete).catch(() => {})
+    sklad.status().then(setQuota).catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -349,48 +356,73 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
     <div className="flex-1 overflow-y-auto pb-navsafe">
       <div className="px-3.5 pt-1 flex flex-col gap-3">
 
-        {/* Приветствие + продолжить */}
-        <div className="card-hero px-[18px] pt-[18px] pb-4">
-          <div className="flex items-center justify-between gap-2">
-            <div className="text-[13.5px] text-gray truncate">{greeting()}{name ? `, ${name}` : ''}</div>
+        {/* Глобус + продолжить */}
+        <div className="hero-v2 anim-up">
+          <i className="hv-g1" /><i className="hv-g2" /><i className="hv-g3" />
+          <div className="hv-globe"><Globe labels={shelf.slice(0, 8).map(s => s.title)} /></div>
+          <i className="hv-shade" />
+          <div className="hv-top">
+            <span className="hv-chip"><i />{c0 ? 'ПРОДОЛЖИТЬ' : (greeting().toUpperCase() + (name ? `, ${name.toUpperCase()}` : ''))}</span>
             {premium && <PremiumBadge />}
           </div>
-          <h1 className="font-display font-semibold text-[21px] leading-[1.22] mt-1 mb-3.5" style={{ textWrap: 'balance' } as React.CSSProperties}>
-            {c0 ? (minute >= 1 ? `Вы на ${minute}-й минуте урока. Продолжим?` : 'Продолжим с того же места?') : 'Чему научимся сегодня?'}
-          </h1>
-          {c0 ? (
-            <button onClick={() => onMaterial(c0.id, c0.section_id)}
-              className="w-full flex items-center gap-3 rounded-2xl p-2.5 bg-black/30 border border-white/[.07] text-left active:bg-black/40 transition-colors">
-              <span className="w-[58px] h-[58px] rounded-xl grid place-items-center shrink-0" style={{ background: 'linear-gradient(135deg,#0E7A4C,#0A3322)' }}>
-                <span className="w-7 h-7 rounded-full bg-green grid place-items-center text-ink"><Icon name="play" size={12} accent="#03200F" /></span>
-              </span>
-              <span className="flex-1 min-w-0">
-                <small className="block text-[12px] text-gray truncate">{c0.section_title}</small>
-                <b className="block text-[14px] font-semibold leading-tight truncate">{c0.title}</b>
-                {c0.duration > 0 && (
-                  <span className="block mt-[7px] h-1 rounded-full bg-white/[.08] overflow-hidden">
-                    <span className="block h-full bg-green rounded-full" style={{ width: `${Math.min(100, (c0.position / c0.duration) * 100)}%` }} />
-                  </span>
-                )}
-              </span>
-            </button>
-          ) : (
-            <button onClick={onTabCats} className="btn-primary w-full">Выбрать раздел</button>
-          )}
+          <div className="hv-body">
+            {c0 ? (<>
+              <span className="hv-lesson"><b>{c0.section_title}</b>{minute >= 1 && <><s />{minute}-я минута</>}</span>
+              <h1 className="hv-title">{c0.title}</h1>
+              {c0.duration > 0 && (
+                <div className="hv-prog"><span style={{ width: `${Math.min(100, (c0.position / c0.duration) * 100)}%` }} /></div>
+              )}
+              <div className="flex items-center gap-2.5">
+                <button onClick={() => onMaterial(c0.id, c0.section_id)} className="btn-primary flex-1 !h-[54px] !text-[16px]">
+                  <Icon name="play" size={14} accent="#fff" />Продолжить
+                </button>
+                <button onClick={onTabCats} aria-label="Разделы" className="hv-ghost"><Icon name="sections" size={21} accent="current" /></button>
+              </div>
+            </>) : (<>
+              <h1 className="hv-title">Чему научимся<br /><span>сегодня?</span></h1>
+              <p className="hv-sub">{sections.length} разделов: курсы, OSINT, Linux, пентест, ИИ и многое другое.</p>
+              <button onClick={onTabCats} className="btn-primary w-full !h-[54px] !text-[16px]">Выбрать раздел</button>
+            </>)}
+          </div>
         </div>
 
-        {onSklad && (
-          <button onClick={onSklad} className="card-hero px-[18px] py-4 flex items-center gap-3 text-left active:opacity-80">
-            <span className="w-[46px] h-[46px] rounded-[14px] grid place-items-center shrink-0" style={{ background: 'linear-gradient(135deg,#0E7A4C,#0A3322)' }}>
-              <Icon name="search" size={20} accent="#3CF29E" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <b className="block text-[15px] font-semibold">Поиск курсов</b>
-              <small className="block text-[12.5px] text-gray">{premium ? '100 000+ курсов · 5 в день' : '100 000+ курсов · 1 в день бесплатно'}</small>
-            </span>
-            {premium && <PremiumBadge />}
-          </button>
-        )}
+        {onSklad && (() => {
+          const isPrem = quota ? quota.premium : premium
+          const limit = quota?.limit ?? (isPrem ? 5 : 1)
+          const used = Math.min(limit, quota?.used_today ?? 0)
+          const left = Math.max(0, limit - used)
+          return (
+            <div className="sk-v2 anim-up" style={{ animationDelay: '.08s' }}>
+              <button onClick={onSklad} className="flex items-center gap-[13px] w-full text-left relative z-[1]">
+                <span className="sk-ic"><Icon name="search" size={21} accent="current" /></span>
+                <span className="flex-1 min-w-0">
+                  <b className="sk-t">Поиск курсов</b>
+                  <small className="sk-s">Найдите любой курс среди <em className="sk-em">100 000+</em></small>
+                </span>
+                <Icon name="chevR" size={17} className="text-gray2" />
+              </button>
+              <div className="sk-quota relative z-[1]">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="sk-ql">{isPrem ? 'Premium · сегодня' : 'Бесплатно · сегодня'}</span>
+                  <span className="sk-qn"><b>{left}</b> из {limit} {left === 1 ? 'поиск' : 'поисков'} {isPrem ? '' : 'осталось'}</span>
+                </div>
+                <div className="sk-slots">
+                  {Array.from({ length: 5 }, (_, i) => {
+                    const st = i >= limit ? 'lock' : i < used ? 'used' : 'free'
+                    return <i key={i} className={`sk-slot ${st} ${isPrem ? 'p' : ''}`} style={{ animationDelay: `${0.5 + i * 0.12}s` }}>
+                      {st === 'lock' && <Icon name="lock" size={11} accent="current" />}
+                    </i>
+                  })}
+                </div>
+                {!isPrem && (
+                  <button onClick={onUpgrade ?? onSklad} className="sk-up gold-metal sheen">
+                    <span className="relative z-[1] flex items-center gap-1.5"><Icon name="crown" size={13} accent="#3A2300" />5 поисков в день с Premium</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {banners.length > 0 && (
           <div className="mt-1"><BannerCard banners={banners} /></div>
@@ -399,18 +431,23 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
         {/* Разделы — полка обложек */}
         <section className="mt-4">
           <Head title="Разделы" action={`Все ${sections.length}`} onAction={onTabCats} />
-          <div className="-mx-3.5 px-3.5 flex gap-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-            {shelf.map(s => (
-              <button key={s.id} onClick={() => onSection(s)}
-                className={`${coverClass(s)} relative shrink-0 w-[128px] h-[156px] rounded-[20px] p-3 flex flex-col justify-between text-left border border-white/[.07] active:scale-[.98] transition-transform overflow-hidden`}>
-                <Icon name={iconNameFor(s.title)} size={30} style={{ color: 'var(--cv)' }} accent="var(--cv)" />
-                <span className="min-w-0">
-                  <b lang="ru" className="block text-[14.5px] font-semibold leading-tight line-clamp-2 break-words" style={{ hyphens: 'auto' }}>{s.title}</b>
-                  {s.description && <small className="block text-[11.5px] opacity-75 mt-0.5 truncate">{s.description}</small>}
-                </span>
-                {s.locked && <span className="absolute top-3 right-3 opacity-80"><Icon name="lock" size={15} accent="var(--cv)" style={{ color: 'var(--cv)' }} /></span>}
-              </button>
-            ))}
+          <div className="-mx-3.5 px-3.5 flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
+            {shelf.map((s, i) => {
+              const cv = coverClass(s)
+              return (
+                <button key={s.id} onClick={() => onSection(s)} style={{ animationDelay: `${0.12 + Math.min(i, 6) * 0.06}s` }}
+                  className={`${cv} poster-v2 anim-up relative shrink-0 w-[150px] h-[206px] rounded-[24px] text-left active:scale-[.97] transition-transform overflow-hidden`}>
+                  <SectionArt cover={cv} />
+                  <i className="pv-fade" />
+                  <span className="pv-ic"><Icon name={iconNameFor(s.title)} size={20} style={{ color: 'var(--cv)' }} accent="var(--cv)" /></span>
+                  {s.locked && <span className="absolute top-3.5 right-3.5 opacity-90"><Icon name="lock" size={15} accent="var(--cv)" style={{ color: 'var(--cv)' }} /></span>}
+                  <span className="pv-meta">
+                    <b lang="ru" className="text-[17px] font-extrabold leading-[1.05] tracking-[-.02em] line-clamp-2 break-words" style={{ hyphens: 'auto' }}>{s.title}</b>
+                    {s.description && <small className="text-[11.5px] text-gray mt-1 line-clamp-2 leading-snug">{s.description}</small>}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </section>
 
@@ -420,7 +457,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
         {featured && (
           <button onClick={() => onSection(featured)}
             className="w-full rounded-[20px] px-4 py-3.5 flex items-center gap-3 text-left border border-white/[.11] active:opacity-90"
-            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.22),rgba(245,194,90,.04) 60%),#111C17' }}>
+            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.22),rgba(245,194,90,.04) 60%),#121318' }}>
             <span className="gold-metal sheen sheen-d1 w-11 h-11 rounded-[14px] grid place-items-center shrink-0">
               <Icon name="mark" size={20} accent="#3A2300" className="relative z-[1]" />
             </span>

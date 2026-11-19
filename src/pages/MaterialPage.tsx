@@ -278,7 +278,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   <iframe ref={fitEmbed} src={embedUrl} title={mat.title}
                     allow="clipboard-write"
                     className="w-full rounded-[18px] border border-white/[.08] block"
-                    style={{ height: 520, background: '#08100D' }} />
+                    style={{ height: 520, background: '#07080A' }} />
                 </div>
               )}
 

@@ -11,7 +11,7 @@ export const typeLabel = (t: string, archive?: boolean) => archive ? 'Архив
 export function EmptyState({ icon, title, text }: { icon: 'history' | 'bookmark' | 'search'; title: string; text: string }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-3 px-10 pb-24 text-center">
-      <span className="w-14 h-14 rounded-[18px] bg-s1 border border-white/[.07] grid place-items-center text-[#CFDAD4]"><Icon name={icon} size={26} /></span>
+      <span className="w-14 h-14 rounded-[18px] bg-s1 border border-white/[.07] grid place-items-center text-[#D3D6DC]"><Icon name={icon} size={26} /></span>
       <div className="font-display font-semibold text-[15px]">{title}</div>
       <div className="text-[13.5px] text-gray leading-relaxed max-w-[260px]">{text}</div>
     </div>

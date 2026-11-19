@@ -9,7 +9,7 @@ import { startHScroll } from './store/hscroll'
 // Шапка и фон окна Telegram — в цвет приложения
 try {
   const tg = (window as any).Telegram?.WebApp
-  tg?.setHeaderColor?.('#08100D'); tg?.setBackgroundColor?.('#08100D'); tg?.setBottomBarColor?.('#08100D')
+  tg?.setHeaderColor?.('#07080A'); tg?.setBackgroundColor?.('#07080A'); tg?.setBottomBarColor?.('#07080A')
 } catch { /* старый клиент */ }
 startCloudSync()
 startHScroll()

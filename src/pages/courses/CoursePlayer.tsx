@@ -115,17 +115,17 @@ function TaskStep({ courseId, step, onResult }: TaskProps) {
           const isWrongPick = verdict === 'wrong' && isSelected
 
           let borderColor = 'rgba(255,255,255,.07)'
-          let bg = '#111C17'
+          let bg = '#121318'
           let textColor = '#F2F4F3'
           let markBg = 'rgba(255,255,255,.06)'
           let markBorder = 'rgba(255,255,255,.18)'
 
           if (!verdict && isSelected) {
-            borderColor = 'rgba(23,229,132,.55)'; bg = 'rgba(23,229,132,.10)'
-            markBg = '#17E584'; markBorder = '#17E584'
+            borderColor = 'rgba(138,120,255,.55)'; bg = 'rgba(138,120,255,.10)'
+            markBg = '#8A78FF'; markBorder = '#8A78FF'
           } else if (isCorrectOpt) {
-            borderColor = 'rgba(23,229,132,.55)'; bg = 'rgba(23,229,132,.12)'
-            markBg = '#17E584'; markBorder = '#17E584'; textColor = '#4BF5A8'
+            borderColor = 'rgba(138,120,255,.55)'; bg = 'rgba(138,120,255,.12)'
+            markBg = '#8A78FF'; markBorder = '#8A78FF'; textColor = '#B3A6FF'
           } else if (isWrongPick) {
             borderColor = 'rgba(255,107,107,.5)'; bg = 'rgba(255,107,107,.10)'
             markBg = '#FF6B6B'; markBorder = '#FF6B6B'; textColor = '#FF9A9A'

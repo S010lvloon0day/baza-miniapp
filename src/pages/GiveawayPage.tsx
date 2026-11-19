@@ -44,7 +44,7 @@ type Stage = {
   link?: StageLink
 }
 
-const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#17E584' }
+const C = { blue: '#60A5FA', amber: '#FBBF24', green: '#8A78FF' }
 
 // Этапы Case002 (индекс 0 = этап 1). Серверный номер этапа = индекс + 1.
 const STAGES: Stage[] = [
@@ -121,7 +121,7 @@ function TermCard({ filename, children }: { filename: string; children: ReactNod
       <div className="flex items-center gap-2 px-3 py-2 border-b" style={{ background: 'rgba(255,255,255,.04)', borderColor: 'rgba(255,255,255,.06)' }}>
         <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FF5F57', boxShadow: 'none' }} />
         <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#FFBC2E', boxShadow: 'none' }} />
-        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#17E584', boxShadow: 'none' }} />
+        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: '#8A78FF', boxShadow: 'none' }} />
         <span className="text-[10px] text-gray2 flex-1 text-center">{filename}</span>
       </div>
       {children}
@@ -133,7 +133,7 @@ function Steps({ step }: { step: number }) {
   return (
     <div className="flex items-center gap-1 text-[10px] text-gray2">
       {Array.from({ length: TOTAL }, (_, i) => i + 1).map(n => (
-        <span key={n} style={{ color: n <= step ? '#17E584' : undefined }}>
+        <span key={n} style={{ color: n <= step ? '#8A78FF' : undefined }}>
           {n < step ? '●' : n === step ? '◉' : '○'}
         </span>
       ))}
@@ -221,7 +221,7 @@ function HintsPanel({ serverStage }: { serverStage: number }) {
           {hints.map(h => (
             <div key={h.idx} className="border border-bd2 bg-bg px-3 py-2.5">
               {h.unlocked ? (
-                <div className="text-[11px]" style={{ color: '#17E584' }}>
+                <div className="text-[11px]" style={{ color: '#8A78FF' }}>
                   <span className="text-gray2">Подсказка #{h.idx + 1}:</span>
                   <div className="text-white mt-1 font-sans text-[13px] leading-snug">{h.text}</div>
                 </div>
@@ -347,7 +347,7 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
       {!passed && level > 0 && (
         <div
           className="flex items-center gap-2 px-3 py-2.5 border text-[11px]"
-          style={{ borderColor: 'rgba(23,229,132,.3)', background: 'rgba(23,229,132,.05)', color: '#17E584' }}
+          style={{ borderColor: 'rgba(138,120,255,.3)', background: 'rgba(138,120,255,.05)', color: '#8A78FF' }}
         >
           Этап {level} пройден — след принят
         </div>
@@ -391,7 +391,7 @@ function StageScreen({ level, passed, canBack, onBack, onForward, input, setInpu
         <>
           <div
             className="flex items-center gap-2 px-3 py-2.5 border text-[11px]"
-            style={{ borderColor: 'rgba(23,229,132,.3)', background: 'rgba(23,229,132,.05)', color: '#17E584' }}
+            style={{ borderColor: 'rgba(138,120,255,.3)', background: 'rgba(138,120,255,.05)', color: '#8A78FF' }}
           >
             Этап пройден — ответ принят
           </div>
@@ -460,7 +460,7 @@ function FinalScreen({ onAdmin, onBack, onReplay, hasWinner }: {
           <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
             <TermCard filename="case_002/prize.txt">
               <div className="p-4 text-[11px] leading-[1.9] space-y-2">
-                <div><span style={{ color: '#17E584' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
+                <div><span style={{ color: '#8A78FF' }}>[REWARD]</span><span className="text-gray2 ml-2">Секретное предложение:</span></div>
                 <div
                   className="px-3 py-2.5 text-[13px] text-white leading-snug font-sans border-l-2"
                   style={{ borderLeftColor: 'rgba(40,200,64,.6)', background: 'rgba(40,200,64,.05)' }}

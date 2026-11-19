@@ -135,7 +135,7 @@ export default function SearchPage({ onMaterial }: Props) {
 
         {!showHistory && !loading && !searched && (
           <div className="flex flex-col items-center text-center gap-3 pt-16 px-6">
-            <span className="w-14 h-14 rounded-[18px] bg-s1 border border-white/[.07] grid place-items-center text-[#CFDAD4]"><Icon name="search" size={26} /></span>
+            <span className="w-14 h-14 rounded-[18px] bg-s1 border border-white/[.07] grid place-items-center text-[#D3D6DC]"><Icon name="search" size={26} /></span>
             <div className="font-display font-semibold text-[15px]">Что ищем?</div>
             <div className="text-[13.5px] text-gray leading-relaxed max-w-[260px]">Введите хотя бы 2 символа: название урока, инструмента или темы.</div>
           </div>

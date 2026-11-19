@@ -37,9 +37,9 @@ export default function BottomNav({ active, onChange, showConstructor, badges }:
         const badge = badges?.[id] ?? 0
         return (
           <button key={id} onClick={() => onChange(id)} aria-current={on ? 'page' : undefined}
-            className={`relative flex-1 flex flex-col items-center gap-[3px] rounded-[26px] transition-colors ${dense ? 'py-[7px]' : 'pt-[8px] pb-[7px]'} ${on ? 'bg-white/10 text-green' : 'text-gray active:bg-white/5'}`}
+            className={`relative flex-1 flex flex-col items-center gap-[3px] rounded-[26px] transition-colors ${dense ? 'py-[7px]' : 'pt-[8px] pb-[7px]'} ${on ? 'text-bg' : 'text-gray active:bg-white/5'}`}
             style={on ? { boxShadow: 'inset 0 1px 0 rgba(255,255,255,.08)' } : undefined}>
-            <Icon name={ICONS[id]} size={dense ? 22 : 24} accent={on ? 'brand' : 'current'} />
+            <Icon name={ICONS[id]} size={dense ? 22 : 24} accent={on ? '#7A4DFF' : 'current'} />
             <span className={`leading-none font-medium ${dense ? 'text-[9.5px]' : 'text-[10.5px]'}`}>{label}</span>
             {badge > 0 && (
               <span className="absolute top-1 left-1/2 ml-[7px] min-w-[17px] h-[17px] px-1 rounded-full bg-green text-ink text-[10px] font-bold flex items-center justify-center tabular-nums">

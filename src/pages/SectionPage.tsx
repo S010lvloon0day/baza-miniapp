@@ -55,7 +55,7 @@ const FILTERS: { id: Filter; label: string; match: (t: string) => boolean }[] = 
 function Cover({ section, children }: { section: Section; children?: React.ReactNode }) {
   return (
     <div className={`${coverClass(section)} relative overflow-hidden px-[18px] pt-10 pb-5 min-h-[178px] flex flex-col justify-end`}>
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,16,13,0) 25%, #08100D 100%)' }} />
+      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,16,13,0) 25%, #07080A 100%)' }} />
       <Icon name={iconNameFor(section.title)} size={150} className="absolute -right-5 top-1 opacity-[.14] text-white" accent="#fff" strokeWidth={1.3} />
       <div className="relative">{children}</div>
     </div>
@@ -74,7 +74,7 @@ function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: ()
       <Cover section={section}>
         <PremiumBadge />
         <h1 className="font-display font-semibold text-[25px] leading-tight mt-2.5" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
-        {section.description && <p className="text-[14px] text-[#CFDAD4] mt-1">{section.description}</p>}
+        {section.description && <p className="text-[14px] text-[#D3D6DC] mt-1">{section.description}</p>}
       </Cover>
       <div className="px-3.5 flex flex-col gap-3">
         <div className="card-gold px-4 py-4">
@@ -227,7 +227,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
             <h1 className="font-display font-semibold text-[26px] leading-tight break-words" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
             {section.description && (
               <p onClick={() => setDescOpen(v => !v)}
-                className={`text-[14px] text-[#CFDAD4] mt-1 whitespace-pre-line ${section.description.length > 120 ? 'cursor-pointer' : ''} ${descOpen ? '' : 'line-clamp-3'}`}>
+                className={`text-[14px] text-[#D3D6DC] mt-1 whitespace-pre-line ${section.description.length > 120 ? 'cursor-pointer' : ''} ${descOpen ? '' : 'line-clamp-3'}`}>
                 {section.description}
               </p>
             )}
@@ -239,7 +239,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           </div>
           <button onClick={toggleSub} disabled={subBusy} aria-label={subscribed ? 'Отключить уведомления раздела' : 'Уведомлять о новых материалах'}
             className={`shrink-0 w-11 h-11 rounded-full grid place-items-center transition-colors active:opacity-80 ${subscribed ? 'bg-green text-ink' : 'bg-black/35 text-white border border-white/15'}`}>
-            <Icon name={subscribed ? 'bellRing' : 'bell'} size={20} accent={subscribed ? '#03200F' : 'brand'} />
+            <Icon name={subscribed ? 'bellRing' : 'bell'} size={20} accent={subscribed ? '#FFFFFF' : 'brand'} />
           </button>
         </div>
       </Cover>
@@ -291,7 +291,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
 
         {lockedPreview && (
           <div className="flex items-center gap-3 rounded-[20px] px-4 py-3.5 border border-white/[.11]"
-            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.20),rgba(245,194,90,.03) 60%),#111C17' }}>
+            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.20),rgba(245,194,90,.03) 60%),#121318' }}>
             <div className="flex-1 min-w-0">
               <PremiumBadge small />
               <div className="text-[13.5px] text-[#E4E9E6] leading-snug mt-1.5">Посмотрите, что внутри. Материалы откроются по подписке.</div>
@@ -363,7 +363,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                 return (
                   <button key={m.id} onClick={() => onMaterial(m.id, section.id, page)}
                     className="w-full flex items-center gap-3 px-3.5 py-[11px] text-left active:bg-white/[.04] transition-colors"
-                    style={isCur ? { background: 'linear-gradient(90deg,rgba(23,229,132,.14),transparent 70%)' } : undefined}>
+                    style={isCur ? { background: 'linear-gradient(90deg,rgba(138,120,255,.14),transparent 70%)' } : undefined}>
                     <span className={`w-[38px] h-[38px] rounded-full grid place-items-center shrink-0 text-[13px] font-semibold tabular-nums
                       ${isCur ? 'bg-green text-ink' : m.viewed ? 'bg-green/15 text-green' : m.opened ? 'bg-gold/10 text-gold' : 'bg-white/[.06] text-gray'}`}>
                       {m.viewed && !isCur ? <Icon name="check" size={16} strokeWidth={2.3} /> : m.opened && !isCur ? <Icon name="eye" size={16} /> : n}
@@ -418,7 +418,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           </section>
         ) : !subs.length && (
           <div className="flex flex-col items-center text-center gap-3 py-14">
-            <span className="w-14 h-14 rounded-[18px] bg-s1 border border-white/[.07] grid place-items-center text-[#CFDAD4]"><Icon name="folder" size={26} /></span>
+            <span className="w-14 h-14 rounded-[18px] bg-s1 border border-white/[.07] grid place-items-center text-[#D3D6DC]"><Icon name="folder" size={26} /></span>
             <div className="font-display font-semibold text-[15px]">Раздел пока пуст</div>
             <div className="text-[13.5px] text-gray">Скоро здесь появятся материалы.</div>
           </div>
