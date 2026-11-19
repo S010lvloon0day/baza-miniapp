@@ -358,7 +358,7 @@ export const voiceBus = {
   emit: (type: string, detail: any) => window.dispatchEvent(new CustomEvent('cv:' + type, { detail })),
 }
 
-function VoiceMsg({ url, mine, id, name }: { url: string; mine?: boolean; id: number; name: string }) {
+function VoiceMsg({ url, mine, id, name, bind }: { url: string; mine?: boolean; id: number; name: string; bind?: Record<string, unknown> }) {
   const aRef = useRef<HTMLAudioElement>(null)
   const [playing, setPlaying] = useState(false)
   const [cur, setCur] = useState(0)
@@ -405,12 +405,12 @@ function VoiceMsg({ url, mine, id, name }: { url: string; mine?: boolean; id: nu
   const accent = mine ? '#E2DCFF' : '#8A78FF'
   const dim = mine ? 'rgba(255,255,255,.28)' : 'rgba(255,255,255,.18)'
   return (
-    <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 200, maxWidth: 270 }} onClick={(e) => e.stopPropagation()}>
-      <button onClick={toggle} aria-label={playing ? 'Пауза' : 'Слушать'} className="shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: accent, color: '#FFFFFF' }}>
+    <div className="flex items-center gap-2.5 px-2.5 py-2" style={{ minWidth: 200, maxWidth: 270 }} onClick={(e) => e.stopPropagation()} {...bind}>
+      <button onClick={(e) => { e.stopPropagation(); toggle() }} aria-label={playing ? 'Пауза' : 'Слушать'} className="shrink-0 w-[38px] h-[38px] rounded-full flex items-center justify-center active:scale-95 transition-transform" style={{ background: accent, color: '#FFFFFF' }}>
         <Icon name={playing ? 'pause' : 'play'} size={15} accent="current" style={playing ? undefined : { marginLeft: 2 }} />
       </button>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-[2px] h-7 cursor-pointer" onClick={(e) => { const a = aRef.current; if (!a || !dur) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur; setCur(a.currentTime) }}>
+        <div className="flex items-center gap-[2px] h-7 cursor-pointer" onClick={(e) => { e.stopPropagation(); const a = aRef.current; if (!a || !dur) return; const r = (e.currentTarget as HTMLElement).getBoundingClientRect(); a.currentTime = ((e.clientX - r.left) / r.width) * dur; setCur(a.currentTime) }}>
           {bars.map((b, i) => (
             <span key={i} style={{ width: 3, borderRadius: 2, height: `${Math.round(b * 100)}%`, background: (i / bars.length) <= frac ? accent : dim }} />
           ))}
@@ -418,7 +418,7 @@ function VoiceMsg({ url, mine, id, name }: { url: string; mine?: boolean; id: nu
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11.5px] tabular-nums" style={{ color: mine ? 'rgba(236,232,255,.8)' : '#A6AAB4' }}>{fmtDur((playing || cur) ? cur : dur)}</span>
           {(playing || cur > 0) && (
-            <button onClick={cycleSpeed} className="px-1.5 rounded-full text-[10.5px] font-bold tabular-nums" style={{ background: dim, color: mine ? '#fff' : '#D3D6DC' }}>{speed}×</button>
+            <button onClick={(e) => { e.stopPropagation(); cycleSpeed() }} className="px-1.5 rounded-full text-[10.5px] font-bold tabular-nums" style={{ background: dim, color: mine ? '#fff' : '#D3D6DC' }}>{speed}×</button>
           )}
         </div>
       </div>
@@ -715,7 +715,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
   // медиа: короткий тап — просмотр, долгое нажатие — меню сообщения
   const tapMedia = (open: () => void) => ({
     onClick: (e: React.MouseEvent) => { e.stopPropagation(); if (lpFired.current) { lpFired.current = false; return } if (selectMode) { ctx.toggleSelect(m.id); return } open() },
-    onTouchStart: () => { lastTouch.current = Date.now(); lpStart() }, onTouchEnd: lpEnd, onTouchMove: lpEnd,
+    onTouchStart: () => { lastTouch.current = Date.now(); lpStart() }, onTouchEnd: (e: React.TouchEvent) => { lpEnd(); if (lpFired.current && e.cancelable) e.preventDefault() }, onTouchMove: lpEnd,
     // на телефоне после касания браузер шлёт ещё и мышиные события — их пропускаем
     onMouseDown: () => { if (Date.now() - lastTouch.current > 900) lpStart() },
     onMouseUp: () => { if (Date.now() - lastTouch.current > 900) lpEnd() }, onMouseLeave: lpEnd,
@@ -865,7 +865,7 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
                   )}
                 </div>
               )}
-              {m.type === 'voice' && src && <VoiceMsg url={src} mine={mine} id={m.id} name={m.name} />}
+              {m.type === 'voice' && src && <VoiceMsg url={src} mine={mine} id={m.id} name={m.name} bind={tapMedia(bubbleTap)} />}
               {m.type === 'file' && src && <FileCard m={m} mine={mine} bind={tapMedia} />}
               {m.type === 'poll' && m.poll && <PollMsg m={m} mine={mine} onUpdate={ctx.pollUpdate} />}
               {/* на медиа без подписи — время поверх картинки в тёмной плашке */}
