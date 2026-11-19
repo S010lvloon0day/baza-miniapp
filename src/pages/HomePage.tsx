@@ -413,7 +413,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
         {/* Глобус + продолжить */}
         <div className="hero-v2 anim-up" style={{ animationDelay: '.1s' }}>
           <i className="hv-g1" /><i className="hv-g2" /><i className="hv-g3" />
-          <div className="hv-globe"><Globe labels={shelf.slice(0, 8).map(s => s.title)} /></div>
+          <div className="hv-globe"><Globe labels={shelf.slice(0, 8).map(s => s.title)} onPick={i => shelf[i] && onSection(shelf[i])} /></div>
           <i className="hv-shade" />
           <div className="hv-top">
             <span />

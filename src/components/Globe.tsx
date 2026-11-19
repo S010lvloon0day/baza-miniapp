@@ -12,7 +12,7 @@ const SPOTS: [number, number][] = [[55.7, 37.6], [37.8, -122.4], [35.7, 139.7], 
 const VS = `attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}`
 
 const FS = `precision highp float;
-uniform vec2 uRes;uniform float uT;uniform float uRot;uniform sampler2D uMask;uniform vec3 uSpots[8];
+uniform vec2 uRes;uniform float uT;uniform float uRot;uniform sampler2D uMask;uniform sampler2D uLogo;uniform vec3 uSpots[8];
 const float PI=3.14159265;
 const vec3 C1=vec3(.24,1.,.78);const vec3 C2=vec3(.24,.55,1.);const vec3 C3=vec3(.71,.36,1.);
 vec3 pal(float u){return u<.5?mix(C1,C2,u*2.):mix(C2,C3,(u-.5)*2.);}
@@ -62,6 +62,12 @@ void main(){
     col=mix(col,dc,dot1*land*(1.-night*.55));
     col+=vec3(1.,.75,1.)*dot1*land*lights*.6;
     col+=pal(ux)*.05*dot1*(1.-land);           // едва заметный океанский узор
+    // логотип S010 точками в океанах (Тихий и Индийский)
+    float lg=0.;
+    { vec2 lu=vec2((lonc-(-2.97))/0.93,(0.52-latc)/0.95); if(lu.x>0.&&lu.x<1.&&lu.y>0.&&lu.y<1.) lg=texture2D(uLogo,lu).r; }
+    { vec2 lu=vec2((lonc-1.05)/0.72,(-0.05-latc)/0.74); if(lu.x>0.&&lu.x<1.&&lu.y>0.&&lu.y<1.) lg=max(lg,texture2D(uLogo,lu).r); }
+    float lgp=.75+.25*sin(uT*1.6);
+    col=mix(col,mix(vec3(.72,.42,1.),vec3(1.,.93,.78),.25+.25*sin(uT*1.6+lat*6.))*(.6+.6*lam)*lgp,dot1*lg*(1.-land)*(1.-night*.4));
     // точки-разделы: ядро и расходящееся кольцо
     for(int i=0;i<8;i++){
       vec3 s=uSpots[i];vec3 sw=s;               // уже в координатах шара
@@ -88,6 +94,25 @@ void main(){
   gl_FragColor=vec4(col,clamp(a,0.,1.));
 }`
 
+function logoTexture(gl: WebGLRenderingContext) {
+  const S = 96, cv = document.createElement('canvas'); cv.width = S; cv.height = S
+  const x = cv.getContext('2d') as CanvasRenderingContext2D
+  x.fillStyle = '#000'; x.fillRect(0, 0, S, S); x.fillStyle = '#fff'
+  const k = S / 240, oy = (S - 230 * k) / 2
+  const poly = (pts: number[]) => { x.beginPath(); for (let i = 0; i < pts.length; i += 2) { const px = pts[i] * k, py = pts[i + 1] * k + oy; if (i) x.lineTo(px, py); else x.moveTo(px, py) } x.closePath(); x.fill() }
+  poly([120, 2, 238, 166, 206, 166, 156, 94, 120, 141, 84, 94, 34, 166, 2, 166])
+  poly([86, 128, 120, 174, 154, 128, 182, 166, 120, 228, 58, 166])
+  const d = x.getImageData(0, 0, S, S).data, px = new Uint8Array(S * S)
+  for (let i = 0; i < S * S; i++) px[i] = d[i * 4]
+  const t = gl.createTexture()
+  gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, t)
+  gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1)
+  gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, S, S, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, px)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  gl.activeTexture(gl.TEXTURE0)
+}
+
 function maskTexture(gl: WebGLRenderingContext) {
   const bin = atob(LAND_MASK)
   const px = new Uint8Array(360 * 180)
@@ -103,8 +128,9 @@ function maskTexture(gl: WebGLRenderingContext) {
   return t
 }
 
-export default function Globe(_props: { labels?: string[] }) {
+export default function Globe({ labels = [], onPick }: { labels?: string[]; onPick?: (i: number) => void }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const tagRefs = useRef<(HTMLButtonElement | null)[]>([])
 
   useEffect(() => {
     const cv = ref.current
@@ -124,6 +150,7 @@ export default function Globe(_props: { labels?: string[] }) {
     const loc = gl.getAttribLocation(pr, 'p'); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0)
     gl.activeTexture(gl.TEXTURE0); maskTexture(gl)
     gl.uniform1i(gl.getUniformLocation(pr, 'uMask'), 0)
+    logoTexture(gl); gl.uniform1i(gl.getUniformLocation(pr, 'uLogo'), 1)
     gl.uniform2f(gl.getUniformLocation(pr, 'uRes'), cv.width, cv.height)
     const sp = new Float32Array(24)
     SPOTS.forEach(([la, lo], i) => { const f = la * Math.PI / 180, l = lo * Math.PI / 180; sp[i * 3] = Math.cos(f) * Math.sin(l); sp[i * 3 + 1] = Math.sin(f); sp[i * 3 + 2] = Math.cos(f) * Math.cos(l) })
@@ -134,7 +161,34 @@ export default function Globe(_props: { labels?: string[] }) {
 
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
     let rot = 2.2, vel = 0, drag = false, lx = 0, raf = 0, visible = true, last = performance.now()
-    const render = (t: number) => { gl.uniform1f(uT, t); gl.uniform1f(uRot, rot); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4) }
+    // подписи разделов у точек: та же математика поворота, что и в шейдере; двигаем через transform (без перерасчёта вёрстки)
+    let scl = cv.clientWidth / W || 1
+    const ro = new ResizeObserver(() => { scl = cv.clientWidth / W || 1 }); ro.observe(cv)
+    const cX = Math.cos(0.35), sX = Math.sin(0.35)
+    const placeTags = () => {
+      const cr = Math.cos(rot), sr = Math.sin(rot)
+      const boxes: number[] = []
+      for (let i = 0; i < SPOTS.length; i++) {
+        const el = tagRefs.current[i]; if (!el) continue
+        const x0 = sp[i * 3], y0 = sp[i * 3 + 1], z0 = sp[i * 3 + 2]
+        const x1 = cr * x0 - sr * z0, z1 = sr * x0 + cr * z0
+        const y2 = cX * y0 + sX * z1, z2 = -sX * y0 + cX * z1
+        const px = 195 + x1 * 118, py = 150 - y2 * 118
+        let a = Math.max(0, Math.min(1, (z2 - 0.35) / 0.3))
+        if (py < 44 || py > 205) a = 0
+        const w = el.offsetWidth / scl || 80, left = Math.max(24, Math.min(W - 24 - w, px < 195 ? px - 14 - w : px + 14)), top = py - 34
+        if (top < 62 && left + w > 225) a = 0
+        if (a > 0) {
+          for (let k = 0; k < boxes.length; k += 4) if (left < boxes[k] + boxes[k + 2] + 6 && left + w + 6 > boxes[k] && top < boxes[k + 1] + 26 && top + 26 > boxes[k + 1]) { a = 0; break }
+          if (a > 0) boxes.push(left, top, w, 24)
+        }
+        el.style.opacity = a.toFixed(2)
+        el.style.pointerEvents = a > 0.5 ? 'auto' : 'none'
+        el.style.transform = `translate3d(${(left * scl).toFixed(1)}px,${(top * scl).toFixed(1)}px,0) scale(${(0.92 + 0.08 * a).toFixed(3)})`
+        el.style.setProperty('--lx', px < 195 ? '100%' : '0%')
+      }
+    }
+    const render = (t: number) => { gl.uniform1f(uT, t); gl.uniform1f(uRot, rot); gl.clear(gl.COLOR_BUFFER_BIT); gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); placeTags() }
     const frame = (now: number) => {
       raf = requestAnimationFrame(frame)
       if (!visible || document.hidden) { last = now; return }
@@ -155,7 +209,7 @@ export default function Globe(_props: { labels?: string[] }) {
     const lost = (e: Event) => { e.preventDefault(); cancelAnimationFrame(raf); cv.classList.add('globe-fallback') }
     cv.addEventListener('webglcontextlost', lost)
     return () => {
-      cancelAnimationFrame(raf); io.disconnect()
+      cancelAnimationFrame(raf); io.disconnect(); ro.disconnect()
       cv.removeEventListener('pointerdown', down); cv.removeEventListener('pointermove', move)
       cv.removeEventListener('pointerup', up); cv.removeEventListener('pointercancel', up)
       cv.removeEventListener('webglcontextlost', lost)
@@ -163,5 +217,14 @@ export default function Globe(_props: { labels?: string[] }) {
     }
   }, [])
 
-  return <canvas ref={ref} className="globe-cv" style={{ width: '100%', aspectRatio: `${W} / ${H}`, touchAction: 'pan-y' }} />
+  return (
+    <div className="globe-wrap">
+      <canvas ref={ref} className="globe-cv" style={{ width: '100%', aspectRatio: `${W} / ${H}`, touchAction: 'pan-y' }} />
+      {labels.slice(0, SPOTS.length).map((l, i) => (
+        <button key={i} ref={el => { tagRefs.current[i] = el }} className="gtag" style={{ opacity: 0 }} onClick={() => onPick?.(i)}>
+          <i />{l.length > 18 ? l.slice(0, 17) + '…' : l}
+        </button>
+      ))}
+    </div>
+  )
 }
