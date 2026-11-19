@@ -222,7 +222,7 @@ export default function Globe({ labels = [], onPick }: { labels?: string[]; onPi
       <canvas ref={ref} className="globe-cv" style={{ width: '100%', aspectRatio: `${W} / ${H}`, touchAction: 'pan-y' }} />
       {labels.slice(0, SPOTS.length).map((l, i) => (
         <button key={i} ref={el => { tagRefs.current[i] = el }} className="gtag" style={{ opacity: 0 }} onClick={() => onPick?.(i)}>
-          <i />{l.length > 18 ? l.slice(0, 17) + '…' : l}
+          {l.length > 18 ? l.slice(0, 17) + '…' : l}
         </button>
       ))}
     </div>
