@@ -460,7 +460,7 @@ html { background: #07080A !important; }
 .hv-g1, .hv-g2, .hv-g3 { animation-duration: 16s !important; }
 body.has-nav { --navh: 74px; }
 body.kb-open { --navh: 0px; }
-body.kb-open .nav-v2 { opacity: 0; pointer-events: none; transform: translate(-50%, 30px) !important; transition: opacity .2s, transform .2s; }
+body.kb-open .nav-v2 { display: none !important; }
 .globe-cv.globe-fallback { background: radial-gradient(circle at 50% 45%, transparent 0 34.5%, rgba(90,170,255,.25) 36%, transparent 41%), radial-gradient(circle at 42% 38%, #1f4fa8 0, #0c1e52 22%, #050a1c 35%, transparent 35.5%); }
 
 /* ═════ Авторское «Знания S010lvloon» ═════ */
@@ -567,3 +567,9 @@ h2.text-\[17px\].font-bold, h3.text-\[17px\].font-bold { font-size: 22px !import
   .hv-body { max-width: 560px; padding: 0 28px 28px !important; }
   .hv-title { font-size: 52px !important; }
 }
+/* Любая полноэкранная шторка/окно открыта — меню прячем (на iPhone размытая панель иначе рисуется поверх) */
+body:has(.fixed.inset-0) .app-nav { display: none !important; }
+/* iOS увеличивает страницу при фокусе в поле со шрифтом меньше 16px — из-за этого экран «уезжал» вбок */
+@media (pointer: coarse) { input, textarea, select, [contenteditable="true"] { font-size: 16px !important; } }
+html, body, #root { max-width: 100%; overflow-x: hidden; }
+.overflow-y-auto { overflow-x: hidden; }

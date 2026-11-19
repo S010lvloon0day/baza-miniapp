@@ -30,29 +30,36 @@ interface Props {
 export default function BottomNav({ active, onChange, showConstructor, badges }: Props) {
   const tabs = showConstructor ? [...TABS, CTOR_TAB] : TABS
   const dense = tabs.length > 5
-  // пока открыта экранная клавиатура — меню прячем, чтобы не занимало место над ней.
-  // Клавиатуру определяем по фокусу в поле И уменьшению высоты экрана (иначе меню не прячем).
+  // Экранная клавиатура: на телефоне (сенсорный экран) меню прячем всё время, пока фокус в поле ввода —
+  // в iOS высота экрана при клавиатуре часто не меняется, поэтому по ней одной судить нельзя.
+  // Если клавиатуру закрыли «назад» (Android), а фокус остался — снимаем фокус, и меню возвращается.
   useEffect(() => {
     const vv = window.visualViewport
-    let maxH = Math.max(vv?.height ?? 0, window.innerHeight)
-    const isField = (el: Element | null) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || (el as HTMLElement).isContentEditable)
+    const touch = window.matchMedia?.('(pointer: coarse)').matches ?? ('ontouchstart' in window)
+    let maxH = vv?.height ?? window.innerHeight, shrunk = false
+    const isField = (el: Element | null) => !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || (el as HTMLElement).isContentEditable) && !(el as HTMLInputElement).readOnly
+      && !['checkbox', 'radio', 'range', 'button', 'submit', 'file', 'color'].includes((el as HTMLInputElement).type)
     const check = () => {
-      const h = Math.min(vv?.height ?? window.innerHeight, window.innerHeight)
-      if (!isField(document.activeElement)) maxH = Math.max(maxH, h)
-      document.body.classList.toggle('kb-open', isField(document.activeElement) && h < maxH - 140)
+      const h = vv?.height ?? window.innerHeight
+      const focused = isField(document.activeElement)
+      if (!focused) { maxH = Math.max(maxH, h); shrunk = false }
+      else if (h < maxH - 120) shrunk = true
+      else if (shrunk && h >= maxH - 40) { shrunk = false; (document.activeElement as HTMLElement)?.blur?.() }
+      const open = isField(document.activeElement) && (touch || h < maxH - 120)
+      document.body.classList.toggle('kb-open', open)
     }
-    const later = () => window.setTimeout(check, 60)
-    document.addEventListener('focusin', later); document.addEventListener('focusout', later)
+    const later = () => window.setTimeout(check, 30)
+    document.addEventListener('focusin', check); document.addEventListener('focusout', later)
     vv?.addEventListener('resize', check); window.addEventListener('resize', check)
     document.body.classList.add('has-nav')
     return () => {
-      document.removeEventListener('focusin', later); document.removeEventListener('focusout', later)
+      document.removeEventListener('focusin', check); document.removeEventListener('focusout', later)
       vv?.removeEventListener('resize', check); window.removeEventListener('resize', check)
       document.body.classList.remove('has-nav', 'kb-open')
     }
   }, [])
   return (
-    <nav className="app-nav nav-v2 fixed z-50 flex"
+    <nav className="app-nav nav-v2 fixed z-[45] flex"
       style={{ left: '50%', transform: 'translateX(-50%)', bottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}>
       {tabs.map(({ id, label }) => {
         const on = active === id

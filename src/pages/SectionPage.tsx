@@ -343,7 +343,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                 </button>
                 {sortOpen && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)} />
+                    <div className="fixed inset-0 z-[60]" onClick={() => setSortOpen(false)} />
                     <div className="absolute z-50 left-1 top-[38px] min-w-[200px] rounded-[16px] bg-s1 border border-white/[.1] shadow-xl shadow-black/40 py-1.5 overflow-hidden">
                       {SORTS.map(o => (
                         <button key={o.id || 'pos'}

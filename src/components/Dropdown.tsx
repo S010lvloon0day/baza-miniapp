@@ -16,7 +16,7 @@ export default function Dropdown<T extends string>({ label, value, options, onCh
       </button>
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="fixed inset-0 z-[60]" onClick={() => setOpen(false)} />
           <div className="absolute z-50 left-0 top-[38px] min-w-[200px] max-w-[280px] max-h-[320px] overflow-y-auto rounded-[16px] bg-s1 border border-white/[.1] shadow-xl shadow-black/40 py-1.5">
             {options.map(o => (
               <button key={o.id || '_'} onClick={() => { setOpen(false); if (o.id !== value) onChange(o.id) }}
