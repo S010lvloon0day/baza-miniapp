@@ -86,6 +86,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
 
   const onChange = (v: string) => {
     setQuery(v)
+    if (v.trim().length >= 3 && help) { setHelp(false); try { localStorage.setItem('sk_help_seen', '1') } catch { /* */ } }
     if (timer.current) clearTimeout(timer.current)
     timer.current = setTimeout(() => doSearch(v), 800)
   }
