@@ -29,14 +29,14 @@ function HowItWorks({ st, open, onToggle }: { st: SkladStatus | null; open: bool
       {open && (
         <div className="sk-help-b">
           <p><span className="sk-tag r">⚡ Мгновенно</span> — курс уже открыт у нас, ссылки появятся сразу. Бесплатно — {cf} таких в день, с Premium — без ограничений.</p>
-          <p><span className="sk-tag n">Новый</span> — курс открывается на форуме впервые. Форум разрешает открывать лишь несколько новых курсов в сутки <i>на всех пользователей сразу</i>, поэтому они делятся честно: бесплатно — {nf} в день, с Premium — {np} и в первую очередь.</p>
-          <p><span className="sk-tag q">⏳ Очередь</span> — если прямо сейчас открыть новый курс нельзя, он встаёт в очередь. Ссылки <b>придут в бота автоматически</b> — повторно нажимать ничего не нужно. Место и примерное время видно ниже, в «Ваша очередь».</p>
+          <p><span className="sk-tag n">Новый</span> — курс открывается впервые, на это уходит <b>1 токен</b>. Токенов {st?.tokens_total ?? 15} в сутки <i>на всех пользователей сразу</i>, поэтому новые курсы делятся честно: бесплатно — {nf} в день, с Premium — {np} и в первую очередь. Токен, потраченный однажды, открывает курс для всех навсегда.</p>
+          <p><span className="sk-tag q">⏳ Очередь</span> — если свободных токенов сейчас нет, курс встаёт в очередь и откроется, как только токен освободится. Ссылки <b>придут в бота автоматически</b> — повторно нажимать ничего не нужно. Место и примерное время видно ниже, в «Ваша очередь». Передумали — уберите курс из очереди кнопкой ×, лимит вернётся.</p>
           <p><span className="sk-tag w">Тоже хочу</span> — если курс уже кто-то ждёт, нажмите на него: ссылки придут всем одновременно, а лимит новых курсов не тратится.</p>
           <ul>
             <li>Лимиты считаются за последние 24 часа, а не с полуночи.</li>
             <li>Тот же курс в течение суток открывается повторно бесплатно.</li>
             <li>Если автор не приложил ссылок — лимит возвращается.</li>
-            <li>Ночью сервер заранее открывает самые популярные курсы — утром они уже ⚡.</li>
+            <li>Токены освобождаются через 24 часа после траты. Ночью свободные токены тратятся на самые популярные курсы — утром они уже ⚡.</li>
             <li>Ссылки ведут на облака (Mail.ru, Яндекс, Google). Если файл удалён автором — выберите другую раздачу этого курса.</li>
             <li>Чтобы ссылки из очереди дошли, не блокируйте бота.</li>
           </ul>
@@ -80,7 +80,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
       const r = await sklad.search(q.trim())
       setResults(r.results); setMore(!!r.more); setCat(''); setSearched(true)
     } catch (e: any) {
-      setNotice(e.message === 'premium_required' ? '' : { tone: 'warn', title: 'Поиск не ответил', text: 'Форум отвечает медленно или временно недоступен. Повторите через минуту.' })
+      setNotice(e.message === 'premium_required' ? '' : { tone: 'warn', title: 'Поиск не ответил', text: 'Источник курсов отвечает медленно или временно недоступен. Повторите через минуту.' })
     } finally { setLoading(false) }
   }, [])
 
@@ -106,7 +106,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
         if (r.already) setNotice({ tone: 'info', title: 'Курс уже в вашей очереди', text: `${pos}Ссылки придут в бота ${when}. Повторно нажимать не нужно.` })
         else if (r.joined) setNotice({ tone: 'ok', title: 'Вы присоединились к ожиданию', text: `Этот курс уже ждут — теперь ${people(r.wants || 2)}. Ссылки придут в бота всем одновременно, ${when}. Лимит новых курсов не потрачен.` })
         else if (r.reason === 'fair') setNotice({ tone: 'info', title: 'Курс поставлен в очередь', text: `Новые курсы сейчас открываются в первую очередь для Premium. ${pos}Ссылки придут в бота автоматически, ${when}.` })
-        else setNotice({ tone: 'info', title: 'Курс поставлен в очередь', text: `Форум сегодня больше не даёт открывать новые курсы — это общий лимит для всех. ${pos}Ссылки придут в бота автоматически, ${when}. Ничего повторять не нужно.` })
+        else setNotice({ tone: 'info', title: 'Курс поставлен в очередь', text: `Свободные токены сейчас закончились — это общий запас на всех. ${pos}Ссылки придут в бота автоматически, ${when}. Ничего повторять не нужно.` })
       } else if (r.status === 'nolinks') {
         setNotice({ tone: 'warn', title: 'В этом курсе нет ссылок', text: 'Автор не приложил к курсу ссылок на скачивание. Лимит не потрачен — выберите другую раздачу.' })
       } else {
@@ -114,8 +114,20 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
       }
       loadStatus()
     } catch (e: any) {
-      setNotice({ tone: 'warn', title: 'Не удалось открыть курс', text: 'Форум не ответил. Лимит не потрачен — попробуйте ещё раз через минуту.' })
+      setNotice({ tone: 'warn', title: 'Не удалось открыть курс', text: 'Источник курсов не ответил. Лимит не потрачен — попробуйте ещё раз через минуту.' })
     } finally { setOpening(null) }
+  }
+
+  const [removing, setRemoving] = useState<number | null>(null)
+  const unqueue = async (q: SkladQueueItem) => {
+    if (!window.confirm(`Убрать «${q.title || 'курс'}» из очереди?`)) return
+    setRemoving(q.thread_id)
+    try {
+      const r = await sklad.unqueue(q.thread_id)
+      setNotice({ tone: 'ok', title: 'Курс убран из очереди', text: r.refunded ? 'Лимит новых курсов возвращён — можно выбрать другой.' : 'Вы больше не ждёте этот курс.' })
+      loadStatus()
+    } catch { setNotice({ tone: 'warn', title: 'Не удалось убрать', text: 'Возможно, курс уже открылся — проверьте бота.' }); loadStatus() }
+    finally { setRemoving(null) }
   }
 
   // Экран курса: описание + ссылки
@@ -198,7 +210,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
                 <span>⚡ Готовые курсы</span>
                 <b>{cl ? `${Math.max(0, cl - cu)} из ${cl}` : 'без ограничений'}</b>
               </div>
-              {status.forum_busy && <div className="sk-q-row"><span>Форум</span><b className="text-[#FFB25B]">новые курсы — через очередь</b></div>}
+              <div className="sk-q-row"><span>Токены на всех</span>{status.forum_busy ? <b className="text-[#FFB25B]">закончились · новые через очередь</b> : <b>{status.tokens_left ?? '—'} из {status.tokens_total ?? 15}</b>}</div>
               {!status.premium && onUpgrade && (
                 <button onClick={onUpgrade} className="btn-gold gold-metal sheen w-full mt-3">
                   <b>5 новых курсов в день и приоритет</b>
@@ -221,9 +233,10 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
                   <b className="block text-[13.5px] font-medium leading-snug truncate">{q.title || `Курс #${q.thread_id}`}</b>
                   <small className="block text-[12px] text-gray">{etaText(q.eta)}{q.wants > 1 ? ` · ждут ${people(q.wants)}` : ''}</small>
                 </span>
+                <button onClick={() => unqueue(q)} disabled={removing === q.thread_id} aria-label="Убрать из очереди" className="sk-queue-x">{removing === q.thread_id ? '…' : '×'}</button>
               </div>
             ))}
-            <small className="block text-[11.5px] text-gray mt-1.5">Ссылки придут в бота автоматически. Premium — впереди очереди, дальше курсы, которые ждёт больше людей.</small>
+            <small className="block text-[11.5px] text-gray mt-1.5">Ссылки придут в бота автоматически, когда освободится токен. Premium — впереди очереди, дальше курсы, которые ждёт больше людей. × — убрать из очереди.</small>
           </div>
         )}
 

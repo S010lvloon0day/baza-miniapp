@@ -40,6 +40,8 @@ export interface SkladStatus {
   queue?: SkladQueueItem[]
   queue_total?: number
   forum_busy?: boolean
+  tokens_left?: number
+  tokens_total?: number
 }
 
 export interface SkladLink {
@@ -90,4 +92,5 @@ export const sklad = {
   course: (thread_id: number) =>
     post<SkladCourse>('/api/sklad/course', { thread_id }),
   status: () => get<SkladStatus>('/api/sklad/status'),
+  unqueue: (thread_id: number) => post<{ ok: boolean; refunded?: boolean }>('/api/sklad/unqueue', { thread_id }),
 }
