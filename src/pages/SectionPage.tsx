@@ -253,7 +253,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                 className="card-gold relative w-full text-left overflow-hidden active:scale-[.99] transition-transform"
                 style={{ boxShadow: 'inset 0 1px 0 rgba(255,223,128,.18), 0 10px 28px rgba(0,0,0,.35)' }}>
                 {/* фирменный знак на фоне */}
-                <span className="absolute -right-6 -bottom-8 pointer-events-none" style={{ opacity: .1 }}><BazaMark size={150} color="#F5C25A" /></span>
+                <span className="absolute -right-6 -bottom-8 pointer-events-none" style={{ opacity: .1 }}><BazaMark size={150} color="#E9C987" /></span>
                 <span className="relative flex items-center gap-3.5 p-4">
                   <span className="gold-metal sheen w-[54px] h-[54px] rounded-[16px] grid place-items-center shrink-0">
                     <Icon name="compass" size={28} accent="#3A2300" style={{ position: 'relative', zIndex: 1, color: '#3A2300' }} />
@@ -267,7 +267,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                     <b className="block font-display font-semibold text-[16px] leading-snug text-fg line-clamp-2">{m.title.replace(/^🧭\s*/, '')}</b>
                     <span className="block text-[12.5px] text-gray mt-1">1 170 инструментов · 33 раздела</span>
                   </span>
-                  <span className="w-9 h-9 rounded-full grid place-items-center shrink-0" style={{ background: 'rgba(245,194,90,.14)', color: '#F5C25A' }}>
+                  <span className="w-9 h-9 rounded-full grid place-items-center shrink-0" style={{ background: 'rgba(233,201,135,.14)', color: '#E9C987' }}>
                     <Icon name="chevR" size={18} />
                   </span>
                 </span>
@@ -291,7 +291,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
 
         {lockedPreview && (
           <div className="flex items-center gap-3 rounded-[20px] px-4 py-3.5 border border-white/[.11]"
-            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.20),rgba(245,194,90,.03) 60%),#121318' }}>
+            style={{ background: 'linear-gradient(120deg,rgba(233,201,135,.20),rgba(233,201,135,.03) 60%),#121318' }}>
             <div className="flex-1 min-w-0">
               <PremiumBadge small />
               <div className="text-[13.5px] text-[#E4E9E6] leading-snug mt-1.5">Посмотрите, что внутри. Материалы откроются по подписке.</div>

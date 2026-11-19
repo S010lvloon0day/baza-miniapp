@@ -83,8 +83,8 @@ export function Row({ icon, title, sub, right, onClick, tone = 'green', danger }
   icon?: IconName; title: ReactNode; sub?: ReactNode; right?: ReactNode; onClick?: () => void
   tone?: 'green' | 'violet' | 'gold' | 'gray'; danger?: boolean
 }) {
-  const bg = { green: 'rgba(138,120,255,.12)', violet: 'rgba(118,87,255,.18)', gold: 'rgba(245,194,90,.16)', gray: 'rgba(255,255,255,.06)' }[tone]
-  const fg = { green: '#8A78FF', violet: '#B9A8FF', gold: '#F5C25A', gray: '#A6AAB4' }[tone]
+  const bg = { green: 'rgba(138,120,255,.12)', violet: 'rgba(118,87,255,.18)', gold: 'rgba(233,201,135,.16)', gray: 'rgba(255,255,255,.06)' }[tone]
+  const fg = { green: '#8A78FF', violet: '#B9A8FF', gold: '#E9C987', gray: '#A6AAB4' }[tone]
   const Tag = onClick ? 'button' : 'div'
   return (
     <Tag onClick={onClick} className={`w-full flex items-center gap-3 px-4 py-3 text-left ${onClick ? 'active:bg-white/[.04]' : ''}`}>
@@ -103,7 +103,7 @@ export function Row({ icon, title, sub, right, onClick, tone = 'green', danger }
 
 export function Badge({ children, tone = 'green' }: { children: ReactNode; tone?: 'green' | 'gold' | 'red' | 'violet' | 'gray' }) {
   const s = {
-    green: ['rgba(138,120,255,.14)', '#8A78FF'], gold: ['rgba(245,194,90,.16)', '#F5C25A'],
+    green: ['rgba(138,120,255,.14)', '#8A78FF'], gold: ['rgba(233,201,135,.16)', '#E9C987'],
     red: ['rgba(255,107,107,.14)', '#FF8080'], violet: ['rgba(118,87,255,.2)', '#B9A8FF'], gray: ['rgba(255,255,255,.07)', '#A6AAB4'],
   }[tone]
   return <span className="inline-flex items-center h-[22px] px-2 rounded-full text-[11.5px] font-semibold shrink-0" style={{ background: s[0], color: s[1] }}>{children}</span>
@@ -124,7 +124,7 @@ export function Field({ label, value, onChange, placeholder, multiline, type = '
 }
 
 export function Toggle({ label, sub, value, onChange, tone = 'green' }: { label: string; sub?: string; value: boolean; onChange: (v: boolean) => void; tone?: 'green' | 'gold' }) {
-  const on = tone === 'gold' ? '#F5C25A' : '#8A78FF'
+  const on = tone === 'gold' ? '#E9C987' : '#8A78FF'
   return (
     <button type="button" onClick={() => onChange(!value)} className="w-full flex items-center gap-3 px-4 py-3 text-left">
       <span className="flex-1 min-w-0">

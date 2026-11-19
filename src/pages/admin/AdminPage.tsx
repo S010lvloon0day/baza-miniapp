@@ -157,7 +157,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <span className="text-[12px] font-semibold text-green mb-1 ml-auto">+{o.new_7d} за неделю</span>
         </div>
         <div className="relative grid grid-cols-2 sm:grid-cols-4 gap-2 mt-4">
-          {([['Premium', num(o.premium), '#F5C25A'], ['Активны сегодня', num(o.active_1d), '#8A78FF'], ['За 7 дней', num(o.active_7d), '#B9A8FF'], ['Выручка 30 дн.', rub(o.rub_30d), '#F5C25A']] as const).map(([l, v, c]) => (
+          {([['Premium', num(o.premium), '#E9C987'], ['Активны сегодня', num(o.active_1d), '#8A78FF'], ['За 7 дней', num(o.active_7d), '#B9A8FF'], ['Выручка 30 дн.', rub(o.rub_30d), '#E9C987']] as const).map(([l, v, c]) => (
             <div key={l} className="rounded-[14px] bg-black/25 px-3 py-2.5 min-w-0">
               <b className="block font-display font-semibold text-[17px] truncate" style={{ color: c }}>{v}</b>
               <span className="text-[11.5px] text-gray">{l}</span>
@@ -211,7 +211,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-4 mt-5 [&>*]:min-w-0">
         <Group title="Контент">
           <Item k="content" icon="folder" title="Разделы и материалы" sub={`${num(o.sections)} разделов · ${num(o.materials)} материалов`} tone="#8A78FF" />
-          <Item k="courses" icon="book" title="Курсы" sub="конструктор курсов и доступ" tone="#F5C25A" />
+          <Item k="courses" icon="book" title="Курсы" sub="конструктор курсов и доступ" tone="#E9C987" />
           <Item k="cstats" icon="trophy" title="Статистика контента" sub="что читают, что ни разу не открывали" tone="#8A78FF" />
           <Item k="subs" icon="checkCircle" title="Заявки от пользователей" sub={o.pending_submissions ? `ждут проверки: ${o.pending_submissions}` : 'новых нет'} tone="#8A78FF" badge={o.pending_submissions} />
         </Group>
@@ -221,18 +221,18 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="feedback" icon="chat" title="Обсуждения" sub="отзывы и оценки материалов" tone="#B9A8FF" badge={fbUnread} />
           <Item k="chatmod" icon="chat" title="Чат: жалобы и муты" sub="модерация, фильтр мата" tone="#FF8A8A" />
           <Item k="mask" icon="mask" title="Сними маску" sub="игра: имя, улики, приз" tone="#B9A8FF" />
-          <Item k="week" icon="trophy" title="Итоги недели" sub="призы 3/2/1 дня · проверка честности" tone="#F5C25A" />
-          <Item k="limits" icon="clock" title="Лимиты чтения" sub="кто упёрся в лимит · сброс" tone="#F5C25A" />
+          <Item k="week" icon="trophy" title="Итоги недели" sub="призы 3/2/1 дня · проверка честности" tone="#E9C987" />
+          <Item k="limits" icon="clock" title="Лимиты чтения" sub="кто упёрся в лимит · сброс" tone="#E9C987" />
         </Group>
         <Group title="Продвижение">
           <Item k="broadcast" icon="send" title="Рассылка" sub="сообщение всем или сегменту" tone="#8A78FF" />
-          <Item k="banners" icon="image" title="Баннеры" sub="карточки на главной" tone="#F5C25A" />
+          <Item k="banners" icon="image" title="Баннеры" sub="карточки на главной" tone="#E9C987" />
           <Item k="pinned" icon="pin" title="Закреп в боте" sub="сообщение при /start" tone="#B9A8FF" />
         </Group>
         <Group title="Деньги и учёт">
-          <Item k="payments" icon="card" title="Оплаты" sub={`${rub(o.rub_30d)} за 30 дней · ${o.rub_30d_count} оплат`} tone="#F5C25A" />
-          <Item k="prices" icon="crown" title="Цены и курс" sub="тарифы Premium · курс рубля" tone="#F5C25A" />
-          <Item k="purchases" icon="book" title="Покупки разделов" sub="кто купил · выдать или забрать доступ" tone="#F5C25A" />
+          <Item k="payments" icon="card" title="Оплаты" sub={`${rub(o.rub_30d)} за 30 дней · ${o.rub_30d_count} оплат`} tone="#E9C987" />
+          <Item k="prices" icon="crown" title="Цены и курс" sub="тарифы Premium · курс рубля" tone="#E9C987" />
+          <Item k="purchases" icon="book" title="Покупки разделов" sub="кто купил · выдать или забрать доступ" tone="#E9C987" />
           <Item k="abandoned" icon="clock" title="Брошенные оплаты" sub="начали платить и не оплатили" tone="#FF8A8A" />
           <Item k="logs" icon="history" title="Журнал" sub="кто и что менял" tone="#A6AAB4" />
         </Group>
@@ -244,7 +244,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <div className="flex items-center justify-between mb-2"><b className="text-[14px]">Популярное за неделю</b><span className="text-[11.5px] text-gray">открытий</span></div>
           {o.top_materials.length ? o.top_materials.map((m, i) => (
             <button key={m.id} onClick={() => nav.push({ k: 'material', id: m.id })} className="w-full flex items-center gap-3 py-2 text-left">
-              <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: i === 0 ? '#F5C25A' : '#6E727C' }}>{i + 1}</span>
+              <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: i === 0 ? '#E9C987' : '#6E727C' }}>{i + 1}</span>
               <span className="flex-1 min-w-0 text-[13.5px] truncate">{m.title}</span>
               <span className="text-[12.5px] text-gray tabular-nums">{num(m.views)}</span>
             </button>
@@ -256,7 +256,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           {o.recent_users.map(u => (
             <button key={u.id} onClick={() => nav.push({ k: 'user', id: u.id })} className="w-full flex items-center gap-3 py-2 text-left">
               <span className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-semibold shrink-0"
-                style={{ background: u.premium ? 'linear-gradient(135deg,#F5C25A,#B8862B)' : '#23252D', color: u.premium ? '#2A1C00' : '#D3D6DC' }}>
+                style={{ background: u.premium ? 'linear-gradient(135deg,#E9C987,#B8862B)' : '#23252D', color: u.premium ? '#2A1C00' : '#D3D6DC' }}>
                 {(u.name || u.username || '?').trim().slice(0, 1).toUpperCase()}
               </span>
               <span className="flex-1 min-w-0">
@@ -290,7 +290,7 @@ function Revenue({ data, onOpen }: { data: { d: string; sum: number }[]; onOpen:
         {data.map((x, i) => (
           <button key={x.d} onClick={() => setSel(sel === i ? null : i)} onMouseEnter={() => setSel(i)} className="flex-1 h-full flex items-end" aria-label={`${x.d}: ${x.sum}`}>
             <span className="w-full rounded-t-[3px]" style={{ height: x.sum ? `${Math.max(8, x.sum / max * 100)}%` : '3px',
-              background: x.sum ? (sel === i ? '#FFE08A' : 'linear-gradient(180deg,#F5C25A,rgba(245,194,90,.35))') : 'rgba(255,255,255,.08)' }} />
+              background: x.sum ? (sel === i ? '#F3DDA6' : 'linear-gradient(180deg,#E9C987,rgba(233,201,135,.35))') : 'rgba(255,255,255,.08)' }} />
           </button>
         ))}
       </div>

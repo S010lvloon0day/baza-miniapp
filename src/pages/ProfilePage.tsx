@@ -3,6 +3,7 @@ import { api } from '../api/client'
 import type { Profile, Config, Plan, ReferralInfo } from '../api/client'
 import { useRubPayment, fmtRub } from '../hooks/useRubPayment'
 import Icon from '../components/Icon'
+import BazaMark from '../components/BazaMark'
 import PremiumBadge from '../components/PremiumBadge'
 
 const tg = (window as any).Telegram?.WebApp
@@ -311,13 +312,13 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
     <div className="flex-1 overflow-y-auto pb-navsafe">
       {/* Шапка */}
       <div className="flex flex-col items-center text-center px-4 pt-5 pb-1"
-        style={{ background: 'radial-gradient(70% 60% at 50% 20%, rgba(245,194,90,.16), transparent 70%), radial-gradient(60% 50% at 80% 60%, rgba(118,87,255,.14), transparent 70%)' }}>
-        <div className="rounded-full p-[3px]" style={{ background: premium ? 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)' : 'rgba(255,255,255,.12)' }}>
-          <div className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center font-display font-semibold text-[28px] text-[#B9C8FF] bg-[#1F3B30] border-[3px] border-bg">
+        style={{ background: 'radial-gradient(70% 60% at 50% 20%, rgba(122,77,255,.22), transparent 70%), radial-gradient(60% 50% at 80% 60%, rgba(61,139,255,.14), transparent 70%)' }}>
+        <div className="rounded-full p-[3px]" style={{ background: premium ? 'conic-gradient(from 200deg,#FFF1C9,#B26BFF,#3D8BFF,#3DFFC8,#FFF1C9)' : 'rgba(255,255,255,.12)' }}>
+          <div className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center font-display font-semibold text-[28px] text-white border-[3px] border-bg avatar-neo">
             {prof?.photo_url ? <img src={prof.photo_url} alt={name} className="w-full h-full object-cover" /> : initials}
           </div>
         </div>
-        <h1 className="font-display font-semibold text-[22px] mt-3 leading-tight max-w-full truncate">{name}</h1>
+        <h1 className="font-display font-extrabold tracking-[-.03em] text-[24px] mt-3 leading-tight max-w-full truncate">{name}</h1>
         {premium ? (
           <div className="flex items-center gap-2 mt-3">
             <PremiumBadge />
@@ -325,7 +326,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
           </div>
         ) : cfg.plans.length > 0 && (
           <button onClick={() => plansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-            className="mt-3 h-9 px-4 rounded-full text-[13px] font-semibold text-gold bg-gold/10 border border-gold/30 flex items-center gap-1.5">
+            className="mt-3 h-9 px-4 rounded-full text-[13px] font-semibold flex items-center gap-1.5 pcta">
             <Icon name="crown" size={14} accent="current" /> Оформить Premium
           </button>
         )}
@@ -335,77 +336,74 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
       {comp && <RankCard c={comp} onOpen={onCompete} />}
       {premium && <ReferralCard />}
 
-      {/* Тарифы */}
+      {/* Тарифы — как экран Premium в прототипе */}
       {cfg.plans.length > 0 && (
-        <div ref={plansRef} className="scroll-mt-4">
-          <div className="flex items-baseline justify-between mx-[18px] mt-6 mb-3">
-            <h2 className="text-[17px] font-bold">{premium ? 'Продлить Premium' : 'Оформить Premium'}</h2>
-            {premium && <span className="text-[12px] text-gray2">дни добавятся к текущим</span>}
+        <div ref={plansRef} className="scroll-mt-4 px-4 mt-6 flex flex-col gap-4">
+          <div className="pcard anim-up">
+            <i className="pcard-sheen" />
+            <span className="flex items-center justify-between relative">
+              <b className="pcard-k">PREMIUM</b>
+              <BazaMark size={26} color="url(#pbGold2)" />
+              <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden><defs><linearGradient id="pbGold2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF1C9" /><stop offset="1" stopColor="#D9A94E" /></linearGradient></defs></svg>
+            </span>
+            <span className="relative flex flex-col gap-1">
+              <b className="pcard-t">База знаний</b>
+              <span className="pcard-s">{premium && prof?.premium_until ? `Активен до ${fmtUntil(prof.premium_until)}` : 'S010lvloon · доступ без ограничений'}</span>
+            </span>
           </div>
+          <h2 className="ph2 anim-up" style={{ animationDelay: '.08s' }}>{premium ? <>Продлите доступ.<br /><span>Дни добавятся к текущим.</span></> : <>Откройте всё.<br /><span>Одной подпиской.</span></>}</h2>
           {!premium && (
-            <ul className="mx-[18px] mb-3.5 flex flex-col gap-1.5">
-              {['Все материалы базы — их больше 4 000', 'Поиск по 100 000+ курсов', 'Оценки и комментарии к материалам'].map(t => (
-                <li key={t} className="flex items-center gap-2 text-[13.5px] text-fg/85">
-                  <Icon name="check" size={15} className="text-gold shrink-0" accent="#F5C25A" />{t}
-                </li>
+            <ul className="flex flex-col gap-2.5 anim-up" style={{ animationDelay: '.14s' }}>
+              {['Все материалы базы — их больше 4 000', 'Поиск курсов: 5 в день из 100 000+', 'Оценки и комментарии к материалам'].map(t => (
+                <li key={t} className="pli"><Icon name="check" size={16} accent="current" />{t}</li>
               ))}
             </ul>
           )}
-          <div className="grid gap-2 mx-4" style={{ gridTemplateColumns: `repeat(${Math.min(3, cfg.plans.length)}, 1fr)` }}>
-            {cfg.plans.map((p) => {
+          <div className="flex flex-col gap-2 anim-up" style={{ animationDelay: '.2s' }}>
+            {[...cfg.plans].sort((a, b) => b.days - a.days).map((p) => {
               const on = selected?.days === p.days
               const perMonth = unit(p) / months(p)
               const off = base > 0 ? Math.round((1 - perMonth / base) * 100) : 0
-              const tag = off >= 5 ? `−${off}%` : null  // плашка только при настоящей скидке
               return (
-                <button key={p.days} onClick={() => { setSelected(p); setMsg(null) }}
-                  className="relative rounded-2xl pt-3.5 pb-3 px-2 text-center flex flex-col gap-[3px] transition-transform active:scale-[.98]"
-                  style={on
-                    ? { background: 'radial-gradient(100% 90% at 50% 0%, rgba(245,194,90,.22), transparent 70%), #17140A', border: '1px solid #F5C25A' }
-                    : { background: '#121318', border: '1px solid rgba(255,255,255,.07)' }}>
-                  {tag && (
-                    <span className="absolute -top-[9px] left-1/2 -translate-x-1/2 z-10">
-                      <span className={`block whitespace-nowrap text-[10px] font-bold px-2 py-[3px] rounded-full ${tag === 'Выгодно' ? 'gold-metal' : 'bg-green text-ink'}`}
-                        style={tag === 'Выгодно' ? { boxShadow: 'none' } : undefined}>{tag}</span>
-                    </span>
-                  )}
-                  <span className="text-[12px] text-gray">{p.label}</span>
-                  <span className={`font-display font-semibold text-[15px] tabular-nums ${on ? 'text-[#FFE7A8]' : ''}`}>{fmtUnit(unit(p))}</span>
-                  {months(p) > 1 && <span className="text-[11px] text-gray2 tabular-nums">{fmtUnit(perMonth)}/мес</span>}
+                <button key={p.days} onClick={() => { setSelected(p); setMsg(null) }} className={`plan ${on ? 'on' : ''}`} aria-pressed={on}>
+                  <span className="plan-r">{on && <i />}</span>
+                  <span className="flex-1 min-w-0 text-left">
+                    <b className="plan-t">{p.label}{off >= 5 && <em className="plan-off">−{off}%</em>}</b>
+                    <small className="plan-s">{months(p) > 1 ? `${fmtUnit(perMonth)} в месяц` : 'Разовый платёж'}</small>
+                  </span>
+                  <b className="plan-p">{fmtUnit(unit(p))}</b>
                 </button>
               )
             })}
           </div>
 
           {methods.length > 1 && (
-            <div className="flex gap-1.5 mx-4 mt-2.5 p-1 rounded-[14px] bg-s1 border border-white/[.07]">
+            <div className="pseg">
               {methods.map(m => (
-                <button key={m.key} onClick={() => { setMethod(m.key); setMsg(null) }}
-                  className={`flex-1 h-9 rounded-[10px] flex items-center justify-center gap-1.5 text-[13px] font-medium transition-colors ${cur?.key === m.key ? 'bg-white/10 text-fg' : 'text-gray'}`}>
-                  <Icon name={m.icon} size={15} accent="current" />
-                  {m.label}
+                <button key={m.key} onClick={() => { setMethod(m.key); setMsg(null) }} className={cur?.key === m.key ? 'on' : ''}>
+                  <Icon name={m.icon} size={15} accent="current" />{m.label}
                 </button>
               ))}
             </div>
           )}
 
           {selected && cur && (
-            <button disabled={!!paying} onClick={cur.run}
-              className="btn-gold gold-metal sheen sheen-d1 mx-4 mt-2.5 w-[calc(100%-2rem)] disabled:opacity-60 active:scale-[.99] transition-transform"
-              style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,.6), inset 0 -2px 0 rgba(90,50,0,.4), 0 10px 24px rgba(240,170,40,.28)' }}>
+            <button disabled={!!paying} onClick={cur.run} className="ppay disabled:opacity-60">
+              <i className="ppay-sheen" />
               <b>{paying ? 'Открываю…' : `${premium ? 'Продлить' : 'Оплатить'} ${cur.amount}`}</b>
-              <small>{months(selected)} {months(selected) === 1 ? 'месяц' : months(selected) < 5 ? 'месяца' : 'месяцев'} Premium · {cur.via}</small>
+              <small>{months(selected)} {months(selected) === 1 ? 'месяц' : months(selected) < 5 ? 'месяца' : 'месяцев'} · {cur.via}</small>
             </button>
           )}
+          <p className="pnote">Без автопродления. Premium включится сам, обычно за минуту.</p>
 
           {invoiceId && (
-            <button disabled={checking} onClick={checkPayment} className="btn-secondary mx-4 mt-2 w-[calc(100%-2rem)] disabled:opacity-50">
+            <button disabled={checking} onClick={checkPayment} className="btn-secondary w-full disabled:opacity-50">
               {checking ? 'Проверяю…' : 'Проверить оплату'}
             </button>
           )}
 
           {msg && (
-            <div className="mx-4 mt-2.5 px-3.5 py-3 rounded-[14px] text-[13px] leading-snug bg-white/[.05] border border-white/[.08] text-fg/85">{msg}</div>
+            <div className="px-3.5 py-3 rounded-[14px] text-[13px] leading-snug bg-white/[.05] border border-white/[.08] text-fg/85">{msg}</div>
           )}
         </div>
       )}

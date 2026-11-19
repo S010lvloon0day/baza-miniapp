@@ -110,11 +110,11 @@ export default function PaidOffer({ offer, onPaid }: { offer: PaidOfferData; onP
 
       <div className="list-group">
         <div className="flex items-center gap-3 px-4 py-3">
-          <Icon name="check" size={18} className="text-gold" accent="#F5C25A" />
+          <Icon name="check" size={18} className="text-gold" accent="#E9C987" />
           <span className="text-[14px] text-fg/90">Разовая покупка — доступ навсегда</span>
         </div>
         <div className="flex items-center gap-3 px-4 py-3">
-          <Icon name="library" size={18} className="text-gold" accent="#F5C25A" />
+          <Icon name="library" size={18} className="text-gold" accent="#E9C987" />
           <span className="text-[14px] text-fg/90">Файл и инструкция сразу после оплаты</span>
         </div>
       </div>

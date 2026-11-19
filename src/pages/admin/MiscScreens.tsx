@@ -229,7 +229,7 @@ export function LogsScreen() {
 
 function Meter({ label, v, max }: { label: string; v: number; max: number }) {
   const p = Math.min(1, v / max)
-  const c = p >= 1 ? '#FF6B6B' : p >= .75 ? '#F5C25A' : '#8A78FF'
+  const c = p >= 1 ? '#FF6B6B' : p >= .75 ? '#E9C987' : '#8A78FF'
   return (
     <div className="flex-1 min-w-0">
       <div className="flex justify-between text-[11px] mb-1"><span className="text-gray">{label}</span><span className="tabular-nums" style={{ color: p >= .75 ? c : '#D3D6DC' }}>{v}/{max}</span></div>
@@ -326,7 +326,7 @@ export function WeekScreen({ nav }: { nav: Nav }) {
         const prize = ok && place < 3 ? [3, 2, 1][place++] : 0
         return (
           <button key={r.id} onClick={() => nav.push({ k: 'user', id: r.id })} className="w-full flex items-center gap-3 px-4 py-3 text-left active:bg-white/[.04]">
-            <span className="w-6 text-[13px] font-bold tabular-nums text-center" style={{ color: i < 3 ? '#F5C25A' : '#6E727C' }}>{i + 1}</span>
+            <span className="w-6 text-[13px] font-bold tabular-nums text-center" style={{ color: i < 3 ? '#E9C987' : '#6E727C' }}>{i + 1}</span>
             <span className="flex-1 min-w-0">
               <span className="block text-[14px] font-medium truncate">{r.name}{r.username ? <span className="text-gray font-normal"> · @{r.username}</span> : null}</span>
               <span className={`block text-[11.5px] truncate ${ok ? 'text-green' : 'text-[#FF8A8A]'}`}>{ok ? (prize ? `получит +${prize} дн.` : 'честный участник') : r.issues.join(' · ')}</span>

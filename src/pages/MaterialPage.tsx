@@ -246,7 +246,7 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                   { i: 'check' as const, label: 'Доступ сразу после оплаты' },
                 ].map(b => (
                   <div key={b.label} className="flex items-center gap-3 px-4 py-3">
-                    <Icon name={b.i} size={18} className="text-gold" accent="#F5C25A" />
+                    <Icon name={b.i} size={18} className="text-gold" accent="#E9C987" />
                     <span className="text-[14px] text-fg/90">{b.label}</span>
                   </div>
                 ))}

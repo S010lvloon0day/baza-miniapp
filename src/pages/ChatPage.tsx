@@ -119,8 +119,8 @@ function dayLabel(iso: string) {
   } catch { return '' }
 }
 // приглушённая палитра имён и подложек аватаров: [цвет имени, фон аватара, цвет инициалов]
-const PAL = ['#8FA8FF', '#AE9BFF', '#F5C25A', '#7FD3F5', '#FF9DB7', '#F0A868', '#9BE3D0', '#C9B6FF']
-const PAL_BG = ['#2A2170', '#2A2170', '#5A4630', '#123F52', '#4A1F2E', '#4F3318', '#174641', '#33285E']
+const PAL = ['#3DFFC8', '#D07BFF', '#FFB000', '#8FB4FF', '#FF9DD8', '#FF8A3D', '#7CF75C', '#C9B6FF']
+const PAL_BG = ['linear-gradient(135deg,#00F0E0,#2F6BFF)', 'linear-gradient(135deg,#B45CFF,#FF2D8A)', 'linear-gradient(135deg,#FFB000,#FF2D5F)', 'linear-gradient(135deg,#3D8BFF,#7A4DFF)', 'linear-gradient(135deg,#FF5CC8,#7A4DFF)', 'linear-gradient(135deg,#FF8A3D,#FF2D5F)', 'linear-gradient(135deg,#5CFF2E,#00C2A8)', 'linear-gradient(135deg,#7A4DFF,#C04BFF)']
 function palIdx(name: string) {
   let h = 0; for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
   return h % PAL.length
@@ -148,8 +148,8 @@ function Avatar({ name, src, size = 32, anim, onClick }: { name: string; src?: s
   const initials = (name || '?').replace('@', '').slice(0, size < 28 ? 1 : 2).toUpperCase()
   const show = !!src && ok
   return (
-    <div onClick={onClick} className="shrink-0 rounded-full overflow-hidden flex items-center justify-center font-bold"
-      style={{ width: size, height: size, background: show ? '#000' : PAL_BG[palIdx(name)], color: PAL[palIdx(name)], fontSize: size * 0.36 }}>
+    <div onClick={onClick} className="shrink-0 rounded-[35%] overflow-hidden flex items-center justify-center font-bold"
+      style={{ width: size, height: size, background: show ? '#000' : PAL_BG[palIdx(name)], color: '#07080A', fontSize: size * 0.36, fontWeight: 800 }}>
       {show
         ? (anim
           ? <video src={src} autoPlay loop muted playsInline className="w-full h-full object-cover" onError={() => setOk(false)} />
@@ -508,7 +508,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
         ) : (
           <>
             <div className="flex items-center gap-3.5 mb-4">
-              <div className="shrink-0 rounded-full p-[3px]" style={{ background: c.is_premium ? 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)' : 'rgba(255,255,255,.12)' }}>
+              <div className="shrink-0 rounded-full p-[3px]" style={{ background: c.is_premium ? 'conic-gradient(from 200deg,#FFF0BE,#E9C987,#C8912B,#F3DDA6,#FFF0BE)' : 'rgba(255,255,255,.12)' }}>
                 <div className="rounded-full p-[2px] bg-s1"><Avatar name={c.name} src={api.chatAvatarUrl(c.user_id, ver || undefined)} anim={c.avatar_anim} size={60} /></div>
               </div>
               <div className="min-w-0 flex-1">
@@ -525,7 +525,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[['book', c.materials_done, 'пройдено'], ['flame', c.streak, 'дней подряд'], ['cert', c.certificates, 'сертификатов']].map(([ic, val, lab], i) => (
                 <div key={i} className="rounded-[16px] py-3 text-center bg-white/[.05] border border-white/[.06]">
-                  <div className="flex justify-center" style={{ color: ic === 'flame' ? '#FFB25B' : ic === 'cert' ? '#F5C25A' : '#D3D6DC' }}>{ic === 'book' ? <IcBook s={18} /> : ic === 'flame' ? <IcFlame s={18} /> : <IcCert s={18} />}</div>
+                  <div className="flex justify-center" style={{ color: ic === 'flame' ? '#FFB25B' : ic === 'cert' ? '#E9C987' : '#D3D6DC' }}>{ic === 'book' ? <IcBook s={18} /> : ic === 'flame' ? <IcFlame s={18} /> : <IcCert s={18} />}</div>
                   <div className="font-display font-semibold text-[18px] text-fg leading-none mt-1.5 tabular-nums">{val as number}</div>
                   <div className="text-[11px] text-gray mt-1">{lab as string}</div>
                 </div>
@@ -564,7 +564,7 @@ function ProfileCard({ uid, onClose, onMention }: { uid: number; onClose: () => 
   )
 }
 
-const WK_COLORS = ['', '#F5C25A', '#C9D3DC', '#D08A57']
+const WK_COLORS = ['', '#E9C987', '#C9D3DC', '#D08A57']
 /** Значки у ника: место в рейтинге недели (1–3) и ранг по опыту. */
 function NameBadges({ m }: { m: { premium?: boolean; wk?: number; lvl?: number; rank?: string } }) {
   return (
@@ -2265,7 +2265,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                 <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(138,120,255,.16)', color: '#8A78FF' }}><IcPhoto s={19} /></span>Прикрепить
               </button>
               <button onClick={() => { setAttachOpen(false); setPollOpen(true) }} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
-                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(245,194,90,.16)', color: '#F5C25A' }}><Icon name="rating" size={19} accent="current" /></span>Опрос
+                <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(233,201,135,.16)', color: '#E9C987' }}><Icon name="rating" size={19} accent="current" /></span>Опрос
               </button>
             </div>
             <div className="flex gap-2">

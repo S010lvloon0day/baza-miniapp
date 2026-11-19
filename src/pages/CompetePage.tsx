@@ -7,7 +7,7 @@ import type { IconName } from '../components/Icon'
 const AV = [['#1E2F6B', '#B9C8FF'], ['#2A2170', '#CFC4FF'], ['#5A4630', '#F0D29A'], ['#123F52', '#9BE3FF'], ['#4A1F2E', '#FFB3C7']]
 function avColor(name: string) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV[h % AV.length] }
 const RING: Record<number, string> = {
-  1: 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)',
+  1: 'conic-gradient(from 200deg,#FFF0BE,#E9C987,#C8912B,#F3DDA6,#FFF0BE)',
   2: 'conic-gradient(from 200deg,#F4F7FD,#AEB9CF,#7C88A3,#DDE4F2,#F4F7FD)',
   3: 'conic-gradient(from 200deg,#FFD2A8,#D88B4E,#9A5424,#F0B07A,#FFD2A8)',
 }
@@ -35,7 +35,7 @@ function Leaders({ rows }: { rows: BoardRow[] }) {
         const first = r.rank === 1
         return (
           <div key={r.rank} className="flex flex-col items-center gap-[3px] text-center min-w-0 px-1">
-            {first && <Icon name="crown" size={20} accent="#F5C25A" className="text-gold mb-0.5" />}
+            {first && <Icon name="crown" size={20} accent="#E9C987" className="text-gold mb-0.5" />}
             <div className="relative rounded-full p-[3px]" style={{ background: RING[r.rank] }}>
               <div className="rounded-full border-2 border-[#14120A]"><Avatar name={r.name} size={first ? 62 : 48} /></div>
               <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 min-w-[22px] h-[22px] rounded-full grid place-items-center text-[11.5px] font-bold border-2 border-[#14120A]"
@@ -195,7 +195,7 @@ export default function CompetePage() {
           ) : data.feed.map((f, i) => (
             <div key={i} className="flex items-center gap-3 px-3.5 py-2.5">
               <span className="w-[34px] h-[34px] rounded-[10px] bg-white/[.06] grid place-items-center text-[#D3D6DC] shrink-0">
-                <Icon name={FEED_ICON[f.kind] ?? 'streak'} size={17} accent={FEED_ICON[f.kind] ? 'brand' : '#F5C25A'} />
+                <Icon name={FEED_ICON[f.kind] ?? 'streak'} size={17} accent={FEED_ICON[f.kind] ? 'brand' : '#E9C987'} />
               </span>
               <div className="flex-1 min-w-0">
                 <div className="text-[13.5px] truncate"><b className="font-semibold">{f.name}</b> <span className="text-gray">{f.text}</span></div>
@@ -225,7 +225,7 @@ function PrizesCard({ prizes, cap, from }: { prizes: number[]; cap: number; from
       </div>
       <div className="grid grid-cols-3 gap-2">
         {list.map((d, i) => (
-          <div key={i} className="rounded-xl px-2.5 py-2.5 text-center" style={{ background: i === 0 ? 'rgba(245,194,90,.12)' : 'rgba(255,255,255,.05)' }}>
+          <div key={i} className="rounded-xl px-2.5 py-2.5 text-center" style={{ background: i === 0 ? 'rgba(233,201,135,.12)' : 'rgba(255,255,255,.05)' }}>
             <div className="text-[11.5px] text-gray">{i + 1} место</div>
             <div className={`font-display font-semibold text-[16px] mt-0.5 ${i === 0 ? 'text-gold' : ''}`}>+{d} дн.</div>
             <div className="text-[10.5px] text-gray2">Premium</div>

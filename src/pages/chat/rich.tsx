@@ -35,7 +35,7 @@ function highlight(code: string, lang: string): ReactNode[] {
     if (isCom) out.push(<span key={k++} style={{ color: '#6E8A7C', fontStyle: 'italic' }}>{t}</span>)
     else if (com) out.push(t)
     else if (str) out.push(<span key={k++} style={{ color: '#9FE6B8' }}>{t}</span>)
-    else if (num) out.push(<span key={k++} style={{ color: '#F5C25A' }}>{t}</span>)
+    else if (num) out.push(<span key={k++} style={{ color: '#E9C987' }}>{t}</span>)
     else if (word && KW.has(word)) out.push(<span key={k++} style={{ color: '#B9A8FF', fontWeight: 600 }}>{t}</span>)
     else if (word && code[re.lastIndex] === '(') out.push(<span key={k++} style={{ color: '#7FD3FF' }}>{t}</span>)
     else out.push(t)

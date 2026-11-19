@@ -221,7 +221,7 @@ export default function Certificate({ parentId, language }: Props) {
           <span>Прогресс</span><span>{info.done} / {info.total}</span>
         </div>
         <div className="h-1.5 rounded-full overflow-hidden bg-white/[.08]">
-          <div className="h-full rounded-full" style={{ width: pct + '%', background: 'linear-gradient(90deg,#C8861C,#FFE08A)' }} />
+          <div className="h-full rounded-full" style={{ width: pct + '%', background: 'linear-gradient(90deg,#C8861C,#F3DDA6)' }} />
         </div>
       </div>
     )

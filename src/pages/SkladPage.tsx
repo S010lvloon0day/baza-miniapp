@@ -114,7 +114,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
     <div className="flex-1 overflow-y-auto pb-navsafe">
       <div className="px-3.5 pt-2 flex flex-col gap-3">
 
-        <div className="flex items-center gap-2 card-hero px-3.5 py-2.5">
+        <div className="sbar !cursor-text">
           <Icon name="search" size={18} accent="#8a8f98" />
           <input
             ref={inputRef} value={query} onChange={e => onChange(e.target.value)}
@@ -124,10 +124,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
         </div>
 
         {status && (
-          <div className="rounded-[18px] px-4 py-3.5 border"
-            style={status.premium
-              ? { borderColor: 'rgba(245,194,90,.35)', background: 'linear-gradient(120deg,rgba(245,194,90,.14),rgba(245,194,90,.03))' }
-              : { borderColor: 'rgba(255,255,255,.08)', background: '#121318' }}>
+          <div className="sk-quota2 anim-up">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <b className="block text-[14.5px] font-semibold">
@@ -139,8 +136,7 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
               </div>
               <div className="flex gap-1.5 shrink-0" aria-hidden="true">
                 {Array.from({ length: status.limit }).map((_, i) => (
-                  <span key={i} className="w-2.5 h-2.5 rounded-full"
-                    style={{ background: i < (left ?? 0) ? (status.premium ? '#F5C25A' : '#8A78FF') : 'rgba(255,255,255,.15)' }} />
+                  <span key={i} className={`sk-q2 ${i < (left ?? 0) ? (status.premium ? 'p' : 'a') : ''}`} style={{ animationDelay: `${0.2 + i * 0.12}s` }} />
                 ))}
               </div>
             </div>

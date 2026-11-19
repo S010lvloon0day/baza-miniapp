@@ -65,8 +65,8 @@ function renderRich(text: string) {
 
 /* ── Аватары с инициалами: стабильная приглушённая палитра ── */
 const AV = [
-  ['#1E2F6B', '#B9C8FF', '#8FA8FF'], ['#2A2170', '#CFC4FF', '#AE9BFF'], ['#5A4630', '#F0D29A', '#F5C25A'],
-  ['#123F52', '#9BE3FF', '#7FD3F5'], ['#4A1F2E', '#FFB3C7', '#FF9DB7'], ['#3B3F12', '#E4EE9A', '#D5E27A'],
+  ['linear-gradient(135deg,#00F0E0,#2F6BFF)', '#07080A', '#3DFFC8'], ['linear-gradient(135deg,#B45CFF,#FF2D8A)', '#07080A', '#D07BFF'], ['linear-gradient(135deg,#FFB000,#FF2D5F)', '#07080A', '#FFB000'],
+  ['linear-gradient(135deg,#3D8BFF,#7A4DFF)', '#fff', '#8FB4FF'], ['linear-gradient(135deg,#FF5CC8,#7A4DFF)', '#fff', '#FF9DD8'], ['linear-gradient(135deg,#5CFF2E,#00C2A8)', '#07080A', '#7CF75C'],
 ]
 const avIdx = (s: string) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h % AV.length }
 const initials = (n: string) => {
@@ -81,7 +81,7 @@ function Avatar({ name, size = 28, src }: { name: string; size?: number; src?: s
   const [bad, setBad] = useState(!src)
   const c = AV[avIdx(name)]
   return (
-    <div className="rounded-full shrink-0 grid place-items-center overflow-hidden font-bold"
+    <div className="rounded-[35%] shrink-0 grid place-items-center overflow-hidden font-extrabold"
       style={{ width: size, height: size, background: c[0], color: c[1], fontSize: Math.round(size * 0.38) }}>
       {bad ? initials(name) : <img src={src} alt="" className="w-full h-full object-cover" onError={() => setBad(true)} />}
     </div>
@@ -216,7 +216,7 @@ function LiveChat({ onOpen }: { onOpen?: () => void }) {
 
 /* ── Рейтинг недели ── */
 const RING: Record<number, string> = {
-  1: 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)',
+  1: 'conic-gradient(from 200deg,#FFF0BE,#E9C987,#C8912B,#F3DDA6,#FFF0BE)',
   2: 'conic-gradient(from 200deg,#F4F7FD,#AEB9CF,#7C88A3,#DDE4F2,#F4F7FD)',
   3: 'conic-gradient(from 200deg,#FFD2A8,#D88B4E,#9A5424,#F0B07A,#FFD2A8)',
 }
@@ -230,7 +230,7 @@ function Seg({ v, u }: { v: number; u: string }) {
   return (
     <span className="flex items-baseline gap-px h-5 px-[5px] rounded-md bg-gold/[.12]" style={{ boxShadow: 'inset 0 1px 0 rgba(255,236,170,.12)' }}>
       <b className="font-display font-semibold text-[11.5px] leading-5 tabular-nums bg-clip-text text-transparent"
-        style={{ backgroundImage: 'linear-gradient(180deg,#FFF1C2,#F5C25A)' }}>{v}</b>
+        style={{ backgroundImage: 'linear-gradient(180deg,#FFF1C2,#E9C987)' }}>{v}</b>
       <i className="not-italic text-[9.5px] font-medium text-[#C9B27A]">{u}</i>
     </span>
   )
@@ -284,7 +284,7 @@ function WeekRating({ c, onOpen, onPlay }: { c: Compete; onOpen?: () => void; on
         <div className="grid grid-cols-[1fr_1.15fr_1fr] items-end mt-4 mb-1">
           {[top[1], top[0], top[2]].map((r, i) => r ? (
             <div key={r.rank} className="flex flex-col items-center text-center gap-[3px] min-w-0">
-              {r.rank === 1 && <Icon name="crown" size={20} className="text-gold mb-0.5" accent="#F5C25A" />}
+              {r.rank === 1 && <Icon name="crown" size={20} className="text-gold mb-0.5" accent="#E9C987" />}
               <div className="relative rounded-full p-[3px]" style={{ background: RING[r.rank] }}>
                 <div className="rounded-full border-2 border-[#14120A]"><Avatar name={r.name} size={r.rank === 1 ? 60 : 48} /></div>
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 min-w-[22px] h-[22px] rounded-full grid place-items-center text-[11.5px] font-bold border-2 border-[#14120A]"
