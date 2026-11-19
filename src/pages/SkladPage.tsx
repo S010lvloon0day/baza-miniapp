@@ -52,8 +52,10 @@ export default function SkladPage({ onUpgrade }: { onUpgrade?: () => void }) {
       const r = await sklad.course(h.thread_id)
       if (r.status === 'limit') {
         setNotice(status?.premium ? 'Все 5 курсов на сегодня уже открыты. Новые будут доступны завтра.' : 'Бесплатный курс на сегодня уже открыт. С Premium — 5 курсов в сутки.')
+      } else if (r.status === 'queued') {
+        setNotice('Курс принят в работу. Ссылки придут вам в бота автоматически, обычно в течение нескольких часов. Лимит на сегодня не тратится.')
       } else if (r.status === 'nolinks') {
-        setNotice('В этом курсе не нашлось прямых ссылок. Попробуйте другой.')
+        setNotice('Автор не приложил к этому курсу ссылок на скачивание. Попробуйте другой — лимит не потрачен.')
       } else {
         setDetail(r)
       }

@@ -28,7 +28,7 @@ export interface SkladLink {
 }
 
 export interface SkladCourse {
-  status: 'ok' | 'limit' | 'nolinks'
+  status: 'ok' | 'limit' | 'nolinks' | 'queued'
   title?: string
   label?: string
   description?: string
