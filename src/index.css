@@ -560,3 +560,10 @@ h2.text-\[17px\].font-bold, h3.text-\[17px\].font-bold { font-size: 22px !import
   .pb-navsafe { padding-bottom: 32px; }
   body.has-nav { --navh: 0px; }
 }
+@media (min-width: 900px) {
+  .hero-v2 { min-height: 440px; }
+  .hv-globe { left: auto !important; right: 3%; transform: none !important; width: 560px !important; max-width: 58% !important; top: -50px !important; }
+  .hero-v2 > .hv-shade { background: linear-gradient(90deg, #07080A 0%, rgba(7,8,10,.85) 38%, rgba(7,8,10,0) 62%), linear-gradient(0deg, rgba(7,8,10,.6), transparent 40%) !important; }
+  .hv-body { max-width: 560px; padding: 0 28px 28px !important; }
+  .hv-title { font-size: 52px !important; }
+}
