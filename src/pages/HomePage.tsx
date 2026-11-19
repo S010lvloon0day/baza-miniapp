@@ -403,8 +403,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
                 </span>
               </button>
               <div className="sbar-note">
-                <span>Сегодня <b>{left}</b> из {limit} · {isPrem ? 'Premium' : 'бесплатно'}</span>
-                {!isPrem && <button onClick={onUpgrade ?? onSklad} className="sbar-up"><Icon name="crown" size={12} accent="current" />5 в день с Premium</button>}
+                <span>Новых курсов сегодня: <b>{left}</b> из {limit} · {isPrem ? 'готовые ⚡ без лимита' : 'готовых ⚡ 5 в день'}</span>
+                {!isPrem && <button onClick={onUpgrade ?? onSklad} className="sbar-up"><Icon name="crown" size={12} accent="current" />5 новых с Premium</button>}
               </div>
             </div>
           )
