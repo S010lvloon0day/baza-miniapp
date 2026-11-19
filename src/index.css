@@ -248,7 +248,7 @@ html { background: #07080A !important; }
 .sa-wave { animation: waveA 3s ease-in-out infinite; } @keyframes waveA { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 
 /* Логотип */
-.logo-tile { position: relative; overflow: hidden; display: grid; place-items: center; flex-shrink: 0; background: #0C0A14; box-shadow: inset 0 0 0 1px rgba(160,100,255,.35), 0 0 20px rgba(130,50,255,.42); }
+.logo-tile { position: relative; overflow: hidden; display: grid; place-items: center; flex-shrink: 0; background: #08101C; box-shadow: inset 0 0 0 1px rgba(102,192,244,.38), 0 0 20px rgba(26,159,255,.42); }
 .logo-tile::after { content: ''; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,.18) 48%, transparent 62%); background-size: 250% 100%; animation: lgsA 4.5s ease-in-out infinite; pointer-events: none; }
 @keyframes lgsA { 0%,60% { background-position: 130% 0; } 100% { background-position: -60% 0; } }
 .bm-anim { overflow: visible; animation: glwA 4s ease-in-out infinite; }
@@ -302,7 +302,7 @@ html { background: #07080A !important; }
 /* ═════ v2.1 — как в прототипе ═════ */
 .hdr-brand { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .hdr-brand small { font: 600 10px 'JetBrains Mono', monospace; letter-spacing: .16em; color: #7C808A; }
-.hdr-brand b { font: 800 17px 'Inter'; letter-spacing: -.025em; } .hdr-brand b span { color: #B26BFF; }
+.hdr-brand b { font: 800 17px 'Inter'; letter-spacing: -.025em; } .hdr-brand b span { background: linear-gradient(180deg, #66C0F4, #1A9FFF); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 .sbar { height: 56px; border-radius: 18px; display: flex; align-items: center; gap: 12px; padding: 0 8px 0 16px; color: #8A8E98; text-align: left; position: relative; overflow: hidden;
   background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.03)); box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 0 0 1px rgba(255,255,255,.06); transition: transform .18s; }
@@ -437,8 +437,8 @@ html { background: #07080A !important; }
 /* Производительность: без размытия у анимированных пятен и без анимации фильтров */
 .hv-g1, .hv-g2, .hv-g3 { filter: none !important; will-change: transform; }
 .poster-v2::before { filter: none !important; }
-.bm-anim { animation: none !important; filter: drop-shadow(0 0 5px rgba(150,70,255,.85)); }
-.logo-tile::before { content: ''; position: absolute; inset: -30%; background: radial-gradient(circle, rgba(190,120,255,.55), transparent 60%); opacity: 0; animation: lgGlow 4s ease-in-out infinite; pointer-events: none; }
+.bm-anim { animation: none !important; filter: drop-shadow(0 0 5px rgba(26,159,255,.85)); }
+.logo-tile::before { content: ''; position: absolute; inset: -30%; background: radial-gradient(circle, rgba(102,192,244,.55), transparent 60%); opacity: 0; animation: lgGlow 4s ease-in-out infinite; pointer-events: none; }
 @keyframes lgGlow { 0%,80%,100% { opacity: 0; } 86% { opacity: 1; } }
 .poster-v2, .bcard, .hero-v2, .sbar { contain: paint; }
 .hv-chip, .hv-lesson { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-color: rgba(10,12,16,.72); }
@@ -470,9 +470,9 @@ body.kb-open .nav-v2 { display: none !important; }
 .feat-in { position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 12px; border-radius: 24.5px; overflow: hidden;
   background: radial-gradient(90% 140% at 0% 50%, rgba(122,40,255,.30), transparent 60%), radial-gradient(70% 120% at 100% 0%, rgba(243,213,142,.10), transparent 60%), linear-gradient(180deg, #121019, #0A0A10); }
 .feat-in::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.07), transparent); animation: sweepT 6s ease-in-out 1s infinite; pointer-events: none; }
-.feat-logo { position: relative; width: 64px; height: 64px; flex-shrink: 0; display: grid; place-items: center; border-radius: 20px; background: #0C0A14; box-shadow: inset 0 0 0 1px rgba(178,107,255,.35), 0 0 26px rgba(130,50,255,.45); overflow: hidden; }
-.feat-glow { position: absolute; inset: 0; background: radial-gradient(circle, rgba(178,107,255,.55), transparent 62%); animation: breatheA 3.5s ease-in-out infinite; }
-.feat-orb { position: absolute; left: 50%; top: 50%; border-radius: 50%; border: 1px solid rgba(178,107,255,.45); }
+.feat-logo { position: relative; width: 64px; height: 64px; flex-shrink: 0; display: grid; place-items: center; border-radius: 20px; background: #08101C; box-shadow: inset 0 0 0 1px rgba(102,192,244,.38), 0 0 26px rgba(26,159,255,.45); overflow: hidden; }
+.feat-glow { position: absolute; inset: 0; background: radial-gradient(circle, rgba(26,159,255,.5), transparent 62%); animation: breatheA 3.5s ease-in-out infinite; }
+.feat-orb { position: absolute; left: 50%; top: 50%; border-radius: 50%; border: 1px solid rgba(102,192,244,.45); }
 .feat-orb.o1 { width: 52px; height: 52px; margin: -26px 0 0 -26px; border-top-color: #F3D58E; animation: spinA 5s linear infinite; }
 .feat-orb.o2 { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-color: rgba(61,255,200,.25); border-left-color: #3DFFC8; animation: spinA 3.6s linear infinite reverse; }
 .feat-logo svg { position: relative; z-index: 1; }

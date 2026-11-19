@@ -10,7 +10,7 @@ export default function BazaMark({ size = 24, color, animate = false }: { size?:
       {!color && (
         <defs>
           <linearGradient id={`bm${id}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#B26BFF" /><stop offset="1" stopColor="#6A1CF0" />
+            <stop offset="0" stopColor="#66C0F4" /><stop offset="1" stopColor="#1A6FFF" />
           </linearGradient>
         </defs>
       )}

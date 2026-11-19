@@ -67,7 +67,7 @@ void main(){
     { vec2 lu=vec2((lonc-(-2.97))/0.93,(0.52-latc)/0.95); if(lu.x>0.&&lu.x<1.&&lu.y>0.&&lu.y<1.) lg=texture2D(uLogo,lu).r; }
     { vec2 lu=vec2((lonc-1.05)/0.72,(-0.05-latc)/0.74); if(lu.x>0.&&lu.x<1.&&lu.y>0.&&lu.y<1.) lg=max(lg,texture2D(uLogo,lu).r); }
     float lgp=.75+.25*sin(uT*1.6);
-    col=mix(col,mix(vec3(.72,.42,1.),vec3(1.,.93,.78),.25+.25*sin(uT*1.6+lat*6.))*(.6+.6*lam)*lgp,dot1*lg*(1.-land)*(1.-night*.4));
+    col=mix(col,mix(vec3(.10,.62,1.),vec3(.62,.86,1.),.3+.3*sin(uT*1.6+lat*6.))*(.65+.6*lam)*lgp,dot1*lg*(1.-land)*(1.-night*.4));
     // точки-разделы: ядро и расходящееся кольцо
     for(int i=0;i<8;i++){
       vec3 s=uSpots[i];vec3 sw=s;               // уже в координатах шара
