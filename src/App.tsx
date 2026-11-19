@@ -119,8 +119,14 @@ export default function App() {
 
   // чат и анимации подгружаем заранее в фоне, чтобы вкладка открывалась сразу
   useEffect(() => {
-    const t = window.setTimeout(() => { import('./pages/ChatPage').catch(() => {}); import('lottie-web').catch(() => {}) }, 2500)
-    return () => window.clearTimeout(t)
+    // Раньше грузили через 2,5 с — разбор большого модуля чата подвешивал анимацию глобуса.
+    // Теперь: сразу при касании вкладки «Чат» или когда пользователь ушёл со страницы с глобусом/бездействует.
+    let done = false
+    const go = () => { if (done) return; done = true; import('./pages/ChatPage').catch(() => {}); import('lottie-web').catch(() => {}) }
+    const onDown = (e: PointerEvent) => { const el = (e.target as HTMLElement)?.closest?.('button[aria-label="Чат"]'); if (el) go() }
+    document.addEventListener('pointerdown', onDown, true)
+    const t = window.setTimeout(go, 20000)
+    return () => { window.clearTimeout(t); document.removeEventListener('pointerdown', onDown, true) }
   }, [])
 
   useEffect(() => {

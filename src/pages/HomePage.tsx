@@ -99,10 +99,6 @@ function weekLeft() {
   return { d: Math.floor(left / 86400_000), h: Math.floor(left / 3600_000) % 24, min: Math.floor(left / 60_000) % 60 }
 }
 
-function greeting() {
-  const h = new Date().getHours()
-  return h < 5 ? 'Доброй ночи' : h < 12 ? 'Доброе утро' : h < 18 ? 'Добрый день' : 'Добрый вечер'
-}
 
 /* ── Мелкие помощники нового дизайна ── */
 const fmtT = (s: number) => { s = Math.max(0, Math.floor(s)); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60, x = s % 60; return (h ? `${h}:${String(m).padStart(2, '0')}` : `${m}`) + ':' + String(x).padStart(2, '0') }
@@ -341,9 +337,10 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
   const [recent, setRecent] = useState<Material[]>([])
   const [banners, setBanners] = useState<Banner[]>([])
   const [todayCount, setTodayCount] = useState(0)
+  const [totalMats, setTotalMats] = useState(0)
   const [loading, setLoading] = useState(true)
   const [cont, setCont] = useState<ContinueItem[]>([])
-  const [name, setName] = useState('')
+  const [, setName] = useState('')
   const [premium, setPremium] = useState(false)
   const [compete, setCompete] = useState<Compete | null>(null)
 
@@ -368,6 +365,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
       setBanners(b.banners ?? [])
       setRecent((rd.materials ?? []).slice(0, 4))
       setTodayCount(rd.today_count ?? 0)
+      setTotalMats((rd as { total_count?: number }).total_count ?? 0)
       setLoading(false)
     })()
     return () => { alive = false }
@@ -417,7 +415,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
           <div className="hv-globe"><Globe labels={shelf.slice(0, 8).map(s => s.title)} /></div>
           <i className="hv-shade" />
           <div className="hv-top">
-            <span className="hv-chip"><i />{c0 ? 'ПРОДОЛЖИТЬ' : (greeting().toUpperCase() + (name ? `, ${name.toUpperCase()}` : ''))}</span>
+            <span />
             {premium && <PremiumBadge />}
           </div>
           <div className="hv-body">
@@ -463,7 +461,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             <div className="bcard anim-up" style={{ animationDelay: '.3s' }} onClick={onTabCats} role="button">
               <span className="lab">Пройдено</span>
               {(() => {
-                const done = prog?.done_total ?? 0, open = Math.max(done, prog?.opened_total ?? 0)
+                const done = prog?.done_total ?? 0, open = Math.max(done, totalMats || (prog?.opened_total ?? 0))
                 const pct = open ? Math.round((done / open) * 100) : 0
                 return (<>
                   <div className="ringw">
@@ -474,7 +472,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
                     </svg>
                     <b><CountUp to={pct} /><small>%</small></b>
                   </div>
-                  <div className="sub">{done} из {open}</div>
+                  <div className="sub">{done} из {open.toLocaleString('ru-RU')} материалов</div>
                 </>)
               })()}
             </div>
