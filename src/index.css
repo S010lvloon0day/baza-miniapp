@@ -461,3 +461,30 @@ html { background: #07080A !important; }
 body.has-nav { --navh: 74px; }
 body.kb-open { --navh: 0px; }
 body.kb-open .nav-v2 { opacity: 0; pointer-events: none; transform: translate(-50%, 30px) !important; transition: opacity .2s, transform .2s; }
+.globe-cv.globe-fallback { background: radial-gradient(circle at 50% 45%, transparent 0 34.5%, rgba(90,170,255,.25) 36%, transparent 41%), radial-gradient(circle at 42% 38%, #1f4fa8 0, #0c1e52 22%, #050a1c 35%, transparent 35.5%); }
+
+/* ═════ Авторское «Знания S010lvloon» ═════ */
+.feat { position: relative; width: 100%; border-radius: 26px; padding: 1.5px; text-align: left; overflow: hidden; isolation: isolate; transition: transform .18s; }
+.feat:active { transform: scale(.98); }
+.feat-border { position: absolute; inset: -60%; z-index: -1; background: conic-gradient(from 0deg, #F3D58E, #B26BFF, #3D8BFF, #3DFFC8, #F3D58E); animation: spinA 6s linear infinite; will-change: transform; }
+.feat-in { position: relative; display: flex; align-items: center; gap: 14px; padding: 14px 14px 14px 12px; border-radius: 24.5px; overflow: hidden;
+  background: radial-gradient(90% 140% at 0% 50%, rgba(122,40,255,.30), transparent 60%), radial-gradient(70% 120% at 100% 0%, rgba(243,213,142,.10), transparent 60%), linear-gradient(180deg, #121019, #0A0A10); }
+.feat-in::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 40%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.07), transparent); animation: sweepT 6s ease-in-out 1s infinite; pointer-events: none; }
+.feat-logo { position: relative; width: 64px; height: 64px; flex-shrink: 0; display: grid; place-items: center; border-radius: 20px; background: #0C0A14; box-shadow: inset 0 0 0 1px rgba(178,107,255,.35), 0 0 26px rgba(130,50,255,.45); overflow: hidden; }
+.feat-glow { position: absolute; inset: 0; background: radial-gradient(circle, rgba(178,107,255,.55), transparent 62%); animation: breatheA 3.5s ease-in-out infinite; }
+.feat-orb { position: absolute; left: 50%; top: 50%; border-radius: 50%; border: 1px solid rgba(178,107,255,.45); }
+.feat-orb.o1 { width: 52px; height: 52px; margin: -26px 0 0 -26px; border-top-color: #F3D58E; animation: spinA 5s linear infinite; }
+.feat-orb.o2 { width: 40px; height: 40px; margin: -20px 0 0 -20px; border-color: rgba(61,255,200,.25); border-left-color: #3DFFC8; animation: spinA 3.6s linear infinite reverse; }
+.feat-logo svg { position: relative; z-index: 1; }
+.feat-k { display: block; font: 700 10px 'JetBrains Mono', monospace; letter-spacing: .14em; background: linear-gradient(90deg, #F3D58E, #B26BFF); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.feat-t { display: block; margin-top: 4px; font: 800 18px/1.1 'Inter'; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feat-s { display: block; margin-top: 4px; font-size: 12.5px; color: #A6AAB4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.feat-go { width: 34px; height: 34px; border-radius: 12px; flex-shrink: 0; display: grid; place-items: center; color: #F4F5F7; background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+
+/* ═════ Значок Premium v2 — без «колхозного» золота ═════ */
+.pbadge2 { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 11px 0 9px; border-radius: 99px; overflow: hidden; flex-shrink: 0;
+  background: linear-gradient(180deg, #1A1712, #0E0C09); box-shadow: inset 0 0 0 1px rgba(243,213,142,.42), 0 4px 14px rgba(0,0,0,.4); }
+.pbadge2::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 45%; background: linear-gradient(100deg, transparent, rgba(255,236,190,.22), transparent); animation: sweepT 4.5s ease-in-out 1.5s infinite; pointer-events: none; }
+.pbadge2 .pt2 { position: relative; font: 700 11.5px 'Inter'; letter-spacing: .02em; background: linear-gradient(180deg, #FFF1C9, #D9A94E); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.pbadge2.sm { height: 19px; padding: 0 8px 0 6px; gap: 4px; } .pbadge2.sm .pt2 { font-size: 9.5px; }
+@media (prefers-reduced-motion: reduce) { .feat-border, .feat-in::after, .feat-glow, .feat-orb, .pbadge2::after { animation: none !important; } }

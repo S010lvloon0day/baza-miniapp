@@ -1,11 +1,14 @@
-import Icon from './Icon'
+import BazaMark from './BazaMark'
 
-/** Фирменный значок Premium: полированное золото + бегущий блик. */
+/** Значок Premium: тёмная «таблетка» с тонкой шампань-рамкой, знаком S010 и мягким бликом. */
 export default function PremiumBadge({ small, label = 'Premium', className = '' }: { small?: boolean; label?: string; className?: string }) {
   return (
-    <span className={`pbadge gold-metal sheen ${small ? 'sm' : ''} ${className}`}>
-      <span className="gem"><Icon name="crown" size={small ? 9 : 11} accent="#FFD873" /></span>
-      <span className="pt">{label}</span>
+    <span className={`pbadge2 ${small ? 'sm' : ''} ${className}`}>
+      <BazaMark size={small ? 10 : 13} color="url(#pbGold)" />
+      <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden>
+        <defs><linearGradient id="pbGold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF1C9" /><stop offset="1" stopColor="#D9A94E" /></linearGradient></defs>
+      </svg>
+      <span className="pt2">{label}</span>
     </span>
   )
 }

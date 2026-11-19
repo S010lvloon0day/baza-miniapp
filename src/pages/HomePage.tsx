@@ -5,6 +5,7 @@ import MediaTypeIcon from '../components/MediaTypeIcon'
 import type { Section, Material, Banner, ContinueItem, Compete } from '../api/client'
 import BannerCard from '../components/BannerCard'
 import Icon from '../components/Icon'
+import FeaturedCard from '../components/FeaturedCard'
 import PremiumBadge from '../components/PremiumBadge'
 import LevelMark from '../components/LevelMark'
 import { PopularBlock } from '../components/Popular'
@@ -512,19 +513,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
 
         {/* Авторское */}
         {featured && (
-          <button onClick={() => onSection(featured)}
-            className="w-full rounded-[20px] px-4 py-3.5 flex items-center gap-3 text-left border border-white/[.11] active:opacity-90"
-            style={{ background: 'linear-gradient(120deg,rgba(245,194,90,.22),rgba(245,194,90,.04) 60%),#121318' }}>
-            <span className="gold-metal sheen sheen-d1 w-11 h-11 rounded-[14px] grid place-items-center shrink-0">
-              <Icon name="mark" size={20} accent="#3A2300" className="relative z-[1]" />
-            </span>
-            <span className="flex-1 min-w-0">
-              <span className="block text-[12px] font-semibold text-gold">Авторское</span>
-              <b className="block text-[15px] font-semibold truncate">{featured.title}</b>
-              <small className="block text-[12.5px] text-gray truncate">Курсы, публикации, фишки</small>
-            </span>
-            <Icon name="chevR" size={16} className="text-gray2" />
-          </button>
+          <FeaturedCard title={featured.title} onClick={() => onSection(featured)} />
         )}
 
         {/* Новое */}
