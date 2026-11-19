@@ -74,9 +74,9 @@ const MY_UN = (ME?.username || '').toLowerCase()
 const MY_ID = Number(ME?.id || 0)
 
 /** Цвета пузырей — как в тёмной теме Telegram. */
-const BUB_IN = 'linear-gradient(180deg,#1A1C22,#121318)'                                          // входящие (чужие)
+const BUB_IN = 'linear-gradient(180deg,#2A2E38,#22252E)'                                          // входящие (чужие)
 const BUB_OUT = 'linear-gradient(120deg,#2F6BFF,#7A4DFF 60%,#B04BFF)'          // исходящие (свои) — изумруд
-const BUB_SHADOW = 'inset 0 1px 0 rgba(255,255,255,.05)'
+const BUB_SHADOW = 'inset 0 0 0 1px rgba(255,255,255,.09), inset 0 1px 0 rgba(255,255,255,.08), 0 4px 14px rgba(0,0,0,.35)'
 const BUB_SHADOW_OUT = 'inset 0 1px 0 rgba(255,255,255,.12)'
 // обои ленты: мягкий фиолетовый и изумрудный свет + едва заметный узор фирменных ромбов
 const WALL = [
