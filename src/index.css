@@ -572,3 +572,10 @@ body:has(.fixed.inset-0) .app-nav { display: none !important; }
 @media (pointer: coarse) { input, textarea, select, [contenteditable="true"] { font-size: 16px !important; } }
 html, body, #root { max-width: 100%; overflow-x: hidden; }
 .overflow-y-auto { overflow-x: hidden; }
+
+/* доп. анимации рисунков разделов */
+.sa-rot { transform-box: fill-box; transform-origin: center; animation: spinA 7s linear infinite; }
+.sa-pan { animation: panA 4s ease-in-out infinite; } @keyframes panA { 0%,100% { transform: rotate(-14deg); } 50% { transform: rotate(12deg); } }
+.sa-coin { animation: coinA 3.6s ease-in-out infinite; } @keyframes coinA { 0%,100% { transform: scaleX(1) translateY(0); } 25% { transform: scaleX(.12) translateY(-4px); } 50% { transform: scaleX(1) translateY(-8px); } 75% { transform: scaleX(.12) translateY(-4px); } }
+.sa-roll { animation: rollA 1.6s linear infinite; } @keyframes rollA { to { transform: translateX(-18px); } }
+.sa-sway { animation: swayA 5s ease-in-out infinite; } @keyframes swayA { 50% { transform: translateX(8px); } }
