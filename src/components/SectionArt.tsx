@@ -78,10 +78,15 @@ function Waves() {
   )
 }
 
-const ARTS = [Radar, Terminal, Waves, Mesh, Arcs, Hexes]
+const ARTS = [Radar, Terminal, Hexes, Mesh, Arcs, Waves]
 
-export default function SectionArt({ cover }: { cover: string }) {
-  const idx = Number(cover.replace(/\D/g, '')) || 0
+/** Неоновые палитры постеров: [цвет линий, цвет подложки]. */
+export const POSTER_PAL: [string, string][] = [
+  ['#00F0E0', '#005963'], ['#FFB000', '#6B3A00'], ['#FF2D5F', '#6E0526'], ['#9B5CFF', '#34168C'], ['#5CFF2E', '#16560C'], ['#3D8BFF', '#0C2F7A'],
+]
+
+export default function SectionArt({ cover, index }: { cover?: string; index?: number }) {
+  const idx = index ?? (Number((cover ?? '').replace(/\D/g, '')) || 0)
   const Art = ARTS[idx % ARTS.length]
   return (
     <svg className="sa" viewBox="0 0 150 160" preserveAspectRatio="xMidYMid slice" aria-hidden><Art /></svg>
