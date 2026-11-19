@@ -9,6 +9,7 @@ import MediaViewer, { type ViewItem } from './chat/MediaViewer'
 import { PollMsg, PollComposer } from './chat/Poll'
 import MediaGallery, { downloadFile } from './chat/MediaGallery'
 import Icon from '../components/Icon'
+import LogoTile from '../components/LogoTile'
 import PremiumBadge from '../components/PremiumBadge'
 import { EMOJI_CATS, EMOJI_CDN, EMOJI_SEQ, codeToChar, emojiUrl } from '../utils/emojiData'
 
@@ -732,8 +733,8 @@ function Bubble({ m, prev, next, quoted, onAction, onReact, onProfile, onMedia, 
 
   // радиусы углов — хвост у края снизу делаем острым, как в Telegram
   const radius = mine
-    ? { borderRadius: 18, borderBottomRightRadius: tail ? 6 : 18 }
-    : { borderRadius: 18, borderBottomLeftRadius: tail ? 6 : 18 }
+    ? { borderRadius: 20, borderBottomRightRadius: tail ? 6 : 20 }
+    : { borderRadius: 20, borderBottomLeftRadius: tail ? 6 : 20 }
 
   if (m.type === 'sticker') {
     return (
@@ -2028,21 +2029,21 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         </div>
       )}
       {/* шапка чата: плитка, название, онлайн, «печатает», последние участники */}
-      <div className={`relative flex items-center gap-2.5 pl-2 pr-3 py-2 shrink-0 bg-bg border-b border-white/[.06] ${searchOpen || selectMode ? 'hidden' : ''}`}>
+      <div className={`chat-hd relative flex items-center gap-2.5 pl-2 pr-3 py-2.5 shrink-0 ${searchOpen || selectMode ? 'hidden' : ''}`}>
         {onBack && (
           <button onClick={onBack} aria-label="Назад" className="w-9 h-10 -mr-1 flex items-center justify-center rounded-full text-fg active:bg-white/10 shrink-0">
             <Icon name="back" size={22} />
           </button>
         )}
         <button onClick={() => MY_ID > 0 && setProfileFor(MY_ID)} aria-label="Мой профиль в чате"
-          className={`tile-violet w-10 h-10 rounded-[13px] shrink-0 ${onBack ? '' : 'ml-1.5'}`}>
-          <Icon name="chat" size={19} accent="#fff" />
+          className={`shrink-0 ${onBack ? '' : 'ml-1.5'}`}>
+          <LogoTile size={40} />
         </button>
         <div className="flex-1 min-w-0">
-          <div className="font-display font-semibold text-[15px] leading-tight truncate">Чат базы</div>
-          <div className="flex items-center gap-1.5 mt-1 text-[12px] text-gray whitespace-nowrap overflow-hidden">
+          <div className="font-display font-extrabold text-[22px] leading-none tracking-[-.04em] truncate">Чат</div>
+          <div className="chat-sub flex items-center gap-1.5 mt-1.5 whitespace-nowrap overflow-hidden">
             <span className="pulse-dot" style={{ width: 6, height: 6 }} />
-            <button onClick={openOnline} className="tabular-nums underline decoration-dotted decoration-white/25 underline-offset-[3px]">{online} в сети</button>
+            <button onClick={openOnline} className="tabular-nums chat-online">{online} онлайн</button>
             {typing.length > 0 && (
               <>
                 <span className="w-[3px] h-[3px] rounded-full bg-gray2 shrink-0" />
@@ -2117,7 +2118,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
       )}
 
       {pinned && !pinned.deleted && (
-        <div onClick={() => jumpToMsg(pinned.id)} className="flex items-center gap-2.5 px-3.5 py-2 shrink-0 cursor-pointer active:bg-white/[.03] border-b border-white/[.06]" style={{ background: 'rgba(17,28,23,.92)' }}>
+        <div onClick={() => jumpToMsg(pinned.id)} className="flex items-center gap-2.5 px-3.5 py-2 shrink-0 cursor-pointer active:bg-white/[.03] border-b border-white/[.06]" style={{ background: 'rgba(22,24,30,.92)' }}>
           <span className="w-[30px] h-[30px] rounded-[9px] flex items-center justify-center shrink-0" style={{ background: 'rgba(118,87,255,.18)', color: VIOLET }}><Icon name="pin" size={15} /></span>
           <div className="flex-1 min-w-0">
             <div className="text-[12px] font-semibold truncate" style={{ color: VIOLET }}>Закреплено · {pinned.name}</div>
@@ -2181,7 +2182,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               )}
               {sep && (
                 <div className="flex justify-center my-3">
-                  <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#D3D6DC]" style={{ background: 'rgba(17,28,23,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
+                  <span className="px-3 py-1 rounded-full text-[12px] font-medium text-[#D3D6DC]" style={{ background: 'rgba(22,24,30,.75)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}>{d}</span>
                 </div>
               )}
               <MsgRow m={m} prev={i > 0 ? msgs[i - 1] : null} next={i < msgs.length - 1 ? msgs[i + 1] : null} quoted={m.reply_to ? (byId.get(m.reply_to) || null) : null} onAction={setMenuFor} onReact={react} onProfile={setProfileFor} onMedia={onMedia} onReply={replyStable} onOpenMat={openMatStable}
@@ -2193,7 +2194,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
       {/* плавающая нижняя панель: листы + стеклянная капсула ввода */}
       <div ref={dockRef} className={`absolute left-0 right-0 bottom-0 ${rec && recKind === 'round' ? 'z-[60]' : 'z-20'} px-2.5 flex flex-col pointer-events-none [&>*]:pointer-events-auto`}
-        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 12px)' }}>
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 12px + var(--navh, 0px))' }}>
         {atMeQ.length > 0 && !searchOpen && (
           <button onClick={goMention} aria-label="К упоминаниям"
             className="glass self-end relative mb-2 mr-1 w-11 h-11 rounded-full flex items-center justify-center text-[19px] font-bold active:scale-95 transition-transform" style={{ color: VIOLET }}>
@@ -2202,7 +2203,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
           </button>
         )}
         {fmtBarOpen && (
-          <div className="glass self-center mb-2 flex items-center gap-0.5 px-1 py-1 rounded-full" style={{ background: 'rgba(13,21,17,.96)' }}>
+          <div className="glass self-center mb-2 flex items-center gap-0.5 px-1 py-1 rounded-full" style={{ background: 'rgba(16,17,21,.96)' }}>
             <button onMouseDown={(e) => e.preventDefault()} onTouchStart={(e) => e.preventDefault()} onClick={() => setFmtBarOpen(false)}
               className="w-9 h-9 rounded-full grid place-items-center text-gray active:bg-white/10"><Icon name="close" size={15} /></button>
             {FORMATS.map((f, i) => (
@@ -2226,7 +2227,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         {toast && <div className="self-center mb-2 px-3.5 py-1.5 rounded-[16px] text-[12.5px] leading-snug text-center text-fg glass max-w-[92%]">{toast}</div>}
 
         {mention && mention.length > 0 && !stickerOpen && !attachOpen && !emojiOpen && (
-          <div className="glass rounded-[18px] mb-2 py-1.5 max-h-[248px] overflow-y-auto" style={{ background: 'rgba(13,21,17,.97)' }}>
+          <div className="glass rounded-[18px] mb-2 py-1.5 max-h-[248px] overflow-y-auto" style={{ background: 'rgba(16,17,21,.97)' }}>
             {mention.map(u => (
               <button key={u.user_id} onMouseDown={e => e.preventDefault()} onClick={() => applyMention(u)}
                 className="w-full flex items-center gap-3 px-3 py-2 text-left active:bg-white/[.06]">
@@ -2241,7 +2242,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         )}
 
         {(reply || editing) && (
-          <div className="glass rounded-[18px] mb-2 flex items-center gap-2.5 pl-3 pr-1.5 py-1.5" style={{ background: 'rgba(13,21,17,.95)' }}>
+          <div className="glass rounded-[18px] mb-2 flex items-center gap-2.5 pl-3 pr-1.5 py-1.5" style={{ background: 'rgba(16,17,21,.95)' }}>
             <span className="text-green shrink-0"><Icon name={editing ? 'edit' : 'reply'} size={17} /></span>
             <div className="flex-1 min-w-0 pl-2.5 border-l-[3px] border-green">
               <div className="text-[12px] font-semibold text-green">{editing ? 'Редактирование' : `Ответ ${reply!.name}`}</div>
@@ -2252,13 +2253,13 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         )}
 
         {emojiOpen && (
-          <div className="glass rounded-[22px] mb-2 grid grid-cols-8 gap-1 px-3 py-2" style={{ background: 'rgba(13,21,17,.97)' }}>
+          <div className="glass rounded-[22px] mb-2 grid grid-cols-8 gap-1 px-3 py-2" style={{ background: 'rgba(16,17,21,.97)' }}>
           {PICKER.map(e => <button key={e} onClick={() => insertEmojiChar(e)} className="py-1 flex justify-center active:scale-125 transition-transform"><Emo e={e} size={26} /></button>)}
         </div>
       )}
 
         {attachOpen && (
-          <div className="glass rounded-[22px] mb-2 p-2.5 flex flex-col gap-2" style={{ background: 'rgba(13,21,17,.97)' }}>
+          <div className="glass rounded-[22px] mb-2 p-2.5 flex flex-col gap-2" style={{ background: 'rgba(16,17,21,.97)' }}>
             <div className="grid grid-cols-2 gap-2">
               <button onClick={() => fileInput.current?.click()} className="h-[68px] rounded-[16px] bg-white/[.06] active:bg-white/10 flex flex-col items-center justify-center gap-1.5 text-[13px] font-medium text-fg">
                 <span className="w-9 h-9 rounded-[11px] flex items-center justify-center" style={{ background: 'rgba(138,120,255,.16)', color: '#8A78FF' }}><IcPhoto s={19} /></span>Прикрепить
@@ -2280,7 +2281,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
         )}
 
         {stickerOpen && (
-          <div className="glass rounded-[22px] mb-2 flex flex-col overflow-hidden" style={{ height: '46vh', background: 'rgba(13,21,17,.97)' }}>
+          <div className="glass rounded-[22px] mb-2 flex flex-col overflow-hidden" style={{ height: '46vh', background: 'rgba(16,17,21,.97)' }}>
           {/* верхние вкладки: Эмодзи / Стикеры / GIF — как в Telegram */}
           <div className="flex items-center gap-1 px-2 pt-2 pb-1.5 shrink-0 border-b border-white/[.06]">
             {([['emoji', 'Эмодзи'], ['stickers', 'Стикеры'], ['gif', 'GIF']] as const).map(([k, lab]) => {
@@ -2449,9 +2450,9 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
 
         <div className="relative flex items-end gap-1.5 p-[6px] rounded-[30px] glass"
           style={{
-            background: 'radial-gradient(60% 120% at 100% 50%, rgba(138,120,255,.10), transparent 70%), radial-gradient(50% 120% at 0% 50%, rgba(118,87,255,.10), transparent 70%), linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.02)), rgba(13,21,17,.93)',
-            border: '1px solid rgba(255,255,255,.14)',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.16), 0 14px 34px rgba(0,0,0,.55), 0 2px 6px rgba(0,0,0,.35)',
+            background: 'rgba(20,22,27,.80)',
+            border: '1px solid rgba(255,255,255,.08)',
+            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.16), 0 20px 44px rgba(0,0,0,.7)',
           }}>
           {rec ? (
             /* индикатор записи голосового */
@@ -2477,7 +2478,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                 <Icon name="attach" size={23} style={{ transform: 'rotate(40deg)' }} />
               </button>
               <div className="flex-1 relative min-w-0 px-1">
-                {!text && <div className="absolute left-1 top-[12px] text-[16px] text-[#8FA398] pointer-events-none select-none">Сообщение</div>}
+                {!text && <div className="absolute left-1 top-[12px] text-[16px] text-[#7C808A] pointer-events-none select-none">Сообщение…</div>}
                 <div ref={taRef} contentEditable suppressContentEditableWarning
                   onInput={onEditorInput}
                   onFocus={() => { if (atBottom.current) { pinBottom(); setTimeout(() => { if (atBottom.current) pinBottom() }, 300) } }}
@@ -2498,13 +2499,13 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
           )}
           {text.trim() && !rec ? (
             <button onClick={send} disabled={sending} aria-label="Отправить" className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center disabled:opacity-50 active:scale-90 transition-transform"
-              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #6A5CFF 45%, #4B3BD6 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#FFFFFF' }}>
+              style={{ background: 'linear-gradient(120deg,#2F6BFF,#7A4DFF 60%,#C04BFF)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), 0 8px 20px -4px rgba(122,77,255,.9)', color: '#FFFFFF' }}>
               <Icon name="send" size={20} accent="#FFFFFF" style={{ transform: 'translate(-1px,1px)' }} />
             </button>
           ) : (
             recLocked ? (
             <button onClick={stopRec} aria-label="Отправить" className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center active:scale-90 transition-transform"
-              style={{ background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #6A5CFF 45%, #4B3BD6 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#FFFFFF' }}>
+              style={{ background: 'linear-gradient(120deg,#2F6BFF,#7A4DFF 60%,#C04BFF)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), 0 8px 20px -4px rgba(122,77,255,.9)', color: '#FFFFFF' }}>
               <Icon name="send" size={20} accent="#FFFFFF" style={{ transform: 'translate(-1px,1px)' }} />
             </button>
             ) : (
@@ -2533,7 +2534,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
               className="shrink-0 w-[46px] h-[46px] rounded-full flex items-center justify-center active:scale-90 transition-transform"
               style={rec
                 ? { background: '#ff5050', color: '#fff' }
-                : { background: 'radial-gradient(120% 120% at 30% 20%, #2BD98A 0%, #6A5CFF 45%, #4B3BD6 100%)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.32), inset 0 -2px 4px rgba(0,50,25,.45), 0 0 0 1px rgba(6,110,58,.9), 0 6px 16px rgba(8,138,74,.35)', color: '#FFFFFF' }}>
+                : { background: 'linear-gradient(120deg,#2F6BFF,#7A4DFF 60%,#C04BFF)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.4), 0 8px 20px -4px rgba(122,77,255,.9)', color: '#FFFFFF' }}>
               <motion.span key={recMode} initial={{ scale: 0.4, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ duration: 0.18 }} className="flex">
                 <Icon name={recMode === 'round' ? 'video' : 'mic'} size={21} accent={rec ? '#fff' : '#FFFFFF'} />
               </motion.span>
@@ -2549,7 +2550,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
           <motion.div className="fixed inset-0 z-[72] flex items-end justify-center" style={{ background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(3px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setPackSheet(null)}>
             <motion.div onClick={e => e.stopPropagation()} initial={{ y: 40 }} animate={{ y: 0 }} exit={{ y: 40 }} transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-              className="w-full max-w-[520px] rounded-t-[26px] flex flex-col" style={{ background: '#0F1A15', borderTop: '1px solid rgba(255,255,255,.08)', maxHeight: '72vh', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)' }}>
+              className="w-full max-w-[520px] rounded-t-[26px] flex flex-col" style={{ background: '#111216', borderTop: '1px solid rgba(255,255,255,.08)', maxHeight: '72vh', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 14px)' }}>
               <div className="self-center w-10 h-1 rounded-full bg-white/15 mt-2.5" />
               {packSheet.loading || !packSheet.pack ? (
                 <div className="py-14 text-center text-[14px] text-gray">Загружаем набор…</div>
@@ -2657,7 +2658,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
                 {QUICK.map(e => <button key={e} onClick={() => react(menuFor.id, e)} className="w-9 h-9 flex items-center justify-center rounded-full active:scale-125 transition-transform"><Emo e={e} size={26} /></button>)}
               </div>
               {/* действия — компактная карточка */}
-              <div className="glass rounded-[18px] overflow-hidden" style={{ background: 'rgba(17,28,23,.94)' }}>
+              <div className="glass rounded-[18px] overflow-hidden" style={{ background: 'rgba(22,24,30,.94)' }}>
                 <button onClick={() => startReply(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><IcReply s={16} />Ответить</button>
                 {menuFor.type === 'text' && menuFor.text.length > 20 && (<><div className="h-px bg-white/[.06]" /><button onClick={() => { setQuoteFor(menuFor); setMenuFor(null) }} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="text" size={16} />Цитировать часть</button></>)}
                 {(menuFor.type === 'text' || menuFor.type === 'poll') && (<><div className="h-px bg-white/[.06]" /><button onClick={() => copyMsg(menuFor)} className="w-full flex items-center gap-3 px-4 py-3 text-[14.5px] font-medium text-fg active:bg-white/[.06]"><Icon name="copy" size={16} />Копировать</button></>)}
@@ -2738,7 +2739,7 @@ export default function ChatPage({ onBack, initialMsg, onOpenMaterial }: { onBac
           <motion.div className="fixed inset-0 z-[72] flex items-end justify-center px-4" style={{ background: 'rgba(0,0,0,.55)', paddingBottom: 'calc(env(safe-area-inset-bottom,0px) + 24px)' }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMuteFor(null)}>
             <motion.div onClick={e => e.stopPropagation()} initial={{ y: 24, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 24, opacity: 0 }}
-              className="w-full max-w-[340px] rounded-[20px] p-4" style={{ background: 'rgba(17,28,23,.98)', border: '1px solid rgba(255,255,255,.08)' }}>
+              className="w-full max-w-[340px] rounded-[20px] p-4" style={{ background: 'rgba(22,24,30,.98)', border: '1px solid rgba(255,255,255,.08)' }}>
               <div className="font-display font-semibold text-[15px] mb-1">Замутить {muteFor.name}</div>
               <div className="text-[12.5px] text-gray mb-3">Не сможет писать в чат. Получит сообщение от бота.</div>
               <div className="grid grid-cols-2 gap-2">

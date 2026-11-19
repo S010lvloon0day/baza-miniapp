@@ -4,7 +4,7 @@ import type { Compete, BoardRow } from '../api/client'
 import Icon from '../components/Icon'
 import type { IconName } from '../components/Icon'
 
-const AV = [['#1F3B30', '#B9C8FF'], ['#2A2170', '#CFC4FF'], ['#5A4630', '#F0D29A'], ['#123F52', '#9BE3FF'], ['#4A1F2E', '#FFB3C7']]
+const AV = [['#1E2F6B', '#B9C8FF'], ['#2A2170', '#CFC4FF'], ['#5A4630', '#F0D29A'], ['#123F52', '#9BE3FF'], ['#4A1F2E', '#FFB3C7']]
 function avColor(name: string) { let h = 0; for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return AV[h % AV.length] }
 const RING: Record<number, string> = {
   1: 'conic-gradient(from 200deg,#FFF0BE,#F5C25A,#C8912B,#FFE08A,#FFF0BE)',

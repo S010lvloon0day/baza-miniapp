@@ -129,7 +129,7 @@ function ReferralCard() {
     try { await navigator.clipboard.writeText(r.link); setCopied(true); setTimeout(() => setCopied(false), 1600) } catch { /* */ }
   }
   return (
-    <div className="mx-4 mt-6 card p-4" style={{ background: 'linear-gradient(160deg, rgba(118,87,255,.16), rgba(17,28,23,.6) 60%)' }}>
+    <div className="mx-4 mt-6 card p-4" style={{ background: 'linear-gradient(160deg, rgba(118,87,255,.16), rgba(22,24,30,.6) 60%)' }}>
       <div className="flex items-center gap-3">
         <span className="tile-violet w-10 h-10 rounded-[13px] shrink-0"><Icon name="gift" size={19} accent="#fff" /></span>
         <div className="min-w-0">

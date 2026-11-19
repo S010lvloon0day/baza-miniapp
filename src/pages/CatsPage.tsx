@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import SkeletonList from '../components/Skeleton'
 import Icon from '../components/Icon'
 import { iconNameFor } from '../components/CategoryIcon'
-import { coverClass } from '../components/sectionCover'
+import SectionArt, { assignArts, artStyle } from '../components/SectionArt'
 import { api } from '../api/client'
 import type { Section } from '../api/client'
 
@@ -61,18 +61,20 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
         )}
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
-          {rest.map((s, i) => (
+          {(() => { const arts = assignArts(cats); return rest.map((s, i) => { const ai = arts.get(s.id) ?? i; return (
             <button key={s.id} onClick={() => onSection(s)}
-              className={`${coverClass(s)} anim-in relative h-[132px] rounded-[20px] p-3.5 flex flex-col justify-between text-left border border-white/[.07] overflow-hidden active:scale-[.98] transition-transform`}
-              style={{ animationDelay: `${Math.min(i, 10) * 30}ms` }}>
-              <Icon name={iconNameFor(s.title)} size={28} style={{ color: 'var(--cv)' }} accent="var(--cv)" />
+              className="tile-v3 anim-up relative h-[140px] rounded-[22px] p-3.5 flex flex-col justify-between text-left overflow-hidden active:scale-[.97] transition-transform"
+              style={{ ...artStyle(ai), animationDelay: `${Math.min(i, 10) * 45}ms` }}>
+              <SectionArt index={ai} className="sa sa-bgart" />
+              <i className="tile-fade" />
+              <Icon name={iconNameFor(s.title)} size={26} style={{ color: 'var(--cv)' }} accent="var(--cv)" />
               <span className="min-w-0">
                 <b className="block text-[15px] font-semibold leading-tight line-clamp-2 break-words" style={{ hyphens: 'auto' }} lang="ru">{s.title}</b>
                 {s.description && <small className="block text-[11.5px] opacity-75 mt-0.5 truncate">{s.description}</small>}
               </span>
-              {s.locked && <span className="absolute top-3.5 right-3.5 opacity-80"><Icon name="lock" size={15} accent="var(--cv)" style={{ color: 'var(--cv)' }} /></span>}
+              {s.locked && <span className="absolute top-3.5 right-3.5 opacity-90"><Icon name="lock" size={15} accent="var(--cv)" style={{ color: 'var(--cv)' }} /></span>}
             </button>
-          ))}
+          ) }) })()}
         </div>
       </div>
     </div>

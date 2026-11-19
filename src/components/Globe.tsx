@@ -45,11 +45,27 @@ export default function Globe({ labels }: { labels: string[] }) {
     const land = LAND as number[]
     const lowEnd = (navigator.hardwareConcurrency || 8) <= 4
     const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.5 : 2)
+    const dpr = Math.min(window.devicePixelRatio || 1, lowEnd ? 1.25 : 1.75)
     cv.width = W * dpr; cv.height = H * dpr
     const stars = Array.from({ length: lowEnd ? 40 : 70 }, () => [Math.random() * W, Math.random() * H, Math.random() * 0.8 + 0.3, Math.random() * 6.28, Math.random() * 1.5 + 0.5])
     let rot = -0.4, vel = 0, drag = false, lx = 0, raf = 0, visible = true, last = performance.now(), lastDraw = 0
-    const auto = 0.16, frameGap = lowEnd ? 1000 / 30 : 0
+    const auto = 0.16
+    let frameGap = 1000 / (lowEnd ? 30 : 45), cheap = lowEnd, avg = 0, samples = 0
+    // заранее: градиенты и палитра (не создаём их каждый кадр)
+    c.setTransform(dpr, 0, 0, dpr, 0, 0)
+    const gBall = c.createRadialGradient(CX - 40, CY - 52, 6, CX, CY, R)
+    gBall.addColorStop(0, 'rgba(207,255,242,.42)'); gBall.addColorStop(0.45, 'rgba(40,90,255,.28)'); gBall.addColorStop(1, 'rgba(8,12,24,.55)')
+    const gRim = c.createLinearGradient(CX - R, CY - R, CX + R, CY + R)
+    gRim.addColorStop(0, 'rgba(61,255,200,.95)'); gRim.addColorStop(0.5, 'rgba(61,139,255,.7)'); gRim.addColorStop(1, 'rgba(180,92,255,.9)')
+    const gSpec = c.createRadialGradient(CX - 48, CY - 62, 0, CX - 48, CY - 62, 90)
+    gSpec.addColorStop(0, 'rgba(255,255,255,.20)'); gSpec.addColorStop(1, 'rgba(255,255,255,0)')
+    const NB = 10, NZ = 4
+    const BUCK = Array.from({ length: NB * NZ }, (_, k) => col(CX - R + (2 * R) * ((Math.floor(k / NZ) + 0.5) / NB), 0.45 + 0.55 * ((k % NZ) + 0.5) / NZ))
+    const BACK = Array.from({ length: NB }, (_, k) => col(CX - R + (2 * R) * ((k + 0.5) / NB), 0.1))
+    const nLand = land.length / 2
+    const LX = new Float32Array(nLand), LY = new Float32Array(nLand), LZ = new Float32Array(nLand)
+    for (let i = 0; i < nLand; i++) { const f = land[i * 2] * D; LX[i] = Math.cos(f); LY[i] = Math.sin(f); LZ[i] = land[i * 2 + 1] * D }
+    const paths: Path2D[] = new Array(NB * NZ), backs: Path2D[] = new Array(NB)
 
     const rr = (x: number, y: number, w: number, h: number, r: number) => {
       c.beginPath(); c.moveTo(x + r, y); c.arcTo(x + w, y, x + w, y + h, r); c.arcTo(x + w, y + h, x, y + h, r); c.arcTo(x, y + h, x, y, r); c.arcTo(x, y, x + w, y, r); c.closePath()
@@ -76,15 +92,20 @@ export default function Globe({ labels }: { labels: string[] }) {
 
     const draw = (T: number) => {
       c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H)
-      for (const s of stars) { c.beginPath(); c.arc(s[0], s[1], s[2], 0, 7); c.fillStyle = `rgba(255,255,255,${0.12 + 0.38 * (0.5 + 0.5 * Math.sin(T * s[4] + s[3]))})`; c.fill() }
+      for (let gI = 0; gI < 3; gI++) { const sp = new Path2D(); for (let k = gI; k < stars.length; k += 3) { const s = stars[k]; sp.moveTo(s[0] + s[2], s[1]); sp.arc(s[0], s[1], s[2], 0, 6.2832) } c.fillStyle = `rgba(255,255,255,${0.12 + 0.38 * (0.5 + 0.5 * Math.sin(T * (0.7 + gI * 0.5) + gI * 2))})`; c.fill(sp) }
       orbit(false, T)
-      const g = c.createRadialGradient(CX - 40, CY - 52, 6, CX, CY, R)
-      g.addColorStop(0, 'rgba(207,255,242,.42)'); g.addColorStop(0.45, 'rgba(40,90,255,.28)'); g.addColorStop(1, 'rgba(8,12,24,.55)')
-      c.beginPath(); c.arc(CX, CY, R, 0, 7); c.fillStyle = g; c.fill()
-      for (let i = 0; i < land.length; i += 2) {
-        const p = P(land[i], land[i + 1], rot)
-        if (p[2] < 0) { c.fillStyle = col(p[0], 0.1); c.fillRect(p[0] - 0.6, p[1] - 0.6, 1.2, 1.2) }
+      c.beginPath(); c.arc(CX, CY, R, 0, 7); c.fillStyle = gBall; c.fill()
+      for (let k = 0; k < paths.length; k++) paths[k] = new Path2D()
+      for (let k = 0; k < NB; k++) backs[k] = new Path2D()
+      for (let i = 0; i < nLand; i++) {
+        const cf = LX[i], l = LZ[i] + rot, x = cf * Math.sin(l), y0 = LY[i], z0 = cf * Math.cos(l)
+        const y = y0 * cT - z0 * sT, z = y0 * sT + z0 * cT
+        const px = CX + (x * cR - y * sR) * R, py = CY - (x * sR + y * cR) * R
+        const b = Math.max(0, Math.min(NB - 1, Math.floor(((px - (CX - R)) / (2 * R)) * NB)))
+        if (z < 0) backs[b].rect(px - 0.6, py - 0.6, 1.2, 1.2)
+        else { const zb = Math.min(NZ - 1, Math.floor(z * NZ)); const r = 0.55 + 1.05 * z; const p2 = paths[b * NZ + zb]; if (cheap) p2.rect(px - r, py - r, r * 2, r * 2); else { p2.moveTo(px + r, py); p2.arc(px, py, r, 0, 6.2832) } }
       }
+      for (let k = 0; k < NB; k++) { c.fillStyle = BACK[k]; c.fill(backs[k]) }
       c.lineWidth = 0.7; c.strokeStyle = 'rgba(160,200,255,.13)'
       for (let lo = 0; lo < 360; lo += 30) {
         c.beginPath(); let pen = false
@@ -96,19 +117,12 @@ export default function Globe({ labels }: { labels: string[] }) {
         for (let lo = 0; lo <= 360; lo += 6) { const p = P(la, lo, rot); if (p[2] > 0) { if (pen) c.lineTo(p[0], p[1]); else c.moveTo(p[0], p[1]); pen = true } else pen = false }
         c.stroke()
       }
-      for (let i = 0; i < land.length; i += 2) {
-        const p = P(land[i], land[i + 1], rot)
-        if (p[2] > 0) { c.beginPath(); c.arc(p[0], p[1], 0.55 + 1.05 * p[2], 0, 7); c.fillStyle = col(p[0], 0.45 + 0.55 * p[2]); c.fill() }
-      }
-      const rg = c.createLinearGradient(CX - R, CY - R, CX + R, CY + R)
-      rg.addColorStop(0, 'rgba(61,255,200,.95)'); rg.addColorStop(0.5, 'rgba(61,139,255,.7)'); rg.addColorStop(1, 'rgba(180,92,255,.9)')
-      c.beginPath(); c.arc(CX, CY, R, 0, 7); c.strokeStyle = rg; c.lineWidth = 1.4; c.stroke()
-      const sg = c.createRadialGradient(CX - 48, CY - 62, 0, CX - 48, CY - 62, 90)
-      sg.addColorStop(0, 'rgba(255,255,255,.20)'); sg.addColorStop(1, 'rgba(255,255,255,0)')
-      c.beginPath(); c.arc(CX, CY, R, 0, 7); c.fillStyle = sg; c.fill()
+      for (let k = 0; k < paths.length; k++) { c.fillStyle = BUCK[k]; c.fill(paths[k]) }
+      c.beginPath(); c.arc(CX, CY, R, 0, 7); c.strokeStyle = gRim; c.lineWidth = 1.4; c.stroke()
+      c.beginPath(); c.arc(CX, CY, R, 0, 7); c.fillStyle = gSpec; c.fill()
 
       ARCS.forEach(([ai, bi], a) => {
-        const va = vec(...SPOTS[ai]), vb = vec(...SPOTS[bi]), head = (T * 0.22 + a * 0.37) % 1.6, N = 36
+        const va = vec(...SPOTS[ai]), vb = vec(...SPOTS[bi]), head = (T * 0.22 + a * 0.37) % 1.6, N = 24
         let prev: { p: V3; v: boolean } | null = null
         for (let k = 0; k <= N; k++) {
           const u = k / N, pp = PV(slerp(va, vb, u), rot, 1 + 0.3 * Math.sin(Math.PI * u))
@@ -161,7 +175,13 @@ export default function Globe({ labels }: { labels: string[] }) {
       lastDraw = now
       const dt = Math.min(0.05, (now - last) / 1000); last = now
       if (!drag) { rot += (auto + vel) * dt; vel *= Math.pow(0.05, dt) }
+      const t0 = performance.now()
       draw(now / 1000)
+      // если телефон не успевает — рисуем проще и реже, чтобы ничего не подвисало
+      const ms = performance.now() - t0
+      avg = avg ? avg * 0.9 + ms * 0.1 : ms
+      if (++samples > 20 && !cheap && avg > 9) { cheap = true; frameGap = 1000 / 30 }
+      else if (samples > 40 && cheap && avg > 14) { frameGap = 1000 / 20 }
     }
     if (reduce) draw(0); else raf = requestAnimationFrame(frame)
 

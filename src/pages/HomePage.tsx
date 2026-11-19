@@ -9,7 +9,7 @@ import PremiumBadge from '../components/PremiumBadge'
 import LevelMark from '../components/LevelMark'
 import { PopularBlock } from '../components/Popular'
 import Globe from '../components/Globe'
-import SectionArt, { POSTER_PAL } from '../components/SectionArt'
+import SectionArt, { POSTER_PAL, assignArts, artColors, artIndexFor } from '../components/SectionArt'
 import type { ProgressData } from '../api/client'
 import { sklad } from '../api/sklad'
 import type { SkladStatus } from '../api/sklad'
@@ -489,12 +489,13 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
         <section className="mt-4">
           <div className="hd2 anim-up"><h2><small>КАТАЛОГ · {sections.length} РАЗДЕЛОВ</small>Разделы</h2><button onClick={onTabCats}>Все <Icon name="chevR" size={14} accent="current" /></button></div>
           <div className="-mx-3.5 px-3.5 flex gap-2.5 overflow-x-auto pb-1 no-scrollbar">
-            {shelf.map((s, i) => {
-              const [c, bg] = POSTER_PAL[i % POSTER_PAL.length]
+            {(() => { const arts = assignArts(sections); return shelf.map((s, i) => {
+              const ai = arts.get(s.id) ?? i
+              const { c, bg } = artColors(ai)
               return (
                 <button key={s.id} onClick={() => onSection(s)} style={{ ['--cv' as string]: c, ['--pbg' as string]: bg, animationDelay: `${0.12 + Math.min(i, 6) * 0.07}s` } as React.CSSProperties}
                   className="poster-v2 anim-up relative shrink-0 w-[158px] h-[226px] rounded-[26px] text-left overflow-hidden">
-                  <SectionArt index={i} />
+                  <SectionArt index={ai} />
                   <i className="pv-fade" />
                   <span className="pv-idx">{String(i + 1).padStart(2, '0')}</span>
                   {s.locked && <span className="absolute top-3 left-3.5 opacity-90"><Icon name="lock" size={14} accent="current" style={{ color: c }} /></span>}
@@ -505,7 +506,7 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
                   </span>
                 </button>
               )
-            })}
+            }) })()}
           </div>
         </section>
 
@@ -534,7 +535,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
             <div className="hd2 anim-up"><h2><small>{todayCount > 0 ? `СЕГОДНЯ · ${todayCount} МАТЕРИАЛОВ` : 'ПОСЛЕДНИЕ ПОСТУПЛЕНИЯ'}</small>Новое</h2></div>
             <div className="nl anim-up" style={{ animationDelay: '.1s' }}>
               {recent.map((m, i) => {
-                const [c, bg] = POSTER_PAL[(m.section_id ?? i) % POSTER_PAL.length]
+                const sec = sections.find(x => x.id === m.section_id)
+                const [c, bg] = sec ? (() => { const k = artColors(artIndexFor(sec)); return [k.c, k.bg] })() : POSTER_PAL[(m.section_id ?? i) % POSTER_PAL.length]
                 return (
                   <button key={m.id} onClick={() => onMaterial(m.id, m.section_id)} className="nl-i" style={{ ['--c' as string]: c, ['--bg2' as string]: bg } as React.CSSProperties}>
                     <span className="nl-th" style={{ animationDelay: `${i * 0.5}s` }}><MediaTypeIcon type={m.media_type} size={30} radius={9} iconSize={16} /></span>

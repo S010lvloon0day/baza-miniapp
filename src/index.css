@@ -60,7 +60,7 @@ html { background: #07080A !important; }
 
 /* ПК / развёрнутое окно: контент на всю ширину, нижнее меню — компактно по центру. */
 @media (min-width: 760px) {
-  .app-nav { max-width: 680px; margin-left: auto; margin-right: auto; }
+  .app-nav { max-width: 680px; }
 }
 
 
@@ -135,7 +135,7 @@ html { background: #07080A !important; }
 .chip.on { background: #F2F4F3; color: #07080A; border-color: #F2F4F3; font-weight: 600; }
 
 /* Обложки разделов (цвет по индексу). */
-.cover-0 { background: linear-gradient(160deg, #4A2FD6, #08291B); --cv: #B9C8FF; }
+.cover-0 { background: linear-gradient(160deg, #00A39A, #003238); --cv: #9BFFF5; }
 .cover-1 { background: linear-gradient(160deg, #2F4BC4, #0F1640); --cv: #B5C4F5; }
 .cover-2 { background: linear-gradient(160deg, #B26A0E, #2E1905); --cv: #F0D29A; }
 .cover-3 { background: radial-gradient(120% 90% at 100% 0%, rgba(190,170,255,.35), transparent 55%), linear-gradient(165deg, #6447F0, #24166B 70%, #140C3D); --cv: #DCD2FF; }
@@ -260,8 +260,21 @@ html { background: #07080A !important; }
 @keyframes glwA { 0%,80%,100% { filter: drop-shadow(0 0 4px rgba(150,70,255,.8)); } 86% { filter: drop-shadow(0 0 12px rgba(190,120,255,1)) drop-shadow(0 0 3px #fff); } }
 
 /* Нижнее меню: активная вкладка — белая пилюля */
-.app-nav button[aria-current="page"] { background: linear-gradient(180deg, #fff, #DADDE3) !important; color: #07080A !important; box-shadow: inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4) !important; }
-.app-nav button { transition: background .3s, color .3s, transform .18s; } .app-nav button:active { transform: scale(.94); }
+.nav-v2 { gap: 2px; padding: 6px; border-radius: 26px; max-width: calc(100vw - 20px); background: rgba(20,22,27,.74); -webkit-backdrop-filter: blur(26px) saturate(180%); backdrop-filter: blur(26px) saturate(180%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.16), inset 0 0 0 1px rgba(255,255,255,.07), 0 20px 44px rgba(0,0,0,.7); animation: navUp .9s cubic-bezier(.2,.8,.2,1) .3s both; }
+@keyframes navUp { from { opacity: 0; transform: translate(-50%, 40px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.nv-b { position: relative; height: 50px; min-width: 52px; border-radius: 20px; display: flex; align-items: center; justify-content: center; gap: 8px; color: #8A8E98; flex-shrink: 0;
+  transition: background .3s cubic-bezier(.2,.8,.2,1), color .3s, padding .3s cubic-bezier(.2,.8,.2,1), transform .18s; }
+.nv-b.dense { min-width: 46px; }
+.nv-b:active { transform: scale(.92); }
+.nv-b.on { padding: 0 16px; color: #07080A; background: linear-gradient(180deg, #FFFFFF, #DADDE3); box-shadow: inset 0 1px 0 #fff, 0 6px 16px rgba(0,0,0,.4); }
+.nv-b.on.dense { padding: 0 13px; }
+.nv-l { font: 700 13px 'Inter'; letter-spacing: -.01em; white-space: nowrap; animation: nvIn .35s cubic-bezier(.2,.8,.2,1) both; }
+@keyframes nvIn { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: none; } }
+.nv-badge { position: absolute; top: 6px; right: 7px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #FF2D5F; color: #fff; font: 700 9.5px/16px 'Inter'; text-align: center;
+  box-shadow: 0 0 0 2px #15171C, 0 0 12px rgba(255,45,95,.8); animation: popA .5s cubic-bezier(.2,.8,.2,1) 1s both; }
+.nv-b.on .nv-badge { display: none; }
+@media (prefers-reduced-motion: reduce) { .nav-v2, .nv-l, .nv-badge { animation: none !important; } }
 
 @media (prefers-reduced-motion: reduce) {
   .anim-up, .hero-v2 > i, .hv-chip i, .hv-title span, .btn-primary::after, .sk-v2::before, .poster-v2::before, .sa *, .sa-spin, .sa-sweep, .logo-tile::after, .bm-anim, .bm-anim polygon { animation: none !important; }
@@ -371,3 +384,80 @@ html { background: #07080A !important; }
 @media (prefers-reduced-motion: reduce) {
   .sbar::before, .sbar-q u, .sbar-up::after, .segs i, .bcard *, .nl-th, .nl-th::after, .nl-m i, .nl-new, .caret { animation: none !important; }
 }
+
+/* Чат как в прототипе */
+.chat-hd { background: linear-gradient(180deg, rgba(7,8,10,.94), rgba(7,8,10,.70)); -webkit-backdrop-filter: blur(26px) saturate(180%); backdrop-filter: blur(26px) saturate(180%); box-shadow: inset 0 -1px 0 rgba(255,255,255,.07); }
+.chat-sub { font: 600 10.5px 'JetBrains Mono', monospace; color: #8A8E98; }
+.chat-online { color: #3DFFC8; }
+.chat-sub .typing-dots i { background: #B45CFF; }
+
+/* ═════ Обложки разделов v3: свой анимированный рисунок у каждого ═════ */
+.sa * { transform-box: view-box; }
+.sa-spin4 { animation: spinA 4s linear infinite; }
+.sa-spin6r { animation: spinA 6s linear infinite reverse; }
+.sa-spin8 { animation: spinA 8s linear infinite; }
+.sa-spin12r { animation: spinA 12s linear infinite reverse; }
+.sa-spin26 { animation: spinA 26s linear infinite; }
+.sa-halo { transform-box: fill-box !important; transform-origin: center; animation: haloA 2.4s ease-out infinite; }
+.sa-flash { animation: hexA 3.2s ease-in-out infinite; }
+.sa-pulse { transform-box: fill-box !important; transform-origin: center; animation: pulseA 2s ease-in-out infinite; } @keyframes pulseA { 50% { transform: scale(1.35); opacity: .7; } }
+.sa-rain { animation: rainA 2.6s linear infinite; } @keyframes rainA { from { transform: translateY(-90px); } to { transform: translateY(170px); } }
+.sa-bob { animation: bobA 3s ease-in-out infinite; }
+.sa-dash { stroke-dashoffset: 0; animation: dashA 1s linear infinite; } @keyframes dashA { to { stroke-dashoffset: -10; } }
+.sa-ripple { transform-origin: 75px 76px; animation: rippleA 2.4s ease-out infinite; } @keyframes rippleA { from { transform: scale(.85); opacity: .9; } to { transform: scale(1.25); opacity: 0; } }
+.sa-draw { stroke-dashoffset: 60; animation: drawA 3s ease-in-out infinite; } @keyframes drawA { 0% { stroke-dashoffset: 60; } 35%,80% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -60; } }
+.sa-draw2 { stroke-dashoffset: 260; animation: draw2A 3.4s linear infinite; } @keyframes draw2A { to { stroke-dashoffset: -260; } }
+.sa-page { animation: pageA 3.6s ease-in-out infinite; } @keyframes pageA { 0%,30% { transform: scaleX(1); } 55% { transform: scaleX(-1); } 100% { transform: scaleX(-1); opacity: 0; } }
+.sa-shackle { animation: shackleA 3s ease-in-out infinite; } @keyframes shackleA { 0%,40%,100% { transform: translateY(0); } 55%,80% { transform: translateY(-7px); } }
+.sa-scan { animation: scanA 2.6s linear infinite; } @keyframes scanA { from { transform: translateY(0); } to { transform: translateY(66px); } }
+.sa-eq { animation: eqA 1.1s ease-in-out infinite; } @keyframes eqA { 0%,100% { transform: scaleY(.25); } 50% { transform: scaleY(1); } }
+.sa-twist { animation: twistA 2.6s ease-in-out infinite; } @keyframes twistA { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(-1); } }
+.sa-zoom { animation: zoomA 3.15s linear infinite; opacity: 0; } @keyframes zoomA { from { transform: scale(.05); opacity: 0; } 20% { opacity: .9; } to { transform: scale(1.15); opacity: 0; } }
+.sa-twinkle { animation: twinkleA 2.2s ease-in-out infinite; } @keyframes twinkleA { 50% { opacity: .15; } }
+.sa-meteor { animation: meteorA 3.5s ease-in infinite; opacity: 0; } @keyframes meteorA { 0%,60% { transform: translate(0,0); opacity: 0; } 65% { opacity: 1; } 100% { transform: translate(110px,85px); opacity: 0; } }
+.sa-trace { animation: traceA 2.8s linear infinite; } @keyframes traceA { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -314; } }
+.sa-msg { animation: msgA 4s ease-in-out infinite; } @keyframes msgA { 0% { opacity: 0; transform: translateY(8px); } 12%,85% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.sa-press { transform-box: fill-box !important; transform-origin: center; animation: pressA 1.4s ease-in-out infinite; } @keyframes pressA { 0%,70%,100% { transform: scale(1); } 80% { transform: scale(.6); } }
+.sa-float { animation: floatA 3s ease-in-out infinite; } @keyframes floatA { 50% { transform: translateY(-8px); } }
+.sa-tilt { animation: tiltA 4s ease-in-out infinite; } @keyframes tiltA { 50% { transform: rotate(-6deg) translateY(-4px); } }
+.sa-glint { animation: glintA 3.5s ease-in-out infinite; } @keyframes glintA { 0%,55% { transform: translateX(-40px) skewX(-20deg); } 100% { transform: translateX(190px) skewX(-20deg); } }
+.sa-aim { animation: aimA 4s ease-in-out infinite; } @keyframes aimA { 0%,100% { transform: translate(0,0); } 25% { transform: translate(18px,-14px); } 50% { transform: translate(-12px,10px); } 75% { transform: translate(6px,16px); } }
+.sa-type { transform-box: fill-box !important; }
+
+/* Плитки разделов в каталоге и подразделах */
+.tile-v3 { background: radial-gradient(120% 90% at 30% 0%, var(--pbg), #0A0B0E 92%) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.14), inset 0 0 0 1px rgba(255,255,255,.07); border: 0 !important; }
+.tile-v3 .sa-bgart { position: absolute; right: -14px; top: -10px; width: 120px; height: 128px; opacity: .9; pointer-events: none; }
+.tile-v3 .tile-fade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10,11,14,.92) 30%, rgba(10,11,14,.25) 75%, rgba(10,11,14,0)), linear-gradient(0deg, rgba(10,11,14,.85), transparent 60%); pointer-events: none; }
+.tile-v3 > *:not(.sa-bgart):not(.tile-fade) { position: relative; z-index: 1; }
+.cover-v3 { background: radial-gradient(120% 100% at 70% 0%, var(--pbg), #07080A 85%) !important; }
+.cover-v3 .sa-bgart { position: absolute; right: -10px; top: 0; width: 230px; height: 230px; opacity: .85; pointer-events: none; }
+.cover-v3 .tile-fade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(7,8,10,.9) 25%, rgba(7,8,10,.2) 70%, transparent), linear-gradient(0deg, #07080A, transparent 55%); pointer-events: none; }
+.cover-v3 > *:not(.sa-bgart):not(.tile-fade) { position: relative; z-index: 1; }
+
+/* Производительность: без размытия у анимированных пятен и без анимации фильтров */
+.hv-g1, .hv-g2, .hv-g3 { filter: none !important; will-change: transform; }
+.poster-v2::before { filter: none !important; }
+.bm-anim { animation: none !important; filter: drop-shadow(0 0 5px rgba(150,70,255,.85)); }
+.logo-tile::before { content: ''; position: absolute; inset: -30%; background: radial-gradient(circle, rgba(190,120,255,.55), transparent 60%); opacity: 0; animation: lgGlow 4s ease-in-out infinite; pointer-events: none; }
+@keyframes lgGlow { 0%,80%,100% { opacity: 0; } 86% { opacity: 1; } }
+.poster-v2, .bcard, .hero-v2, .sbar { contain: paint; }
+.hv-chip, .hv-lesson { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; background-color: rgba(10,12,16,.72); }
+.hv-lesson { background: rgba(255,255,255,.16) !important; }
+@media (prefers-reduced-motion: reduce) { .sa *, .logo-tile::before { animation: none !important; } }
+
+/* ═════ Производительность v3: анимации только на transform/opacity ═════ */
+.sbar::before { background: linear-gradient(100deg, transparent, rgba(122,77,255,.28), transparent) !important; background-size: auto !important; width: 45%; right: auto; animation: sweepT 4.5s ease-in-out infinite !important; will-change: transform; }
+@keyframes sweepT { 0%,40% { transform: translateX(-120%); } 100% { transform: translateX(330%); } }
+.logo-tile::after { background: linear-gradient(115deg, transparent, rgba(255,255,255,.22), transparent) !important; background-size: auto !important; width: 60%; animation: sweepT 4.5s ease-in-out infinite !important; will-change: transform; }
+.hv-title span { animation: none !important; background-size: 100% 100% !important; }
+.hv-chip i, .chat-online, .pulse-dot { animation: none !important; box-shadow: none !important; position: relative; }
+.hv-chip i::after { content: ''; position: absolute; inset: 0; border-radius: 50%; background: #3DFFC8; animation: pingT 1.8s ease-out infinite; }
+@keyframes pingT { from { transform: scale(1); opacity: .6; } to { transform: scale(2.8); opacity: 0; } }
+.sbar-q u.a { animation: popA .45s cubic-bezier(.2,.8,.2,1) both !important; }
+.nl-new { animation: none !important; position: relative; } .nl-new::after { content: ''; position: absolute; inset: -4px; border-radius: 9px; box-shadow: 0 0 14px rgba(61,255,200,.8); animation: breatheA 1.8s ease-in-out infinite; pointer-events: none; }
+.sa { will-change: transform; contain: strict; }
+.sa-paused * { animation-play-state: paused !important; }
+.hv-g1, .hv-g2, .hv-g3 { animation-duration: 16s !important; }
+body.has-nav { --navh: 74px; }
+body.kb-open { --navh: 0px; }
+body.kb-open .nav-v2 { opacity: 0; pointer-events: none; transform: translate(-50%, 30px) !important; transition: opacity .2s, transform .2s; }

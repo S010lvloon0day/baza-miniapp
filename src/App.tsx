@@ -450,7 +450,7 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {!isMat && tab !== 'chat' && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread, chat: chatUnread }} />}
+      {!isMat && <BottomNav active={tab} onChange={switchTab} showConstructor={isAdmin} badges={{ ctor: fbUnread, chat: chatUnread }} />}
 
       <NotifySheet open={notifyOpen} onClose={() => setNotifyOpen(false)} />
 

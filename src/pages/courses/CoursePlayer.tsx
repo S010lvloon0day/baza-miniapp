@@ -22,7 +22,7 @@ function LessonMedia({ type, url }: { type: string; url: string }) {
     overflow: 'hidden' as const,
     marginBottom: 16,
     aspectRatio: type === 'video' ? '16/9' : '4/3',
-    background: '#0B1410',
+    background: '#0C0D10',
   }
 
   if (!url) {

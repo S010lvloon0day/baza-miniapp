@@ -48,7 +48,7 @@ function BannerItem({ banner, index }: { banner: Banner; index: number }) {
 
       {(banner.title || banner.text) && (
         <div className="absolute inset-x-0 bottom-0"
-          style={{ background: 'linear-gradient(to top, rgba(8,16,13,.95) 0%, transparent 100%)' }}>
+          style={{ background: 'linear-gradient(to top, rgba(9,10,13,.95) 0%, transparent 100%)' }}>
           <div className="flex items-end justify-between px-4 py-3 gap-2">
             <div className="flex-1 min-w-0">
               {banner.title && (

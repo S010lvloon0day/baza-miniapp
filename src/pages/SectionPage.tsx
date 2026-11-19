@@ -3,7 +3,7 @@ import Icon from '../components/Icon'
 import BazaMark from '../components/BazaMark'
 import PremiumBadge from '../components/PremiumBadge'
 import { iconNameFor } from '../components/CategoryIcon'
-import { coverClass } from '../components/sectionCover'
+import SectionArt, { assignArts, artIndexFor, artStyle } from '../components/SectionArt'
 import MediaTypeIcon from '../components/MediaTypeIcon'
 import { CardSocial } from '../components/MaterialSocial'
 import { api, getMatSort, setMatSort, fmtSize } from '../api/client'
@@ -54,9 +54,9 @@ const FILTERS: { id: Filter; label: string; match: (t: string) => boolean }[] = 
 /** Крупная шапка-обложка раздела. */
 function Cover({ section, children }: { section: Section; children?: React.ReactNode }) {
   return (
-    <div className={`${coverClass(section)} relative overflow-hidden px-[18px] pt-10 pb-5 min-h-[178px] flex flex-col justify-end`}>
-      <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgba(8,16,13,0) 25%, #07080A 100%)' }} />
-      <Icon name={iconNameFor(section.title)} size={150} className="absolute -right-5 top-1 opacity-[.14] text-white" accent="#fff" strokeWidth={1.3} />
+    <div className="cover-v3 relative overflow-hidden px-[18px] pt-10 pb-5 min-h-[190px] flex flex-col justify-end" style={artStyle(artIndexFor(section))}>
+      <SectionArt index={artIndexFor(section)} className="sa sa-bgart" />
+      <i className="tile-fade" />
       <div className="relative">{children}</div>
     </div>
   )
@@ -304,14 +304,16 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           <section>
             <h3 className="px-1 pb-2 text-[17px] font-bold">Подразделы</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2.5">
-              {subs.map(s => (
-                <button key={s.id} onClick={() => onSubsection(s)}
-                  className={`${coverClass(s)} relative h-[92px] rounded-[18px] p-3 flex flex-col justify-between text-left border border-white/[.07] overflow-hidden active:scale-[.98] transition-transform`}>
+              {(() => { const arts = assignArts(subs); return subs.map((s, i) => { const ai = arts.get(s.id) ?? i; return (
+                <button key={s.id} onClick={() => onSubsection(s)} style={{ ...artStyle(ai), animationDelay: `${Math.min(i, 10) * 45}ms` }}
+                  className="tile-v3 anim-up relative h-[104px] rounded-[20px] p-3 flex flex-col justify-between text-left overflow-hidden active:scale-[.97] transition-transform">
+                  <SectionArt index={ai} className="sa sa-bgart" />
+                  <i className="tile-fade" />
                   <Icon name={iconNameFor(s.title)} size={22} style={{ color: 'var(--cv)' }} accent="var(--cv)" />
                   <b className="text-[14px] font-semibold leading-tight line-clamp-2 break-words">{s.title}</b>
-                  {s.locked && <span className="absolute top-3 right-3 opacity-80"><Icon name="lock" size={14} accent="var(--cv)" style={{ color: 'var(--cv)' }} /></span>}
+                  {s.locked && <span className="absolute top-3 right-3 opacity-90"><Icon name="lock" size={14} accent="var(--cv)" style={{ color: 'var(--cv)' }} /></span>}
                 </button>
-              ))}
+              ) }) })()}
             </div>
           </section>
         )}
