@@ -45,9 +45,11 @@ export default function RunTask({ content, onSolve }: { content: string; onSolve
     setStatus('running'); setOut('')
     try {
       const r = await fetch(API_BASE + '/api/run', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Init-Data': (window as any).Telegram?.WebApp?.initData || '' },
         body: JSON.stringify({ code, compiler, stdin: task.stdin || '' }),
       })
+      if (r.status === 429) throw new Error('Слишком много запусков подряд — подождите минуту.')
+      if (r.status === 401) throw new Error('Откройте приложение через бота, чтобы запускать код.')
       if (!r.ok) throw new Error('сервер запуска недоступен (' + r.status + ')')
       const j = await r.json()
       const prog = norm(j.program_output || '')
