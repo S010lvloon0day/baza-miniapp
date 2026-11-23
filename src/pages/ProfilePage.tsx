@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
 import type { Profile, Config, Plan, ReferralInfo } from '../api/client'
 import { useRubPayment, fmtRub } from '../hooks/useRubPayment'
+import type { UsdtInvoice } from '../api/client'
 import Icon from '../components/Icon'
 import BazaMark from '../components/BazaMark'
 import PremiumBadge from '../components/PremiumBadge'
@@ -156,14 +157,83 @@ function ReferralCard() {
   )
 }
 
+const plural = (n: number, a: string, b: string, c: string) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : m >= 2 && m <= 4 && (h < 10 || h >= 20) ? b : c }
+const fmtDate = (d: Date) => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })
+
+/** Дата окончания после оплаты: продление — от текущей даты окончания, иначе — от сегодня. */
+function untilAfter(prof: Profile | null, days: number): Date {
+  const cur = prof?.premium_until_full ? new Date(prof.premium_until_full) : null
+  const from = prof?.is_premium && cur && !isNaN(cur.getTime()) && cur.getTime() > Date.now() ? cur : new Date()
+  return new Date(from.getTime() + days * 86400000)
+}
+
+function CopyRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  const [ok, setOk] = useState(false)
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(value) } catch {
+      const t = document.createElement('textarea'); t.value = value; document.body.appendChild(t); t.select(); try { document.execCommand('copy') } catch { /* */ } t.remove()
+    }
+    setOk(true); try { tg?.HapticFeedback?.notificationOccurred('success') } catch { /* */ } setTimeout(() => setOk(false), 1500)
+  }
+  return (
+    <button onClick={copy} className="usdt-row">
+      <small>{label}</small>
+      <b className={mono ? 'mono' : ''}>{value}</b>
+      <span className="usdt-copy">{ok ? 'Скопировано' : 'Копировать'}</span>
+    </button>
+  )
+}
+
+function UsdtPanel({ inv, onPaid, onClose }: { inv: UsdtInvoice; onPaid: () => void; onClose: () => void }) {
+  const [st, setSt] = useState<string>('pending')
+  const [now, setNow] = useState(Date.now())
+  useEffect(() => {
+    let stop = false
+    const tick = async () => {
+      try {
+        const r = await api.usdtStatus(inv.id)
+        if (stop) return
+        setSt(r.status)
+        if (r.status === 'paid') { stop = true; onPaid() }
+      } catch { /* сеть — попробуем снова */ }
+    }
+    tick()
+    const a = setInterval(() => { if (!stop) tick() }, 10000)
+    const b = setInterval(() => setNow(Date.now()), 1000)
+    const f = () => tick()
+    window.addEventListener('focus', f)
+    return () => { stop = true; clearInterval(a); clearInterval(b); window.removeEventListener('focus', f) }
+  }, [inv.id])
+  const left = Math.max(0, inv.expires * 1000 - now)
+  const mm = Math.floor(left / 60000), ss = Math.floor(left / 1000) % 60
+  const late = left === 0 || st === 'waiting_late'
+  return (
+    <div className="usdt anim-up">
+      <div className="flex items-center justify-between gap-2">
+        <b className="text-[15px] font-semibold">Перевод USDT · TRC20</b>
+        <button onClick={onClose} aria-label="Закрыть" className="usdt-x">×</button>
+      </div>
+      <p className="usdt-warn">Переведите <b>ровно эту сумму</b> — по последним цифрам мы узнаём ваш платёж. Сеть — только <b>TRON (TRC20)</b>, монета — <b>USDT</b>. Если отправляете с биржи, учтите комиссию: <b>до вас должна дойти точная сумма</b>.</p>
+      <CopyRow label="Сумма, USDT" value={inv.amount} mono />
+      <CopyRow label="Адрес кошелька (TRC20)" value={inv.address} mono />
+      <div className="usdt-st">
+        {st === 'paid' ? <><i className="ok" />Оплата получена</>
+          : <><i className="wait" />{late ? 'Ждём перевод — если вы уже отправили, Premium включится сам в течение суток' : `Ждём перевод · ${mm}:${String(ss).padStart(2, '0')}`}</>}
+      </div>
+      <small className="block text-[12px] text-gray leading-snug">Проверяем каждые 30 секунд. Обычно Premium включается через 1–3 минуты после перевода, в бот придёт сообщение. Можно закрыть приложение.</small>
+    </div>
+  )
+}
+
 export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Props) {
   const [prof, setProf]   = useState<Profile | null>(null)
   const [cfg, setCfg]     = useState<Config>({ plans: [], currency: 'USDT' })
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Plan | null>(null)
-  const [paying, setPaying] = useState<'crypto' | 'rub' | null>(null)
+  const [paying, setPaying] = useState<'crypto' | 'rub' | 'usdt' | null>(null)
+  const [usdt, setUsdt] = useState<UsdtInvoice | null>(null)
   const [rubTx, setRubTx] = useState<string | null>(null)
-  const [method, setMethod] = useState<'rub' | 'crypto' | null>(null)
+  const [method, setMethod] = useState<'rub' | 'crypto' | 'usdt' | null>(null)
   const [comp, setComp] = useState<Compete | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [invoiceId, setInvoiceId] = useState<string | null>(null)
@@ -207,6 +277,27 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
     } finally {
       setPaying(null)
     }
+  }
+
+  const buyWithUsdt = async () => {
+    if (!selected || paying) return
+    setPaying('usdt'); setMsg(null)
+    try {
+      setUsdt(await api.usdtInvoice(selected.days))
+    } catch (e: any) {
+      setMsg(String(e?.message || '').includes('too_many') ? 'У вас уже есть открытые счета — оплатите один из них или подождите 30 минут.' : 'Не удалось создать счёт. Попробуйте позже.')
+    } finally { setPaying(null) }
+  }
+  const usdtPaid = async () => {
+    const p = await api.profile().catch(() => null)
+    if (p) setProf(p)
+    setUsdt(null)
+    setMsg(p?.premium_until ? `Оплата получена! Premium действует до ${fmtUntil(p.premium_until)}.` : 'Оплата получена, Premium активирован!')
+  }
+  const usdtClose = () => {
+    if (usdt && !window.confirm('Закрыть счёт? Если вы уже отправили перевод — не закрывайте, Premium включится сам.')) return
+    if (usdt) api.usdtCancel(usdt.id).catch(() => {})
+    setUsdt(null)
   }
 
   const buyWithRub = async () => {
@@ -298,8 +389,9 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
   // Доступные способы оплаты для выбранного тарифа
   const methods = selected ? ([
     selected.rub ? { key: 'rub' as const, label: 'СБП', icon: 'card' as const, amount: fmtRub(selected.rub), via: 'через СБП', run: buyWithRub } : null,
-    { key: 'crypto' as const, label: 'Крипта', icon: 'coin' as const, amount: `${selected.price} $`, via: 'в USDT через CryptoBot', run: buyWithCrypto },
-  ].filter(Boolean) as { key: 'rub' | 'crypto'; label: string; icon: 'card' | 'coin'; amount: string; via: string; run: () => void }[]) : []
+    cfg.usdt?.enabled ? { key: 'usdt' as const, label: 'USDT TRC20', icon: 'coin' as const, amount: `${selected.price} USDT`, via: 'переводом USDT (TRC20) на кошелёк', run: buyWithUsdt } : null,
+    { key: 'crypto' as const, label: 'CryptoBot', icon: 'coin' as const, amount: `${selected.price} $`, via: 'в USDT через CryptoBot', run: buyWithCrypto },
+  ].filter(Boolean) as { key: 'rub' | 'crypto' | 'usdt'; label: string; icon: 'card' | 'coin'; amount: string; via: string; run: () => void }[]) : []
   const cur = methods.find(m => m.key === method) ?? methods[0]
 
   // Цена тарифа в выбранной валюте и цена за месяц
@@ -322,7 +414,15 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
         {premium ? (
           <div className="flex items-center gap-2 mt-3">
             <PremiumBadge />
-            {prof?.premium_until && <span className="text-[12.5px] text-[#E9D59E]">до {fmtUntil(prof.premium_until)}</span>}
+            {prof?.premium_until && <span className="text-[12.5px] text-[#E9D59E]">до {fmtUntil(prof.premium_until)}{prof.days_left ? ` · осталось ${prof.days_left} ${plural(prof.days_left, 'день', 'дня', 'дней')}` : ''}</span>}
+          </div>
+        ) : prof?.premium_until ? (
+          <div className="mt-3 flex flex-col items-center gap-2">
+            <span className="text-[12.5px] text-[#FF9A9A]">Premium закончился {fmtUntil(prof.premium_until)}</span>
+            <button onClick={() => plansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="h-9 px-4 rounded-full text-[13px] font-semibold flex items-center gap-1.5 pcta">
+              <Icon name="crown" size={14} accent="current" /> Продлить Premium
+            </button>
           </div>
         ) : cfg.plans.length > 0 && (
           <button onClick={() => plansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -365,7 +465,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
               const perMonth = unit(p) / months(p)
               const off = base > 0 ? Math.round((1 - perMonth / base) * 100) : 0
               return (
-                <button key={p.days} onClick={() => { setSelected(p); setMsg(null) }} className={`plan ${on ? 'on' : ''}`} aria-pressed={on}>
+                <button key={p.days} onClick={() => { setSelected(p); setMsg(null); setUsdt(null) }} className={`plan ${on ? 'on' : ''}`} aria-pressed={on}>
                   <span className="plan-r">{on && <i />}</span>
                   <span className="flex-1 min-w-0 text-left">
                     <b className="plan-t">{p.label}{off >= 5 && <em className="plan-off">−{off}%</em>}</b>
@@ -380,7 +480,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
           {methods.length > 1 && (
             <div className="pseg">
               {methods.map(m => (
-                <button key={m.key} onClick={() => { setMethod(m.key); setMsg(null) }} className={cur?.key === m.key ? 'on' : ''}>
+                <button key={m.key} onClick={() => { setMethod(m.key); setMsg(null); setUsdt(null) }} className={cur?.key === m.key ? 'on' : ''}>
                   <Icon name={m.icon} size={15} accent="current" />{m.label}
                 </button>
               ))}
@@ -394,7 +494,11 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
               <small>{months(selected)} {months(selected) === 1 ? 'месяц' : months(selected) < 5 ? 'месяца' : 'месяцев'} · {cur.via}</small>
             </button>
           )}
-          <p className="pnote">Без автопродления. Premium включится сам, обычно за минуту.</p>
+          {selected && (
+            <p className="pnote pafter">{premium ? 'После продления' : 'После оплаты'} Premium будет действовать до <b>{fmtDate(untilAfter(prof, selected.days))}</b>{premium && prof?.days_left ? ` — ${prof.days_left} ${plural(prof.days_left, 'день', 'дня', 'дней')} останутся, плюс ${selected.days} новых` : ''}.</p>
+          )}
+          {usdt && <UsdtPanel inv={usdt} onPaid={usdtPaid} onClose={usdtClose} />}
+          <p className="pnote">Без автопродления. Premium включится сам, обычно за минуту. Повторная оплата продлевает подписку — дни не сгорают.</p>
 
           {invoiceId && (
             <button disabled={checking} onClick={checkPayment} className="btn-secondary w-full disabled:opacity-50">

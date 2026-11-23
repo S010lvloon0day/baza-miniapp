@@ -182,6 +182,8 @@ export interface Profile {
   name: string
   is_premium: boolean
   premium_until?: string
+  premium_until_full?: string
+  days_left?: number
   contributions_total?: number
   contributions_approved?: number
   photo_url?: string
@@ -208,6 +210,18 @@ export interface Config {
   giveaway_visible?: boolean
   mask_visible?: boolean
   is_admin?: boolean
+  usdt?: { enabled: boolean; network: string }
+}
+
+export interface UsdtInvoice {
+  id: number
+  amount: string
+  address: string
+  network: string
+  days: number
+  price: number
+  label: string
+  expires: number
 }
 
 export interface Banner {
@@ -430,6 +444,9 @@ export const api = {
   rubInvoice:     (days: number) => post<{ payment_url: string; transaction_id: string; amount: number }>(`/api/rub_invoice/${days}`),
   /** Статус рублёвого платежа: pending | paid | failed | cancelled. */
   rubStatus:      (txId: string) => get<{ status: string; kind?: string; premium_until?: string | null; course_id?: number }>(`/api/rub_invoice/${encodeURIComponent(txId)}`),
+  usdtInvoice:    (days: number) => post<UsdtInvoice>(`/api/usdt_invoice/${days}`),
+  usdtStatus:     (id: number) => get<{ status: 'pending' | 'waiting_late' | 'paid' | 'expired' | 'cancelled'; premium_until?: string | null }>(`/api/usdt_invoice/${id}`),
+  usdtCancel:     (id: number) => post<{ ok: boolean }>(`/api/usdt_invoice/${id}/cancel`),
   cryptoInvoiceConfirm: (invoiceId: string) =>
     post<{ ok?: boolean; status?: string; premium_until?: string; error?: string }>('/api/crypto_invoice/confirm', { invoice_id: invoiceId }),
   recent:         ()             => get<{ materials: Material[]; today_count: number; today_sections: TodaySection[]; total_count: number }>('/api/recent'),
