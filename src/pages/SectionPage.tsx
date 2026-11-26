@@ -41,7 +41,7 @@ interface Props {
   onUpgrade: () => void
 }
 
-const typeLabel = (t: string) => ({ photo: 'Фото', video: 'Видео', document: 'Файл', text: 'Урок', doc: 'Урок', quiz: 'Тест', task: 'Задание' }[t] ?? 'Материал')
+const typeLabel = (t: string) => ({ photo: 'Фото', video: 'Видео', audio: 'Аудио', document: 'Файл', text: 'Урок', doc: 'Урок', quiz: 'Тест', task: 'Задание' }[t] ?? 'Материал')
 type Filter = 'all' | 'video' | 'lesson' | 'test' | 'file'
 const FILTERS: { id: Filter; label: string; match: (t: string) => boolean }[] = [
   { id: 'all', label: 'Все', match: () => true },

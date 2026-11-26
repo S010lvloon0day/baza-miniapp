@@ -28,6 +28,7 @@ interface Props {
 }
 
 const FEATURED_TITLE = 'Знания S010lvloon'
+const MK_TITLE = 'Знания Маркаряна'
 
 /* ── Пользовательский контент: кастом-эмодзи в сообщениях чата ── */
 function HeroEmoji({ k, fid }: { k: string; fid: string }) {
@@ -377,7 +378,8 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
   )
 
   const featured = sections.find(s => s.title === FEATURED_TITLE)
-  const shelf = sections.filter(s => s !== featured)
+  const mkSec = sections.find(s => s.title === MK_TITLE)
+  const shelf = sections.filter(s => s !== featured && s !== mkSec)
   const c0 = cont[0]
   const minute = c0 ? Math.floor(c0.position / 60) : 0
   const playNext = () => { if (c0) onMaterial(c0.id, c0.section_id); else onTabCats() }
@@ -514,6 +516,9 @@ export default function HomePage({ onSection, onMaterial, onTabCats, onCompete, 
         {/* Авторское */}
         {featured && (
           <FeaturedCard title={featured.title} onClick={() => onSection(featured)} />
+        )}
+        {mkSec && (
+          <div className="mt-2.5"><FeaturedCard title={mkSec.title} variant="mk" onClick={() => onSection(mkSec)} /></div>
         )}
 
         {/* Новое */}

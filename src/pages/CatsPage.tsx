@@ -10,6 +10,7 @@ import type { Section } from '../api/client'
 interface Props { onSection: (s: Section) => void; onGiveaway?: () => void }
 
 const FEATURED_TITLE = 'Знания S010lvloon'
+const MK_TITLE = 'Знания Маркаряна'
 
 export default function CatsPage({ onSection, onGiveaway }: Props) {
   const [cats, setCats] = useState<Section[]>([])
@@ -27,7 +28,8 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
   )
 
   const featured = cats.find(s => s.title === FEATURED_TITLE)
-  const rest = cats.filter(s => s.title !== FEATURED_TITLE)
+  const mk = cats.find(s => s.title === MK_TITLE)
+  const rest = cats.filter(s => s.title !== FEATURED_TITLE && s.title !== MK_TITLE)
 
   return (
     <div className="flex-1 overflow-y-auto pb-navsafe">
@@ -36,6 +38,9 @@ export default function CatsPage({ onSection, onGiveaway }: Props) {
 
         {featured && (
           <FeaturedCard title={featured.title} onClick={() => onSection(featured)} />
+        )}
+        {mk && (
+          <FeaturedCard title={mk.title} variant="mk" onClick={() => onSection(mk)} />
         )}
 
         {onGiveaway && (

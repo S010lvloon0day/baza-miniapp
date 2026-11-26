@@ -131,7 +131,7 @@ export interface Material {
   section_id: number
   title: string
   content: string
-  media_type: 'photo' | 'video' | 'document' | 'text' | 'quiz' | 'task' | 'doc'
+  media_type: 'photo' | 'video' | 'audio' | 'document' | 'text' | 'quiz' | 'task' | 'doc'
   is_premium: number
   locked?: boolean
   file_url?: string

@@ -387,10 +387,53 @@ const ARTS: Art[] = [
     </g>
     {[0, 1, 2, 3].map(i => <circle key={i} className="sa-float" style={d(i, .5)} cx={20 + i * 37} cy={146 - (i % 2) * 8} r="2.5" fill="var(--cv)" />)}
   </>) },
+  { key: 'summit', c: '#FF8A3D', bg: '#4A1C05', draw: () => (<>
+    <g className="sa-rot" style={{ transformOrigin: '36px 36px' }}>{Array.from({ length: 10 }, (_, i) => { const a = i * Math.PI / 5; return <path key={i} d={`M${(36 + Math.cos(a) * 20).toFixed(1)} ${(36 + Math.sin(a) * 20).toFixed(1)}L${(36 + Math.cos(a) * 27).toFixed(1)} ${(36 + Math.sin(a) * 27).toFixed(1)}`} stroke="var(--cv)" strokeWidth="2" strokeLinecap="round" opacity=".7" /> })}</g>
+    <circle className="sa-pulse" cx="36" cy="36" r="13" fill="var(--cv)" opacity=".85" />
+    <path d="M-4 150L48 66 74 104 102 58 156 150z" fill="#1E0A02" stroke="var(--cv)" strokeWidth="1.6" strokeLinejoin="round" />
+    <path d="M48 66l12 20-12-6-12 6zM102 58l14 24-14-7-14 7z" fill="#fff" opacity=".85" />
+    <path className="sa-dash" d="M18 150C40 128 60 134 72 116S96 86 102 58" stroke="#fff" strokeWidth="1.4" strokeDasharray="4 5" fill="none" opacity=".8" />
+    <path d="M102 58V22" stroke="#fff" strokeWidth="1.8" />
+    <path className="sa-wave" d="M103 23l22 7-22 8z" fill="#FF3D2E" />
+  </>) },
 ]
 
 /* Тема раздела → любимые рисунки (по порядку предпочтения). */
 const THEMES: [string[], string[]][] = [
+  // «Знания Маркаряна» — у каждого подраздела свой смысловой рисунок
+  [['знания маркаряна'], ['summit']],
+  [['эфиры базы', 'эфиры 2022', 'эфиры 2023', 'эфиры 2024', 'эфиры 2025'], ['eq', 'waves', 'packets', 'bubbles']],
+  [['подкасты, гайды', 'интервью и большие', 'аудиоподкасты'], ['film', 'eq', 'bubbles']],
+  [['тело и здоровье', 'гормоны и тестостерон'], ['helix', 'atom']],
+  [['биохакинг, добавки'], ['atom', 'helix']],
+  [['питание и жкт'], ['cube', 'eq']],
+  [['сон, режим'], ['stars']],
+  [['биомеханика, осанка'], ['target', 'gears']],
+  [['внешность и гигиена'], ['camera']],
+  [['сила, спорт'], ['shield', 'target']],
+  [['экология и вредное'], ['virus']],
+  [['психика и мышление', 'мысли арсена'], ['neural', 'atom']],
+  [['тревога и сдвг'], ['waves', 'neural']],
+  [['воля, мотивация'], ['target', 'stars']],
+  [['принцип агрессии'], ['redteam', 'target']],
+  [['интеллект, речь'], ['bubbles', 'book']],
+  [['мужчина и женщина', 'психология женщин'], ['bubbles', 'helix']],
+  [['отношения и секс'], ['chain']],
+  [['семья, дети'], ['shield']],
+  [['картина мира', 'общество и цивилизация'], ['globe']],
+  [['разоблачения и конспир'], ['eye', 'radar']],
+  [['дебаты и прогнозы'], ['radar', 'bubbles']],
+  [['деньги и реализация', 'деньги, бизнес и статус'], ['chart', 'coin']],
+  [['grind university'], ['book', 'chart']],
+  [['письма из лагеря'], ['lock', 'key']],
+  [['письма и личное', 'письма арсена'], ['book', 'stars']],
+  [['молодой арсен'], ['plane', 'summit']],
+  [['книги и рекомендации'], ['book']],
+  [['офицеры и сообщество', 'офицеры и задачи'], ['shield', 'target']],
+  [['отзывы и результаты'], ['stars']],
+  [['с чего начать', 'новичку и правила'], ['checklist', 'bulb']],
+  [['тематические подборки'], ['bulb', 'stars']],
+  [['курсы и тренинги', 'release', 'tr 20', 'курс: гормоны', 'мини-курс'], ['book', 'summit', 'stars']],
   [[' крипт', 'криптовал', 'bitcoin', 'биткоин', 'блокчейн', 'кошел', 'defi', 'nft'], ['coin', 'chain']],
   [['вопрос', 'faq', 'ответы'], ['question', 'bubbles']],
   [['монтаж', 'видеоген', 'видео', 'meta ai', 'контент'], ['film', 'eq']],

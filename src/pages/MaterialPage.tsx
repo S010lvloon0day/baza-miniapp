@@ -24,7 +24,7 @@ import PaidOffer from '../components/PaidOffer'
 const PdfViewer = lazy(() => import('../components/PdfViewer'))
 
 const tg = (window as any).Telegram?.WebApp
-const typeLabel = (t: string) => ({ photo: 'Фото', video: 'Видео', document: 'Документ', text: 'Текст', quiz: 'Тест', task: 'Задание', doc: 'Урок' }[t] ?? t)
+const typeLabel = (t: string) => ({ photo: 'Фото', video: 'Видео', audio: 'Аудио', document: 'Документ', text: 'Текст', quiz: 'Тест', task: 'Задание', doc: 'Урок' }[t] ?? t)
 
 interface Props {
   materialId: number
@@ -335,6 +335,21 @@ export default function MaterialPage({ materialId, sectionId, botUsername, onUpg
                       </button>
                     </>
                   )}
+                </div>
+              )}
+
+              {/* ── AUDIO ── */}
+              {!multi && mat.media_type === 'audio' && furl && (
+                <div className="mx-4 mb-4 flex flex-col gap-2">
+                  <div className="card flex items-center gap-3 px-4 py-3">
+                    <MediaTypeIcon type="audio" size={44} iconSize={20} radius={14} tone="green" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-semibold truncate">{mat.title}</div>
+                      <div className="text-[12px] text-gray">Аудиозапись</div>
+                    </div>
+                  </div>
+                  <audio src={furl} controls preload="metadata" className="w-full" />
+                  <TgButton />
                 </div>
               )}
 

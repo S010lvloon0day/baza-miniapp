@@ -1,7 +1,7 @@
 import Icon from './Icon'
 import type { IconName } from './Icon'
 
-const MAP: Record<string, IconName> = { text: 'lesson', doc: 'doc', video: 'video', photo: 'photo', document: 'file', quiz: 'test', task: 'task' }
+const MAP: Record<string, IconName> = { text: 'lesson', doc: 'doc', video: 'video', photo: 'photo', document: 'file', audio: 'mic', quiz: 'test', task: 'task' }
 
 interface Props { type: string; size?: number; radius?: number; iconSize?: number; glow?: string; tone?: 'plain' | 'green' }
 

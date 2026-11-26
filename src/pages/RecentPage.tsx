@@ -6,7 +6,7 @@ import MediaTypeIcon from '../components/MediaTypeIcon'
 import Icon from '../components/Icon'
 import LevelMark from '../components/LevelMark'
 
-export const typeLabel = (t: string, archive?: boolean) => archive ? 'Архив' : ({ photo: 'Фото', video: 'Видео', document: 'Файл', text: 'Урок', doc: 'Урок', quiz: 'Тест', task: 'Задание' }[t] ?? 'Материал')
+export const typeLabel = (t: string, archive?: boolean) => archive ? 'Архив' : ({ photo: 'Фото', video: 'Видео', audio: 'Аудио', document: 'Файл', text: 'Урок', doc: 'Урок', quiz: 'Тест', task: 'Задание' }[t] ?? 'Материал')
 
 export function EmptyState({ icon, title, text }: { icon: 'history' | 'bookmark' | 'search'; title: string; text: string }) {
   return (

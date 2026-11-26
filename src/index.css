@@ -622,3 +622,21 @@ html, body, #root { max-width: 100%; overflow-x: hidden; }
 .usdt-st i.wait { background: #FFB25B; animation: pulseDot 1.4s ease-in-out infinite; } .usdt-st i.ok { background: #4FD1A5; }
 @keyframes pulseDot { 50% { opacity: .35; transform: scale(.8); } }
 .pafter { color: #C9CDD5 !important; } .pafter b { color: #fff; font-weight: 600; }
+
+/* ═════ «Знания Маркаряна» — тёплая версия авторской карточки ═════ */
+.feat-mk .feat-border { background: conic-gradient(from 0deg, #FFC56B, #FF5A1F, #B3122E, #FFD27A, #FFC56B); animation-duration: 7s; }
+.feat-mk .feat-in { background: radial-gradient(90% 140% at 0% 50%, rgba(255,106,31,.28), transparent 60%), radial-gradient(70% 120% at 100% 0%, rgba(255,210,122,.12), transparent 60%), linear-gradient(180deg, #17100C, #0C0908); }
+.feat-mk .feat-logo { background: #160C06; box-shadow: inset 0 0 0 1px rgba(255,177,61,.4), 0 0 26px rgba(255,106,31,.45); }
+.feat-mk .feat-glow { background: radial-gradient(circle, rgba(255,140,40,.5), transparent 62%); }
+.feat-mk .feat-orb { border-color: rgba(255,177,61,.4); }
+.feat-mk .feat-orb.o1 { border-top-color: #FFF3C4; }
+.feat-mk .feat-orb.o2 { border-color: rgba(255,90,31,.25); border-left-color: #FF5A1F; }
+.feat-mk .feat-k { background: linear-gradient(90deg, #FFD27A, #FF5A1F); -webkit-background-clip: text; background-clip: text; }
+.mm-rays { animation: spinA 14s linear infinite; }
+.mm-sun { transform-box: fill-box; transform-origin: center; animation: mmSun 3.2s ease-in-out infinite; }
+@keyframes mmSun { 50% { transform: scale(1.18); filter: brightness(1.25); } }
+.mm-flag { animation: mmFlag 1.6s ease-in-out infinite; }
+@keyframes mmFlag { 0%,100% { transform: skewY(0deg) scaleX(1); } 50% { transform: skewY(-9deg) scaleX(.82); } }
+.mm-trail { animation: mmTrail 2.4s linear infinite; }
+@keyframes mmTrail { to { stroke-dashoffset: -18; } }
+@media (prefers-reduced-motion: reduce) { .mm-rays, .mm-sun, .mm-flag, .mm-trail { animation: none !important; } }
