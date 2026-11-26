@@ -1,3 +1,4 @@
+import { openUrl } from './RichText'
 import Icon from './Icon'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import CodeTask from './CodeTask'
@@ -117,8 +118,8 @@ function inline(s: string): ReactNode[] {
     if (m.index > last) parts.push(s.slice(last, m.index))
     if (m[1]) parts.push(<code key={k++} className="px-1.5 py-0.5 rounded-md bg-white/[.08] text-[.86em] text-greenLight font-mono">{m[1]}</code>)
     else if (m[2]) parts.push(<b key={k++} className="text-fg font-semibold">{m[2]}</b>)
-    else if (m[3]) parts.push(<a key={k++} href={m[4]} target="_blank" rel="noreferrer" className="text-green underline underline-offset-2 decoration-green/40 break-all">{m[3]}</a>)
-    else if (m[5]) parts.push(<a key={k++} href={m[5]} target="_blank" rel="noreferrer" className="text-green underline underline-offset-2 decoration-green/40 break-all">{m[5]}</a>)
+    else if (m[3]) { const u = m[4]; parts.push(<a key={k++} href={u} onClick={e => { e.preventDefault(); openUrl(u) }} className="text-green underline underline-offset-2 decoration-green/40 break-all">{m[3]}</a>) }
+    else if (m[5]) { const u = m[5]; parts.push(<a key={k++} href={u} onClick={e => { e.preventDefault(); openUrl(u) }} className="text-green underline underline-offset-2 decoration-green/40 break-all">{u}</a>) }
     last = re.lastIndex
   }
   if (last < s.length) parts.push(s.slice(last))

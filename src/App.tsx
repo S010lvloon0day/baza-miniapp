@@ -277,6 +277,26 @@ export default function App() {
     window.addEventListener('baza:open-chat', h)
     return () => window.removeEventListener('baza:open-chat', h)
   }, [])
+  // Ссылки на материалы Базы в текстах — открываем здесь же, не выходя из приложения
+  useEffect(() => {
+    const onOpen = (e: Event) => { const id = Number((e as CustomEvent).detail); if (id > 0) openMaterialById(id) }
+    const onClick = (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest?.('a') as HTMLAnchorElement | null
+      const href = a?.getAttribute('href') || ''
+      const m = href.match(/t\.me\/[A-Za-z0-9_]+\/?\?startapp=m(\d+)/)
+      if (m) { e.preventDefault(); e.stopPropagation(); openMaterialById(Number(m[1])); return }
+      const s = href.match(/t\.me\/[A-Za-z0-9_]+\/?\?startapp=s(\d+)/)
+      if (s) { e.preventDefault(); e.stopPropagation(); onOpenSec(new CustomEvent('x', { detail: Number(s[1]) })) }
+    }
+    const onOpenSec = (e: Event) => {
+      const sid = Number((e as CustomEvent).detail)
+      if (sid > 0) api.sections().then(d => { const sec = d.sections.find(x => x.id === sid); if (sec) openSection(sec) }).catch(() => {})
+    }
+    window.addEventListener('baza:open-section', onOpenSec)
+    window.addEventListener('baza:open-material', onOpen)
+    document.addEventListener('click', onClick, true)
+    return () => { window.removeEventListener('baza:open-section', onOpenSec); window.removeEventListener('baza:open-material', onOpen); document.removeEventListener('click', onClick, true) }
+  }, [])
 
 
   const openCompete = () => setStack(s => [...s, { type: 'compete' }])
