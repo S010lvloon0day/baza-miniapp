@@ -120,10 +120,17 @@ export interface PaidOfferData {
 
 /** Порядок материалов в разделах: '' — как задал админ. Запоминается на устройстве. */
 export type MatSort = '' | 'new' | 'old' | 'big' | 'small'
-export function getMatSort(): MatSort {
-  try { const v = localStorage.getItem('mat_sort') || ''; return (['', 'new', 'old', 'big', 'small'].includes(v) ? v : '') as MatSort } catch { return '' }
+/** Выбор хранится отдельно для каждого раздела: «Сначала новые» в ленте постов не должен разворачивать уроки курса. */
+export function getMatSort(sectionId?: number): MatSort {
+  try {
+    if (!sectionId) return ''
+    const v = localStorage.getItem(`mat_sort:${sectionId}`) || ''
+    return (['', 'new', 'old', 'big', 'small'].includes(v) ? v : '') as MatSort
+  } catch { return '' }
 }
-export function setMatSort(v: MatSort) { try { localStorage.setItem('mat_sort', v) } catch { /* */ } }
+export function setMatSort(sectionId: number, v: MatSort) {
+  try { if (v) localStorage.setItem(`mat_sort:${sectionId}`, v); else localStorage.removeItem(`mat_sort:${sectionId}`); localStorage.removeItem('mat_sort') } catch { /* */ }
+}
 export const fmtSize = (b?: number | null) => !b || b <= 0 ? '' : b < 1048576 ? `${Math.max(1, Math.round(b / 1024))} КБ` : b < 1073741824 ? `${(b / 1048576).toFixed(b < 10485760 ? 1 : 0)} МБ` : `${(b / 1073741824).toFixed(1)} ГБ`
 
 export interface Material {
@@ -360,7 +367,7 @@ export const getChatTopic = () => _chatTopic
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
-  materials:      (id: number, page = 0, sort: MatSort = getMatSort()) =>
+  materials:      (id: number, page = 0, sort: MatSort = getMatSort(id)) =>
     get<{ materials: Material[]; total: number }>(`/api/sections/${id}/materials?page=${page}${sort ? `&sort=${sort}` : ''}`),
   material:       (id: number)   => get<Material>(`/api/material/${id}`),
   profile:        ()             => get<Profile>('/api/profile'),

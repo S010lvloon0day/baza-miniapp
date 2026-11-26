@@ -127,7 +127,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
   const [subBusy, setSubBusy] = useState(false)
   const [subMsg, setSubMsg] = useState<string | null>(null)
   const [filter, setFilter] = useState<Filter>('all')
-  const [sort, setSort] = useState<MatSort>(getMatSort())
+  const [sort, setSort] = useState<MatSort>(getMatSort(section.id))
   const sortTouched = useRef(false)
   const [sortOpen, setSortOpen] = useState(false)
   const [descOpen, setDescOpen] = useState(false)
@@ -347,7 +347,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
                     <div className="absolute z-50 left-1 top-[38px] min-w-[200px] rounded-[16px] bg-s1 border border-white/[.1] shadow-xl shadow-black/40 py-1.5 overflow-hidden">
                       {SORTS.map(o => (
                         <button key={o.id || 'pos'}
-                          onClick={() => { setSortOpen(false); if (o.id !== sort) { sortTouched.current = true; setMatSort(o.id); setSort(o.id) } }}
+                          onClick={() => { setSortOpen(false); if (o.id !== sort) { sortTouched.current = true; setMatSort(section.id, o.id); setSort(o.id) } }}
                           className="w-full flex items-center justify-between gap-3 px-4 py-2.5 text-[14px] text-left active:bg-white/[.06]">
                           <span className={sort === o.id ? 'text-green font-semibold' : ''}>{o.label}</span>
                           {sort === o.id && <Icon name="check" size={16} className="text-green" />}
