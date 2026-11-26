@@ -89,7 +89,7 @@ export interface FavoritesResponse {
 export interface Attachment {
   id: number
   position: number
-  kind: 'photo' | 'video' | 'document' | 'text'
+  kind: 'photo' | 'video' | 'audio' | 'document' | 'text'
   name?: string | null
   caption?: string | null
   /** Заполнен только у kind === 'text'. */
