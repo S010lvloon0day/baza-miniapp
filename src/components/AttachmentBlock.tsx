@@ -11,7 +11,7 @@ const PdfViewer = lazy(() => import('./PdfViewer'))
 
 const tg = (window as any).Telegram?.WebApp
 
-const KIND_LABEL: Record<string, string> = {
+const KIND_LABEL: Record<string, string> = { audio: 'Аудио',
   photo: 'Фото', video: 'Видео', document: 'Документ', text: 'Текст',
 }
 
@@ -126,6 +126,10 @@ export default function AttachmentBlock({
               <div className="pt-1.5"><ResumeHint resume={resume} /></div>
             </>
           )
+        )}
+
+        {att.kind === 'audio' && url && (
+          <audio src={url} controls preload="metadata" className="w-full" />
         )}
 
         {att.kind === 'document' && (
