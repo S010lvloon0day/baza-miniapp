@@ -19,7 +19,7 @@ export default function SplashPage({ onStart }: { onStart: () => void }) {
         initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, duration: 0.4 }}
         className="font-display font-semibold text-[28px] leading-tight"
       >
-        База знаний
+        Пиратская бухта
       </motion.h1>
       <motion.p
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}

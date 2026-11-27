@@ -60,7 +60,7 @@ function drawCertificate(canvas: HTMLCanvasElement, info: CertInfo) {
   // Мини-лого «БАЗА»
   ctx.fillStyle = gold
   ctx.font = '700 22px "Courier New", monospace'
-  ctx.fillText('• БАЗА ЗНАНИЙ •', cx, 150)
+  ctx.fillText('• ПИРАТСКАЯ БУХТА •', cx, 150)
 
   // Заголовок
   const titleGrad = ctx.createLinearGradient(cx - 300, 0, cx + 300, 0)
@@ -172,7 +172,7 @@ function drawCertificate(canvas: HTMLCanvasElement, info: CertInfo) {
   ctx.textAlign = 'center'
   ctx.fillStyle = 'rgba(160,160,170,0.55)'
   ctx.font = '400 15px Arial, sans-serif'
-  ctx.fillText('Подлинность проверяется в боте «База знаний» по ID и коду', cx, 940)
+  ctx.fillText('Подлинность проверяется в боте «Пиратская бухта» по ID и коду', cx, 940)
 }
 
 interface Props { parentId: number; language: string }

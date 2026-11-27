@@ -46,7 +46,7 @@ export default function Header({ title, showBack, onBack, onSearch, onBell, book
     <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-xl px-4 flex items-center gap-2.5 h-[60px] shrink-0">
       <LogoTile size={title ? 36 : 42} />
       {title ? <span className="flex-1 min-w-0 truncate font-display font-extrabold text-[19px] tracking-[-.03em]">{title}</span>
-        : <span className="hdr-brand"><small>БАЗА ЗНАНИЙ</small><b>S010<span>lvloon</span></b></span>}
+        : <span className="hdr-brand"><small>ПИРАТСКАЯ БУХТА</small><b>S010<span>lvloon</span></b></span>}
       {fs}
       {onSearch && <Btn onClick={onSearch} label="Поиск"><Icon name="search" size={21} /></Btn>}
       {onBell && <Btn onClick={onBell} label="Уведомления"><Icon name="bell" size={21} /></Btn>}

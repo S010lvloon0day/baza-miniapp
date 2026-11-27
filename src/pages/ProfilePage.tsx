@@ -123,7 +123,7 @@ function ReferralCard() {
   if (!r || !r.link || !r.bonus_days) return null
   const tg = (window as any).Telegram?.WebApp
   const share = () => {
-    const text = 'База знаний: курсы, OSINT, пентест, код — заходи'
+    const text = 'Пиратская бухта: курсы, OSINT, пентест, код — заходи'
     const url = `https://t.me/share/url?url=${encodeURIComponent(r.link)}&text=${encodeURIComponent(text)}`
     try { tg?.openTelegramLink ? tg.openTelegramLink(url) : window.open(url, '_blank') } catch { window.open(url, '_blank') }
   }
@@ -447,7 +447,7 @@ export default function ProfilePage({ scrollToPlans, onScrolled, onCompete }: Pr
               <svg width="0" height="0" style={{ position: 'absolute' }} aria-hidden><defs><linearGradient id="pbGold2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#FFF1C9" /><stop offset="1" stopColor="#D9A94E" /></linearGradient></defs></svg>
             </span>
             <span className="relative flex flex-col gap-1">
-              <b className="pcard-t">База знаний</b>
+              <b className="pcard-t">Пиратская бухта</b>
               <span className="pcard-s">{premium && prof?.premium_until ? `Активен до ${fmtUntil(prof.premium_until)}` : 'S010lvloon · доступ без ограничений'}</span>
             </span>
           </div>

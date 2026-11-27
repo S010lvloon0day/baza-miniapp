@@ -68,7 +68,7 @@ export function buildArena(S: THREE.Scene) {
   }
   const signs: THREE.Mesh[] = []
   const frame = new THREE.MeshStandardMaterial({ color: 0x15161f, roughness: 0.4, metalness: 0.8 })
-  for (const [txt, col, x, y, z, w] of [['БАЗА ЗНАНИЙ', '#34e8ff', -3.6, 2.05, -5.2, 3.8], ['S010', '#ff3fb4', 3.9, 1.95, -5.2, 2.0]] as const) {
+  for (const [txt, col, x, y, z, w] of [['ПИРАТСКАЯ БУХТА', '#34e8ff', -3.6, 2.05, -5.2, 3.8], ['S010', '#ff3fb4', 3.9, 1.95, -5.2, 2.0]] as const) {
     const m = neon(txt, col, w, w / 4); m.position.set(x, y, z); S.add(m); signs.push(m)
     const fr = new THREE.Mesh(new THREE.BoxGeometry(w + 0.2, 0.06, 0.06), frame); fr.position.set(x, y - w / 8 - 0.05, z - 0.05); S.add(fr)
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.15, y, 0.15), frame); leg.position.set(x, y / 2, z - 0.1); S.add(leg)
