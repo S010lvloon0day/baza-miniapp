@@ -13,12 +13,13 @@ import { UsersScreen, UserScreen, SubmissionsScreen, CommentsScreen } from './Pe
 import { BannersScreen, PinnedScreen, BroadcastScreen, PaymentsScreen, LogsScreen, LimitsScreen, WeekScreen, ChatModScreen } from './MiscScreens'
 import { Loader, Toaster, errMsg, num, ago } from './ui'
 import { MaskScreen } from './MaskScreen'
+import { CodesScreen } from './CodesScreen'
 import { PricesScreen, PurchasesScreen, AbandonedScreen, ContentStatsScreen } from './ExtraScreens'
 
 export type Screen =
   | { k: 'home' } | { k: 'content' } | { k: 'section'; id: number; title: string } | { k: 'material'; id: number }
   | { k: 'upload'; sectionId?: number } | { k: 'users' } | { k: 'user'; id: number } | { k: 'subs' } | { k: 'comments' } | { k: 'feedback' }
-  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' } | { k: 'limits' } | { k: 'week' } | { k: 'chatmod' } | { k: 'mask' } | { k: 'prices' } | { k: 'purchases' } | { k: 'abandoned' } | { k: 'cstats' }
+  | { k: 'courses' } | { k: 'banners' } | { k: 'pinned' } | { k: 'broadcast' } | { k: 'payments' } | { k: 'logs' } | { k: 'limits' } | { k: 'week' } | { k: 'chatmod' } | { k: 'mask' } | { k: 'prices' } | { k: 'purchases' } | { k: 'abandoned' } | { k: 'cstats' } | { k: 'codes' }
 
 export interface Nav { push: (s: Screen) => void; back: () => void }
 
@@ -26,7 +27,7 @@ const TITLES: Partial<Record<Screen['k'], string>> = {
   content: 'Контент', material: 'Материал', upload: 'Новый материал', users: 'Пользователи', user: 'Пользователь',
   subs: 'Заявки', comments: 'Комментарии', feedback: 'Обсуждения', courses: 'Курсы', banners: 'Баннеры',
   pinned: 'Закреп в боте', limits: 'Лимиты чтения', week: 'Итоги недели', chatmod: 'Чат: жалобы и муты', mask: 'Сними маску', broadcast: 'Рассылка', payments: 'Оплаты', logs: 'Журнал',
-  prices: 'Цены и курс', purchases: 'Покупки разделов', abandoned: 'Брошенные оплаты', cstats: 'Статистика контента',
+  prices: 'Цены и курс', purchases: 'Покупки разделов', abandoned: 'Брошенные оплаты', cstats: 'Статистика контента', codes: 'Коды доступа',
 }
 
 // Стек экранов переживает размонтирование (например, «Как видят» → назад)
@@ -90,6 +91,7 @@ export default function AdminPage({ fbUnread, onFeedbackSeen, onOpenMaterial }: 
         {top.k === 'purchases' && <PurchasesScreen nav={nav} />}
         {top.k === 'abandoned' && <AbandonedScreen nav={nav} />}
         {top.k === 'cstats' && <ContentStatsScreen nav={nav} />}
+        {top.k === 'codes' && <CodesScreen />}
         </div>
       </motion.div>
       <Toaster />
@@ -233,6 +235,7 @@ function Home({ nav, fbUnread }: { nav: Nav; fbUnread: number }) {
           <Item k="payments" icon="card" title="Оплаты" sub={`${rub(o.rub_30d)} за 30 дней · ${o.rub_30d_count} оплат`} tone="#E9C987" />
           <Item k="prices" icon="crown" title="Цены и курс" sub="тарифы Premium · курс рубля" tone="#E9C987" />
           <Item k="purchases" icon="book" title="Покупки разделов" sub="кто купил · выдать или забрать доступ" tone="#E9C987" />
+          <Item k="codes" icon="gift" title="Коды доступа" sub="розыгрыши · доступ к одному разделу" tone="#E9C987" />
           <Item k="abandoned" icon="clock" title="Брошенные оплаты" sub="начали платить и не оплатили" tone="#FF8A8A" />
           <Item k="logs" icon="history" title="Журнал" sub="кто и что менял" tone="#A6AAB4" />
         </Group>

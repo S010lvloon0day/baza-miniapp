@@ -39,6 +39,9 @@ export interface AUserFull extends AUser {
   history: { id: number; title: string | null; at: string; section?: string; done?: boolean }[]
   opened_total?: number; done_total?: number; old_names?: string[]
 }
+export interface ACodeBatch { batch: string; section_id: number; section: string; days: number | null; note: string; created_at: string; total: number; used: number }
+export interface ACodes { sections: { id: number; title: string; emoji: string; path: string; depth: number; closed: boolean }[]; batches: ACodeBatch[]; people: number }
+export interface ACodeRow { code: string; link: string; used_by: number | null; used_at: string | null; username: string; name: string }
 export interface APrices { rub_per_usd: number; rub_enabled: boolean; plans: { days: number; usd: number; rub: number }[] }
 export interface APurchases {
   purchases: { user_id: number; username: string; name: string; section_id: number; title: string; how: string; at: string }[]
@@ -88,6 +91,10 @@ export const adminApi = {
   limits: (filter: string) => get<ALimits>(`/api/admin/limits?${qs({ filter })}`),
   limitReset: (id: number, scope: 'hour' | 'day' | 'all') => post(`/api/admin/limits/${id}/reset`, { scope }),
   overview: () => get<Overview>('/api/admin/overview'),
+  codes: () => get<ACodes>('/api/admin/codes'),
+  codesCreate: (b: { section_id: number; days: number; count: number; note: string }) => post<{ ok: boolean; batch: string; sent: boolean; codes: { code: string; link: string }[] }>('/api/admin/codes', b),
+  codesBatch: (b: string) => get<{ codes: ACodeRow[] }>('/api/admin/codes/batch?' + qs({ b })),
+  codesAction: (b: Record<string, unknown>) => post<{ ok?: boolean; deleted?: number }>('/api/admin/codes/batch', b),
   prices: () => get<APrices>('/api/admin/prices'),
   savePrices: (b: { rub_per_usd: number; plans: { days: number; usd: number; rub: number }[] }) => post('/api/admin/prices', b),
   setCover: (sid: number, file_id: string) => post(`/api/admin/section/${sid}/cover`, { file_id }),
