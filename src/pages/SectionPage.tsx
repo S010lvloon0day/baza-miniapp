@@ -74,7 +74,7 @@ function PremiumUpsell({ section, onUpgrade }: { section: Section; onUpgrade: ()
       <Cover section={section}>
         <PremiumBadge />
         <h1 className="font-display font-semibold text-[25px] leading-tight mt-2.5" style={{ textWrap: 'balance' } as React.CSSProperties}>{section.title}</h1>
-        {section.description && <p className="text-[14px] text-[#D3D6DC] mt-1">{section.description}</p>}
+        {section.description && <p className="text-[14px] text-[#D3D6DC] mt-1 whitespace-pre-line">{renderWithLinks(section.description)}</p>}
       </Cover>
       <div className="px-3.5 flex flex-col gap-3">
         <div className="card-gold px-4 py-4">
@@ -228,7 +228,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
             {section.description && (
               <p onClick={() => setDescOpen(v => !v)}
                 className={`text-[14px] text-[#D3D6DC] mt-1 whitespace-pre-line ${section.description.length > 120 ? 'cursor-pointer' : ''} ${descOpen ? '' : 'line-clamp-3'}`}>
-                {section.description}
+                {renderWithLinks(section.description)}
               </p>
             )}
             {section.description && section.description.length > 120 && (
