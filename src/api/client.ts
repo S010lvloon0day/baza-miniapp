@@ -370,6 +370,8 @@ export const getChatTopic = () => _chatTopic
 export const api = {
   sections:       ()             => get<{ sections: Section[] }>('/api/sections'),
   subsections:    (id: number)   => get<{ sections: Section[] }>(`/api/sections?parent_id=${id}`),
+  accessCode:     (code: string) =>
+    post<{ ok?: boolean; already?: boolean; section_id?: number; section_title?: string; until?: string | null; error?: string; message?: string }>('/api/access_code', { code }),
   materials:      (id: number, page = 0, sort: MatSort = getMatSort(id)) =>
     get<{ materials: Material[]; total: number }>(`/api/sections/${id}/materials?page=${page}${sort ? `&sort=${sort}` : ''}`),
   material:       (id: number)   => get<Material>(`/api/material/${id}`),

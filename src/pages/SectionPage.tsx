@@ -1,3 +1,4 @@
+import AccessCodeBox from '../components/AccessCodeBox'
 import SupportArsen from '../components/SupportArsen'
 import { renderWithLinks } from '../components/RichText'
 import { useEffect, useRef, useState } from 'react'
@@ -246,6 +247,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
         </div>
       </Cover>
       {section.title === 'Знания Маркаряна' && <SupportArsen />}
+      {section.locked && <AccessCodeBox onDone={() => window.dispatchEvent(new CustomEvent('baza:open-section', { detail: section.id, bubbles: false }))} />}
       {subMsg && <div className="mx-[18px] -mt-2 mb-3 text-[13px] text-green">{subMsg}</div>}
 
       <div className="px-3.5 flex flex-col gap-4">

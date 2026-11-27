@@ -68,7 +68,7 @@ type View =
   | { type: 'sklad' }
 
 /** Ссылка из бота: ?m=<id> / startapp=m<id> — материал, ?feedback=1 / startapp=feedback — лента. */
-function readDeepLink(): { pay?: boolean; material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean; pvp?: string } {
+function readDeepLink(): { code?: string; pay?: boolean; material?: number; feedback?: boolean; chat?: boolean; chatMsg?: number; mask?: boolean; pvp?: string } {
   const qp = new URLSearchParams(location.search)
   const sp: string = tg?.initDataUnsafe?.start_param || ''
   const m = Number(qp.get('m') || (sp.match(/^m(\d+)$/)?.[1] ?? ''))
@@ -80,12 +80,13 @@ function readDeepLink(): { pay?: boolean; material?: number; feedback?: boolean;
     mask: qp.get('mask') === '1' || sp === 'mask' || /^pvpw?_[A-Za-z0-9]{4,20}$/.test(sp),
     pvp: sp.match(/^pvp_([A-Za-z0-9]{4,20})$/)?.[1] ?? (sp.match(/^pvpw_([A-Za-z0-9]{4,20})$/) ? 'w_' + sp.slice(5) : undefined),   // w_ — смотреть бой
     chatMsg: Number(qp.get('chat_msg')) || undefined,
+    code: sp.match(/^code_([A-Za-z0-9]{10})$/)?.[1],
   }
 }
 
 export default function App() {
   const [deepLink] = useState(readDeepLink)
-  const [started, setStarted] = useState(() => !!localStorage.getItem('started') || !!deepLink.pay || !!deepLink.material || deepLink.feedback || !!deepLink.chat)
+  const [started, setStarted] = useState(() => !!localStorage.getItem('started') || !!deepLink.pay || !!deepLink.material || !!deepLink.code || deepLink.feedback || !!deepLink.chat)
   const [tab, setTab] = useState<Tab>(deepLink.chat ? 'chat' : deepLink.pay ? 'prof' : 'home')
   const [stack, setStack] = useState<View[]>([])
   const [bmTick, setBmTick] = useState(0)
@@ -276,6 +277,16 @@ export default function App() {
     const h = () => { setTab('chat'); setStack([]) }
     window.addEventListener('baza:open-chat', h)
     return () => window.removeEventListener('baza:open-chat', h)
+  }, [])
+  // Ссылка с кодом доступа: активируем и сразу открываем выданный раздел
+  useEffect(() => {
+    if (!deepLink.code) return
+    api.accessCode(deepLink.code).then(r => {
+      if (r.ok && r.section_id) {
+        tg?.showAlert?.(`🎟 Раздел «${r.section_title}» открыт ${r.until ? 'до ' + new Date(String(r.until).replace(' ', 'T') + 'Z').toLocaleDateString('ru-RU') : 'навсегда'}.`)
+        window.dispatchEvent(new CustomEvent('baza:open-section', { detail: r.section_id }))
+      } else tg?.showAlert?.(r.message || 'Код не подошёл.')
+    }).catch(() => {})
   }, [])
   // «Открыть с Premium» из карточки курса — к тарифам в профиле
   useEffect(() => {
