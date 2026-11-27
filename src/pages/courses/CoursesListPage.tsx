@@ -63,7 +63,7 @@ export default function CoursesListPage({ sectionId, onOpen }: Props) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.04 }}
             onClick={() => onOpen(c.id)}
-            className={`relative flex gap-3.5 overflow-hidden text-left px-4 py-4 rounded-[20px] active:scale-[.99] transition-transform ${c.locked && c.price > 0 ? 'card-gold' : 'card'}`}
+            className={`relative flex gap-3.5 overflow-hidden text-left px-4 py-4 rounded-[20px] active:scale-[.99] transition-transform ${c.locked && (c.price > 0 || c.premium_only) ? 'card-gold' : 'card'}`}
           >
             <CourseIconBadge icon={c.icon} state={c.locked ? 'locked' : 'active'} />
 
@@ -72,7 +72,12 @@ export default function CoursesListPage({ sectionId, onOpen }: Props) {
                 <span className="inline-flex items-center h-6 px-2.5 rounded-full bg-white/[.07] text-[11.5px] font-medium text-gray">
                   {c.level}
                 </span>
-                {c.locked && c.price > 0 && (
+                {c.premium_only ? (
+                  <span className="inline-flex items-center h-6 px-2.5 rounded-full gold-metal text-[11.5px] font-semibold">
+                    <span className="relative z-[1]">💎 Premium</span>
+                  </span>
+                ) : null}
+                {c.locked && c.price > 0 && !c.premium_only && (
                   <span className="inline-flex items-center h-6 px-2.5 rounded-full gold-metal text-[11.5px] font-semibold">
                     <span className="relative z-[1]">{c.price} USDT</span>
                   </span>

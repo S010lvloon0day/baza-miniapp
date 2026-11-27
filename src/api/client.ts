@@ -112,6 +112,7 @@ export interface PaidOfferData {
   description: string
   /** цена в USDT */
   price: number
+  premium_only?: number
   /** цена в рублях (по курсу); null — оплата рублями выключена */
   rub: number | null
   /** путь к обложке внутри мини-аппа (covers/...) */
@@ -206,6 +207,7 @@ export interface Plan {
   days: number
   label: string
   price: number
+  premium_only?: number
   /** Цена в рублях (СБП через SecretPay); нет — рублёвая оплата выключена. */
   rub?: number
 }
@@ -227,6 +229,7 @@ export interface UsdtInvoice {
   network: string
   days: number
   price: number
+  premium_only?: number
   label: string
   expires: number
 }

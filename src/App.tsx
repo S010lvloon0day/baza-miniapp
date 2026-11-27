@@ -277,6 +277,12 @@ export default function App() {
     window.addEventListener('baza:open-chat', h)
     return () => window.removeEventListener('baza:open-chat', h)
   }, [])
+  // «Открыть с Premium» из карточки курса — к тарифам в профиле
+  useEffect(() => {
+    const h = () => { setStack([]); setTab('prof'); setUpgradePending(true) }
+    window.addEventListener('baza:open-premium', h)
+    return () => window.removeEventListener('baza:open-premium', h)
+  }, [])
   // Ссылки на материалы Базы в текстах — открываем здесь же, не выходя из приложения
   useEffect(() => {
     const onOpen = (e: Event) => { const id = Number((e as CustomEvent).detail); if (id > 0) openMaterialById(id) }

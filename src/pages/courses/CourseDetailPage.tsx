@@ -102,7 +102,15 @@ function Paywall({ course, onPurchased }: { course: CourseDetail; onPurchased: (
       {msg && <div className="w-full max-w-[520px]"><ErrorNote>{msg}</ErrorNote></div>}
 
       <div className="w-full max-w-[520px]">
-        {!invoice ? (
+        {course.premium_only ? (
+          <div className="flex flex-col items-center text-center">
+            <button onClick={() => window.dispatchEvent(new Event('baza:open-premium'))}
+              className="btn-gold gold-metal sheen w-full">
+              <b>Открыть с Premium</b>
+              <small>Курс входит в подписку — отдельно покупать не нужно</small>
+            </button>
+          </div>
+        ) : !invoice ? (
           (() => {
             const methods = [
               course.rub ? { key: 'rub', label: 'СБП', sub: 'банковским приложением', icon: 'card' as const, amount: fmtRub(course.rub), onClick: buyRub } : null,

@@ -64,6 +64,7 @@ export interface CourseSummary {
   locked: boolean
   rating: number
   reviews_count: number
+  premium_only?: number
 }
 
 export interface CourseReview {
@@ -142,6 +143,7 @@ export interface CourseDetail {
   rating: number
   reviews_count: number
   chapters: CourseChapter[]
+  premium_only?: number
 }
 
 export interface QuizOption {
