@@ -1,3 +1,4 @@
+import SupportArsen from '../components/SupportArsen'
 import { renderWithLinks } from '../components/RichText'
 import { useEffect, useRef, useState } from 'react'
 import Icon from '../components/Icon'
@@ -244,6 +245,7 @@ export default function SectionPage({ section, initialPage = 0, onMaterial, onSu
           </button>
         </div>
       </Cover>
+      {section.title === 'Знания Маркаряна' && <SupportArsen />}
       {subMsg && <div className="mx-[18px] -mt-2 mb-3 text-[13px] text-green">{subMsg}</div>}
 
       <div className="px-3.5 flex flex-col gap-4">
